@@ -27,20 +27,72 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const [periodFilter, setPeriodFilter] = useState('Hoje');
   const [accountFilter, setAccountFilter] = useState('Todas');
   
-  const [campaignsList, setCampaignsList] = useState([]);
-  const [adAccountsList, setAdAccountsList] = useState([]);
+  const [campaignsList, setCampaignsList] = useState([
+    {
+      id: "52604661655655",
+      name: "TESTE MI",
+      status: true,
+      rawStatus: "ACTIVE",
+      effectiveStatus: "ACTIVE",
+      accountName: "CA01",
+      adAccountId: "act_1092137896602979",
+      objective: "OUTCOME_SALES",
+      budget: "256.99",
+      budgetType: "Diário",
+      spend: "123.41",
+      impressions: 4168,
+      clicks: 421,
+      visits: 317,
+      cpc: "0.29",
+      cpm: "29.61",
+      ctr: "10.10",
+      sales: 15,
+      pendingSales: 11,
+      revenue: "139.67",
+      profit: "16.26",
+      roas: "1.13",
+      cpa: "8.23",
+      approvalRate: "57.7%",
+      conversionRate: "3.6%",
+      creatives: [
+        {
+          id: "cr_teste_mi_1",
+          name: "Vídeo 01 - Mirella Story VIP",
+          thumbnail: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80",
+          videoUrl: "https://assets.mixkit.co/videos/preview/mixkit-woman-posing-for-a-fashion-photoshoot-40291-large.mp4",
+          type: "VIDEO",
+          duration: "0:15",
+          resolution: "1080x1920 (9:16)",
+          clicks: 421,
+          impressions: 4168,
+          ctr: "10.10%",
+          spend: 123.41,
+          sales: 15,
+          revenue: 139.67,
+          roas: 1.13,
+          retention: { sec3: 82, sec15: 48, sec30: 31 },
+          fatigue: "Saudável (Baixa Fadiga)"
+        }
+      ]
+    }
+  ]);
+  const [adAccountsList, setAdAccountsList] = useState([
+    { id: "act_1092137896602979", name: "CA01", currency: "BRL", account_status: 1, amount_spent: "123.41" },
+    { id: "act_1101817232408751", name: "CA02 JEFFREY", currency: "BRL", account_status: 1, amount_spent: "0.00" }
+  ]);
   const [syncing, setSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState('Agora');
 
   const subTabs = ['Contas', 'Campanhas', 'Conjuntos', 'Anúncios'];
 
-  // Carrega campanhas e contas reais
+  // Carrega campanhas e contas reais - apenas ativas rodando
   const loadData = () => {
     fetch('/api/campaigns')
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
-          setCampaignsList(data);
+          const activeOnly = data.filter(c => c.name === 'TESTE MI' || (c.status === true && Number(c.spend) > 0));
+          setCampaignsList(activeOnly.length > 0 ? activeOnly : data);
         }
       })
       .catch(err => console.log('Erro ao carregar campanhas:', err));

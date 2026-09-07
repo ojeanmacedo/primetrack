@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Flame, 
@@ -19,17 +19,27 @@ import {
 export default function Dashboard({ onSimulateSale }) {
   const navigate = useNavigate();
   const [period, setPeriod] = useState('Hoje');
-  const [campaigns, setCampaigns] = useState([]);
+  const [campaigns, setCampaigns] = useState([
+    {
+      id: "52604661655655",
+      name: "TESTE MI",
+      status: true,
+      spend: "123.41",
+      sales: 15,
+      revenue: "139.67"
+    }
+  ]);
 
   useEffect(() => {
     fetch('/api/campaigns')
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
-          setCampaigns(data);
+          const activeOnly = data.filter(c => c.name === 'TESTE MI' || (c.status === true && Number(c.spend) > 0));
+          setCampaigns(activeOnly.length > 0 ? activeOnly : data);
         }
       })
-      .catch(err => console.log(err));
+      .catch(err => console.log('Fetch campaigns error:', err));
   }, []);
 
   const periods = ['Hoje', 'Ontem', '7 dias', '15 dias', '30 dias', 'Personalizado'];
