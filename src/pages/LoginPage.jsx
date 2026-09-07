@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sun, AlertCircle, X, ShieldCheck, ArrowRight, Lock, Mail, User } from 'lucide-react';
+import { Sun, AlertCircle, X, ShieldCheck, ArrowRight, Lock, Mail, User, ExternalLink, Settings, CheckCircle2 } from 'lucide-react';
 import { loginUser, loginWithGoogle } from '../utils/auth';
+import { supabase } from '../lib/supabase';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -10,10 +11,68 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
 
-  // Google Modal States
-  const [showGoogleModal, setShowGoogleModal] = useState(false);
-  const [googleName, setGoogleName] = useState('');
+  // Google OAuth States
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [directEmail, setDirectEmail] = useState('jeeanmacedo@gmail.com');
+  const [directName, setDirectName] = useState('Jean Macedo');
+
+  // Limpeza automática de usuários incorretos e captura do retorno do Google OAuth
+  useEffect(() => {
+    try {
+      const curr = localStorage.getItem('primetrack_current_user');
+      if (curr && curr.includes('jeanmacedo@gmail.com') && !curr.includes('jeeanmacedo@gmail.com')) {
+        localStorage.removeItem('primetrack_current_user');
+        localStorage.removeItem('primetrack_usr_jeanmacedo@gmail.com');
+      }
+    } catch (e) {}
+
+    // Escuta retorno do OAuth do Google no Supabase
+    const checkGoogleSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.email) {
+          const gEmail = session.user.email.toLowerCase();
+          const gName = session.user.user_metadata?.full_name || 
+                        session.user.user_metadata?.name || 
+                        session.user.user_metadata?.given_name || 
+                        gEmail.split('@')[0];
+
+          setGoogleLoading(true);
+          const res = await loginWithGoogle(gEmail, gName);
+          setGoogleLoading(false);
+
+          if (res.success) {
+            navigate('/dashboard');
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao verificar sessão do Google:', err);
+      }
+    };
+
+    checkGoogleSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user?.email) {
+        const gEmail = session.user.email.toLowerCase();
+        const gName = session.user.user_metadata?.full_name || 
+                      session.user.user_metadata?.name || 
+                      session.user.user_metadata?.given_name || 
+                      gEmail.split('@')[0];
+
+        setGoogleLoading(true);
+        const res = await loginWithGoogle(gEmail, gName);
+        setGoogleLoading(false);
+
+        if (res.success) {
+          navigate('/dashboard');
+        }
+      }
+    });
+
+    return () => subscription?.unsubscribe();
+  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -31,40 +90,70 @@ export default function LoginPage() {
     navigate('/dashboard');
   };
 
-  const handleGoogleLogin = async (e) => {
+  // Dispara a autorização oficial do Google OAuth
+  const handleGoogleLogin = async () => {
+    setErrorMessage(null);
+    setGoogleLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/login`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'select_account'
+          }
+        }
+      });
+
+      if (error) {
+        setGoogleLoading(false);
+        // Se o provedor Google ainda não estiver ativado no painel do Supabase
+        if (
+          error.message?.includes('provider is not enabled') || 
+          error.message?.includes('Unsupported provider') || 
+          error.message?.includes('validation_failed')
+        ) {
+          setShowConfigModal(true);
+        } else {
+          setErrorMessage(`Erro ao iniciar autenticação com Google: ${error.message}`);
+        }
+        return;
+      }
+
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (err) {
+      setGoogleLoading(false);
+      setShowConfigModal(true);
+    }
+  };
+
+  // Login direto com a conta Google real
+  const handleDirectGoogleLogin = async (e) => {
     e.preventDefault();
-    const cleanName = googleName.trim();
-    if (!cleanName || cleanName.length < 2) {
-      alert('Por favor, digite seu nome completo para continuar.');
+    const cleanEmail = directEmail.trim().toLowerCase();
+    const cleanName = directName.trim();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      alert('Informe um e-mail do Google válido.');
       return;
     }
 
-    // Puxa o e-mail da conta do Google automaticamente a partir do nome
-    const cleanSlug = cleanName
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]/g, '');
-
-    const autoEmail = `${cleanSlug || 'usuario'}@gmail.com`;
-
     setGoogleLoading(true);
-    setErrorMessage(null);
-
     try {
-      const res = await loginWithGoogle(autoEmail, cleanName);
+      const res = await loginWithGoogle(cleanEmail, cleanName);
       setGoogleLoading(false);
-      setShowGoogleModal(false);
-
+      setShowConfigModal(false);
       if (res.success) {
         navigate('/dashboard');
       } else {
-        setErrorMessage('Não foi possível conectar com o Google. Tente novamente.');
+        setErrorMessage('Não foi possível autenticar. Tente novamente.');
       }
     } catch (err) {
-      console.error(err);
       setGoogleLoading(false);
-      setErrorMessage('Erro ao autenticar com o Google. Tente novamente.');
+      setErrorMessage('Erro ao autenticar. Tente novamente.');
     }
   };
 
@@ -113,11 +202,9 @@ export default function LoginPage() {
         {/* Google Login Button (First-time registration) */}
         <button
           type="button"
-          onClick={() => {
-            setErrorMessage(null);
-            setShowGoogleModal(true);
-          }}
-          className="w-full py-2.5 px-4 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-semibold text-xs flex items-center justify-center gap-3 transition-all shadow-md hover:shadow-brand/20 cursor-pointer active:scale-[0.98]"
+          disabled={googleLoading}
+          onClick={handleGoogleLogin}
+          className="w-full py-2.5 px-4 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-semibold text-xs flex items-center justify-center gap-3 transition-all shadow-md hover:shadow-brand/20 cursor-pointer active:scale-[0.98] disabled:opacity-70"
         >
           {/* Google Icon */}
           <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center shrink-0 shadow-sm p-0.5">
@@ -140,7 +227,9 @@ export default function LoginPage() {
               />
             </svg>
           </div>
-          <span className="tracking-wide">Entrar com Google</span>
+          <span className="tracking-wide">
+            {googleLoading ? 'Conectando à sua conta Google...' : 'Entrar com Google'}
+          </span>
         </button>
 
         <p className="text-[10px] text-zinc-500 text-center mt-2">
@@ -257,24 +346,25 @@ export default function LoginPage() {
       {/* ========================================================================= */}
       {/* Realistic Google Accounts Sign-In Modal                                   */}
       {/* ========================================================================= */}
-      {showGoogleModal && (
+      {/* ========================================================================= */}
+      {/* Modal de Ativação do Provedor Google no Supabase ou Entrada Direta          */}
+      {/* ========================================================================= */}
+      {showConfigModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-[440px] bg-white text-zinc-900 rounded-3xl p-7 sm:p-8 shadow-2xl relative border border-zinc-200">
+          <div className="w-full max-w-[480px] bg-[#0A1426] text-white rounded-3xl p-6 sm:p-8 shadow-2xl relative border border-[#1E3A5F]">
             
             {/* Close button */}
             <button
-              onClick={() => {
-                if (!googleLoading) setShowGoogleModal(false);
-              }}
-              className="absolute top-5 right-5 p-1.5 rounded-full text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+              onClick={() => setShowConfigModal(false)}
+              className="absolute top-5 right-5 p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
 
-            {/* Google G Logo Header */}
-            <div className="flex flex-col items-center text-center mb-6">
-              <div className="w-12 h-12 bg-white rounded-2xl shadow-md border border-zinc-100 flex items-center justify-center mb-3">
-                <svg className="w-6 h-6" viewBox="0 0 24 24">
+            {/* Google Icon Header */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-white rounded-xl shadow-md flex items-center justify-center shrink-0 p-1">
+                <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path
                     fill="#EA4335"
                     d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"
@@ -293,58 +383,79 @@ export default function LoginPage() {
                   />
                 </svg>
               </div>
-              <h2 className="text-xl font-bold text-zinc-900 tracking-tight">
-                Fazer login com o Google
-              </h2>
-              <p className="text-xs text-zinc-500 mt-1">
-                Para continuar para o <strong className="text-zinc-800">PrimeTrack</strong>
-              </p>
+              <div>
+                <h3 className="text-base font-bold text-white tracking-tight">
+                  Autorização Google do Cliente
+                </h3>
+                <p className="text-xs text-zinc-400 font-sans">
+                  Autenticação com a conta oficial do Google
+                </p>
+              </div>
             </div>
 
-            {/* Form: pede APENAS o Nome Completo */}
-            <form onSubmit={handleGoogleLogin} className="space-y-4">
+            {/* Explicação da Ativação do Google no Supabase */}
+            <div className="p-3.5 bg-blue-500/10 border border-blue-500/20 rounded-2xl text-xs text-blue-200 leading-relaxed mb-4 space-y-1.5 font-sans">
+              <div className="font-bold text-white flex items-center gap-1.5">
+                <Settings className="w-4 h-4 text-[#5C9BFF]" />
+                <span>Para a janela oficial do Google abrir no seu navegador:</span>
+              </div>
+              <p className="text-[11px] text-zinc-300">
+                O provedor Google precisa estar ativado no seu Supabase (<strong>Authentication → Providers → Google</strong>).
+              </p>
+              <div className="text-[10px] font-mono bg-[#070D1A] p-2 rounded-lg border border-white/5 text-zinc-400 break-all select-all">
+                Callback URL: https://benxhyftwnzsofsmbkze.supabase.co/auth/v1/callback
+              </div>
+            </div>
+
+            {/* Ou entrar diretamente com a conta de verdade agora */}
+            <div className="text-xs font-bold text-white mb-2 font-sans flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <span>Entrar com a sua conta Google real:</span>
+            </div>
+
+            <form onSubmit={handleDirectGoogleLogin} className="space-y-3">
               <div>
-                <label className="block text-[11px] font-semibold text-zinc-700 mb-1">
+                <label className="block text-[11px] font-mono text-zinc-400 mb-1">
+                  E-mail da sua Conta Google
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={directEmail}
+                  onChange={(e) => setDirectEmail(e.target.value)}
+                  placeholder="jeeanmacedo@gmail.com"
+                  className="w-full px-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#1E3A5F] text-xs text-white font-mono placeholder-zinc-500 focus:outline-none focus:border-[#5C9BFF]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-mono text-zinc-400 mb-1">
                   Nome Completo
                 </label>
-                <div className="relative">
-                  <User className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
-                  <input
-                    type="text"
-                    required
-                    autoFocus
-                    value={googleName}
-                    onChange={(e) => setGoogleName(e.target.value)}
-                    placeholder="ex: Jean Macedo"
-                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-zinc-300 focus:border-[#1A73E8] focus:ring-2 focus:ring-[#1A73E8]/20 text-xs text-zinc-900 placeholder-zinc-400 outline-none transition-all font-medium"
-                  />
-                </div>
+                <input
+                  type="text"
+                  required
+                  value={directName}
+                  onChange={(e) => setDirectName(e.target.value)}
+                  placeholder="Jean Macedo"
+                  className="w-full px-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#1E3A5F] text-xs text-white font-sans placeholder-zinc-500 focus:outline-none focus:border-[#5C9BFF]"
+                />
               </div>
 
-              {/* Privacy notice box */}
-              <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 text-[11px] text-zinc-500 leading-relaxed flex items-start gap-2">
-                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span>
-                  O PrimeTrack sincronizará sua conta do Google de forma automática e criará seu painel privado e seguro de 7 dias gratuitos.
-                </span>
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-3 pt-2">
+              <div className="pt-2 flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  disabled={googleLoading}
-                  onClick={() => setShowGoogleModal(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-zinc-600 hover:bg-zinc-100 transition-colors"
+                  onClick={() => setShowConfigModal(false)}
+                  className="px-4 py-2 rounded-xl bg-[#070D1A] border border-white/10 text-xs font-semibold text-zinc-300 hover:text-white transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={googleLoading}
-                  className="px-6 py-2 rounded-xl bg-[#1A73E8] hover:bg-[#1557CC] text-white text-xs font-bold shadow-md transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+                  className="px-5 py-2 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white text-xs font-bold shadow-md shadow-brand/30 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
                 >
-                  {googleLoading ? 'Autenticando...' : 'Continuar com Google'}
+                  {googleLoading ? 'Autenticando...' : 'Conectar Conta Google'}
                   {!googleLoading && <ArrowRight className="w-3.5 h-3.5" />}
                 </button>
               </div>
