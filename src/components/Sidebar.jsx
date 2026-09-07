@@ -42,9 +42,11 @@ export default function Sidebar() {
       <div>
         <div className="h-16 flex items-center justify-between px-5 border-b border-[#13233E]">
           <NavLink to="/" className="flex items-center gap-2.5 overflow-hidden">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-[#1A6DFF] to-[#5C9BFF] flex items-center justify-center text-white font-black text-sm shadow-md shadow-[#1A6DFF]/30 shrink-0">
-              P
-            </div>
+            <img 
+              src="/images/logo-primetrack.png" 
+              alt="PrimeTrack" 
+              className="w-7 h-7 rounded-lg object-contain shadow-md shrink-0" 
+            />
             {!collapsed && (
               <span className="text-base font-extrabold text-white tracking-tight flex items-center">
                 <span>Prime</span>

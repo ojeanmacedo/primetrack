@@ -51,9 +51,11 @@ export default function LandingPage({ onGoToDashboard }) {
       {/* ── FLOATING PILL NAV (PrimeTrack) ── */}
       <nav className="fixed top-3 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-24px)] max-w-[640px] bg-[#0B1424]/85 backdrop-blur-xl border border-white/10 rounded-full px-4 py-1.5 flex items-center justify-between shadow-2xl shadow-black/70">
         <a href="/" className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-gradient-to-tr from-[#1A6DFF] to-[#5C9BFF] flex items-center justify-center text-white font-black text-xs shadow-md shadow-[#1A6DFF]/30 shrink-0">
-            P
-          </div>
+          <img 
+            src="/images/logo-primetrack.png" 
+            alt="PrimeTrack" 
+            className="w-6 h-6 rounded-md object-contain shadow-md shrink-0" 
+          />
           <span className="text-sm font-extrabold text-white tracking-tight flex items-center">
             <span>Prime</span><span className="text-[#5C9BFF]">Track</span>
           </span>
@@ -698,9 +700,11 @@ export default function LandingPage({ onGoToDashboard }) {
             
             <div className="md:col-span-5 space-y-4">
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-[#1A6DFF] to-[#5C9BFF] flex items-center justify-center text-white font-black text-sm shadow-md shadow-[#1A6DFF]/30 shrink-0">
-                  P
-                </div>
+                <img 
+                  src="/images/logo-primetrack.png" 
+                  alt="PrimeTrack" 
+                  className="w-8 h-8 rounded-lg object-contain shadow-md shrink-0" 
+                />
                 <span className="text-lg font-extrabold text-white tracking-tight flex items-center">
                   <span>Prime</span><span className="text-[#5C9BFF]">Track</span>
                 </span>
