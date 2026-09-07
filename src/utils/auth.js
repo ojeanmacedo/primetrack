@@ -15,14 +15,16 @@ const STORAGE_KEY = 'primetrack_current_user';
 
 export function getCurrentUser() {
   try {
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return DEFAULT_ADMIN;
+    }
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_ADMIN));
       return DEFAULT_ADMIN;
     }
     const user = JSON.parse(raw);
-    // Se o usuário salvo ainda for o antigo blackhost, migra automaticamente para digitaljmsolucoes
-    if (user.email === 'blackhospedagem@gmail.com' || !user.email) {
+    if (!user || user.email === 'blackhospedagem@gmail.com' || !user.email) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_ADMIN));
       return DEFAULT_ADMIN;
     }
@@ -91,10 +93,10 @@ export function logoutUser() {
 }
 
 export function getTrialStatus(user) {
-  const current = user || getCurrentUser();
+  const current = user || getCurrentUser() || DEFAULT_ADMIN;
 
   // Conta Digital JM / Admin / Pro: NUNCA expira, não exibe banner de renovação urgente
-  if (current.email === 'digitaljmsolucoes@gmail.com' || current.plan === 'pro' || current.role === 'admin') {
+  if (!current || current.email === 'digitaljmsolucoes@gmail.com' || current.plan === 'pro' || current.role === 'admin') {
     return {
       showExpiredBanner: false,
       isExpired: false,
