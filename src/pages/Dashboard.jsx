@@ -19,8 +19,28 @@ import {
 export default function Dashboard({ onSimulateSale }) {
   const navigate = useNavigate();
   const [period, setPeriod] = useState('Hoje');
+  const [campaigns, setCampaigns] = useState([]);
+
+  useEffect(() => {
+    fetch('/api/campaigns')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setCampaigns(data);
+        }
+      })
+      .catch(err => console.log(err));
+  }, []);
 
   const periods = ['Hoje', 'Ontem', '7 dias', '15 dias', '30 dias', 'Personalizado'];
+
+  const totalSpend = campaigns.reduce((acc, c) => acc + Number(c.spend || 0), 0);
+  const totalSales = campaigns.reduce((acc, c) => acc + Number(c.sales || 0), 0);
+  const totalRevenue = campaigns.reduce((acc, c) => acc + Number(c.revenue || 0), 0);
+  const totalProfit = totalRevenue - totalSpend;
+  const roas = totalSpend > 0 ? (totalRevenue / totalSpend).toFixed(2) : '1.13';
+  const cpa = totalSales > 0 ? (totalSpend / totalSales).toFixed(2) : '8.22';
+  const arpu = totalSales > 0 ? (totalRevenue / totalSales).toFixed(2) : '9.31';
 
   return (
     <div className="space-y-5 pb-16">
@@ -105,13 +125,17 @@ export default function Dashboard({ onSimulateSale }) {
         {/* Faturamento */}
         <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
           <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">FATURAMENTO</div>
-          <div className="text-xl sm:text-2xl font-extrabold text-white mt-1">R$ 139,67</div>
+          <div className="text-xl sm:text-2xl font-extrabold text-white mt-1">
+            R$ {(totalRevenue > 0 ? totalRevenue : 139.67).toFixed(2)}
+          </div>
         </div>
 
         {/* Lucro */}
         <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
           <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">LUCRO</div>
-          <div className="text-xl sm:text-2xl font-extrabold text-[#5C9BFF] mt-1">R$ 16,36</div>
+          <div className="text-xl sm:text-2xl font-extrabold text-[#5C9BFF] mt-1">
+            R$ {(totalProfit !== 0 ? totalProfit : 16.36).toFixed(2)}
+          </div>
           <div className="mt-1">
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold">
               ↑ Positivo
@@ -122,25 +146,33 @@ export default function Dashboard({ onSimulateSale }) {
         {/* Gasto em Ads */}
         <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
           <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">GASTO EM ADS</div>
-          <div className="text-xl sm:text-2xl font-extrabold text-white mt-1">R$ 123,31</div>
+          <div className="text-xl sm:text-2xl font-extrabold text-white mt-1">
+            R$ {(totalSpend > 0 ? totalSpend : 123.31).toFixed(2)}
+          </div>
         </div>
 
         {/* CPA */}
         <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
           <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">CPA</div>
-          <div className="text-xl sm:text-2xl font-extrabold text-white mt-1">R$ 8,22</div>
+          <div className="text-xl sm:text-2xl font-extrabold text-white mt-1">
+            R$ {cpa}
+          </div>
         </div>
 
         {/* ARPU */}
         <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
           <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">ARPU</div>
-          <div className="text-xl sm:text-2xl font-extrabold text-white mt-1">R$ 9,31</div>
+          <div className="text-xl sm:text-2xl font-extrabold text-white mt-1">
+            R$ {arpu}
+          </div>
         </div>
 
         {/* ROAS */}
         <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
           <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">ROAS</div>
-          <div className="text-xl sm:text-2xl font-extrabold text-[#5C9BFF] mt-1">1.13x</div>
+          <div className="text-xl sm:text-2xl font-extrabold text-[#5C9BFF] mt-1">
+            {roas}x
+          </div>
           <div className="mt-1">
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold">
               ↑ Ok

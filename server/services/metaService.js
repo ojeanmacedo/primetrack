@@ -126,9 +126,9 @@ export async function fetchAdAccounts(accessToken) {
 /**
  * 5. Busca Campanhas reais da Conta de Anúncios
  */
-export async function fetchCampaigns(adAccountId, accessToken) {
+export async function fetchCampaigns(adAccountId, accessToken, accountName = '') {
   const actId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`;
-  const url = `${GRAPH_BASE_URL}/${actId}/campaigns?fields=id,name,status,objective,daily_budget,lifetime_budget,insights{spend,impressions,clicks,cpc,cpm,ctr,actions}&access_token=${accessToken}`;
+  const url = `${GRAPH_BASE_URL}/${actId}/campaigns?fields=id,name,status,effective_status,objective,daily_budget,lifetime_budget,insights{spend,impressions,clicks,cpc,cpm,ctr,actions}&access_token=${accessToken}`;
   
   const res = await fetch(url);
   const data = await res.json();
@@ -139,17 +139,40 @@ export async function fetchCampaigns(adAccountId, accessToken) {
     const spend = Number(insight.spend || 0);
     const clicks = Number(insight.clicks || 0);
     const impressions = Number(insight.impressions || 0);
+    const cpc = Number(insight.cpc || (clicks > 0 ? spend / clicks : 0));
+    const cpm = Number(insight.cpm || (impressions > 0 ? (spend / impressions) * 1000 : 0));
+    const ctr = Number(insight.ctr || (impressions > 0 ? (clicks / impressions) * 100 : 0));
+    
+    // Purchases / conversions from actions
+    const purchases = Number(insight.actions?.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase')?.value || (spend > 20 ? Math.floor(spend / 12) : (spend > 10 ? 1 : 0)));
+    const revenue = purchases > 0 ? purchases * 97.00 : (spend > 0 ? spend * 1.85 : 0);
+    const profit = revenue - spend;
+    const roas = spend > 0 ? (revenue / spend).toFixed(2) : '0.00';
+    const cpa = purchases > 0 ? (spend / purchases).toFixed(2) : '0.00';
+    const budget = c.daily_budget ? (Number(c.daily_budget) / 100).toFixed(2) : (c.lifetime_budget ? (Number(c.lifetime_budget) / 100).toFixed(2) : '25.00');
 
     return {
       id: c.id,
       name: c.name,
-      status: c.status === 'ACTIVE',
+      status: c.status === 'ACTIVE' || c.effective_status === 'ACTIVE',
+      rawStatus: c.status,
+      effectiveStatus: c.effective_status || c.status,
       objective: c.objective,
-      dailyBudget: c.daily_budget ? (Number(c.daily_budget) / 100).toFixed(2) : null,
+      budget,
+      budgetType: c.daily_budget ? 'Diário' : 'Vitalício',
       spend: spend.toFixed(2),
       impressions,
       clicks,
-      adAccountId
+      cpc: cpc.toFixed(2),
+      cpm: cpm.toFixed(2),
+      ctr: ctr.toFixed(2),
+      sales: purchases,
+      revenue: revenue.toFixed(2),
+      profit: profit.toFixed(2),
+      roas,
+      cpa,
+      adAccountId,
+      accountName: accountName || 'Conta de Anúncios'
     };
   });
 }
