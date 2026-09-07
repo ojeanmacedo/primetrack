@@ -9,7 +9,8 @@ export const DEFAULT_ADMIN = {
   role: 'admin',
   plan: 'pro',
   avatarLetter: 'D',
-  createdAt: '2026-01-01T00:00:00.000Z'
+  createdAt: '2026-01-01T00:00:00.000Z',
+  hasSetPassword: true
 };
 
 const STORAGE_KEY = 'primetrack_current_user';
@@ -17,64 +18,205 @@ const STORAGE_KEY = 'primetrack_current_user';
 export function getCurrentUser() {
   try {
     if (typeof window === 'undefined' || !window.localStorage) {
-      return DEFAULT_ADMIN;
+      return null;
     }
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_ADMIN));
-      return DEFAULT_ADMIN;
+      return null;
     }
     const user = JSON.parse(raw);
-    if (!user || user.email === 'blackhospedagem@gmail.com' || !user.email) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_ADMIN));
-      return DEFAULT_ADMIN;
+    if (!user || !user.email) {
+      return null;
     }
     return user;
   } catch (e) {
-    return DEFAULT_ADMIN;
+    return null;
   }
 }
 
 export function setCurrentUser(user) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+    if (!user) {
+      localStorage.removeItem(STORAGE_KEY);
+    } else {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+    }
   } catch (e) {
     console.error('Erro ao salvar usuário:', e);
   }
 }
 
+export function isMasterAdmin(user) {
+  const current = user || getCurrentUser();
+  if (!current || !current.email) return false;
+  const email = current.email.toLowerCase();
+  return email === 'digitaljmsolucoes@gmail.com' || current.role === 'admin';
+}
+
+/**
+ * Login com E-mail e Senha
+ * REGRA: O primeiro cadastro é OBRIGATÓRIO ser feito com a conta do Google!
+ * Só pode entrar digitando e-mail e senha quem já tiver cadastro e tiver definido uma senha no app.
+ */
 export async function loginUser(email, password) {
   const cleanEmail = (email || '').trim().toLowerCase();
-  
-  // Conta proprietária Digital JM Soluções
-  if (cleanEmail === 'digitaljmsolucoes@gmail.com' || cleanEmail === 'blackhospedagem@gmail.com') {
+  const inputPass = (password || '').trim();
+
+  if (!cleanEmail || !inputPass) {
+    return { success: false, error: 'Por favor, preencha o e-mail e a senha.' };
+  }
+
+  // 1. Tenta autenticar pelo backend central da PrimeTrack (Supabase Admin)
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: cleanEmail, password: inputPass })
+    });
+    const data = await res.json();
+    if (res.ok && data.success && data.user) {
+      setCurrentUser(data.user);
+      localStorage.setItem(`primetrack_usr_${cleanEmail}`, JSON.stringify(data.user));
+      return { success: true, user: data.user };
+    } else if (data && data.error) {
+      return { success: false, error: data.error };
+    }
+  } catch (apiErr) {
+    console.warn('Backend auth endpoint indisponível, usando fallback:', apiErr.message);
+  }
+
+  // 2. Fallback: Conta administradora principal Digital JM Soluções
+  if (cleanEmail === 'digitaljmsolucoes@gmail.com') {
+    if (inputPass !== 'jean031522') {
+      return { success: false, error: 'Senha incorreta para a conta administradora.' };
+    }
     const adminUser = {
       ...DEFAULT_ADMIN,
       email: 'digitaljmsolucoes@gmail.com'
     };
     setCurrentUser(adminUser);
-
-    // Sincroniza admin com Supabase em segundo plano
-    try {
-      await supabase.from('users').upsert({
-        id: adminUser.id,
-        name: adminUser.name,
-        email: adminUser.email,
-        password: adminUser.password,
-        role: adminUser.role,
-        plan: adminUser.plan
-      });
-    } catch (e) {
-      console.log('Supabase sync background notice:', e.message);
-    }
-
     return { success: true, user: adminUser };
   }
 
-  // Busca ou cria no Supabase
-  let clientUser = null;
+  // 3. Fallback: Busca o usuário no Supabase direto
+  let userRecord = null;
   try {
-    const { data, error } = await supabase
+    const { data } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', cleanEmail)
+      .maybeSingle();
+
+    if (data) {
+      userRecord = data;
+    }
+  } catch (err) {
+    console.warn('Erro ao consultar Supabase:', err.message);
+  }
+
+  // Fallback para cache local
+  if (!userRecord) {
+    const localRaw = localStorage.getItem(`primetrack_usr_${cleanEmail}`);
+    if (localRaw) {
+      try { userRecord = JSON.parse(localRaw); } catch (e) {}
+    }
+  }
+
+  // REGRA CRÍTICA: Se o usuário não existe no banco, NÃO pode logar direto!
+  // Primeiro cadastro OBRIGATÓRIO via Google!
+  if (!userRecord) {
+    return {
+      success: false,
+      error: 'Conta não encontrada! O primeiro cadastro deve ser feito clicando em "Entrar com Google" acima.'
+    };
+  }
+
+  // Se o usuário entrou pelo Google mas nunca cadastrou senha no app
+  if (!userRecord.password || userRecord.password.trim().length < 6) {
+    return {
+      success: false,
+      error: 'Esta conta foi criada com o Google mas ainda não possui senha. Entre com o Google e defina sua senha em Integrações > Baixe nosso App.'
+    };
+  }
+
+  // Validação da senha cadastrada
+  if (userRecord.password !== inputPass) {
+    return {
+      success: false,
+      error: 'Senha incorreta. Tente novamente ou entre com a sua conta Google.'
+    };
+  }
+
+  // Usuário autenticado com sucesso
+  const authenticatedUser = {
+    id: userRecord.id,
+    name: userRecord.name,
+    email: userRecord.email,
+    password: userRecord.password,
+    role: userRecord.role || 'client',
+    plan: userRecord.plan || 'trial',
+    avatarLetter: (userRecord.name || cleanEmail).charAt(0).toUpperCase(),
+    createdAt: userRecord.created_at,
+    trialStartedAt: userRecord.trial_started_at || userRecord.created_at,
+    hasSetPassword: true
+  };
+
+  setCurrentUser(authenticatedUser);
+  localStorage.setItem(`primetrack_usr_${cleanEmail}`, JSON.stringify(authenticatedUser));
+  return { success: true, user: authenticatedUser };
+}
+
+/**
+ * Login e Cadastro pela Primeira Vez via Google
+ * Cria o usuário zerado no Supabase e solicita a definição de senha
+ */
+export async function loginWithGoogle(email, name = '') {
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const cleanName = (name || cleanEmail.split('@')[0]).trim();
+
+  // 1. Tenta autenticar/cadastrar pelo backend da PrimeTrack
+  try {
+    const res = await fetch('/api/auth/google-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: cleanEmail, name: cleanName })
+    });
+    const data = await res.json();
+    if (res.ok && data.success && data.user) {
+      const clientUser = data.user;
+      if (!clientUser.hasSetPassword) {
+        localStorage.setItem('primetrack_needs_password_setup', 'true');
+      } else {
+        localStorage.removeItem('primetrack_needs_password_setup');
+      }
+
+      localStorage.setItem('primetrack_meta_disconnected', 'true');
+      localStorage.removeItem('primetrack_connected_profiles');
+      localStorage.removeItem('primetrack_ad_accounts');
+
+      localStorage.setItem(`primetrack_usr_${cleanEmail}`, JSON.stringify(clientUser));
+      setCurrentUser(clientUser);
+      return { success: true, user: clientUser, isNew: data.isNew };
+    }
+  } catch (apiErr) {
+    console.warn('Backend google auth offline, usando fallback direto:', apiErr.message);
+  }
+
+  // 2. Fallback: Se for o admin mestre entrando via Google
+  if (cleanEmail === 'digitaljmsolucoes@gmail.com') {
+    const adminUser = {
+      ...DEFAULT_ADMIN,
+      email: 'digitaljmsolucoes@gmail.com'
+    };
+    setCurrentUser(adminUser);
+    return { success: true, user: adminUser, isNew: false };
+  }
+
+  let clientUser = null;
+  let isNew = false;
+
+  try {
+    const { data } = await supabase
       .from('users')
       .select('*')
       .eq('email', cleanEmail)
@@ -83,23 +225,24 @@ export async function loginUser(email, password) {
     if (data) {
       clientUser = {
         id: data.id,
-        name: data.name,
+        name: data.name || cleanName,
         email: data.email,
-        password: data.password,
+        password: data.password || '',
         role: data.role || 'client',
         plan: data.plan || 'trial',
         avatarLetter: (data.name || cleanEmail).charAt(0).toUpperCase(),
         createdAt: data.created_at,
-        trialStartedAt: data.trial_started_at
+        trialStartedAt: data.trial_started_at,
+        hasSetPassword: Boolean(data.password && data.password.trim().length >= 6)
       };
     } else {
-      // Novo cliente cadastrado no Supabase
+      isNew = true;
       const newId = `usr_${Date.now()}`;
       const newRecord = {
         id: newId,
-        name: cleanEmail.split('@')[0],
+        name: cleanName,
         email: cleanEmail,
-        password: password || '123456',
+        password: '',
         role: 'client',
         plan: 'trial',
         trial_started_at: new Date().toISOString(),
@@ -110,44 +253,73 @@ export async function loginUser(email, password) {
 
       clientUser = {
         ...newRecord,
-        avatarLetter: cleanEmail.charAt(0).toUpperCase()
+        avatarLetter: cleanName.charAt(0).toUpperCase(),
+        hasSetPassword: false
       };
     }
   } catch (err) {
-    console.warn('Erro ao conectar ao Supabase, usando cache local:', err.message);
+    console.warn('Erro ao conectar ao Supabase Google Login:', err.message);
   }
 
-  // Fallback local caso o cliente esteja offline
+  // Fallback local caso Supabase esteja temporariamente inacessível
   if (!clientUser) {
-    clientUser = {
-      id: `usr_${Date.now()}`,
-      name: cleanEmail.split('@')[0],
-      email: cleanEmail,
-      password: password || '123456',
-      role: 'client',
-      plan: 'trial',
-      avatarLetter: cleanEmail.charAt(0).toUpperCase(),
-      createdAt: new Date().toISOString(),
-      trialStartedAt: new Date().toISOString()
-    };
+    const existing = localStorage.getItem(`primetrack_usr_${cleanEmail}`);
+    if (existing) {
+      try { clientUser = JSON.parse(existing); } catch (e) {}
+    } else {
+      isNew = true;
+      clientUser = {
+        id: `usr_${Date.now()}`,
+        name: cleanName,
+        email: cleanEmail,
+        password: '',
+        role: 'client',
+        plan: 'trial',
+        avatarLetter: cleanName.charAt(0).toUpperCase(),
+        createdAt: new Date().toISOString(),
+        trialStartedAt: new Date().toISOString(),
+        hasSetPassword: false
+      };
+    }
   }
+
+  if (!clientUser.hasSetPassword) {
+    localStorage.setItem('primetrack_needs_password_setup', 'true');
+  } else {
+    localStorage.removeItem('primetrack_needs_password_setup');
+  }
+
+  localStorage.setItem('primetrack_meta_disconnected', 'true');
+  localStorage.removeItem('primetrack_connected_profiles');
+  localStorage.removeItem('primetrack_ad_accounts');
 
   localStorage.setItem(`primetrack_usr_${cleanEmail}`, JSON.stringify(clientUser));
   setCurrentUser(clientUser);
-  return { success: true, user: clientUser };
+
+  return { success: true, user: clientUser, isNew };
 }
 
 export function logoutUser() {
   try {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem('primetrack_needs_password_setup');
   } catch (e) {}
 }
 
 export function getTrialStatus(user) {
-  const current = user || getCurrentUser() || DEFAULT_ADMIN;
+  const current = user || getCurrentUser();
+  if (!current) {
+    return {
+      showExpiredBanner: false,
+      isExpired: false,
+      isTrial: false,
+      daysLeft: null,
+      planLabel: 'Visitante'
+    };
+  }
 
   // Conta Digital JM / Admin / Pro: NUNCA expira, não exibe banner de renovação urgente
-  if (!current || current.email === 'digitaljmsolucoes@gmail.com' || current.plan === 'pro' || current.role === 'admin') {
+  if (current.email === 'digitaljmsolucoes@gmail.com' || current.plan === 'pro' || current.role === 'admin') {
     return {
       showExpiredBanner: false,
       isExpired: false,

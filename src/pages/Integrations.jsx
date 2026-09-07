@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { getCurrentUser, isMasterAdmin, setCurrentUser } from '../utils/auth';
+import { supabase } from '../lib/supabase';
 import { 
   Plus, 
   RefreshCw, 
@@ -9,27 +11,36 @@ import {
   Radio, 
   Webhook, 
   Smartphone, 
-  HelpCircle,
-  Play,
-  CheckCircle2,
-  ChevronDown,
-  ShieldCheck,
-  Key,
-  Apple,
-  AlertTriangle,
-  Lock,
-  X,
-  ShieldAlert
+  HelpCircle, 
+  Play, 
+  CheckCircle2, 
+  ChevronDown, 
+  ShieldCheck, 
+  Key, 
+  Apple, 
+  AlertTriangle, 
+  Lock, 
+  X, 
+  ShieldAlert,
+  AlertCircle
 } from 'lucide-react';
 
 export default function Integrations() {
+  const currentUser = getCurrentUser();
+  const isAdmin = isMasterAdmin(currentUser);
+
   const [activeTab, setActiveTab] = useState('Facebook Ads');
   const [copiedUTM, setCopiedUTM] = useState(false);
   const [copiedPixel, setCopiedPixel] = useState(false);
   const [copiedConnectLink, setCopiedConnectLink] = useState(false);
+  
+  // App Password Form States
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passUpdated, setPassUpdated] = useState(false);
+  const [passError, setPassError] = useState(null);
+  const [isSavingPass, setIsSavingPass] = useState(false);
+
   const [openFaq, setOpenFaq] = useState(null);
 
   // Facebook Connection Flow States
@@ -38,7 +49,8 @@ export default function Integrations() {
   const [isConnecting, setIsConnecting] = useState(false);
 
   const [connectedProfiles, setConnectedProfiles] = useState(() => {
-    if (typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true') {
+    // Clientes normais começam com 0 conexões
+    if (!isAdmin || (typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true')) {
       return [];
     }
     const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_connected_profiles') : null;
@@ -61,7 +73,7 @@ export default function Integrations() {
   ];
 
   const [adAccounts, setAdAccounts] = useState(() => {
-    if (typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true') {
+    if (!isAdmin || (typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true')) {
       return [];
     }
     const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
@@ -80,6 +92,56 @@ export default function Integrations() {
       { name: 'CA01', id: '719933136445425', bm: 'DIGITAL JM SOLUCOES LTDA', currency: 'BRL', status: 'Ativa', sync: false },
     ];
   });
+
+  const handleUpdatePassword = async (e) => {
+    e.preventDefault();
+    setPassError(null);
+    setPassUpdated(false);
+
+    const cleanPass = newPassword.trim();
+    if (!cleanPass || cleanPass.length < 6) {
+      setPassError('A nova senha deve ter no mínimo 6 caracteres.');
+      return;
+    }
+
+    if (cleanPass !== confirmPassword.trim()) {
+      setPassError('A confirmação da senha não coincide com a nova senha.');
+      return;
+    }
+
+    setIsSavingPass(true);
+
+    try {
+      if (currentUser?.email) {
+        await supabase
+          .from('users')
+          .update({ password: cleanPass })
+          .eq('email', currentUser.email);
+      }
+
+      const updatedUser = {
+        ...(currentUser || {}),
+        password: cleanPass,
+        hasSetPassword: true
+      };
+
+      setCurrentUser(updatedUser);
+      if (currentUser?.email) {
+        localStorage.setItem(`primetrack_usr_${currentUser.email}`, JSON.stringify(updatedUser));
+      }
+      localStorage.removeItem('primetrack_needs_password_setup');
+
+      setPassUpdated(true);
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setPassUpdated(false), 8000);
+    } catch (err) {
+      console.error('Erro ao atualizar senha:', err);
+      setPassError('Erro ao salvar senha no banco de dados. Tente novamente.');
+    } finally {
+      setIsSavingPass(false);
+    }
+  };
 
   const [connectionSuccessMsg, setConnectionSuccessMsg] = useState(null);
   const [disconnectToast, setDisconnectToast] = useState(null);
@@ -135,8 +197,12 @@ export default function Integrations() {
   };
 
   React.useEffect(() => {
-    // Verifica retorno do OAuth via URL params
+    // Verifica retorno do OAuth ou aba solicitada via URL params
     const params = new URLSearchParams(window.location.search);
+    if (params.get('tab') === 'app') {
+      setActiveTab('Baixe nosso App');
+    }
+
     if (params.get('connected') === 'true') {
       localStorage.removeItem('primetrack_meta_disconnected');
       const userName = params.get('name') || 'Perfil';
@@ -146,8 +212,8 @@ export default function Integrations() {
       window.dispatchEvent(new Event('primetrack_profile_sync'));
     }
 
-    // Se estiver marcado explicitamente como desconectado, não carrega dados antigos
-    if (localStorage.getItem('primetrack_meta_disconnected') === 'true') {
+    // Se for cliente normal ou estiver desconectado, não carrega perfis de admin
+    if (!isAdmin || localStorage.getItem('primetrack_meta_disconnected') === 'true') {
       setConnectedProfiles([]);
       setAdAccounts([]);
       return;
@@ -205,19 +271,6 @@ export default function Integrations() {
     }
   };
 
-  const handleUpdatePassword = (e) => {
-    e.preventDefault();
-    if (!newPassword || newPassword.length < 6) {
-      alert('A senha deve ter pelo menos 6 caracteres.');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      alert('As senhas não conferem.');
-      return;
-    }
-    setPassUpdated(true);
-    setTimeout(() => setPassUpdated(false), 3000);
-  };
 
   return (
     <div className="space-y-6 pb-16">
@@ -878,11 +931,17 @@ export default function Integrations() {
               <span>App PrimeTrack</span>
             </div>
 
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1A6DFF] text-white font-mono text-[10px] font-bold">
-              <span>Senha</span>
-              <Check className="w-3 h-3 stroke-[3]" />
-              <span>Definida</span>
-            </div>
+            {currentUser?.hasSetPassword ? (
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono text-[10px] font-bold">
+                <span>Senha</span>
+                <Check className="w-3 h-3 stroke-[3]" />
+                <span>Definida</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono text-[10px] font-bold">
+                <span>Defina sua Senha</span>
+              </div>
+            )}
           </div>
 
           {/* 2 Columns Grid: Baixe o app + Atualizar senha */}
@@ -917,9 +976,9 @@ export default function Integrations() {
                   <li>1. Baixe o app</li>
                   <li>2. Defina uma senha ao lado →</li>
                   <li>
-                    3. No app, faça login com:
+                    3. No app ou em outro navegador, faça login com:
                     <div className="mt-1 pl-4 space-y-0.5 font-mono text-zinc-300">
-                      <div>✉️ blackhospedagem@gmail.com</div>
+                      <div>✉️ {currentUser?.email || 'seu@email.com'}</div>
                       <div>🔑 A senha que você definir</div>
                     </div>
                   </li>
@@ -931,10 +990,12 @@ export default function Integrations() {
             <div className="lg:col-span-7 bg-[#0A1426] border border-[#13233E] rounded-2xl p-6 shadow-xl space-y-4">
               <div className="flex items-center gap-2 font-bold text-white text-sm">
                 <Key className="w-4 h-4 text-[#5C9BFF]" />
-                <span>Atualizar senha do app</span>
+                <span>{currentUser?.hasSetPassword ? 'Atualizar senha de acesso' : 'Cadastre sua senha de acesso'}</span>
               </div>
               <p className="text-xs text-zinc-400">
-                Você já tem uma senha. Atualize abaixo se desejar.
+                {currentUser?.hasSetPassword 
+                  ? 'Você já possui uma senha ativa. Preencha abaixo caso queira alterá-la.' 
+                  : 'Cadastre sua senha abaixo para conseguir fazer login em outros navegadores ou no aplicativo sem precisar do Google.'}
               </p>
 
               <form onSubmit={handleUpdatePassword} className="space-y-4 pt-2">
@@ -964,19 +1025,27 @@ export default function Integrations() {
                   />
                 </div>
 
+                {passError && (
+                  <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{passError}</span>
+                  </div>
+                )}
+
                 {passUpdated && (
-                  <div className="text-xs text-emerald-400 font-bold flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Senha atualizada com sucesso!</span>
+                  <div className="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 font-semibold flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>Senha cadastrada com sucesso! Agora você pode logar em qualquer navegador digitando seu e-mail ({currentUser?.email}) e sua senha.</span>
                   </div>
                 )}
 
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-brand/30 transition-all"
+                  disabled={isSavingPass}
+                  className="px-5 py-2.5 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-brand/30 transition-all cursor-pointer disabled:opacity-50"
                 >
                   <Key className="w-3.5 h-3.5" />
-                  <span>Atualizar Senha</span>
+                  <span>{isSavingPass ? 'Salvando senha...' : (currentUser?.hasSetPassword ? 'Atualizar Senha' : 'Cadastrar Senha')}</span>
                 </button>
               </form>
             </div>
@@ -1005,7 +1074,7 @@ export default function Integrations() {
             {
               title: "Como faço para entrar no app?",
               hasVideo: false,
-              content: "Basta baixar o app na App Store ou Android APK, definir sua senha na aba 'Baixe nosso App' e fazer login com blackhospedagem@gmail.com."
+              content: "Basta baixar o app na App Store ou Android APK, definir sua senha na aba 'Baixe nosso App' e fazer login com seu e-mail cadastrado."
             },
             {
               title: "Meu app não notificou a venda",

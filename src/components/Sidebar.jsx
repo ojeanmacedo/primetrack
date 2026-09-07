@@ -197,15 +197,15 @@ export default function Sidebar() {
         <div className="flex items-center justify-between pt-1 px-1">
           <div className="flex items-center gap-2.5 overflow-hidden">
             <div className="w-7 h-7 rounded-full bg-[#1A6DFF] text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-md">
-              {user.avatarLetter || 'D'}
+              {user?.avatarLetter || (user?.email ? user.email.charAt(0).toUpperCase() : 'U')}
             </div>
             {!collapsed && (
               <div className="truncate">
-                <div className="text-xs font-bold text-white truncate" title={user.name || 'Digital JM Soluções'}>
-                  {user.name || 'Digital JM Soluções'}
+                <div className="text-xs font-bold text-white truncate" title={user?.name || user?.email || 'Usuário'}>
+                  {user?.name || user?.email || 'Usuário'}
                 </div>
                 <div className="text-[10px] text-zinc-400 truncate font-mono">
-                  {user.email || 'digitaljmsolucoes@gmail.com'}
+                  {user?.email || ''}
                 </div>
               </div>
             )}

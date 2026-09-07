@@ -1,24 +1,63 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, Sun } from 'lucide-react';
-import { loginUser } from '../utils/auth';
+import { Sun, AlertCircle, X, ShieldCheck, ArrowRight, Lock, Mail, User } from 'lucide-react';
+import { loginUser, loginWithGoogle } from '../utils/auth';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('digitaljmsolucoes@gmail.com');
-  const [password, setPassword] = useState('jean031522');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
+
+  // Google Modal States
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [googleEmail, setGoogleEmail] = useState('');
+  const [googleName, setGoogleName] = useState('');
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrorMessage(null);
+
+    const result = await loginUser(email, password);
+    setIsLoading(false);
+
+    if (!result.success) {
+      setErrorMessage(result.error);
+      return;
+    }
+
+    navigate('/dashboard');
+  };
+
+  const handleGoogleLogin = async (e) => {
+    e.preventDefault();
+    const cleanEmail = googleEmail.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      alert('Por favor, informe uma conta de e-mail do Google válida (ex: seu.email@gmail.com).');
+      return;
+    }
+
+    setGoogleLoading(true);
+    setErrorMessage(null);
+
     try {
-      await loginUser(email, password);
+      const res = await loginWithGoogle(cleanEmail, googleName.trim());
+      setGoogleLoading(false);
+      setShowGoogleModal(false);
+
+      if (res.success) {
+        navigate('/dashboard');
+      } else {
+        setErrorMessage('Não foi possível conectar com o Google. Tente novamente.');
+      }
     } catch (err) {
       console.error(err);
+      setGoogleLoading(false);
+      setErrorMessage('Erro ao autenticar com o Google. Tente novamente.');
     }
-    setIsLoading(false);
-    navigate('/dashboard');
   };
 
   return (
@@ -33,7 +72,7 @@ export default function LoginPage() {
       </button>
 
       {/* Main Login Card */}
-      <div className="w-full max-w-[420px] bg-[#0A1426] border border-[#13233E] rounded-3xl p-8 sm:p-10 shadow-2xl shadow-black/80 flex flex-col items-center">
+      <div className="w-full max-w-[420px] bg-[#0A1426] border border-[#13233E] rounded-3xl p-8 sm:p-10 shadow-2xl shadow-black/80 flex flex-col items-center relative">
         
         {/* PrimeTrack Brand Logo */}
         <div className="flex items-center gap-2.5 mb-2">
@@ -48,50 +87,73 @@ export default function LoginPage() {
         </div>
 
         {/* Tagline */}
-        <p className="text-xs text-[#7B8BA6] font-medium mb-7 text-center">
+        <p className="text-xs text-[#7B8BA6] font-medium mb-5 text-center">
           Rastreamento inteligente para low ticket
         </p>
 
-        {/* Google Login Button */}
+        {/* Error Message Box */}
+        {errorMessage && (
+          <div className="w-full mb-4 p-3.5 rounded-xl bg-red-500/15 border border-red-500/30 text-red-300 text-xs flex items-start gap-2.5 animate-in fade-in duration-200 shadow-md">
+            <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+            <div className="leading-relaxed">
+              <span className="font-semibold block mb-0.5">Atenção</span>
+              <span>{errorMessage}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Google Login Button (First-time registration) */}
         <button
           type="button"
-          onClick={handleSubmit}
-          className="w-full py-2.5 px-4 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-semibold text-xs flex items-center justify-center gap-3 transition-colors shadow-sm cursor-pointer"
+          onClick={() => {
+            setErrorMessage(null);
+            setShowGoogleModal(true);
+          }}
+          className="w-full py-2.5 px-4 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-semibold text-xs flex items-center justify-center gap-3 transition-all shadow-md hover:shadow-brand/20 cursor-pointer active:scale-[0.98]"
         >
           {/* Google Icon */}
-          <svg className="w-4 h-4" viewBox="0 0 24 24">
-            <path
-              fill="#EA4335"
-              d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"
-            />
-            <path
-              fill="#4285F4"
-              d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"
-            />
-            <path
-              fill="#FBBC05"
-              d="M5.6 14.8c-.3-.8-.4-1.8-.4-2.8s.2-2 .4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z"
-            />
-            <path
-              fill="#34A853"
-              d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16c1.8 3.7 5.6 7 10.1 7z"
-            />
-          </svg>
-          <span>Entrar com Google</span>
+          <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center shrink-0 shadow-sm p-0.5">
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
+              <path
+                fill="#EA4335"
+                d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"
+              />
+              <path
+                fill="#4285F4"
+                d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.6 14.8c-.3-.8-.4-1.8-.4-2.8s.2-2 .4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16c1.8 3.7 5.6 7 10.1 7z"
+              />
+            </svg>
+          </div>
+          <span className="tracking-wide">Entrar com Google</span>
         </button>
+
+        <p className="text-[10px] text-zinc-500 text-center mt-2">
+          Novo na PrimeTrack? O primeiro cadastro é feito com sua conta Google.
+        </p>
 
         {/* Divider */}
         <div className="w-full flex items-center gap-3 my-5">
           <div className="flex-1 h-[1px] bg-[#172640]" />
-          <span className="text-[11px] text-[#556987] font-mono lowercase">ou</span>
+          <span className="text-[11px] text-[#556987] font-mono lowercase">ou com e-mail e senha</span>
           <div className="flex-1 h-[1px] bg-[#172640]" />
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="w-full space-y-3">
           <div>
+            <label className="block text-[10px] font-mono text-zinc-400 uppercase tracking-wider mb-1">
+              E-mail
+            </label>
             <input
-              type="text"
+              type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="seu@email.com"
@@ -101,11 +163,14 @@ export default function LoginPage() {
           </div>
 
           <div>
+            <label className="block text-[10px] font-mono text-zinc-400 uppercase tracking-wider mb-1">
+              Senha
+            </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Sua senha"
+              placeholder="Sua senha cadastrada no app"
               className="w-full px-3.5 py-2.5 rounded-xl bg-[#E8EDF5] text-[#0A1426] placeholder-zinc-500 font-medium text-xs focus:outline-none focus:ring-2 focus:ring-brand shadow-inner"
               required
             />
@@ -114,15 +179,15 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-2.5 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-bold text-xs tracking-wide transition-colors shadow-md mt-1 cursor-pointer"
+            className="w-full py-2.5 rounded-xl bg-[#1A6DFF] hover:bg-[#1557CC] text-white font-bold text-xs tracking-wide transition-colors shadow-md mt-2 cursor-pointer disabled:opacity-50"
           >
-            {isLoading ? 'Entrando...' : 'Entrar'}
+            {isLoading ? 'Verificando...' : 'Entrar com E-mail'}
           </button>
         </form>
 
         {/* Terms agreement */}
         <p className="text-[10px] text-[#556987] text-center mt-5">
-          Ao entrar, você concorda com os Termos de Uso
+          Ao entrar, você concorda com os Termos de Uso e Privacidade.
         </p>
 
         {/* Bottom Theme & Icons Toolbar */}
@@ -181,8 +246,123 @@ export default function LoginPage() {
 
       </div>
 
+      {/* ========================================================================= */}
+      {/* Realistic Google Accounts Sign-In Modal                                   */}
+      {/* ========================================================================= */}
+      {showGoogleModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-[440px] bg-white text-zinc-900 rounded-3xl p-7 sm:p-8 shadow-2xl relative border border-zinc-200">
+            
+            {/* Close button */}
+            <button
+              onClick={() => {
+                if (!googleLoading) setShowGoogleModal(false);
+              }}
+              className="absolute top-5 right-5 p-1.5 rounded-full text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Google G Logo Header */}
+            <div className="flex flex-col items-center text-center mb-6">
+              <div className="w-12 h-12 bg-white rounded-2xl shadow-md border border-zinc-100 flex items-center justify-center mb-3">
+                <svg className="w-6 h-6" viewBox="0 0 24 24">
+                  <path
+                    fill="#EA4335"
+                    d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"
+                  />
+                  <path
+                    fill="#4285F4"
+                    d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.6 14.8c-.3-.8-.4-1.8-.4-2.8s.2-2 .4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16c1.8 3.7 5.6 7 10.1 7z"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-zinc-900 tracking-tight">
+                Fazer login com o Google
+              </h2>
+              <p className="text-xs text-zinc-500 mt-1">
+                Para continuar para o <strong className="text-zinc-800">PrimeTrack</strong>
+              </p>
+            </div>
+
+            {/* Form to enter Google Account */}
+            <form onSubmit={handleGoogleLogin} className="space-y-3.5">
+              <div>
+                <label className="block text-[11px] font-semibold text-zinc-700 mb-1">
+                  E-mail do Google
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
+                  <input
+                    type="email"
+                    required
+                    autoFocus
+                    value={googleEmail}
+                    onChange={(e) => setGoogleEmail(e.target.value)}
+                    placeholder="seu.email@gmail.com"
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-zinc-300 focus:border-[#1A73E8] focus:ring-2 focus:ring-[#1A73E8]/20 text-xs text-zinc-900 placeholder-zinc-400 outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-zinc-700 mb-1">
+                  Nome Completo
+                </label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
+                  <input
+                    type="text"
+                    required
+                    value={googleName}
+                    onChange={(e) => setGoogleName(e.target.value)}
+                    placeholder="ex: Jean Macedo"
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-zinc-300 focus:border-[#1A73E8] focus:ring-2 focus:ring-[#1A73E8]/20 text-xs text-zinc-900 placeholder-zinc-400 outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Privacy notice box */}
+              <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 text-[11px] text-zinc-500 leading-relaxed flex items-start gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <span>
+                  O Google compartilhará com o PrimeTrack seu nome e e-mail para criar seu painel privado e seguro.
+                </span>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  disabled={googleLoading}
+                  onClick={() => setShowGoogleModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-zinc-600 hover:bg-zinc-100 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={googleLoading}
+                  className="px-6 py-2 rounded-xl bg-[#1A73E8] hover:bg-[#1557CC] text-white text-xs font-bold shadow-md transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+                >
+                  {googleLoading ? 'Autenticando...' : 'Continuar com Google'}
+                  {!googleLoading && <ArrowRight className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
-
-

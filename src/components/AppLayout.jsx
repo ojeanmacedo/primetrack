@@ -1,8 +1,16 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, Navigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
+import { getCurrentUser } from '../utils/auth';
 
 export default function AppLayout() {
+  const user = getCurrentUser();
+
+  // Bloqueio de rota não autenticada: redireciona para /login
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
   return (
     <div className="h-screen w-screen overflow-hidden bg-[#03060D] text-[#EDF2FF] flex font-sans">
       {/* Left Sidebar */}

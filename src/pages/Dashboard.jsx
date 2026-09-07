@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCurrentUser, getTrialStatus } from '../utils/auth';
+import { getCurrentUser, getTrialStatus, isMasterAdmin } from '../utils/auth';
 import { 
   Flame, 
   RotateCw, 
@@ -8,25 +8,28 @@ import {
   Eye, 
   Edit3, 
   Palette, 
-  ChevronDown,
-  AlertTriangle,
-  ArrowRight,
-  TrendingUp,
-  Percent,
-  CheckCircle2,
-  Clock
+  ChevronDown, 
+  AlertTriangle, 
+  ArrowRight, 
+  TrendingUp, 
+  Percent, 
+  CheckCircle2, 
+  Clock,
+  Key
 } from 'lucide-react';
 
 export default function Dashboard({ onSimulateSale }) {
   const navigate = useNavigate();
   const user = getCurrentUser();
+  const isAdmin = isMasterAdmin(user);
   const trialStatus = getTrialStatus(user);
   const [period, setPeriod] = useState('Hoje');
 
   const isDisconnected = typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true';
 
   const [campaigns, setCampaigns] = useState(() => {
-    if (isDisconnected) return [];
+    // Apenas a conta proprietária do admin tem acesso aos dados demo de TESTE MI
+    if (!isAdmin || isDisconnected) return [];
     return [
       {
         id: "52604661655655",
@@ -40,7 +43,7 @@ export default function Dashboard({ onSimulateSale }) {
   });
 
   const loadDashboardData = () => {
-    if (localStorage.getItem('primetrack_meta_disconnected') === 'true') {
+    if (!isAdmin || localStorage.getItem('primetrack_meta_disconnected') === 'true') {
       setCampaigns([]);
       return;
     }
@@ -243,7 +246,7 @@ export default function Dashboard({ onSimulateSale }) {
     ]
   };
 
-  const isProfileDisconnected = (typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true') || campaigns.length === 0;
+  const isProfileDisconnected = (!isAdmin && campaigns.length === 0) || (typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true') || campaigns.length === 0;
 
   const currentMetrics = isProfileDisconnected 
     ? emptyMetrics 
@@ -309,6 +312,37 @@ export default function Dashboard({ onSimulateSale }) {
           </div>
         </div>
       </div>
+
+      {/* Aviso de Primeiro Cadastro via Google: Cadastrar Senha */}
+      {typeof window !== 'undefined' && localStorage.getItem('primetrack_needs_password_setup') === 'true' && (
+        <div className="bg-gradient-to-r from-blue-950/80 via-[#0A1D3A] to-blue-900/40 border border-[#2558C7]/60 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-[#1A6DFF]/20 text-[#5C9BFF] flex items-center justify-center shrink-0 mt-0.5 border border-[#1A6DFF]/30">
+              <Key className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white">
+                  Cadastre sua senha de acesso
+                </h3>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30">
+                  Importante
+                </span>
+              </div>
+              <p className="text-xs text-zinc-300 mt-1 leading-relaxed max-w-2xl">
+                Você se cadastrou com sua conta do Google ({user?.email}). Para conseguir fazer login em outros navegadores ou no app mobile digitando e-mail e senha, cadastre sua senha em <strong className="text-white">Integrações &gt; Baixe nosso App</strong>.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/integracoes?tab=app')}
+            className="px-4 py-2.5 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-bold text-xs shrink-0 flex items-center gap-2 shadow-lg shadow-brand/30 transition-all cursor-pointer whitespace-nowrap"
+          >
+            <span>Cadastrar Senha Agora</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Aviso de Perfil Desconectado */}
       {isProfileDisconnected && (
@@ -577,7 +611,6 @@ export default function Dashboard({ onSimulateSale }) {
             <span className="text-lg font-bold text-white">{currentMetrics.sales}</span>
           </div>
         </div>
-
         {/* Vendas por Fonte */}
         <div className="bg-[#0A1426] border border-[#13233E] p-5 rounded-2xl">
           <div className="text-xs font-bold text-white mb-3">Vendas por Fonte</div>
@@ -586,14 +619,18 @@ export default function Dashboard({ onSimulateSale }) {
               <span className="text-zinc-300">Facebook</span>
               <div className="flex items-center gap-2 font-mono">
                 <span className="font-bold text-white">{currentMetrics.sources.fb}</span>
-                <span className="text-zinc-400 text-[11px]">({Math.round((currentMetrics.sources.fb / currentMetrics.sales) * 100)}%)</span>
+                <span className="text-zinc-400 text-[11px]">
+                  ({currentMetrics.sales > 0 ? Math.round((currentMetrics.sources.fb / currentMetrics.sales) * 100) : 0}%)
+                </span>
               </div>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-zinc-300">Instagram</span>
               <div className="flex items-center gap-2 font-mono">
                 <span className="font-bold text-white">{currentMetrics.sources.ig}</span>
-                <span className="text-zinc-400 text-[11px]">({Math.round((currentMetrics.sources.ig / currentMetrics.sales) * 100)}%)</span>
+                <span className="text-zinc-400 text-[11px]">
+                  ({currentMetrics.sales > 0 ? Math.round((currentMetrics.sources.ig / currentMetrics.sales) * 100) : 0}%)
+                </span>
               </div>
             </div>
           </div>
@@ -608,27 +645,35 @@ export default function Dashboard({ onSimulateSale }) {
         <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
           <div className="flex items-center justify-between text-xs mb-3">
             <span className="font-bold text-white">VENDAS POR PRODUTO</span>
-            <span className="text-[10px] font-mono text-zinc-400">3 produtos</span>
+            <span className="text-[10px] font-mono text-zinc-400">
+              {currentMetrics.sales > 0 ? '3 produtos' : '0 produtos'}
+            </span>
           </div>
 
-          <div className="space-y-2 text-xs">
-            <div className="flex justify-between pb-1.5 border-b border-[#13233E]/50">
-              <span className="text-zinc-300 truncate max-w-[140px]">Privacy Mc Mirella</span>
-              <span className="font-mono font-bold text-white">{Math.round(currentMetrics.sales * 0.86)}</span>
+          {currentMetrics.sales === 0 ? (
+            <div className="py-6 text-center text-zinc-500 text-xs">
+              Nenhum produto vendido no período
             </div>
-            <div className="flex justify-between pb-1.5 border-b border-[#13233E]/50">
-              <span className="text-zinc-300 truncate max-w-[140px]">ACESSO AO GRUPO MIRELLA</span>
-              <span className="font-mono font-bold text-white">{Math.max(1, Math.round(currentMetrics.sales * 0.07))}</span>
+          ) : (
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between pb-1.5 border-b border-[#13233E]/50">
+                <span className="text-zinc-300 truncate max-w-[140px]">Privacy Mc Mirella</span>
+                <span className="font-mono font-bold text-white">{Math.round(currentMetrics.sales * 0.86)}</span>
+              </div>
+              <div className="flex justify-between pb-1.5 border-b border-[#13233E]/50">
+                <span className="text-zinc-300 truncate max-w-[140px]">ACESSO AO GRUPO MIRELLA</span>
+                <span className="font-mono font-bold text-white">{Math.max(1, Math.round(currentMetrics.sales * 0.07))}</span>
+              </div>
+              <div className="flex justify-between pb-1.5 border-b border-[#13233E]/50">
+                <span className="text-zinc-300 truncate max-w-[140px]">Vip Exclusivo Mirella</span>
+                <span className="font-mono font-bold text-white">{Math.max(1, Math.round(currentMetrics.sales * 0.07))}</span>
+              </div>
+              <div className="flex justify-between pt-1 font-bold">
+                <span className="text-zinc-400">Total</span>
+                <span className="font-mono text-white">{currentMetrics.sales}</span>
+              </div>
             </div>
-            <div className="flex justify-between pb-1.5 border-b border-[#13233E]/50">
-              <span className="text-zinc-300 truncate max-w-[140px]">Vip Exclusivo Mirella</span>
-              <span className="font-mono font-bold text-white">{Math.max(1, Math.round(currentMetrics.sales * 0.07))}</span>
-            </div>
-            <div className="flex justify-between pt-1 font-bold">
-              <span className="text-zinc-400">Total</span>
-              <span className="font-mono text-white">{currentMetrics.sales}</span>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Taxas Plataforma */}
@@ -668,13 +713,14 @@ export default function Dashboard({ onSimulateSale }) {
         <div className="flex items-end gap-1.5 h-36 pt-4 border-b border-[#13233E]">
           {currentMetrics.hourly.map((item, idx) => (
             <div key={idx} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
+              <div className="text-[9px] font-mono text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                {item.v}
+              </div>
               <div 
-                className={`w-full rounded-t-sm transition-all ${
-                  item.v > 0 ? 'bg-[#2B66E3] hover:bg-[#5C9BFF]' : 'bg-transparent'
-                }`}
+                className="w-full bg-[#1A6DFF] hover:bg-[#5C9BFF] rounded-t transition-all"
                 style={{ height: `${item.v}%` }}
               />
-              <span className="text-[9px] font-mono text-zinc-500">{item.h}</span>
+              <span className="text-[9px] font-mono text-zinc-400">{item.h}</span>
             </div>
           ))}
         </div>
@@ -684,7 +730,9 @@ export default function Dashboard({ onSimulateSale }) {
       <div className="bg-[#0A1426] border border-[#13233E] p-5 rounded-2xl">
         <div className="flex items-center justify-between text-xs mb-4">
           <span className="font-bold text-white">Vendas por Localização</span>
-          <span className="text-[11px] font-mono text-[#5C9BFF]">São Paulo lidera - 6 vendas</span>
+          <span className="text-[11px] font-mono text-[#5C9BFF]">
+            {currentMetrics.sales > 0 ? 'São Paulo lidera - 6 vendas' : 'Aguardando primeiras vendas'}
+          </span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
@@ -694,7 +742,9 @@ export default function Dashboard({ onSimulateSale }) {
             <span className="text-[10px] font-mono text-zinc-400 mb-4 self-start">● MUNDO</span>
             <div className="w-full text-center text-zinc-600 font-mono text-xs">
               <div className="text-3xl mb-2">🌎</div>
-              <span className="text-zinc-400">Brasil: 100% das vendas aprovadas</span>
+              <span className="text-zinc-400">
+                {currentMetrics.sales > 0 ? 'Brasil: 100% das vendas aprovadas' : 'Sem vendas no período'}
+              </span>
             </div>
           </div>
 
@@ -702,21 +752,27 @@ export default function Dashboard({ onSimulateSale }) {
           <div className="lg:col-span-6 space-y-3 font-mono text-xs">
             <span className="text-[10px] text-zinc-400 mb-2 block">■ BRASIL</span>
 
-            {[
-              { state: 'São Paulo', sales: 6, pct: 100 },
-              { state: 'Minas Gerais', sales: 3, pct: 50 },
-              { state: 'Goiás', sales: 2, pct: 33 },
-              { state: 'Pernambuco', sales: 1, pct: 16 },
-              { state: 'Santa Catarina', sales: 1, pct: 16 }
-            ].map((st, idx) => (
-              <div key={idx} className="flex items-center justify-between gap-4">
-                <span className="text-zinc-300 w-28">{st.state}</span>
-                <div className="flex-1 bg-white/5 h-2 rounded-full overflow-hidden">
-                  <div className="bg-[#2B66E3] h-full rounded-full" style={{ width: `${st.pct}%` }} />
-                </div>
-                <span className="text-white font-bold w-6 text-right">{st.sales}</span>
+            {currentMetrics.sales === 0 ? (
+              <div className="py-8 text-center text-zinc-500">
+                Nenhum dado geográfico registrado ainda
               </div>
-            ))}
+            ) : (
+              [
+                { state: 'São Paulo', sales: 6, pct: 100 },
+                { state: 'Minas Gerais', sales: 3, pct: 50 },
+                { state: 'Goiás', sales: 2, pct: 33 },
+                { state: 'Pernambuco', sales: 1, pct: 16 },
+                { state: 'Santa Catarina', sales: 1, pct: 16 }
+              ].map((st, idx) => (
+                <div key={idx} className="flex items-center justify-between gap-4">
+                  <span className="text-zinc-300 w-28">{st.state}</span>
+                  <div className="flex-1 bg-white/5 h-2 rounded-full overflow-hidden">
+                    <div className="bg-[#2B66E3] h-full rounded-full" style={{ width: `${st.pct}%` }} />
+                  </div>
+                  <span className="text-white font-bold w-6 text-right">{st.sales}</span>
+                </div>
+              ))
+            )}
           </div>
 
         </div>

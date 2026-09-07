@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getCurrentUser, isMasterAdmin } from '../utils/auth';
 import { 
   ChevronDown, 
   Download, 
@@ -9,6 +10,8 @@ import {
 } from 'lucide-react';
 
 export default function Sales() {
+  const user = getCurrentUser();
+  const isAdmin = isMasterAdmin(user);
   const [period, setPeriod] = useState('Hoje');
 
   const salesData = [
@@ -126,6 +129,8 @@ export default function Sales() {
     }
   ];
 
+  const displayedSales = isAdmin ? salesData : [];
+
   return (
     <div className="space-y-4 pb-16">
       
@@ -138,7 +143,7 @@ export default function Sales() {
             Vendas
           </h1>
           <p className="text-xs text-zinc-400 font-sans mt-0.5">
-            26 vendas hoje
+            {displayedSales.length} vendas hoje
           </p>
         </div>
 
@@ -198,23 +203,31 @@ export default function Sales() {
 
       {/* Main Table matching Screenshot */}
       <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl overflow-hidden shadow-xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs font-sans whitespace-nowrap">
-            <thead className="bg-[#070D1A] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E]">
-              <tr>
-                <th className="py-3 px-4">CLIENTE</th>
-                <th className="py-3 px-4">PRODUTO</th>
-                <th className="py-3 px-4">VALOR</th>
-                <th className="py-3 px-4">PLATAFORMA</th>
-                <th className="py-3 px-4">ORIGEM</th>
-                <th className="py-3 px-4">CAMPANHA</th>
-                <th className="py-3 px-4 text-center">CAPI</th>
-                <th className="py-3 px-4">MOTIVO</th>
-                <th className="py-3 px-4 text-right">DATA</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#13233E]/60">
-              {salesData.map((sale) => (
+        {displayedSales.length === 0 ? (
+          <div className="p-16 text-center">
+            <div className="font-bold text-white text-sm">Nenhuma venda registrada ainda</div>
+            <p className="text-zinc-400 text-xs mt-1 max-w-sm mx-auto">
+              Suas vendas rastreadas pelo pixel e via Webhook aparecerão aqui em tempo real.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs font-sans whitespace-nowrap">
+              <thead className="bg-[#070D1A] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E]">
+                <tr>
+                  <th className="py-3 px-4">CLIENTE</th>
+                  <th className="py-3 px-4">PRODUTO</th>
+                  <th className="py-3 px-4">VALOR</th>
+                  <th className="py-3 px-4">PLATAFORMA</th>
+                  <th className="py-3 px-4">ORIGEM</th>
+                  <th className="py-3 px-4">CAMPANHA</th>
+                  <th className="py-3 px-4 text-center">CAPI</th>
+                  <th className="py-3 px-4">MOTIVO</th>
+                  <th className="py-3 px-4 text-right">DATA</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#13233E]/60">
+                {displayedSales.map((sale) => (
                 <tr key={sale.id} className="hover:bg-white/[0.02] transition-colors">
                   {/* Cliente */}
                   <td className="py-3.5 px-4">
@@ -292,15 +305,16 @@ export default function Sales() {
               ))}
             </tbody>
           </table>
-        </div>
 
-        {/* Pagination matching Screenshot */}
-        <div className="p-3 bg-[#070D1A] border-t border-[#13233E] flex items-center justify-between text-xs font-mono text-zinc-400">
-          <span>Página 1 de 4</span>
-          <button className="px-3 py-1 rounded-lg bg-[#0A1426] hover:bg-[#12223D] border border-[#13233E] text-zinc-300 hover:text-white transition-colors cursor-pointer">
-            Próxima →
-          </button>
+          {/* Pagination matching Screenshot */}
+          <div className="p-3 bg-[#070D1A] border-t border-[#13233E] flex items-center justify-between text-xs font-mono text-zinc-400">
+            <span>Página 1 de 1</span>
+            <button className="px-3 py-1 rounded-lg bg-[#0A1426] hover:bg-[#12223D] border border-[#13233E] text-zinc-300 hover:text-white transition-colors cursor-pointer">
+              Próxima →
+            </button>
+          </div>
         </div>
+        )}
       </div>
 
     </div>

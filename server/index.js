@@ -14,6 +14,7 @@ import {
   fetchCampaigns, 
   fetchAdsWithCreatives 
 } from './services/metaService.js';
+import { supabaseAdmin } from './supabase.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -663,6 +664,205 @@ app.post('/api/campaigns/update', (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * ── ROTAS DE AUTENTICAÇÃO SEGURA (Com bypass de RLS via Supabase Service Role) ──
+ */
+
+// 1. Login com Email e Senha
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const inputPass = (password || '').trim();
+
+    if (!cleanEmail || !inputPass) {
+      return res.status(400).json({ success: false, error: 'Por favor, preencha o e-mail e a senha.' });
+    }
+
+    // Conta administradora principal Digital JM Soluções
+    if (cleanEmail === 'digitaljmsolucoes@gmail.com') {
+      if (inputPass !== 'jean031522') {
+        return res.status(401).json({ success: false, error: 'Senha incorreta para a conta administradora.' });
+      }
+      return res.json({
+        success: true,
+        user: {
+          id: 'usr_admin_digitaljm',
+          name: 'Digital JM Soluções',
+          email: 'digitaljmsolucoes@gmail.com',
+          role: 'admin',
+          plan: 'pro',
+          avatarLetter: 'D',
+          hasSetPassword: true
+        }
+      });
+    }
+
+    // Busca usuário no Supabase sem bloqueio de RLS
+    const { data: userRecord, error: fetchErr } = await supabaseAdmin
+      .from('users')
+      .select('*')
+      .eq('email', cleanEmail)
+      .maybeSingle();
+
+    if (fetchErr) {
+      console.error('Erro ao buscar usuário:', fetchErr);
+    }
+
+    if (!userRecord) {
+      return res.status(404).json({
+        success: false,
+        error: 'Conta não encontrada! O primeiro cadastro deve ser feito clicando em "Entrar com Google" acima.'
+      });
+    }
+
+    if (!userRecord.password || userRecord.password.trim().length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: 'Esta conta foi criada com o Google mas ainda não possui senha. Entre com o Google e defina sua senha em Integrações > Baixe nosso App.'
+      });
+    }
+
+    if (userRecord.password !== inputPass) {
+      return res.status(401).json({
+        success: false,
+        error: 'Senha incorreta. Tente novamente ou entre com a sua conta Google.'
+      });
+    }
+
+    return res.json({
+      success: true,
+      user: {
+        id: userRecord.id,
+        name: userRecord.name,
+        email: userRecord.email,
+        role: userRecord.role || 'client',
+        plan: userRecord.plan || 'trial',
+        avatarLetter: (userRecord.name || cleanEmail).charAt(0).toUpperCase(),
+        createdAt: userRecord.created_at,
+        trialStartedAt: userRecord.trial_started_at || userRecord.created_at,
+        hasSetPassword: true
+      }
+    });
+  } catch (err) {
+    console.error('Erro na rota de login:', err);
+    res.status(500).json({ success: false, error: 'Erro interno ao autenticar. Tente novamente.' });
+  }
+});
+
+// 2. Login e Cadastro via Google
+app.post('/api/auth/google-login', async (req, res) => {
+  try {
+    const { email, name } = req.body;
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanName = (name || cleanEmail.split('@')[0]).trim();
+
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      return res.status(400).json({ success: false, error: 'E-mail do Google inválido.' });
+    }
+
+    if (cleanEmail === 'digitaljmsolucoes@gmail.com') {
+      return res.json({
+        success: true,
+        user: {
+          id: 'usr_admin_digitaljm',
+          name: 'Digital JM Soluções',
+          email: 'digitaljmsolucoes@gmail.com',
+          role: 'admin',
+          plan: 'pro',
+          avatarLetter: 'D',
+          hasSetPassword: true
+        },
+        isNew: false
+      });
+    }
+
+    // Busca ou cria no Supabase via supabaseAdmin
+    const { data: existingUser } = await supabaseAdmin
+      .from('users')
+      .select('*')
+      .eq('email', cleanEmail)
+      .maybeSingle();
+
+    if (existingUser) {
+      return res.json({
+        success: true,
+        user: {
+          id: existingUser.id,
+          name: existingUser.name || cleanName,
+          email: existingUser.email,
+          role: existingUser.role || 'client',
+          plan: existingUser.plan || 'trial',
+          avatarLetter: (existingUser.name || cleanEmail).charAt(0).toUpperCase(),
+          createdAt: existingUser.created_at,
+          trialStartedAt: existingUser.trial_started_at,
+          hasSetPassword: Boolean(existingUser.password && existingUser.password.trim().length >= 6)
+        },
+        isNew: false
+      });
+    }
+
+    // Cria novo cliente limpo
+    const newId = `usr_${Date.now()}`;
+    const newRecord = {
+      id: newId,
+      name: cleanName,
+      email: cleanEmail,
+      password: '',
+      role: 'client',
+      plan: 'trial',
+      trial_started_at: new Date().toISOString(),
+      created_at: new Date().toISOString()
+    };
+
+    const { error: insertErr } = await supabaseAdmin.from('users').insert(newRecord);
+    if (insertErr) {
+      console.error('Erro ao inserir novo cliente no Supabase:', insertErr);
+    }
+
+    return res.json({
+      success: true,
+      user: {
+        ...newRecord,
+        avatarLetter: cleanName.charAt(0).toUpperCase(),
+        hasSetPassword: false
+      },
+      isNew: true
+    });
+  } catch (err) {
+    console.error('Erro no login com Google:', err);
+    res.status(500).json({ success: false, error: 'Erro ao autenticar com o Google.' });
+  }
+});
+
+// 3. Atualização de Senha
+app.post('/api/auth/update-password', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanPass = (password || '').trim();
+
+    if (!cleanEmail || cleanPass.length < 6) {
+      return res.status(400).json({ success: false, error: 'A senha deve conter no mínimo 6 caracteres.' });
+    }
+
+    const { error: updateErr } = await supabaseAdmin
+      .from('users')
+      .update({ password: cleanPass })
+      .eq('email', cleanEmail);
+
+    if (updateErr) {
+      console.error('Erro ao atualizar senha no Supabase:', updateErr);
+      return res.status(500).json({ success: false, error: 'Erro ao atualizar no banco de dados.' });
+    }
+
+    return res.json({ success: true, message: 'Senha atualizada com sucesso.' });
+  } catch (err) {
+    console.error('Erro ao atualizar senha:', err);
+    res.status(500).json({ success: false, error: 'Erro interno ao salvar senha.' });
   }
 });
 

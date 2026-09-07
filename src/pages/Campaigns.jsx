@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getCurrentUser, isMasterAdmin } from '../utils/auth';
 import { 
   Eye, 
   Plus, 
@@ -26,6 +27,8 @@ import {
 
 export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) {
   const navigate = useNavigate();
+  const user = getCurrentUser();
+  const isAdmin = isMasterAdmin(user);
   const [subTab, setSubTab] = useState('Campanhas');
   const [activeCreativePreview, setActiveCreativePreview] = useState(null);
   const [statusFilter, setStatusFilter] = useState('Qualquer');
@@ -90,12 +93,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   ];
 
   const [campaignsList, setCampaignsList] = useState(() => {
-    if (isDisconnected) return [];
+    // Dados de TESTE MI pertencem exclusivamente à conta administradora
+    if (!isAdmin || isDisconnected) return [];
     return defaultCampaignData;
   });
 
   const [adAccountsList, setAdAccountsList] = useState(() => {
-    if (isDisconnected) return [];
+    if (!isAdmin || isDisconnected) return [];
     return defaultAccountsData;
   });
   const [syncing, setSyncing] = useState(false);
@@ -209,7 +213,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   }, [periodFilter]);
 
   const loadData = () => {
-    if (localStorage.getItem('primetrack_meta_disconnected') === 'true') {
+    if (!isAdmin || localStorage.getItem('primetrack_meta_disconnected') === 'true') {
       setCampaignsList([]);
       setAdAccountsList([]);
       return;
