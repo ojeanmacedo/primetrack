@@ -22,27 +22,51 @@ export default function Dashboard({ onSimulateSale }) {
   const user = getCurrentUser();
   const trialStatus = getTrialStatus(user);
   const [period, setPeriod] = useState('Hoje');
-  const [campaigns, setCampaigns] = useState([
-    {
-      id: "52604661655655",
-      name: "TESTE MI",
-      status: true,
-      spend: "123.41",
-      sales: 15,
-      revenue: "139.67"
-    }
-  ]);
 
-  useEffect(() => {
+  const isDisconnected = typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true';
+
+  const [campaigns, setCampaigns] = useState(() => {
+    if (isDisconnected) return [];
+    return [
+      {
+        id: "52604661655655",
+        name: "TESTE MI",
+        status: true,
+        spend: "123.41",
+        sales: 15,
+        revenue: "139.67"
+      }
+    ];
+  });
+
+  const loadDashboardData = () => {
+    if (localStorage.getItem('primetrack_meta_disconnected') === 'true') {
+      setCampaigns([]);
+      return;
+    }
+
     fetch('/api/campaigns')
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
           const activeOnly = data.filter(c => c.name === 'TESTE MI' || (c.status === true && Number(c.spend) > 0));
           setCampaigns(activeOnly.length > 0 ? activeOnly : data);
+        } else if (Array.isArray(data) && data.length === 0) {
+          setCampaigns([]);
         }
       })
       .catch(err => console.log('Fetch campaigns error:', err));
+  };
+
+  useEffect(() => {
+    loadDashboardData();
+
+    const handleProfileSync = () => {
+      loadDashboardData();
+    };
+
+    window.addEventListener('primetrack_profile_sync', handleProfileSync);
+    return () => window.removeEventListener('primetrack_profile_sync', handleProfileSync);
   }, []);
 
   const periods = ['Hoje', 'Ontem', '7 dias', '15 dias', '30 dias', 'Personalizado'];
@@ -190,7 +214,40 @@ export default function Dashboard({ onSimulateSale }) {
     }
   };
 
-  const currentMetrics = periodDataMap[period] || periodDataMap['Hoje'];
+  const emptyMetrics = {
+    spend: 0.00,
+    revenue: 0.00,
+    profit: 0.00,
+    sales: 0,
+    pendingSales: 0,
+    pendingValue: 0.00,
+    roas: '0.00',
+    cpa: '0.00',
+    arpu: '0.00',
+    margin: '0.0%',
+    clicks: 0,
+    visits: 0,
+    ics: 0,
+    initSales: 0,
+    approvedSales: 0,
+    pixApproval: '0.0%',
+    pixSales: 0,
+    sources: { fb: 0, ig: 0 },
+    hourly: [
+      { h: '00h', v: 0 }, { h: '01h', v: 0 }, { h: '02h', v: 0 }, { h: '03h', v: 0 },
+      { h: '04h', v: 0 }, { h: '05h', v: 0 }, { h: '06h', v: 0 }, { h: '07h', v: 0 },
+      { h: '08h', v: 0 }, { h: '09h', v: 0 }, { h: '10h', v: 0 }, { h: '11h', v: 0 },
+      { h: '12h', v: 0 }, { h: '13h', v: 0 }, { h: '14h', v: 0 }, { h: '15h', v: 0 },
+      { h: '16h', v: 0 }, { h: '17h', v: 0 }, { h: '18h', v: 0 }, { h: '19h', v: 0 },
+      { h: '20h', v: 0 }, { h: '21h', v: 0 }, { h: '22h', v: 0 }, { h: '23h', v: 0 }
+    ]
+  };
+
+  const isProfileDisconnected = (typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true') || campaigns.length === 0;
+
+  const currentMetrics = isProfileDisconnected 
+    ? emptyMetrics 
+    : (periodDataMap[period] || periodDataMap['Hoje']);
 
   return (
     <div className="space-y-5 pb-16">
@@ -252,6 +309,30 @@ export default function Dashboard({ onSimulateSale }) {
           </div>
         </div>
       </div>
+
+      {/* Aviso de Perfil Desconectado */}
+      {isProfileDisconnected && (
+        <div className="bg-[#0A1426] border border-dashed border-[#13233E] rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#070D1A] border border-white/10 flex items-center justify-center text-amber-400 shrink-0">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-white font-bold text-xs sm:text-sm">Nenhum perfil de anúncios conectado</div>
+              <p className="text-zinc-400 text-xs mt-0.5">
+                O perfil do Facebook Ads foi desconectado e as campanhas foram desvinculadas. Conecte sua conta em Integrações para carregar suas métricas em tempo real.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/integracoes')}
+            className="px-4 py-2 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white text-xs font-bold shrink-0 transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>Conectar em Integrações</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Red Alert Banner - Somente exibido se o período de 7 dias grátis expirar (removido da conta principal) */}
       {trialStatus.showExpiredBanner && (

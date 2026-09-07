@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Eye, 
   Plus, 
@@ -19,19 +20,21 @@ import {
   Edit3,
   Check,
   ShieldAlert,
-  Sliders
+  Sliders,
+  ArrowRight
 } from 'lucide-react';
 
 export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) {
+  const navigate = useNavigate();
   const [subTab, setSubTab] = useState('Campanhas');
   const [activeCreativePreview, setActiveCreativePreview] = useState(null);
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [isMuted, setIsMuted] = useState(false);
   const [statusFilter, setStatusFilter] = useState('Qualquer');
   const [periodFilter, setPeriodFilter] = useState('Hoje');
   const [accountFilter, setAccountFilter] = useState('Todas');
   
-  const [campaignsList, setCampaignsList] = useState([
+  const isDisconnected = typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true';
+
+  const defaultCampaignData = [
     {
       id: "52604661655655",
       name: "TESTE MI",
@@ -79,15 +82,25 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         }
       ]
     }
-  ]);
-  const [adAccountsList, setAdAccountsList] = useState([
+  ];
+
+  const defaultAccountsData = [
     { id: "act_1092137896602979", name: "CA01", currency: "BRL", account_status: 1, amount_spent: "123.41" },
     { id: "act_1101817232408751", name: "CA02 JEFFREY", currency: "BRL", account_status: 1, amount_spent: "0.00" }
-  ]);
+  ];
+
+  const [campaignsList, setCampaignsList] = useState(() => {
+    if (isDisconnected) return [];
+    return defaultCampaignData;
+  });
+
+  const [adAccountsList, setAdAccountsList] = useState(() => {
+    if (isDisconnected) return [];
+    return defaultAccountsData;
+  });
   const [syncing, setSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState('Agora');
 
-  // Estados de Edição da Campanha e Bid Cap
   const [editingCampaign, setEditingCampaign] = useState(null);
   const [editName, setEditName] = useState('');
   const [editBudget, setEditBudget] = useState('');
@@ -98,7 +111,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   const subTabs = ['Contas', 'Campanhas', 'Conjuntos', 'Anúncios'];
 
-  // Dados reais correspondentes a cada filtro de período
   const periodCampaignMap = {
     'Hoje': {
       spend: '123.41',
@@ -141,34 +153,49 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     },
     '15 dias': {
       spend: '1840.00',
-      revenue: '2322.24',
-      profit: '482.24',
-      roas: '1.26',
-      cpa: '7.48',
-      sales: 246,
-      pendingSales: 162,
-      impressions: 64800,
-      clicks: 6480,
+      revenue: '2392.00',
+      profit: '552.00',
+      roas: '1.30',
+      cpa: '7.60',
+      sales: 242,
+      pendingSales: 160,
+      impressions: 64200,
+      clicks: 6510,
       visits: 5020,
       cpc: '0.28'
     },
     '30 dias': {
       spend: '3820.00',
-      revenue: '4644.48',
-      profit: '824.48',
+      revenue: '4622.20',
+      profit: '802.20',
       roas: '1.21',
       cpa: '7.76',
       sales: 492,
-      pendingSales: 310,
-      impressions: 136000,
+      pendingSales: 320,
+      impressions: 134200,
       clicks: 13420,
       visits: 10390,
       cpc: '0.28'
+    },
+    'Personalizado': {
+      spend: '123.41',
+      revenue: '139.67',
+      profit: '16.26',
+      roas: '1.13',
+      cpa: '8.23',
+      sales: 15,
+      pendingSales: 11,
+      impressions: 4168,
+      clicks: 421,
+      visits: 317,
+      cpc: '0.29'
     }
   };
 
-  // Atualiza as métricas da campanha ativa ao alterar o período
   useEffect(() => {
+    if (localStorage.getItem('primetrack_meta_disconnected') === 'true') {
+      return;
+    }
     const pData = periodCampaignMap[periodFilter] || periodCampaignMap['Hoje'];
     setCampaignsList(prev => prev.map(c => {
       if (c.name === 'TESTE MI' || c.id === '52604661655655') {
@@ -181,8 +208,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     }));
   }, [periodFilter]);
 
-  // Carrega campanhas e contas reais - apenas ativas rodando
   const loadData = () => {
+    if (localStorage.getItem('primetrack_meta_disconnected') === 'true') {
+      setCampaignsList([]);
+      setAdAccountsList([]);
+      return;
+    }
+
     fetch('/api/campaigns')
       .then(r => r.json())
       .then(data => {
@@ -196,6 +228,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             return c;
           });
           setCampaignsList(merged);
+        } else if (Array.isArray(data) && data.length === 0) {
+          setCampaignsList([]);
         }
       })
       .catch(err => console.log('Erro ao carregar campanhas:', err));
@@ -203,7 +237,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     fetch('/api/meta/status')
       .then(r => r.json())
       .then(data => {
-        if (data.adAccounts && data.adAccounts.length > 0) {
+        if (data.connections && data.connections.length === 0) {
+          setCampaignsList([]);
+          setAdAccountsList([]);
+        } else if (data.adAccounts && data.adAccounts.length > 0) {
           setAdAccountsList(data.adAccounts);
         }
       })
@@ -212,6 +249,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   useEffect(() => {
     loadData();
+
+    const handleProfileSync = () => {
+      loadData();
+    };
+
+    window.addEventListener('primetrack_profile_sync', handleProfileSync);
+    return () => window.removeEventListener('primetrack_profile_sync', handleProfileSync);
   }, []);
 
   const handleSyncNow = async () => {
@@ -456,130 +500,153 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       {/* ── VIEW 0: SUB-ABA CONTAS ── */}
       {subTab === 'Contas' && (
         <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl overflow-hidden shadow-xl">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-sans whitespace-nowrap">
-              <thead className="bg-[#070D1A] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E]">
-                <tr>
-                  <th className="py-3 px-4">STATUS</th>
-                  <th className="py-3 px-4">CONTA DE ANÚNCIO</th>
-                  <th className="py-3 px-4">ID DA CONTA</th>
-                  <th className="py-3 px-4">PORTFÓLIO (BM)</th>
-                  <th className="py-3 px-4">TOTAL GASTO</th>
-                  <th className="py-3 px-4">SALDO / LIMITE</th>
-                  <th className="py-3 px-4">MOEDA</th>
-                  <th className="py-3 px-4">SYNC</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#13233E]/60 font-mono">
-                {adAccountsList.map((acc, idx) => (
-                  <tr key={acc.id || idx} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="py-3.5 px-4">
-                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        acc.status === 'ACTIVE'
-                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                          : 'bg-zinc-800 text-zinc-400'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${acc.status === 'ACTIVE' ? 'bg-emerald-400' : 'bg-zinc-500'}`} />
-                        <span>{acc.status === 'ACTIVE' ? 'Ativo' : 'Desativado'}</span>
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 font-sans font-bold text-white">
-                      {acc.name}
-                    </td>
-                    <td className="py-3.5 px-4 text-zinc-400 font-mono text-[11px]">
-                      {acc.id}
-                    </td>
-                    <td className="py-3.5 px-4 text-zinc-300 font-sans">
-                      {acc.businessName || 'DJS02'}
-                    </td>
-                    <td className="py-3.5 px-4 text-white font-bold">
-                      R$ {acc.amountSpent || '0,00'}
-                    </td>
-                    <td className="py-3.5 px-4 text-zinc-400">
-                      R$ {acc.balance || '0,00'}
-                    </td>
-                    <td className="py-3.5 px-4 text-zinc-400">
-                      {acc.currency || 'BRL'}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className="text-emerald-400 font-bold flex items-center gap-1 text-[11px]">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Ativo</span>
-                      </span>
-                    </td>
+          {adAccountsList.length === 0 ? (
+            <div className="p-12 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-[#070D1A] border border-white/10 flex items-center justify-center mx-auto mb-3 text-zinc-500">
+                <ShieldAlert className="w-6 h-6 text-zinc-500" />
+              </div>
+              <div className="font-bold text-white text-sm">Nenhuma conta de anúncio encontrada</div>
+              <p className="text-zinc-400 text-xs mt-1 max-w-sm mx-auto">
+                O perfil do Facebook Ads foi desconectado. Conecte sua conta na aba Integrações para visualizar suas contas.
+              </p>
+              <button
+                onClick={() => navigate('/integracoes')}
+                className="mt-4 px-4 py-2 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white text-xs font-bold transition-all shadow-md inline-flex items-center gap-2 cursor-pointer"
+              >
+                <span>Ir para Integrações</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs font-sans whitespace-nowrap">
+                <thead className="bg-[#070D1A] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E]">
+                  <tr>
+                    <th className="py-3 px-4">STATUS</th>
+                    <th className="py-3 px-4">CONTA DE ANÚNCIO</th>
+                    <th className="py-3 px-4">ID DA CONTA</th>
+                    <th className="py-3 px-4">PORTFÓLIO (BM)</th>
+                    <th className="py-3 px-4">TOTAL GASTO</th>
+                    <th className="py-3 px-4">SALDO / LIMITE</th>
+                    <th className="py-3 px-4">MOEDA</th>
+                    <th className="py-3 px-4">SYNC</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-[#13233E]/60 font-mono">
+                  {adAccountsList.map((acc, idx) => (
+                    <tr key={acc.id || idx} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="py-3.5 px-4">
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          acc.status === 'ACTIVE'
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-zinc-800 text-zinc-400'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${acc.status === 'ACTIVE' ? 'bg-emerald-400' : 'bg-zinc-500'}`} />
+                          <span>{acc.status === 'ACTIVE' ? 'Ativo' : 'Desativado'}</span>
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 font-sans font-bold text-white">
+                        {acc.name}
+                      </td>
+                      <td className="py-3.5 px-4 text-zinc-400 font-mono text-[11px]">
+                        {acc.id}
+                      </td>
+                      <td className="py-3.5 px-4 text-zinc-300 font-sans">
+                        {acc.businessName || 'DJS02'}
+                      </td>
+                      <td className="py-3.5 px-4 text-white font-bold">
+                        R$ {acc.amountSpent || '0,00'}
+                      </td>
+                      <td className="py-3.5 px-4 text-zinc-400">
+                        R$ {acc.balance || '0,00'}
+                      </td>
+                      <td className="py-3.5 px-4 text-zinc-400">
+                        {acc.currency || 'BRL'}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className="text-emerald-400 font-bold flex items-center gap-1 text-[11px]">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Ativo</span>
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
       {/* ── VIEW 1: SUB-ABA CAMPANHAS ── */}
       {subTab === 'Campanhas' && (
         <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl overflow-hidden shadow-xl">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-sans whitespace-nowrap">
-              <thead className="bg-[#070D1A] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E]">
-                <tr>
-                  <th className="py-3 px-3 w-8">
-                    <input type="checkbox" className="rounded bg-[#03060D] border-white/10" defaultChecked />
-                  </th>
-                  <th className="py-3 px-3">STATUS</th>
-                  <th className="py-3 px-4">CAMPANHA</th>
-                  <th className="py-3 px-4">CONTA</th>
-                  <th className="py-3 px-4">ORÇAMENTO</th>
-                  <th className="py-3 px-4">GASTO</th>
-                  <th className="py-3 px-4 text-center">VENDAS</th>
-                  <th className="py-3 px-4">FATURAMENTO</th>
-                  <th className="py-3 px-4">LUCRO</th>
-                  <th className="py-3 px-4">ROAS</th>
-                  <th className="py-3 px-4">CPA</th>
-                  <th className="py-3 px-4">CPC</th>
-                  <th className="py-3 px-4">IMPRESSÕES</th>
-                  <th className="py-3 px-4">CLIQUES</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#13233E]/60 font-mono">
-                {filteredCampaigns.map((camp) => (
-                  <tr key={camp.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="py-4 px-3">
+          {filteredCampaigns.length === 0 ? (
+            <div className="p-12 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-[#070D1A] border border-white/10 flex items-center justify-center mx-auto mb-3 text-zinc-500">
+                <ShieldAlert className="w-6 h-6 text-zinc-500" />
+              </div>
+              <div className="font-bold text-white text-sm">Nenhuma campanha encontrada</div>
+              <p className="text-zinc-400 text-xs mt-1 max-w-sm mx-auto">
+                {isDisconnected || campaignsList.length === 0
+                  ? "O perfil do Facebook Ads foi desconectado. Todas as campanhas associadas foram desvinculadas. Conecte seu perfil em Integrações para sincronizar."
+                  : "Nenhuma campanha ativa encontrada para os filtros selecionados."}
+              </p>
+              {(isDisconnected || campaignsList.length === 0) && (
+                <button
+                  onClick={() => navigate('/integracoes')}
+                  className="mt-4 px-4 py-2 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white text-xs font-bold transition-all shadow-md inline-flex items-center gap-2 cursor-pointer"
+                >
+                  <span>Ir para Integrações</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs font-sans whitespace-nowrap">
+                <thead className="bg-[#070D1A] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E]">
+                  <tr>
+                    <th className="py-3 px-3 w-8">
                       <input type="checkbox" className="rounded bg-[#03060D] border-white/10" defaultChecked />
-                    </td>
+                    </th>
+                    <th className="py-3 px-3">STATUS</th>
+                    <th className="py-3 px-4">CAMPANHA</th>
+                    <th className="py-3 px-4">CONTA</th>
+                    <th className="py-3 px-4">ORÇAMENTO</th>
+                    <th className="py-3 px-4">GASTO</th>
+                    <th className="py-3 px-4 text-center">VENDAS</th>
+                    <th className="py-3 px-4">FATURAMENTO</th>
+                    <th className="py-3 px-4">LUCRO</th>
+                    <th className="py-3 px-4">ROAS</th>
+                    <th className="py-3 px-4">CPA</th>
+                    <th className="py-3 px-4">CPC</th>
+                    <th className="py-3 px-4">IMPRESSÕES</th>
+                    <th className="py-3 px-4">CLIQUES</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#13233E]/60 font-mono">
+                  {filteredCampaigns.map((camp) => (
+                    <tr key={camp.id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="py-4 px-3">
+                        <input type="checkbox" className="rounded bg-[#03060D] border-white/10" defaultChecked />
+                      </td>
 
-                    <td className="py-4 px-3">
-                      <button
-                        type="button"
-                        onClick={() => handleToggleStatus(camp.id)}
-                        className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
-                          camp.status ? 'bg-[#2B66E3]' : 'bg-zinc-700'
-                        }`}
-                      >
-                        <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                          camp.status ? 'translate-x-4' : 'translate-x-0'
-                        }`} />
-                      </button>
-                    </td>
-
-                    <td className="py-4 px-4 font-sans">
-                      <div className="flex items-center gap-2">
+                      <td className="py-4 px-3">
                         <button
                           type="button"
-                          onClick={() => setActiveCreativePreview({
-                            id: camp.id,
-                            title: camp.name,
-                            mediaSrc: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80',
-                            videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-woman-posing-for-a-fashion-photoshoot-40291-large.mp4',
-                            type: 'video',
-                            copy: '🔥 Acesso Exclusivo Privacy Mc Mirella — Conteúdos diários e inéditos sem censura. Clique abaixo para garantir seu acesso VIP com desconto especial hoje.',
-                            headline: 'PRIVACY MC MIRELLA - ACESSO IMEDIATO',
-                            cta: 'Assinar Agora'
-                          })}
-                          title="Visualizar criativo real"
-                          className="p-1.5 rounded-lg border border-white/10 hover:border-[#1A6DFF] hover:bg-[#12223D] text-zinc-400 hover:text-[#5C9BFF] transition-all cursor-pointer"
+                          onClick={() => handleToggleStatus(camp.id)}
+                          className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
+                            camp.status ? 'bg-[#2B66E3]' : 'bg-zinc-700'
+                          }`}
                         >
-                          <Eye className="w-3.5 h-3.5" />
+                          <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                            camp.status ? 'translate-x-4' : 'translate-x-0'
+                          }`} />
                         </button>
+                      </td>
+
+                      <td className="py-4 px-4 font-sans">
                         <div>
                           <div 
                             onClick={() => handleOpenEdit(camp)}
@@ -601,187 +668,213 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                             )}
                           </div>
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    <td className="py-4 px-4 text-zinc-400 font-sans">
-                      <span className="px-2 py-0.5 rounded bg-white/[0.05] border border-white/10 text-white text-[11px] font-medium">
-                        {camp.accountName || 'CA01'}
-                      </span>
-                    </td>
+                      <td className="py-4 px-4 text-zinc-400 font-sans">
+                        <span className="px-2 py-0.5 rounded bg-white/[0.05] border border-white/10 text-white text-[11px] font-medium">
+                          {camp.accountName || 'CA01'}
+                        </span>
+                      </td>
 
-                    <td className="py-4 px-4 font-sans">
-                      <div 
-                        onClick={() => handleOpenEdit(camp)}
-                        className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group"
-                        title="Clique para alterar orçamento"
-                      >
-                        <div className="font-bold text-white font-mono flex items-center gap-1.5">
-                          <span>R$ {camp.budget || '256.99'}</span>
-                          <Edit3 className="w-2.5 h-2.5 text-zinc-500 group-hover:text-[#5C9BFF]" />
+                      <td className="py-4 px-4 font-sans">
+                        <div 
+                          onClick={() => handleOpenEdit(camp)}
+                          className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group"
+                          title="Clique para alterar orçamento"
+                        >
+                          <div className="font-bold text-white font-mono flex items-center gap-1.5">
+                            <span>R$ {camp.budget || '256.99'}</span>
+                            <Edit3 className="w-2.5 h-2.5 text-zinc-500 group-hover:text-[#5C9BFF]" />
+                          </div>
+                          <div className="text-[10px] text-zinc-400">{camp.budgetType || 'Diário'}</div>
                         </div>
-                        <div className="text-[10px] text-zinc-400">{camp.budgetType || 'Diário'}</div>
-                      </div>
-                    </td>
+                      </td>
 
-                    <td className="py-4 px-4 text-white font-bold">R$ {camp.spend}</td>
-                    <td className="py-4 px-4 text-white font-bold text-center">{camp.sales}</td>
-                    <td className="py-4 px-4 text-white font-bold">R$ {camp.revenue}</td>
-                    <td className={`py-4 px-4 font-extrabold ${Number(camp.profit) >= 0 ? 'text-[#5C9BFF]' : 'text-red-400'}`}>
-                      R$ {camp.profit}
+                      <td className="py-4 px-4 text-white font-bold">R$ {camp.spend}</td>
+                      <td className="py-4 px-4 text-white font-bold text-center">{camp.sales}</td>
+                      <td className="py-4 px-4 text-white font-bold">R$ {camp.revenue}</td>
+                      <td className={`py-4 px-4 font-extrabold ${Number(camp.profit) >= 0 ? 'text-[#5C9BFF]' : 'text-red-400'}`}>
+                        R$ {camp.profit}
+                      </td>
+                      <td className="py-4 px-4 font-extrabold text-[#5C9BFF]">{camp.roas}</td>
+                      <td className="py-4 px-4 font-bold text-[#5C9BFF]">R$ {camp.cpa}</td>
+                      <td className="py-4 px-4 text-zinc-300">R$ {camp.cpc}</td>
+                      <td className="py-4 px-4 text-zinc-300">{Number(camp.impressions || 0).toLocaleString('pt-BR')}</td>
+                      <td className="py-4 px-4 text-zinc-300">{Number(camp.clicks || 0).toLocaleString('pt-BR')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+
+                <tfoot className="bg-[#070D1A] font-bold border-t border-[#13233E] text-xs font-mono">
+                  <tr>
+                    <td className="py-3 px-3"></td>
+                    <td className="py-3 px-3"></td>
+                    <td className="py-3 px-4 font-sans text-white uppercase text-[11px]">
+                      {filteredCampaigns.length} CAMPANHAS
                     </td>
-                    <td className="py-4 px-4 font-extrabold text-[#5C9BFF]">{camp.roas}</td>
-                    <td className="py-4 px-4 font-bold text-[#5C9BFF]">R$ {camp.cpa}</td>
-                    <td className="py-4 px-4 text-zinc-300">R$ {camp.cpc}</td>
-                    <td className="py-4 px-4 text-zinc-300">{Number(camp.impressions || 0).toLocaleString('pt-BR')}</td>
-                    <td className="py-4 px-4 text-zinc-300">{Number(camp.clicks || 0).toLocaleString('pt-BR')}</td>
+                    <td className="py-3 px-4"></td>
+                    <td className="py-3 px-4"></td>
+                    <td className="py-3 px-4 text-white">R$ {totalSpend.toFixed(2)}</td>
+                    <td className="py-3 px-4 text-white text-center">{totalSales}</td>
+                    <td className="py-3 px-4 text-white">R$ {totalRevenue.toFixed(2)}</td>
+                    <td className="py-3 px-4 text-[#5C9BFF]">R$ {totalProfit.toFixed(2)}</td>
+                    <td className="py-3 px-4 text-[#5C9BFF]">{avgRoas}</td>
+                    <td className="py-3 px-4 text-[#5C9BFF]">R$ {avgCpa}</td>
+                    <td className="py-3 px-4 text-zinc-300"></td>
+                    <td className="py-3 px-4 text-zinc-300">{totalImpressions.toLocaleString('pt-BR')}</td>
+                    <td className="py-3 px-4 text-zinc-300">{totalClicks.toLocaleString('pt-BR')}</td>
                   </tr>
-                ))}
-              </tbody>
-
-              <tfoot className="bg-[#070D1A] font-bold border-t border-[#13233E] text-xs font-mono">
-                <tr>
-                  <td className="py-3 px-3"></td>
-                  <td className="py-3 px-3"></td>
-                  <td className="py-3 px-4 font-sans text-white uppercase text-[11px]">
-                    {filteredCampaigns.length} CAMPANHAS
-                  </td>
-                  <td className="py-3 px-4"></td>
-                  <td className="py-3 px-4"></td>
-                  <td className="py-3 px-4 text-white">R$ {totalSpend.toFixed(2)}</td>
-                  <td className="py-3 px-4 text-white text-center">{totalSales}</td>
-                  <td className="py-3 px-4 text-white">R$ {totalRevenue.toFixed(2)}</td>
-                  <td className="py-3 px-4 text-[#5C9BFF]">R$ {totalProfit.toFixed(2)}</td>
-                  <td className="py-3 px-4 text-[#5C9BFF]">{avgRoas}</td>
-                  <td className="py-3 px-4 text-[#5C9BFF]">R$ {avgCpa}</td>
-                  <td className="py-3 px-4 text-zinc-300"></td>
-                  <td className="py-3 px-4 text-zinc-300">{totalImpressions.toLocaleString('pt-BR')}</td>
-                  <td className="py-3 px-4 text-zinc-300">{totalClicks.toLocaleString('pt-BR')}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+                </tfoot>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
       {/* ── VIEW 2: SUB-ABA CONJUNTOS ── */}
       {subTab === 'Conjuntos' && (
         <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl overflow-hidden shadow-xl">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-sans whitespace-nowrap">
-              <thead className="bg-[#070D1A] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E]">
-                <tr>
-                  <th className="py-3 px-3 w-8">
-                    <input type="checkbox" className="rounded bg-[#03060D] border-white/10" defaultChecked />
-                  </th>
-                  <th className="py-3 px-3">STATUS</th>
-                  <th className="py-3 px-4">CONJUNTO</th>
-                  <th className="py-3 px-4">ORÇAMENTO</th>
-                  <th className="py-3 px-4">GASTO</th>
-                  <th className="py-3 px-4 text-center">VENDAS</th>
-                  <th className="py-3 px-4">FATURAMENTO</th>
-                  <th className="py-3 px-4">LUCRO</th>
-                  <th className="py-3 px-4">ROAS</th>
-                  <th className="py-3 px-4">CPA</th>
-                  <th className="py-3 px-4">IMPRESSÕES</th>
-                  <th className="py-3 px-4">CLIQUES</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#13233E]/60 font-mono">
-                {filteredCampaigns.slice(0, 8).map((camp, idx) => (
-                  <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="py-4 px-3">
+          {filteredCampaigns.length === 0 ? (
+            <div className="p-12 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-[#070D1A] border border-white/10 flex items-center justify-center mx-auto mb-3 text-zinc-500">
+                <ShieldAlert className="w-6 h-6 text-zinc-500" />
+              </div>
+              <div className="font-bold text-white text-sm">Nenhum conjunto encontrado</div>
+              <p className="text-zinc-400 text-xs mt-1 max-w-sm mx-auto">
+                Conecte um perfil do Facebook Ads na aba Integrações para visualizar os conjuntos ativos.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs font-sans whitespace-nowrap">
+                <thead className="bg-[#070D1A] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E]">
+                  <tr>
+                    <th className="py-3 px-3 w-8">
                       <input type="checkbox" className="rounded bg-[#03060D] border-white/10" defaultChecked />
-                    </td>
-                    <td className="py-4 px-3">
-                      <div className={`w-2.5 h-2.5 rounded-full ${camp.status ? 'bg-emerald-400 shadow-sm shadow-emerald-400/50' : 'bg-zinc-600'}`} />
-                    </td>
-                    <td className="py-4 px-4 font-sans">
-                      <div className="font-bold text-white text-xs">{camp.name} — Conjunto Aberto</div>
-                      <div className="text-[10px] text-zinc-500 font-mono">Público Aberto 18-65</div>
-                    </td>
-                    <td className="py-4 px-4 text-white">R$ {camp.budget}</td>
-                    <td className="py-4 px-4 text-white font-bold">R$ {camp.spend}</td>
-                    <td className="py-4 px-4 text-white text-center font-bold">{camp.sales}</td>
-                    <td className="py-4 px-4 text-white font-bold">R$ {camp.revenue}</td>
-                    <td className="py-4 px-4 font-extrabold text-[#5C9BFF]">R$ {camp.profit}</td>
-                    <td className="py-4 px-4 font-extrabold text-[#5C9BFF]">{camp.roas}</td>
-                    <td className="py-4 px-4 font-bold text-[#5C9BFF]">R$ {camp.cpa}</td>
-                    <td className="py-4 px-4 text-zinc-300">{Number(camp.impressions).toLocaleString('pt-BR')}</td>
-                    <td className="py-4 px-4 text-zinc-300">{Number(camp.clicks).toLocaleString('pt-BR')}</td>
+                    </th>
+                    <th className="py-3 px-3">STATUS</th>
+                    <th className="py-3 px-4">CONJUNTO</th>
+                    <th className="py-3 px-4">ORÇAMENTO</th>
+                    <th className="py-3 px-4">GASTO</th>
+                    <th className="py-3 px-4 text-center">VENDAS</th>
+                    <th className="py-3 px-4">FATURAMENTO</th>
+                    <th className="py-3 px-4">LUCRO</th>
+                    <th className="py-3 px-4">ROAS</th>
+                    <th className="py-3 px-4">CPA</th>
+                    <th className="py-3 px-4">IMPRESSÕES</th>
+                    <th className="py-3 px-4">CLIQUES</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-[#13233E]/60 font-mono">
+                  {filteredCampaigns.slice(0, 8).map((camp, idx) => (
+                    <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="py-4 px-3">
+                        <input type="checkbox" className="rounded bg-[#03060D] border-white/10" defaultChecked />
+                      </td>
+                      <td className="py-4 px-3">
+                        <div className={`w-2.5 h-2.5 rounded-full ${camp.status ? 'bg-emerald-400 shadow-sm shadow-emerald-400/50' : 'bg-zinc-600'}`} />
+                      </td>
+                      <td className="py-4 px-4 font-sans">
+                        <div className="font-bold text-white text-xs">{camp.name} — Conjunto Aberto</div>
+                        <div className="text-[10px] text-zinc-500 font-mono">Público Aberto 18-65</div>
+                      </td>
+                      <td className="py-4 px-4 text-white">R$ {camp.budget}</td>
+                      <td className="py-4 px-4 text-white font-bold">R$ {camp.spend}</td>
+                      <td className="py-4 px-4 text-white text-center font-bold">{camp.sales}</td>
+                      <td className="py-4 px-4 text-white font-bold">R$ {camp.revenue}</td>
+                      <td className="py-4 px-4 font-extrabold text-[#5C9BFF]">R$ {camp.profit}</td>
+                      <td className="py-4 px-4 font-extrabold text-[#5C9BFF]">{camp.roas}</td>
+                      <td className="py-4 px-4 font-bold text-[#5C9BFF]">R$ {camp.cpa}</td>
+                      <td className="py-4 px-4 text-zinc-300">{Number(camp.impressions).toLocaleString('pt-BR')}</td>
+                      <td className="py-4 px-4 text-zinc-300">{Number(camp.clicks).toLocaleString('pt-BR')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
       {/* ── VIEW 3: SUB-ABA ANÚNCIOS ── */}
       {subTab === 'Anúncios' && (
         <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl overflow-hidden shadow-xl">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-sans whitespace-nowrap">
-              <thead className="bg-[#070D1A] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E]">
-                <tr>
-                  <th className="py-3 px-3 w-8">
-                    <input type="checkbox" className="rounded bg-[#03060D] border-white/10" defaultChecked />
-                  </th>
-                  <th className="py-3 px-3">STATUS</th>
-                  <th className="py-3 px-4">ANÚNCIO</th>
-                  <th className="py-3 px-4 text-center">PREVIEW</th>
-                  <th className="py-3 px-4">GASTO</th>
-                  <th className="py-3 px-4 text-center">VENDAS</th>
-                  <th className="py-3 px-4">FATURAMENTO</th>
-                  <th className="py-3 px-4">LUCRO</th>
-                  <th className="py-3 px-4">ROAS</th>
-                  <th className="py-3 px-4">CPA</th>
-                  <th className="py-3 px-4">IMPRESSÕES</th>
-                  <th className="py-3 px-4">CLIQUES</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#13233E]/60 font-mono">
-                {filteredCampaigns.slice(0, 10).map((camp, idx) => (
-                  <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="py-4 px-3">
+          {filteredCampaigns.length === 0 ? (
+            <div className="p-12 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-[#070D1A] border border-white/10 flex items-center justify-center mx-auto mb-3 text-zinc-500">
+                <ShieldAlert className="w-6 h-6 text-zinc-500" />
+              </div>
+              <div className="font-bold text-white text-sm">Nenhum anúncio encontrado</div>
+              <p className="text-zinc-400 text-xs mt-1 max-w-sm mx-auto">
+                Conecte um perfil do Facebook Ads na aba Integrações para visualizar seus anúncios e criativos.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs font-sans whitespace-nowrap">
+                <thead className="bg-[#070D1A] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E]">
+                  <tr>
+                    <th className="py-3 px-3 w-8">
                       <input type="checkbox" className="rounded bg-[#03060D] border-white/10" defaultChecked />
-                    </td>
-                    <td className="py-4 px-3">
-                      <div className={`w-2.5 h-2.5 rounded-full ${camp.status ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
-                    </td>
-                    <td className="py-4 px-4 font-sans">
-                      <div className="font-bold text-white text-xs hover:text-[#5C9BFF] cursor-pointer">
-                        {camp.name} — Criativo Principal
-                      </div>
-                      <div className="text-[10px] text-zinc-500 font-mono">{camp.accountName || 'CA01'}</div>
-                    </td>
-                    <td className="py-4 px-4 text-center">
-                      <button 
-                        onClick={() => setActiveCreativePreview({
-                          id: camp.id,
-                          title: camp.name,
-                          mediaSrc: '/images/ad_video_creative.png',
-                          type: 'video'
-                        })}
-                        title="Ver criativo"
-                        className="p-1.5 rounded-lg border border-white/10 hover:border-[#1A6DFF] hover:bg-[#12223D] text-zinc-400 hover:text-[#5C9BFF] transition-all cursor-pointer"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                    <td className="py-4 px-4 text-white font-bold">R$ {camp.spend}</td>
-                    <td className="py-4 px-4 text-white font-bold text-center">{camp.sales}</td>
-                    <td className="py-4 px-4 text-white font-bold">R$ {camp.revenue}</td>
-                    <td className="py-4 px-4 font-extrabold text-[#5C9BFF]">R$ {camp.profit}</td>
-                    <td className="py-4 px-4 font-extrabold text-[#5C9BFF]">{camp.roas}</td>
-                    <td className="py-4 px-4 font-bold text-[#5C9BFF]">R$ {camp.cpa}</td>
-                    <td className="py-4 px-4 text-zinc-300">{Number(camp.impressions).toLocaleString('pt-BR')}</td>
-                    <td className="py-4 px-4 text-zinc-300">{Number(camp.clicks).toLocaleString('pt-BR')}</td>
+                    </th>
+                    <th className="py-3 px-3">STATUS</th>
+                    <th className="py-3 px-4">ANÚNCIO</th>
+                    <th className="py-3 px-4 text-center">PREVIEW</th>
+                    <th className="py-3 px-4">GASTO</th>
+                    <th className="py-3 px-4 text-center">VENDAS</th>
+                    <th className="py-3 px-4">FATURAMENTO</th>
+                    <th className="py-3 px-4">LUCRO</th>
+                    <th className="py-3 px-4">ROAS</th>
+                    <th className="py-3 px-4">CPA</th>
+                    <th className="py-3 px-4">IMPRESSÕES</th>
+                    <th className="py-3 px-4">CLIQUES</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-[#13233E]/60 font-mono">
+                  {filteredCampaigns.slice(0, 10).map((camp, idx) => (
+                    <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="py-4 px-3">
+                        <input type="checkbox" className="rounded bg-[#03060D] border-white/10" defaultChecked />
+                      </td>
+                      <td className="py-4 px-3">
+                        <div className={`w-2.5 h-2.5 rounded-full ${camp.status ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
+                      </td>
+                      <td className="py-4 px-4 font-sans">
+                        <div className="font-bold text-white text-xs hover:text-[#5C9BFF] cursor-pointer">
+                          {camp.name} — Criativo Principal
+                        </div>
+                        <div className="text-[10px] text-zinc-500 font-mono">{camp.accountName || 'CA01'}</div>
+                      </td>
+                      <td className="py-4 px-4 text-center">
+                        <button 
+                          type="button"
+                          onClick={() => setActiveCreativePreview({
+                            id: camp.id,
+                            title: `${camp.name} — Anúncio`,
+                            mediaSrc: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=80',
+                            videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-woman-posing-for-a-fashion-photoshoot-40291-large.mp4',
+                            type: 'video'
+                          })}
+                          title="Ver criativo"
+                          className="p-1.5 rounded-lg border border-white/10 hover:border-[#1A6DFF] hover:bg-[#12223D] text-zinc-400 hover:text-[#5C9BFF] transition-all cursor-pointer inline-flex items-center justify-center"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                      <td className="py-4 px-4 text-white font-bold">R$ {camp.spend}</td>
+                      <td className="py-4 px-4 text-white font-bold text-center">{camp.sales}</td>
+                      <td className="py-4 px-4 text-white font-bold">R$ {camp.revenue}</td>
+                      <td className="py-4 px-4 font-extrabold text-[#5C9BFF]">R$ {camp.profit}</td>
+                      <td className="py-4 px-4 font-extrabold text-[#5C9BFF]">{camp.roas}</td>
+                      <td className="py-4 px-4 font-bold text-[#5C9BFF]">R$ {camp.cpa}</td>
+                      <td className="py-4 px-4 text-zinc-300">{Number(camp.impressions).toLocaleString('pt-BR')}</td>
+                      <td className="py-4 px-4 text-zinc-300">{Number(camp.clicks).toLocaleString('pt-BR')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
@@ -912,148 +1005,52 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         </div>
       )}
 
-      {/* ── MODAL DE PREVIEW DO CRIATIVO REAL (OLHINHO) ── */}
+      {/* ── MODAL DE PREVIEW DO CRIATIVO REAL (APENAS VÍDEO OU IMAGEM) ── */}
       {activeCreativePreview && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="relative w-full max-w-[420px] bg-[#0A1426] border border-white/20 rounded-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 flex flex-col max-h-[92vh]">
-            
-            {/* Top Close Bar */}
-            <div className="flex items-center justify-between p-3.5 px-4 bg-[#070D1A] border-b border-white/10">
+        <div 
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in"
+          onClick={() => setActiveCreativePreview(null)}
+        >
+          <div 
+            className="relative max-w-xl w-full flex flex-col items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Top Bar with Title and Close */}
+            <div className="w-full flex items-center justify-between pb-3 text-white">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="font-bold text-white text-xs truncate max-w-[260px]">
-                  {activeCreativePreview.title || 'Anúncio TESTE MI'}
+                <span className="font-bold text-sm truncate max-w-[400px]">
+                  {activeCreativePreview.title || 'Criativo do Anúncio'}
                 </span>
               </div>
-              <button 
+              <button
+                type="button"
                 onClick={() => setActiveCreativePreview(null)}
-                className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-all cursor-pointer"
+                className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                title="Fechar"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Scrollable Ad Content Preview */}
-            <div className="overflow-y-auto flex-1 p-4 space-y-4 text-xs font-sans">
-              
-              {/* Facebook/Instagram Mock Header */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 p-0.5">
-                    <img 
-                      src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80" 
-                      alt="Privacy Mc Mirella" 
-                      className="w-full h-full rounded-full object-cover"
-                    />
-                  </div>
-                  <div>
-                    <div className="font-bold text-white text-xs">Privacy Mc Mirella</div>
-                    <div className="text-[10px] text-zinc-400 flex items-center gap-1">
-                      <span>Patrocinado</span>
-                      <span>·</span>
-                      <span>🌐</span>
-                    </div>
-                  </div>
-                </div>
-                <span className="text-zinc-400 text-sm font-bold">···</span>
-              </div>
-
-              {/* Ad Copy */}
-              <p className="text-zinc-200 text-xs leading-relaxed">
-                {activeCreativePreview.copy || '🔥 Acesso Exclusivo Privacy Mc Mirella — Conteúdos diários e inéditos sem censura. Clique abaixo para garantir seu acesso VIP com desconto especial hoje.'}
-              </p>
-
-              {/* Video / Creative Media Player Area */}
-              <div className="relative aspect-[9/16] max-h-[380px] bg-black rounded-2xl overflow-hidden shadow-inner flex items-center justify-center mx-auto w-full">
-                <img 
-                  src={activeCreativePreview.mediaSrc || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80'} 
-                  alt={activeCreativePreview.title}
-                  className="w-full h-full object-cover"
+            {/* Visual Media Only - Video or Image */}
+            <div className="relative w-full max-h-[80vh] flex items-center justify-center bg-black/80 rounded-2xl overflow-hidden border border-white/15 shadow-2xl">
+              {activeCreativePreview.type === 'video' || activeCreativePreview.videoUrl ? (
+                <video 
+                  src={activeCreativePreview.videoUrl || activeCreativePreview.mediaSrc} 
+                  controls 
+                  autoPlay 
+                  loop
+                  className="max-h-[78vh] w-auto max-w-full rounded-2xl object-contain shadow-2xl"
                 />
-
-                {/* Video overlay controls */}
-                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-3 pt-6 flex flex-col gap-2">
-                  <div className="w-full h-1 bg-white/30 rounded-full overflow-hidden cursor-pointer">
-                    <div className="h-full bg-[#1A6DFF] rounded-full w-[45%]" />
-                  </div>
-
-                  <div className="flex items-center justify-between text-white text-xs font-mono">
-                    <div className="flex items-center gap-3">
-                      <button 
-                        type="button"
-                        onClick={() => setIsPlaying(!isPlaying)}
-                        className="hover:text-[#5C9BFF] transition-colors"
-                      >
-                        {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
-                      </button>
-                      <span className="text-[10px] text-white/90">0:07 / 0:15</span>
-                    </div>
-
-                    <div className="flex items-center gap-3 text-white/80">
-                      <button type="button" onClick={() => setIsMuted(!isMuted)}>
-                        {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                      </button>
-                      <Maximize2 className="w-3.5 h-3.5 cursor-pointer" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Ad Footer Bar (Headline + CTA Button) */}
-              <div className="p-3 bg-[#070D1A] rounded-xl border border-white/10 flex items-center justify-between gap-3">
-                <div className="truncate">
-                  <span className="text-[10px] text-zinc-500 font-mono uppercase block">SEUSITE.COM.BR</span>
-                  <span className="font-extrabold text-white text-xs truncate block">
-                    {activeCreativePreview.headline || 'PRIVACY MC MIRELLA - ACESSO IMEDIATO'}
-                  </span>
-                </div>
-                <button 
-                  type="button"
-                  className="px-3.5 py-2 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-bold text-xs shrink-0 shadow-md shadow-brand/40"
-                >
-                  {activeCreativePreview.cta || 'Assinar Agora'}
-                </button>
-              </div>
-
-              {/* Creative Analytics Row */}
-              <div className="grid grid-cols-3 gap-2 pt-1 font-mono text-center">
-                <div className="p-2.5 rounded-xl bg-[#070D1A] border border-white/5">
-                  <div className="text-[9px] text-zinc-500 uppercase">Cliques</div>
-                  <div className="font-bold text-white text-xs mt-0.5">421</div>
-                </div>
-                <div className="p-2.5 rounded-xl bg-[#070D1A] border border-white/5">
-                  <div className="text-[9px] text-zinc-500 uppercase">CTR</div>
-                  <div className="font-bold text-[#5C9BFF] text-xs mt-0.5">10.10%</div>
-                </div>
-                <div className="p-2.5 rounded-xl bg-[#070D1A] border border-white/5">
-                  <div className="text-[9px] text-zinc-500 uppercase">CPC Médio</div>
-                  <div className="font-bold text-emerald-400 text-xs mt-0.5">R$ 0,29</div>
-                </div>
-              </div>
-
-              <div className="p-3 rounded-xl bg-[#070D1A] border border-white/5 flex items-center justify-between text-[11px] font-mono">
-                <span className="text-zinc-400">Retenção de Vídeo:</span>
-                <div className="flex items-center gap-2 text-white font-bold">
-                  <span>3s: 82%</span>
-                  <span>·</span>
-                  <span>15s: 48%</span>
-                </div>
-              </div>
-
+              ) : (
+                <img 
+                  src={activeCreativePreview.mediaSrc} 
+                  alt={activeCreativePreview.title}
+                  className="max-h-[78vh] w-auto max-w-full rounded-2xl object-contain shadow-2xl"
+                />
+              )}
             </div>
-
-            {/* Bottom External Link */}
-            <div className="p-3 bg-[#070D1A] border-t border-white/10 flex items-center justify-between text-xs">
-              <span className="text-zinc-400 text-[11px]">Meta Ads Manager ID: 52604661655655</span>
-              <button 
-                onClick={() => window.open('https://adsmanager.facebook.com', '_blank')}
-                className="text-[#5C9BFF] hover:underline font-bold flex items-center gap-1 text-[11px] cursor-pointer"
-              >
-                <span>Ver no Gerenciador</span>
-                <ExternalLink className="w-3 h-3" />
-              </button>
-            </div>
-
           </div>
         </div>
       )}

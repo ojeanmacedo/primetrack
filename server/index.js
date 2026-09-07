@@ -249,6 +249,13 @@ app.get('/api/stats', (req, res) => {
  * 4. Listagem de Campanhas e Criativos
  */
 app.get('/api/campaigns', (req, res) => {
+  const connections = db.get('facebook_connections') || [];
+  
+  // Se não houver perfil conectado, não deve retornar nenhuma campanha
+  if (connections.length === 0) {
+    return res.json([]);
+  }
+
   const allCampaigns = db.get('campaigns') || [];
   
   // Filtra apenas as campanhas que estão ativas e rodando hoje
@@ -258,33 +265,7 @@ app.get('/api/campaigns', (req, res) => {
 
   // Se TESTE MI estiver presente, coloca como principal
   const testeMi = allCampaigns.find(c => c.name === 'TESTE MI');
-  const result = testeMi ? [testeMi] : (activeRunning.length > 0 ? activeRunning : [{
-    id: "52604661655655",
-    name: "TESTE MI",
-    status: true,
-    rawStatus: "ACTIVE",
-    effectiveStatus: "ACTIVE",
-    objective: "OUTCOME_SALES",
-    budget: "256.99",
-    budgetType: "Diário",
-    spend: "123.41",
-    impressions: 4168,
-    clicks: 421,
-    visits: 317,
-    cpc: "0.29",
-    cpm: "29.61",
-    ctr: "10.10",
-    sales: 15,
-    pendingSales: 11,
-    revenue: "139.67",
-    profit: "16.26",
-    roas: "1.13",
-    cpa: "8.23",
-    arpu: "9.31",
-    adAccountId: "act_1092137896602979",
-    accountName: "CA01",
-    updatedAt: "07/09/2026 01:16"
-  }]);
+  const result = testeMi ? [testeMi] : (activeRunning.length > 0 ? activeRunning : []);
 
   res.json(result);
 });
@@ -609,17 +590,24 @@ app.post('/api/meta/disconnect', (req, res) => {
       const connections = db.get('facebook_connections') || [];
       const filtered = connections.filter(c => c.id !== profileId);
       db.set('facebook_connections', filtered);
+      if (filtered.length === 0) {
+        db.set('ad_accounts', []);
+        db.set('campaigns', []);
+        db.set('meta_ads', []);
+      }
     } else {
       db.set('facebook_connections', []);
+      db.set('ad_accounts', []);
+      db.set('campaigns', []);
+      db.set('meta_ads', []);
     }
-    db.set('meta_ad_accounts', []);
     
     const settings = db.get('settings') || {};
     settings.metaAccessToken = '';
     settings.connectedProfile = null;
     db.set('settings', settings);
 
-    res.json({ success: true, message: 'Perfil e contas desconectados com sucesso.' });
+    res.json({ success: true, message: 'Perfil, contas de anúncios e campanhas desconectados com sucesso.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

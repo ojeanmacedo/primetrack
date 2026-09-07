@@ -37,10 +37,19 @@ export default function Integrations() {
   const [showFacebookOAuth, setShowFacebookOAuth] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
 
-  const [connectedProfiles, setConnectedProfiles] = useState([
-    { id: '9132253187299', name: 'Rafaelli Ribeiro', initial: 'R', accountsCount: 2, isNew: false },
-    { id: '172109315470598810', name: 'Angel Kerry', initial: 'A', accountsCount: 7, isNew: false }
-  ]);
+  const [connectedProfiles, setConnectedProfiles] = useState(() => {
+    if (typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true') {
+      return [];
+    }
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_connected_profiles') : null;
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      { id: '9132253187299', name: 'Rafaelli Ribeiro', initial: 'R', accountsCount: 2, isNew: false },
+      { id: '172109315470598810', name: 'Angel Kerry', initial: 'A', accountsCount: 7, isNew: false }
+    ];
+  });
 
   const tabs = [
     'Facebook Ads',
@@ -51,17 +60,26 @@ export default function Integrations() {
     'Dúvidas'
   ];
 
-  const [adAccounts, setAdAccounts] = useState([
-    { name: 'CA01', id: '1892117896682979', bm: 'Marinhos Dog', currency: 'USD (→ BRL @ 5,12)', status: 'Ativa', sync: true },
-    { name: 'Rafaelli Ribeiro', id: '988187735672553', bm: '—', currency: 'BRL', status: 'Ativa', sync: false },
-    { name: 'CA03', id: '1095793299643643', bm: 'DIGITAL JM SOLUCOES LTDA', currency: 'BRL', status: 'Ativa', sync: false },
-    { name: 'CA02 JEFFREY', id: '1101817232408751', bm: 'DIGITAL MEI', currency: 'USD (→ BRL @ 5,12)', status: 'Ativa', sync: true },
-    { name: 'Angel Kerry', id: '1387392810834788', bm: '—', currency: 'USD (→ BRL @ 5,12)', status: 'Ativa', sync: false },
-    { name: 'CA01 JEFFREY', id: '1588922422538250', bm: 'DIGITAL MEI', currency: 'USD (→ BRL @ 5,12)', status: 'Ativa', sync: false },
-    { name: 'CA03 JEFFREY', id: '2013649985959956', bm: 'DIGITAL MEI', currency: 'USD (→ BRL @ 5,12)', status: 'Ativa', sync: false },
-    { name: 'CA02', id: '4157287571263652', bm: 'DIGITAL JM SOLUCOES LTDA', currency: 'BRL', status: 'Ativa', sync: false },
-    { name: 'CA01', id: '719933136445425', bm: 'DIGITAL JM SOLUCOES LTDA', currency: 'BRL', status: 'Ativa', sync: false },
-  ]);
+  const [adAccounts, setAdAccounts] = useState(() => {
+    if (typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true') {
+      return [];
+    }
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      { name: 'CA01', id: '1892117896682979', bm: 'Marinhos Dog', currency: 'USD (→ BRL @ 5,12)', status: 'Ativa', sync: true },
+      { name: 'Rafaelli Ribeiro', id: '988187735672553', bm: '—', currency: 'BRL', status: 'Ativa', sync: false },
+      { name: 'CA03', id: '1095793299643643', bm: 'DIGITAL JM SOLUCOES LTDA', currency: 'BRL', status: 'Ativa', sync: false },
+      { name: 'CA02 JEFFREY', id: '1101817232408751', bm: 'DIGITAL MEI', currency: 'USD (→ BRL @ 5,12)', status: 'Ativa', sync: true },
+      { name: 'Angel Kerry', id: '1387392810834788', bm: '—', currency: 'USD (→ BRL @ 5,12)', status: 'Ativa', sync: false },
+      { name: 'CA01 JEFFREY', id: '1588922422538250', bm: 'DIGITAL MEI', currency: 'USD (→ BRL @ 5,12)', status: 'Ativa', sync: false },
+      { name: 'CA03 JEFFREY', id: '2013649985959956', bm: 'DIGITAL MEI', currency: 'USD (→ BRL @ 5,12)', status: 'Ativa', sync: false },
+      { name: 'CA02', id: '4157287571263652', bm: 'DIGITAL JM SOLUCOES LTDA', currency: 'BRL', status: 'Ativa', sync: false },
+      { name: 'CA01', id: '719933136445425', bm: 'DIGITAL JM SOLUCOES LTDA', currency: 'BRL', status: 'Ativa', sync: false },
+    ];
+  });
 
   const [connectionSuccessMsg, setConnectionSuccessMsg] = useState(null);
   const [disconnectToast, setDisconnectToast] = useState(null);
@@ -79,10 +97,40 @@ export default function Integrations() {
 
     const remaining = connectedProfiles.filter(p => p.id !== profileId);
     setConnectedProfiles(remaining);
+    
+    // Se não sobrarem perfis ou ao desconectar
     if (remaining.length === 0) {
       setAdAccounts([]);
+      localStorage.setItem('primetrack_meta_disconnected', 'true');
+      localStorage.removeItem('primetrack_connected_profiles');
+      localStorage.removeItem('primetrack_ad_accounts');
+      window.dispatchEvent(new Event('primetrack_profile_sync'));
+    } else {
+      localStorage.setItem('primetrack_connected_profiles', JSON.stringify(remaining));
     }
-    setDisconnectToast('Perfil e contas de anúncios desconectados com sucesso!');
+    setDisconnectToast('Perfil e contas de anúncios desconectados com sucesso! As campanhas foram removidas.');
+    setTimeout(() => setDisconnectToast(null), 4000);
+  };
+
+  const handleDisconnectAll = async () => {
+    try {
+      await fetch('/api/meta/disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+    } catch (e) {
+      console.error(e);
+    }
+
+    setConnectedProfiles([]);
+    setAdAccounts([]);
+    localStorage.setItem('primetrack_meta_disconnected', 'true');
+    localStorage.removeItem('primetrack_connected_profiles');
+    localStorage.removeItem('primetrack_ad_accounts');
+    window.dispatchEvent(new Event('primetrack_profile_sync'));
+
+    setDisconnectToast('Todos os perfis e contas foram desconectados com sucesso.');
     setTimeout(() => setDisconnectToast(null), 4000);
   };
 
@@ -90,10 +138,19 @@ export default function Integrations() {
     // Verifica retorno do OAuth via URL params
     const params = new URLSearchParams(window.location.search);
     if (params.get('connected') === 'true') {
+      localStorage.removeItem('primetrack_meta_disconnected');
       const userName = params.get('name') || 'Perfil';
       setConnectionSuccessMsg(`🎉 Perfil ${userName} conectado com sucesso ao PrimeTrack!`);
       setTimeout(() => setConnectionSuccessMsg(null), 5000);
       window.history.replaceState({}, document.title, window.location.pathname);
+      window.dispatchEvent(new Event('primetrack_profile_sync'));
+    }
+
+    // Se estiver marcado explicitamente como desconectado, não carrega dados antigos
+    if (localStorage.getItem('primetrack_meta_disconnected') === 'true') {
+      setConnectedProfiles([]);
+      setAdAccounts([]);
+      return;
     }
 
     // Busca status das conexões salvas no backend
@@ -109,7 +166,14 @@ export default function Integrations() {
             isNew: true
           }));
           setConnectedProfiles(mapped);
+          localStorage.setItem('primetrack_connected_profiles', JSON.stringify(mapped));
+        } else if (data.connections && data.connections.length === 0) {
+          // Se backend reportar 0 conexões
+          setConnectedProfiles([]);
+          setAdAccounts([]);
+          localStorage.setItem('primetrack_meta_disconnected', 'true');
         }
+
         if (data.adAccounts && data.adAccounts.length > 0) {
           const mappedAccs = data.adAccounts.map(a => ({
             name: a.name || 'Conta',
@@ -120,9 +184,10 @@ export default function Integrations() {
             sync: a.status === 'ACTIVE'
           }));
           setAdAccounts(mappedAccs);
+          localStorage.setItem('primetrack_ad_accounts', JSON.stringify(mappedAccs));
         }
       })
-      .catch(e => console.log('Backend offline, usando dados em cache'));
+      .catch(e => console.log('Backend offline ou usando cache local'));
   }, []);
 
   const pixelScript = `<script> window.pixelId = "pt_px_590fedcfff65"; var a = document.createElement("script"); a.setAttribute("async", ""); a.setAttribute("defer", ""); a.setAttribute("src", "https://primetrack.com.br/pixel.js"); document.head.appendChild(a); </script>`;
@@ -1135,11 +1200,22 @@ export default function Integrations() {
                     setTimeout(() => {
                       setIsConnecting(false);
                       setShowFacebookOAuth(false);
-                      // Add Jean Macedo to connected profiles
-                      setConnectedProfiles(prev => [
-                        ...prev,
-                        { id: '1092847291884920', name: 'Jean Macedo', initial: 'J', accountsCount: 3, isNew: true }
-                      ]);
+                      localStorage.removeItem('primetrack_meta_disconnected');
+                      
+                      const newProfiles = [
+                        { id: '1092847291884920', name: 'Jean Macedo', initial: 'J', accountsCount: 2, isNew: true }
+                      ];
+                      setConnectedProfiles(newProfiles);
+                      localStorage.setItem('primetrack_connected_profiles', JSON.stringify(newProfiles));
+
+                      const newAccs = [
+                        { name: 'CA01', id: '1892117896682979', bm: 'DIGITAL JM SOLUCOES LTDA', currency: 'BRL', status: 'Ativa', sync: true },
+                        { name: 'CA02 JEFFREY', id: '1101817232408751', bm: 'DIGITAL JM SOLUCOES LTDA', currency: 'BRL', status: 'Ativa', sync: true }
+                      ];
+                      setAdAccounts(newAccs);
+                      localStorage.setItem('primetrack_ad_accounts', JSON.stringify(newAccs));
+
+                      window.dispatchEvent(new Event('primetrack_profile_sync'));
                     }, 1400);
                   }}
                   className="flex-1 py-2.5 px-4 rounded-lg bg-[#1877F2] hover:bg-[#166FE5] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-colors"
