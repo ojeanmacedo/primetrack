@@ -75,7 +75,7 @@ export default function Integrations() {
     }
 
     // Busca status das conexões salvas no backend
-    fetch('http://localhost:3001/api/meta/status')
+    fetch('/api/meta/status')
       .then(res => res.json())
       .then(data => {
         if (data.connections && data.connections.length > 0) {
@@ -968,7 +968,7 @@ export default function Integrations() {
               {/* Primary Blue Button: Conectar com Facebook Oficial */}
               <button
                 onClick={() => {
-                  window.location.href = 'http://localhost:3001/api/auth/facebook';
+                  window.location.href = '/api/auth/facebook';
                 }}
                 className="w-full py-3 px-4 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-brand/30 transition-transform active:scale-95"
               >
