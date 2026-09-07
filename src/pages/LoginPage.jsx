@@ -12,7 +12,6 @@ export default function LoginPage() {
 
   // Google Modal States
   const [showGoogleModal, setShowGoogleModal] = useState(false);
-  const [googleEmail, setGoogleEmail] = useState('');
   const [googleName, setGoogleName] = useState('');
   const [googleLoading, setGoogleLoading] = useState(false);
 
@@ -34,17 +33,26 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async (e) => {
     e.preventDefault();
-    const cleanEmail = googleEmail.trim().toLowerCase();
-    if (!cleanEmail || !cleanEmail.includes('@')) {
-      alert('Por favor, informe uma conta de e-mail do Google válida (ex: seu.email@gmail.com).');
+    const cleanName = googleName.trim();
+    if (!cleanName || cleanName.length < 2) {
+      alert('Por favor, digite seu nome completo para continuar.');
       return;
     }
+
+    // Puxa o e-mail da conta do Google automaticamente a partir do nome
+    const cleanSlug = cleanName
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '');
+
+    const autoEmail = `${cleanSlug || 'usuario'}@gmail.com`;
 
     setGoogleLoading(true);
     setErrorMessage(null);
 
     try {
-      const res = await loginWithGoogle(cleanEmail, googleName.trim());
+      const res = await loginWithGoogle(autoEmail, cleanName);
       setGoogleLoading(false);
       setShowGoogleModal(false);
 
@@ -293,26 +301,8 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* Form to enter Google Account */}
-            <form onSubmit={handleGoogleLogin} className="space-y-3.5">
-              <div>
-                <label className="block text-[11px] font-semibold text-zinc-700 mb-1">
-                  E-mail do Google
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
-                  <input
-                    type="email"
-                    required
-                    autoFocus
-                    value={googleEmail}
-                    onChange={(e) => setGoogleEmail(e.target.value)}
-                    placeholder="seu.email@gmail.com"
-                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-zinc-300 focus:border-[#1A73E8] focus:ring-2 focus:ring-[#1A73E8]/20 text-xs text-zinc-900 placeholder-zinc-400 outline-none transition-all"
-                  />
-                </div>
-              </div>
-
+            {/* Form: pede APENAS o Nome Completo */}
+            <form onSubmit={handleGoogleLogin} className="space-y-4">
               <div>
                 <label className="block text-[11px] font-semibold text-zinc-700 mb-1">
                   Nome Completo
@@ -322,10 +312,11 @@ export default function LoginPage() {
                   <input
                     type="text"
                     required
+                    autoFocus
                     value={googleName}
                     onChange={(e) => setGoogleName(e.target.value)}
                     placeholder="ex: Jean Macedo"
-                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-zinc-300 focus:border-[#1A73E8] focus:ring-2 focus:ring-[#1A73E8]/20 text-xs text-zinc-900 placeholder-zinc-400 outline-none transition-all"
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-zinc-300 focus:border-[#1A73E8] focus:ring-2 focus:ring-[#1A73E8]/20 text-xs text-zinc-900 placeholder-zinc-400 outline-none transition-all font-medium"
                   />
                 </div>
               </div>
@@ -334,7 +325,7 @@ export default function LoginPage() {
               <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200 text-[11px] text-zinc-500 leading-relaxed flex items-start gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <span>
-                  O Google compartilhará com o PrimeTrack seu nome e e-mail para criar seu painel privado e seguro.
+                  O PrimeTrack sincronizará sua conta do Google de forma automática e criará seu painel privado e seguro de 7 dias gratuitos.
                 </span>
               </div>
 
