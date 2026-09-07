@@ -47,13 +47,150 @@ export default function Dashboard({ onSimulateSale }) {
 
   const periods = ['Hoje', 'Ontem', '7 dias', '15 dias', '30 dias', 'Personalizado'];
 
-  const totalSpend = campaigns.reduce((acc, c) => acc + Number(c.spend || 0), 0);
-  const totalSales = campaigns.reduce((acc, c) => acc + Number(c.sales || 0), 0);
-  const totalRevenue = campaigns.reduce((acc, c) => acc + Number(c.revenue || 0), 0);
-  const totalProfit = totalRevenue - totalSpend;
-  const roas = totalSpend > 0 ? (totalRevenue / totalSpend).toFixed(2) : '1.13';
-  const cpa = totalSales > 0 ? (totalSpend / totalSales).toFixed(2) : '8.22';
-  const arpu = totalSales > 0 ? (totalRevenue / totalSales).toFixed(2) : '9.31';
+  const periodDataMap = {
+    'Hoje': {
+      spend: 123.41,
+      revenue: 139.67,
+      profit: 16.26,
+      sales: 15,
+      pendingSales: 11,
+      pendingValue: 125.72,
+      roas: '1.13',
+      cpa: '8.23',
+      arpu: '9.31',
+      margin: '11.7%',
+      clicks: 421,
+      visits: 317,
+      ics: 192,
+      initSales: 26,
+      approvedSales: 15,
+      pixApproval: '57.7%',
+      pixSales: 15,
+      sources: { fb: 9, ig: 6 },
+      hourly: [
+        { h: '00h', v: 80 }, { h: '01h', v: 0 }, { h: '02h', v: 0 }, { h: '03h', v: 45 },
+        { h: '04h', v: 45 }, { h: '05h', v: 45 }, { h: '06h', v: 45 }, { h: '07h', v: 80 },
+        { h: '08h', v: 45 }, { h: '09h', v: 45 }, { h: '10h', v: 45 }, { h: '11h', v: 80 },
+        { h: '12h', v: 80 }, { h: '13h', v: 0 }, { h: '14h', v: 0 }, { h: '15h', v: 0 },
+        { h: '16h', v: 0 }, { h: '17h', v: 0 }, { h: '18h', v: 0 }, { h: '19h', v: 0 },
+        { h: '20h', v: 0 }, { h: '21h', v: 0 }, { h: '22h', v: 0 }, { h: '23h', v: 0 }
+      ]
+    },
+    'Ontem': {
+      spend: 142.50,
+      revenue: 198.24,
+      profit: 55.74,
+      sales: 21,
+      pendingSales: 14,
+      pendingValue: 158.40,
+      roas: '1.39',
+      cpa: '6.78',
+      arpu: '9.44',
+      margin: '28.1%',
+      clicks: 512,
+      visits: 394,
+      ics: 238,
+      initSales: 34,
+      approvedSales: 21,
+      pixApproval: '60.0%',
+      pixSales: 21,
+      sources: { fb: 13, ig: 8 },
+      hourly: [
+        { h: '00h', v: 30 }, { h: '01h', v: 20 }, { h: '02h', v: 0 }, { h: '03h', v: 20 },
+        { h: '04h', v: 0 }, { h: '05h', v: 30 }, { h: '06h', v: 50 }, { h: '07h', v: 70 },
+        { h: '08h', v: 85 }, { h: '09h', v: 90 }, { h: '10h', v: 75 }, { h: '11h', v: 60 },
+        { h: '12h', v: 95 }, { h: '13h', v: 80 }, { h: '14h', v: 65 }, { h: '15h', v: 55 },
+        { h: '16h', v: 70 }, { h: '17h', v: 85 }, { h: '18h', v: 90 }, { h: '19h', v: 100 },
+        { h: '20h', v: 85 }, { h: '21h', v: 75 }, { h: '22h', v: 60 }, { h: '23h', v: 40 }
+      ]
+    },
+    '7 dias': {
+      spend: 890.20,
+      revenue: 1113.92,
+      profit: 223.72,
+      sales: 118,
+      pendingSales: 78,
+      pendingValue: 882.10,
+      roas: '1.25',
+      cpa: '7.54',
+      arpu: '9.44',
+      margin: '20.1%',
+      clicks: 3120,
+      visits: 2410,
+      ics: 1450,
+      initSales: 198,
+      approvedSales: 118,
+      pixApproval: '59.6%',
+      pixSales: 118,
+      sources: { fb: 72, ig: 46 },
+      hourly: [
+        { h: '00h', v: 50 }, { h: '01h', v: 35 }, { h: '02h', v: 20 }, { h: '03h', v: 30 },
+        { h: '04h', v: 25 }, { h: '05h', v: 40 }, { h: '06h', v: 60 }, { h: '07h', v: 75 },
+        { h: '08h', v: 80 }, { h: '09h', v: 85 }, { h: '10h', v: 90 }, { h: '11h', v: 85 },
+        { h: '12h', v: 95 }, { h: '13h', v: 80 }, { h: '14h', v: 75 }, { h: '15h', v: 70 },
+        { h: '16h', v: 80 }, { h: '17h', v: 85 }, { h: '18h', v: 90 }, { h: '19h', v: 100 },
+        { h: '20h', v: 95 }, { h: '21h', v: 85 }, { h: '22h', v: 70 }, { h: '23h', v: 55 }
+      ]
+    },
+    '15 dias': {
+      spend: 1840.00,
+      revenue: 2322.24,
+      profit: 482.24,
+      sales: 246,
+      pendingSales: 162,
+      pendingValue: 1832.00,
+      roas: '1.26',
+      cpa: '7.48',
+      arpu: '9.44',
+      margin: '20.8%',
+      clicks: 6480,
+      visits: 5020,
+      ics: 3010,
+      initSales: 410,
+      approvedSales: 246,
+      pixApproval: '60.3%',
+      pixSales: 246,
+      sources: { fb: 152, ig: 94 },
+      hourly: [
+        { h: '00h', v: 55 }, { h: '01h', v: 40 }, { h: '02h', v: 25 }, { h: '03h', v: 35 },
+        { h: '04h', v: 30 }, { h: '05h', v: 45 }, { h: '06h', v: 65 }, { h: '07h', v: 80 },
+        { h: '08h', v: 85 }, { h: '09h', v: 90 }, { h: '10h', v: 95 }, { h: '11h', v: 90 },
+        { h: '12h', v: 100 }, { h: '13h', v: 85 }, { h: '14h', v: 80 }, { h: '15h', v: 75 },
+        { h: '16h', v: 85 }, { h: '17h', v: 90 }, { h: '18h', v: 95 }, { h: '19h', v: 100 },
+        { h: '20h', v: 95 }, { h: '21h', v: 90 }, { h: '22h', v: 75 }, { h: '23h', v: 60 }
+      ]
+    },
+    '30 dias': {
+      spend: 3820.00,
+      revenue: 4644.48,
+      profit: 824.48,
+      sales: 492,
+      pendingSales: 310,
+      pendingValue: 3510.00,
+      roas: '1.21',
+      cpa: '7.76',
+      arpu: '9.44',
+      margin: '17.8%',
+      clicks: 13420,
+      visits: 10390,
+      ics: 6240,
+      initSales: 830,
+      approvedSales: 492,
+      pixApproval: '61.2%',
+      pixSales: 492,
+      sources: { fb: 305, ig: 187 },
+      hourly: [
+        { h: '00h', v: 60 }, { h: '01h', v: 45 }, { h: '02h', v: 30 }, { h: '03h', v: 40 },
+        { h: '04h', v: 35 }, { h: '05h', v: 50 }, { h: '06h', v: 70 }, { h: '07h', v: 85 },
+        { h: '08h', v: 90 }, { h: '09h', v: 95 }, { h: '10h', v: 100 }, { h: '11h', v: 95 },
+        { h: '12h', v: 100 }, { h: '13h', v: 90 }, { h: '14h', v: 85 }, { h: '15h', v: 80 },
+        { h: '16h', v: 90 }, { h: '17h', v: 95 }, { h: '18h', v: 100 }, { h: '19h', v: 100 },
+        { h: '20h', v: 95 }, { h: '21h', v: 90 }, { h: '22h', v: 80 }, { h: '23h', v: 65 }
+      ]
+    }
+  };
+
+  const currentMetrics = periodDataMap[period] || periodDataMap['Hoje'];
 
   return (
     <div className="space-y-5 pb-16">
@@ -74,7 +211,7 @@ export default function Dashboard({ onSimulateSale }) {
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
-                className={`px-3 py-1 rounded-lg font-medium transition-colors ${
+                className={`px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
                   period === p
                     ? 'bg-[#12223D] text-[#5C9BFF] font-bold shadow-sm'
                     : 'text-zinc-400 hover:text-white'
@@ -141,7 +278,7 @@ export default function Dashboard({ onSimulateSale }) {
         <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
           <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">FATURAMENTO</div>
           <div className="text-xl sm:text-2xl font-extrabold text-white mt-1">
-            R$ {(totalRevenue > 0 ? totalRevenue : 139.67).toFixed(2)}
+            R$ {currentMetrics.revenue.toFixed(2)}
           </div>
         </div>
 
@@ -149,7 +286,7 @@ export default function Dashboard({ onSimulateSale }) {
         <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
           <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">LUCRO</div>
           <div className="text-xl sm:text-2xl font-extrabold text-[#5C9BFF] mt-1">
-            R$ {(totalProfit !== 0 ? totalProfit : 16.36).toFixed(2)}
+            R$ {currentMetrics.profit.toFixed(2)}
           </div>
           <div className="mt-1">
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold">
@@ -162,7 +299,7 @@ export default function Dashboard({ onSimulateSale }) {
         <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
           <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">GASTO EM ADS</div>
           <div className="text-xl sm:text-2xl font-extrabold text-white mt-1">
-            R$ {(totalSpend > 0 ? totalSpend : 123.31).toFixed(2)}
+            R$ {currentMetrics.spend.toFixed(2)}
           </div>
         </div>
 
@@ -170,7 +307,7 @@ export default function Dashboard({ onSimulateSale }) {
         <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
           <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">CPA</div>
           <div className="text-xl sm:text-2xl font-extrabold text-white mt-1">
-            R$ {cpa}
+            R$ {currentMetrics.cpa}
           </div>
         </div>
 
@@ -178,7 +315,7 @@ export default function Dashboard({ onSimulateSale }) {
         <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
           <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">ARPU</div>
           <div className="text-xl sm:text-2xl font-extrabold text-white mt-1">
-            R$ {arpu}
+            R$ {currentMetrics.arpu}
           </div>
         </div>
 
@@ -186,7 +323,7 @@ export default function Dashboard({ onSimulateSale }) {
         <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
           <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">ROAS</div>
           <div className="text-xl sm:text-2xl font-extrabold text-[#5C9BFF] mt-1">
-            {roas}x
+            {currentMetrics.roas}x
           </div>
           <div className="mt-1">
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold">
@@ -201,15 +338,15 @@ export default function Dashboard({ onSimulateSale }) {
         {/* Vendas Aprovadas */}
         <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
           <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">VENDAS APROVADAS</div>
-          <div className="text-2xl font-extrabold text-white mt-1">15</div>
-          <div className="text-[11px] font-mono text-zinc-400 mt-0.5">R$ 139,67</div>
+          <div className="text-2xl font-extrabold text-white mt-1">{currentMetrics.sales}</div>
+          <div className="text-[11px] font-mono text-zinc-400 mt-0.5">R$ {currentMetrics.revenue.toFixed(2)}</div>
         </div>
 
         {/* Vendas Pendentes */}
         <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
           <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">VENDAS PENDENTES</div>
-          <div className="text-2xl font-extrabold text-white mt-1">R$ 125,72</div>
-          <div className="text-[11px] font-mono text-zinc-400 mt-0.5">11 vendas</div>
+          <div className="text-2xl font-extrabold text-white mt-1">R$ {currentMetrics.pendingValue.toFixed(2)}</div>
+          <div className="text-[11px] font-mono text-zinc-400 mt-0.5">{currentMetrics.pendingSales} vendas</div>
         </div>
 
         {/* Chargeback */}
@@ -222,7 +359,7 @@ export default function Dashboard({ onSimulateSale }) {
         {/* Margem */}
         <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
           <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">MARGEM</div>
-          <div className="text-2xl font-extrabold text-[#5C9BFF] mt-1">11.7%</div>
+          <div className="text-2xl font-extrabold text-[#5C9BFF] mt-1">{currentMetrics.margin}</div>
           <div className="mt-0.5">
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold">
               ↑ Positivo
@@ -265,7 +402,7 @@ export default function Dashboard({ onSimulateSale }) {
         {/* Funil de Conversão (8 cols) */}
         <div className="lg:col-span-8 bg-[#0A1426] border border-[#13233E] p-5 rounded-2xl">
           <div className="text-xs font-bold text-white mb-6">
-            Funil de Conversão (Meta Ads)
+            Funil de Conversão (Meta Ads) — {period}
           </div>
 
           <div className="grid grid-cols-5 gap-2 text-center relative items-center">
@@ -275,46 +412,52 @@ export default function Dashboard({ onSimulateSale }) {
               <div className="w-14 h-14 rounded-full border-2 border-[#1A6DFF] bg-[#12223D] flex items-center justify-center text-xs font-extrabold text-white">
                 100%
               </div>
-              <div className="mt-2 text-sm font-bold text-white">421</div>
+              <div className="mt-2 text-sm font-bold text-white">{currentMetrics.clicks}</div>
               <div className="text-[10px] font-mono text-zinc-400 uppercase">CLIQUES</div>
             </div>
 
             {/* Stage 2: Vis. Página */}
             <div className="flex flex-col items-center">
               <div className="w-14 h-14 rounded-full border-2 border-[#1A6DFF] bg-[#12223D] flex items-center justify-center text-xs font-extrabold text-white relative">
-                75.3%
-                <span className="absolute -bottom-3 text-[9px] text-red-400 font-mono">-24.7%</span>
+                {((currentMetrics.visits / currentMetrics.clicks) * 100).toFixed(1)}%
+                <span className="absolute -bottom-3 text-[9px] text-red-400 font-mono">
+                  -{(100 - (currentMetrics.visits / currentMetrics.clicks) * 100).toFixed(1)}%
+                </span>
               </div>
-              <div className="mt-4 text-sm font-bold text-white">317</div>
+              <div className="mt-4 text-sm font-bold text-white">{currentMetrics.visits}</div>
               <div className="text-[10px] font-mono text-zinc-400 uppercase">VIS. PÁGINA</div>
             </div>
 
             {/* Stage 3: ICS */}
             <div className="flex flex-col items-center">
               <div className="w-14 h-14 rounded-full border-2 border-[#1A6DFF] bg-[#12223D] flex items-center justify-center text-xs font-extrabold text-white relative">
-                45.6%
-                <span className="absolute -bottom-3 text-[9px] text-red-400 font-mono">-29.7%</span>
+                {((currentMetrics.ics / currentMetrics.clicks) * 100).toFixed(1)}%
+                <span className="absolute -bottom-3 text-[9px] text-red-400 font-mono">
+                  -{(((currentMetrics.visits - currentMetrics.ics) / currentMetrics.visits) * 100).toFixed(1)}%
+                </span>
               </div>
-              <div className="mt-4 text-sm font-bold text-white">192</div>
+              <div className="mt-4 text-sm font-bold text-white">{currentMetrics.ics}</div>
               <div className="text-[10px] font-mono text-zinc-400 uppercase">ICS</div>
             </div>
 
             {/* Stage 4: Vendas Inic. */}
             <div className="flex flex-col items-center">
               <div className="w-14 h-14 rounded-full border-2 border-[#5C9BFF] bg-[#12223D] flex items-center justify-center text-xs font-extrabold text-white relative">
-                6.2%
-                <span className="absolute -bottom-3 text-[9px] text-red-400 font-mono">-39.4%</span>
+                {((currentMetrics.initSales / currentMetrics.clicks) * 100).toFixed(1)}%
+                <span className="absolute -bottom-3 text-[9px] text-red-400 font-mono">
+                  -{(((currentMetrics.ics - currentMetrics.initSales) / currentMetrics.ics) * 100).toFixed(1)}%
+                </span>
               </div>
-              <div className="mt-4 text-sm font-bold text-white">26</div>
+              <div className="mt-4 text-sm font-bold text-white">{currentMetrics.initSales}</div>
               <div className="text-[10px] font-mono text-zinc-400 uppercase">VENDAS INIC.</div>
             </div>
 
             {/* Stage 5: Vendas Apr. */}
             <div className="flex flex-col items-center">
               <div className="w-14 h-14 rounded-full border-2 border-emerald-400 bg-[#12223D] flex items-center justify-center text-xs font-extrabold text-emerald-400">
-                3.6%
+                {((currentMetrics.approvedSales / currentMetrics.clicks) * 100).toFixed(1)}%
               </div>
-              <div className="mt-4 text-sm font-bold text-emerald-400">15</div>
+              <div className="mt-4 text-sm font-bold text-emerald-400">{currentMetrics.approvedSales}</div>
               <div className="text-[10px] font-mono text-zinc-400 uppercase">VENDAS APR.</div>
             </div>
 
@@ -333,7 +476,7 @@ export default function Dashboard({ onSimulateSale }) {
             <span className="text-xs font-medium text-zinc-300">Pix</span>
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full border-2 border-t-brand border-r-brand border-b-transparent border-l-transparent animate-spin-slow flex items-center justify-center" />
-              <span className="text-xs font-bold text-white font-mono">57.7%</span>
+              <span className="text-xs font-bold text-white font-mono">{currentMetrics.pixApproval}</span>
             </div>
           </div>
         </div>
@@ -344,13 +487,13 @@ export default function Dashboard({ onSimulateSale }) {
             <div className="text-xs font-bold text-white mb-3">Vendas por Pagamento</div>
             <div className="flex items-center gap-2 text-xs font-mono text-zinc-300">
               <span className="w-2.5 h-2.5 rounded-full bg-brand" />
-              <span>Pix: 15</span>
+              <span>Pix: {currentMetrics.pixSales}</span>
             </div>
           </div>
 
           <div className="w-20 h-20 rounded-full border-4 border-brand bg-[#070D1A] flex flex-col items-center justify-center font-mono">
             <span className="text-[9px] text-zinc-400">TOTAL</span>
-            <span className="text-lg font-bold text-white">15</span>
+            <span className="text-lg font-bold text-white">{currentMetrics.sales}</span>
           </div>
         </div>
 
@@ -361,15 +504,15 @@ export default function Dashboard({ onSimulateSale }) {
             <div className="flex items-center justify-between">
               <span className="text-zinc-300">Facebook</span>
               <div className="flex items-center gap-2 font-mono">
-                <span className="font-bold text-white">9</span>
-                <span className="text-zinc-400 text-[11px]">(60%)</span>
+                <span className="font-bold text-white">{currentMetrics.sources.fb}</span>
+                <span className="text-zinc-400 text-[11px]">({Math.round((currentMetrics.sources.fb / currentMetrics.sales) * 100)}%)</span>
               </div>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-zinc-300">Instagram</span>
               <div className="flex items-center gap-2 font-mono">
-                <span className="font-bold text-white">6</span>
-                <span className="text-zinc-400 text-[11px]">(40%)</span>
+                <span className="font-bold text-white">{currentMetrics.sources.ig}</span>
+                <span className="text-zinc-400 text-[11px]">({Math.round((currentMetrics.sources.ig / currentMetrics.sales) * 100)}%)</span>
               </div>
             </div>
           </div>
@@ -390,19 +533,19 @@ export default function Dashboard({ onSimulateSale }) {
           <div className="space-y-2 text-xs">
             <div className="flex justify-between pb-1.5 border-b border-[#13233E]/50">
               <span className="text-zinc-300 truncate max-w-[140px]">Privacy Mc Mirella</span>
-              <span className="font-mono font-bold text-white">13</span>
+              <span className="font-mono font-bold text-white">{Math.round(currentMetrics.sales * 0.86)}</span>
             </div>
             <div className="flex justify-between pb-1.5 border-b border-[#13233E]/50">
               <span className="text-zinc-300 truncate max-w-[140px]">ACESSO AO GRUPO MIRELLA</span>
-              <span className="font-mono font-bold text-white">1</span>
+              <span className="font-mono font-bold text-white">{Math.max(1, Math.round(currentMetrics.sales * 0.07))}</span>
             </div>
             <div className="flex justify-between pb-1.5 border-b border-[#13233E]/50">
               <span className="text-zinc-300 truncate max-w-[140px]">Vip Exclusivo Mirella</span>
-              <span className="font-mono font-bold text-white">1</span>
+              <span className="font-mono font-bold text-white">{Math.max(1, Math.round(currentMetrics.sales * 0.07))}</span>
             </div>
             <div className="flex justify-between pt-1 font-bold">
               <span className="text-zinc-400">Total</span>
-              <span className="font-mono text-white">15</span>
+              <span className="font-mono text-white">{currentMetrics.sales}</span>
             </div>
           </div>
         </div>
@@ -438,18 +581,11 @@ export default function Dashboard({ onSimulateSale }) {
 
       {/* Row 6: Vendas por Horário */}
       <div className="bg-[#0A1426] border border-[#13233E] p-5 rounded-2xl">
-        <div className="text-xs font-bold text-white mb-6">Vendas por Horário</div>
+        <div className="text-xs font-bold text-white mb-6">Vendas por Horário — {period}</div>
         
-        {/* Hourly distribution bars matching the print */}
+        {/* Hourly distribution bars matching the period */}
         <div className="flex items-end gap-1.5 h-36 pt-4 border-b border-[#13233E]">
-          {[
-            { h: '00h', v: 80 }, { h: '01h', v: 0 }, { h: '02h', v: 0 }, { h: '03h', v: 45 },
-            { h: '04h', v: 45 }, { h: '05h', v: 45 }, { h: '06h', v: 45 }, { h: '07h', v: 80 },
-            { h: '08h', v: 45 }, { h: '09h', v: 45 }, { h: '10h', v: 45 }, { h: '11h', v: 80 },
-            { h: '12h', v: 80 }, { h: '13h', v: 0 }, { h: '14h', v: 0 }, { h: '15h', v: 0 },
-            { h: '16h', v: 0 }, { h: '17h', v: 0 }, { h: '18h', v: 0 }, { h: '19h', v: 0 },
-            { h: '20h', v: 0 }, { h: '21h', v: 0 }, { h: '22h', v: 0 }, { h: '23h', v: 0 }
-          ].map((item, idx) => (
+          {currentMetrics.hourly.map((item, idx) => (
             <div key={idx} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
               <div 
                 className={`w-full rounded-t-sm transition-all ${

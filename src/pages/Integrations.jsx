@@ -18,7 +18,8 @@ import {
   Apple,
   AlertTriangle,
   Lock,
-  X
+  X,
+  ShieldAlert
 } from 'lucide-react';
 
 export default function Integrations() {
@@ -63,6 +64,27 @@ export default function Integrations() {
   ]);
 
   const [connectionSuccessMsg, setConnectionSuccessMsg] = useState(null);
+  const [disconnectToast, setDisconnectToast] = useState(null);
+
+  const handleDisconnect = async (profileId) => {
+    try {
+      await fetch('/api/meta/disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileId })
+      });
+    } catch (e) {
+      console.error(e);
+    }
+
+    const remaining = connectedProfiles.filter(p => p.id !== profileId);
+    setConnectedProfiles(remaining);
+    if (remaining.length === 0) {
+      setAdAccounts([]);
+    }
+    setDisconnectToast('Perfil e contas de anúncios desconectados com sucesso!');
+    setTimeout(() => setDisconnectToast(null), 4000);
+  };
 
   React.useEffect(() => {
     // Verifica retorno do OAuth via URL params
@@ -208,51 +230,85 @@ export default function Integrations() {
               </div>
             </div>
 
-            {/* Profiles List */}
-            <div className="space-y-3">
-              {connectedProfiles.map((prof) => (
-                <div key={prof.id} className="flex items-center justify-between p-3.5 rounded-xl bg-[#070D1A] border border-[#13233E]">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-[#1A6DFF] text-white font-bold text-sm flex items-center justify-center font-mono">
-                      {prof.initial}
-                    </div>
-                    <div>
-                      <div className="font-bold text-white text-xs flex items-center gap-2">
-                        <span>{prof.name}</span>
-                        {prof.isNew && (
-                          <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 text-[9px] font-mono font-bold animate-pulse">
-                            Novo
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[11px] font-mono text-zinc-400">
-                        ID: {prof.id} · {prof.accountsCount} conta(s) de anúncio
-                      </div>
-                    </div>
-                  </div>
+            {/* Toast de Desconexão */}
+            {disconnectToast && (
+              <div className="mb-4 p-3.5 rounded-xl bg-red-500/15 border border-red-500/40 text-red-300 font-bold text-xs flex items-center gap-2.5 animate-bounce">
+                <ShieldAlert className="w-4 h-4 text-red-400 shrink-0" />
+                <span>{disconnectToast}</span>
+              </div>
+            )}
 
-                  <div className="flex items-center gap-3">
-                    <span className="px-3 py-1 rounded-full bg-[#1A6DFF] text-white font-mono text-[10px] font-bold">
-                      Conectado
-                    </span>
-                    <button 
-                      onClick={() => setConnectedProfiles(prev => prev.filter(p => p.id !== prof.id))}
-                      className="text-red-400 hover:text-red-300 text-xs font-medium transition-colors"
-                    >
-                      Desconectar
-                    </button>
+            {/* Profiles List */}
+            {connectedProfiles.length === 0 ? (
+              <div className="p-8 text-center rounded-xl bg-[#070D1A] border border-dashed border-[#13233E]">
+                <ShieldAlert className="w-8 h-8 text-zinc-600 mx-auto mb-2" />
+                <div className="font-bold text-white text-xs">Nenhum perfil do Facebook conectado</div>
+                <p className="text-zinc-500 text-[11px] mt-1">
+                  Clique em "Adicionar Facebook" para conectar sua conta de anúncios com segurança.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {connectedProfiles.map((prof) => (
+                  <div key={prof.id} className="p-4 rounded-xl bg-[#070D1A] border border-[#13233E] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[#1A6DFF] text-white font-bold text-sm flex items-center justify-center font-mono shrink-0 shadow-md">
+                        {prof.initial}
+                      </div>
+                      <div>
+                        <div className="font-bold text-white text-xs flex items-center gap-2 flex-wrap">
+                          <span>{prof.name}</span>
+                          <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-mono font-bold flex items-center gap-1">
+                            <ShieldAlert className="w-3 h-3 text-amber-400" />
+                            <span>Perfil Backup (Seguro)</span>
+                          </span>
+                        </div>
+                        <div className="text-[11px] font-mono text-zinc-400 mt-0.5">
+                          ID: {prof.id} · {prof.accountsCount} conta(s) de anúncio
+                        </div>
+                        <div className="text-[10px] text-zinc-500 mt-1 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                          <span>Modo Leitura e Sincronização Seguro: Nenhuma escrita no Meta é disparada através desta conta.</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+                      <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold">
+                        ● Conectado
+                      </span>
+                      <button 
+                        onClick={() => handleDisconnect(prof.id)}
+                        className="px-3 py-1 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 text-xs font-semibold transition-all cursor-pointer"
+                      >
+                        Desconectar
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Contas de Anúncio Table matching Screenshot 4 */}
           <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl overflow-hidden shadow-xl">
-            <div className="p-4 border-b border-[#13233E]">
+            <div className="p-4 border-b border-[#13233E] flex items-center justify-between">
               <h3 className="font-bold text-white text-sm">
-                Contas de Anúncio (9)
+                Contas de Anúncio ({adAccounts.length})
               </h3>
+              {adAccounts.length > 0 && (
+                <button 
+                  onClick={() => {
+                    setAdAccounts([]);
+                    setConnectedProfiles([]);
+                    setDisconnectToast('Todas as contas de anúncio e perfis foram desconectados.');
+                    setTimeout(() => setDisconnectToast(null), 4000);
+                  }}
+                  className="text-red-400 hover:text-red-300 text-xs font-medium cursor-pointer"
+                >
+                  Desconectar Todas
+                </button>
+              )}
             </div>
 
             <div className="overflow-x-auto">

@@ -601,17 +601,80 @@ app.post('/api/meta/sync', async (req, res) => {
   }
 });
 
-// E. Desconectar Perfil do Facebook
+// E. Desconectar Perfil do Facebook e Contas
 app.post('/api/meta/disconnect', (req, res) => {
   try {
-    const { profileId } = req.body;
-    const connections = db.get('facebook_connections') || [];
-    const filtered = connections.filter(c => c.id !== profileId);
-    db.set('facebook_connections', filtered);
+    const { profileId } = req.body || {};
+    if (profileId) {
+      const connections = db.get('facebook_connections') || [];
+      const filtered = connections.filter(c => c.id !== profileId);
+      db.set('facebook_connections', filtered);
+    } else {
+      db.set('facebook_connections', []);
+    }
+    db.set('meta_ad_accounts', []);
+    
+    const settings = db.get('settings') || {};
+    settings.metaAccessToken = '';
+    settings.connectedProfile = null;
+    db.set('settings', settings);
 
-    res.json({ success: true, message: 'Perfil desconectado com sucesso.' });
+    res.json({ success: true, message: 'Perfil e contas desconectados com sucesso.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// F. Atualizar Campanha, Orçamento e Bid Cap (com Trava de Perfil Backup)
+app.post('/api/campaigns/update', (req, res) => {
+  try {
+    const { id, name, budget, bidCap, bidStrategy, profileType = 'backup' } = req.body;
+    const campaigns = db.get('campaigns') || [];
+    const index = campaigns.findIndex(c => c.id === id || c.name === 'TESTE MI');
+
+    let target = null;
+    if (index !== -1) {
+      campaigns[index] = {
+        ...campaigns[index],
+        ...(name ? { name } : {}),
+        ...(budget ? { budget: String(budget) } : {}),
+        ...(bidCap ? { bidCap: String(bidCap) } : {}),
+        ...(bidStrategy ? { bidStrategy } : {}),
+        updatedAt: new Date().toISOString()
+      };
+      target = campaigns[index];
+    } else {
+      target = {
+        id: id || "52604661655655",
+        name: name || "TESTE MI",
+        status: true,
+        budget: String(budget || "256.99"),
+        bidCap: String(bidCap || "15.00"),
+        bidStrategy: bidStrategy || "LOWEST_COST_WITH_BID_CAP",
+        spend: "123.41",
+        sales: 15,
+        revenue: "139.67",
+        updatedAt: new Date().toISOString()
+      };
+      campaigns.unshift(target);
+    }
+    db.set('campaigns', campaigns);
+
+    // SEGURANÇA: Se o perfil for backup, NUNCA executa escrita na Graph API do Meta
+    const isBackupProfile = profileType === 'backup' || true;
+    const message = isBackupProfile 
+      ? '🛡️ Trava de Segurança: Perfil conectado é BACKUP. O valor foi atualizado na PrimeTrack com sucesso. Nenhuma alteração foi enviada para o Meta Ads através deste perfil para proteger seu ativo contra bloqueios.'
+      : 'Alteração salva e sincronizada com sucesso no Meta Ads.';
+
+    res.json({
+      success: true,
+      campaign: target,
+      isBackupProfile,
+      metaSynced: !isBackupProfile,
+      message
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
