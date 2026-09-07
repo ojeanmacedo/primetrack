@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { getCurrentUser, getTrialStatus, logoutUser } from '../utils/auth';
 import { 
   LayoutDashboard, 
   Layers, 
@@ -14,7 +15,8 @@ import {
   Trophy, 
   Headphones,
   Clock,
-  ExternalLink
+  ExternalLink,
+  ShieldCheck
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -22,6 +24,8 @@ export default function Sidebar() {
   const [dashboardsOpen, setDashboardsOpen] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
+  const user = getCurrentUser();
+  const trialStatus = getTrialStatus(user);
 
   const isPainelActive = location.pathname === '/dashboard' || location.pathname === '/';
 
@@ -138,19 +142,28 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Bottom Area: Trial Card & User Profile */}
+      {/* Bottom Area: Plan Card & User Profile */}
       <div className="p-3 border-t border-[#13233E] space-y-3">
         
-        {/* Trial Card matching exact print */}
+        {/* Plan / Trial Card */}
         {!collapsed && (
           <div className="p-3.5 rounded-2xl bg-[#0A1426] border border-[#13233E]">
             <div className="flex items-center justify-between text-xs mb-1">
               <span className="font-bold text-white flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-[#5C9BFF]" />
-                <span>Trial</span>
+                {trialStatus.isTrial ? (
+                  <>
+                    <Clock className="w-3.5 h-3.5 text-[#5C9BFF]" />
+                    <span>Trial</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-emerald-400 font-bold">Plano Pro</span>
+                  </>
+                )}
               </span>
               <span className="font-mono text-[10px] text-zinc-400 bg-[#070D1A] px-2 py-0.5 rounded-full border border-white/5">
-                01h
+                {trialStatus.isTrial ? `${trialStatus.daysLeft}d restantes` : 'Ativo'}
               </span>
             </div>
 
@@ -183,16 +196,16 @@ export default function Sidebar() {
         {/* User Profile Bar */}
         <div className="flex items-center justify-between pt-1 px-1">
           <div className="flex items-center gap-2.5 overflow-hidden">
-            <div className="w-7 h-7 rounded-full bg-zinc-700 text-white font-bold text-xs flex items-center justify-center shrink-0">
-              B
+            <div className="w-7 h-7 rounded-full bg-[#1A6DFF] text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-md">
+              {user.avatarLetter || 'D'}
             </div>
             {!collapsed && (
               <div className="truncate">
-                <div className="text-xs font-bold text-white truncate">
-                  Black Host
+                <div className="text-xs font-bold text-white truncate" title={user.name || 'Digital JM Soluções'}>
+                  {user.name || 'Digital JM Soluções'}
                 </div>
-                <div className="text-[10px] text-zinc-500 truncate">
-                  Trial
+                <div className="text-[10px] text-zinc-400 truncate font-mono">
+                  {user.email || 'digitaljmsolucoes@gmail.com'}
                 </div>
               </div>
             )}
@@ -200,8 +213,11 @@ export default function Sidebar() {
 
           {!collapsed && (
             <button 
-              onClick={() => navigate('/login')}
-              title="Sair / Fazer Login"
+              onClick={() => {
+                logoutUser();
+                navigate('/login');
+              }}
+              title="Sair da conta"
               className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />

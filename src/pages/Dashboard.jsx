@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getCurrentUser, getTrialStatus } from '../utils/auth';
 import { 
   Flame, 
   RotateCw, 
@@ -18,6 +19,8 @@ import {
 
 export default function Dashboard({ onSimulateSale }) {
   const navigate = useNavigate();
+  const user = getCurrentUser();
+  const trialStatus = getTrialStatus(user);
   const [period, setPeriod] = useState('Hoje');
   const [campaigns, setCampaigns] = useState([
     {
@@ -113,22 +116,24 @@ export default function Dashboard({ onSimulateSale }) {
         </div>
       </div>
 
-      {/* Red Alert Banner */}
-      <div className="w-full bg-[#E52222] text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-between shadow-md">
-        <div className="flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 fill-current shrink-0" />
-          <span>
-            Seu plano expirou! Você tem <strong>2 dias</strong> para renovar antes dos serviços serem pausados.
-          </span>
+      {/* Red Alert Banner - Somente exibido se o período de 7 dias grátis expirar (removido da conta principal) */}
+      {trialStatus.showExpiredBanner && (
+        <div className="w-full bg-[#E52222] text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-between shadow-md">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 fill-current shrink-0" />
+            <span>
+              Seu período de teste de 7 dias grátis expirou! Renove seu plano para evitar a pausa dos serviços.
+            </span>
+          </div>
+          <button 
+            type="button"
+            onClick={() => navigate('/planos')}
+            className="underline hover:text-zinc-200 text-xs font-bold shrink-0 ml-4 cursor-pointer"
+          >
+            Assinar agora →
+          </button>
         </div>
-        <button 
-          type="button"
-          onClick={() => navigate('/planos')}
-          className="underline hover:text-zinc-200 text-xs font-bold shrink-0 ml-4 cursor-pointer"
-        >
-          Renovar agora →
-        </button>
-      </div>
+      )}
 
       {/* KPI Row 1: Faturamento, Lucro, Gasto, CPA, ARPU, ROAS */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">

@@ -1,20 +1,22 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Zap, Sun } from 'lucide-react';
+import { loginUser } from '../utils/auth';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('blackhospedagem@gmail.com');
-  const [password, setPassword] = useState('••••••••••');
+  const [email, setEmail] = useState('digitaljmsolucoes@gmail.com');
+  const [password, setPassword] = useState('jean031522');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setIsLoading(true);
+    loginUser(email, password);
     setTimeout(() => {
       setIsLoading(false);
       navigate('/dashboard');
-    }, 500);
+    }, 400);
   };
 
   return (
