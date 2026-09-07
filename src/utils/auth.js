@@ -253,6 +253,8 @@ export async function loginWithGoogle(email, name = '') {
 
       clientUser = {
         ...newRecord,
+        createdAt: newRecord.created_at,
+        trialStartedAt: newRecord.trial_started_at,
         avatarLetter: cleanName.charAt(0).toUpperCase(),
         hasSetPassword: false
       };
@@ -314,6 +316,7 @@ export function getTrialStatus(user) {
       isExpired: false,
       isTrial: false,
       daysLeft: null,
+      dayLabel: '',
       planLabel: 'Visitante'
     };
   }
@@ -325,14 +328,16 @@ export function getTrialStatus(user) {
       isExpired: false,
       isTrial: false,
       daysLeft: null,
+      dayLabel: 'Pro',
       planLabel: 'Plano Pro'
     };
   }
 
   // Clientes normais em período de 7 dias grátis
-  const start = current.trialStartedAt ? new Date(current.trialStartedAt) : new Date(current.createdAt || Date.now());
+  const startRaw = current.trialStartedAt || current.trial_started_at || current.createdAt || current.created_at;
+  const start = startRaw ? new Date(startRaw) : new Date();
   const now = new Date();
-  const diffMs = now.getTime() - start.getTime();
+  const diffMs = Math.max(0, now.getTime() - (isNaN(start.getTime()) ? now.getTime() : start.getTime()));
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
   const TRIAL_DAYS = 7;
@@ -340,10 +345,18 @@ export function getTrialStatus(user) {
   const daysLeft = Math.max(0, TRIAL_DAYS - diffDays);
 
   return {
-    showExpiredBanner: isExpired, // SÓ aparece quando bater os 7 dias grátis
+    showExpiredBanner: isExpired, // Aparece assim que passar os 7 dias grátis
     isExpired,
     isTrial: true,
     daysLeft,
-    planLabel: isExpired ? 'Trial Expirado' : `Trial (${daysLeft}d restantes)`
+    dayLabel: isExpired ? 'Expirado' : `${daysLeft} dia`,
+    planLabel: isExpired ? 'Plano Expirado' : 'Plano Free',
+    limits: {
+      maxAdAccounts: 1,
+      maxPixels: 1,
+      maxWebhooks: 1,
+      rulesAllowed: false,
+      maxApprovedSales: 50
+    }
   };
 }

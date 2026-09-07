@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { getCurrentUser, isMasterAdmin, setCurrentUser } from '../utils/auth';
+import { useNavigate } from 'react-router-dom';
+import { getCurrentUser, isMasterAdmin, setCurrentUser, getTrialStatus } from '../utils/auth';
 import { supabase } from '../lib/supabase';
 import { 
   Plus, 
@@ -26,14 +27,19 @@ import {
 } from 'lucide-react';
 
 export default function Integrations() {
+  const navigate = useNavigate();
   const currentUser = getCurrentUser();
   const isAdmin = isMasterAdmin(currentUser);
+  const trialStatus = getTrialStatus(currentUser);
 
   const [activeTab, setActiveTab] = useState('Facebook Ads');
   const [copiedUTM, setCopiedUTM] = useState(false);
   const [copiedPixel, setCopiedPixel] = useState(false);
   const [copiedConnectLink, setCopiedConnectLink] = useState(false);
   
+  // Trial Limit Modal State
+  const [trialLimitModal, setTrialLimitModal] = useState(null);
+
   // App Password Form States
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -141,6 +147,26 @@ export default function Integrations() {
     } finally {
       setIsSavingPass(false);
     }
+  };
+
+  const handleToggleSync = (accountId) => {
+    const target = adAccounts.find(a => a.id === accountId);
+    if (!target) return;
+
+    // Se estiver tentando ativar e for cliente em Trial
+    if (!target.sync && trialStatus.isTrial) {
+      const activeCount = adAccounts.filter(a => a.sync).length;
+      if (activeCount >= 1) {
+        setTrialLimitModal({
+          title: 'Limite do Plano Free Atingido',
+          message: 'No período de teste de 7 dias gratuito você pode ativar no máximo 1 conta de anúncio. Faça o upgrade para o Plano Pro para conectar contas ilimitadas.',
+          ctaText: 'Ver Planos Pro'
+        });
+        return;
+      }
+    }
+
+    setAdAccounts(prev => prev.map(a => a.id === accountId ? { ...a, sync: !a.sync } : a));
   };
 
   const [connectionSuccessMsg, setConnectionSuccessMsg] = useState(null);
@@ -411,8 +437,13 @@ export default function Integrations() {
           {/* Contas de Anúncio Table matching Screenshot 4 */}
           <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl overflow-hidden shadow-xl">
             <div className="p-4 border-b border-[#13233E] flex items-center justify-between">
-              <h3 className="font-bold text-white text-sm">
-                Contas de Anúncio ({adAccounts.length})
+              <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                <span>Contas de Anúncio ({adAccounts.length})</span>
+                {trialStatus.isTrial && (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/20 font-bold">
+                    {adAccounts.filter(a => a.sync).length}/1 ativa no Trial
+                  </span>
+                )}
               </h3>
               {adAccounts.length > 0 && (
                 <button 
@@ -474,7 +505,10 @@ export default function Integrations() {
                         )}
                       </td>
                       <td className="py-3.5 px-4 text-right font-mono">
-                        <button className={`text-xs hover:underline ${acc.sync ? 'text-zinc-400 hover:text-white' : 'text-[#5C9BFF]'}`}>
+                        <button 
+                          onClick={() => handleToggleSync(acc.id)}
+                          className={`text-xs hover:underline cursor-pointer font-semibold ${acc.sync ? 'text-zinc-400 hover:text-white' : 'text-[#5C9BFF]'}`}
+                        >
                           {acc.sync ? 'Desativar' : 'Ativar'}
                         </button>
                       </td>
@@ -485,7 +519,9 @@ export default function Integrations() {
             </div>
 
             <div className="p-3.5 border-t border-[#13233E] text-xs font-mono text-zinc-500">
-              2 conta(s) ativa(s) neste dashboard de 9 disponíveis
+              {trialStatus.isTrial 
+                ? `${adAccounts.filter(a => a.sync).length} de 1 conta ativa permitida no Plano Free` 
+                : `${adAccounts.filter(a => a.sync).length} conta(s) ativa(s) de ${adAccounts.length} disponíveis`}
             </div>
           </div>
 
@@ -512,7 +548,20 @@ export default function Integrations() {
                   <Play className="w-3 h-3 fill-current" />
                   <span>Tutorial</span>
                 </button>
-                <button className="px-3 py-1.5 rounded-lg bg-[#070D1A] border border-white/10 hover:border-brand text-zinc-300 text-xs font-medium transition-colors">
+                <button 
+                  onClick={() => {
+                    if (trialStatus.isTrial) {
+                      setTrialLimitModal({
+                        title: 'Limite do Plano Free Atingido',
+                        message: 'No período de teste de 7 dias gratuito você pode criar no máximo 1 pixel de rastreio. Faça o upgrade para o Plano Pro para criar múltiplos pixels ilimitados.',
+                        ctaText: 'Ver Planos Pro'
+                      });
+                      return;
+                    }
+                    navigate('/planos');
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-[#070D1A] border border-white/10 hover:border-brand text-zinc-300 text-xs font-medium transition-colors cursor-pointer"
+                >
                   Upgrade para mais
                 </button>
               </div>
@@ -856,11 +905,35 @@ export default function Integrations() {
               </h3>
 
               <div className="flex items-center gap-2">
-                <button className="px-3 py-1.5 rounded-lg bg-[#070D1A] hover:bg-white/5 border border-white/10 text-white font-bold text-xs flex items-center gap-1.5 transition-colors">
+                <button 
+                  onClick={() => {
+                    if (trialStatus.isTrial) {
+                      setTrialLimitModal({
+                        title: 'Limite do Plano Free Atingido',
+                        message: 'No período de teste de 7 dias gratuito você pode ter no máximo 1 webhook de integração ativo. Faça o upgrade para o Plano Pro para conectar plataformas ilimitadas.',
+                        ctaText: 'Ver Planos Pro'
+                      });
+                      return;
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-[#070D1A] hover:bg-white/5 border border-white/10 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Conectar Plataforma</span>
                 </button>
-                <button className="px-3 py-1.5 rounded-lg bg-[#070D1A] hover:bg-white/5 border border-white/10 text-white font-bold text-xs flex items-center gap-1.5 transition-colors">
+                <button 
+                  onClick={() => {
+                    if (trialStatus.isTrial) {
+                      setTrialLimitModal({
+                        title: 'Limite do Plano Free Atingido',
+                        message: 'No período de teste de 7 dias gratuito você pode ter no máximo 1 webhook de integração ativo. Faça o upgrade para o Plano Pro para gerar tokens ilimitados.',
+                        ctaText: 'Ver Planos Pro'
+                      });
+                      return;
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-[#070D1A] hover:bg-white/5 border border-white/10 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Token Padrão</span>
                 </button>
@@ -1321,6 +1394,59 @@ export default function Integrations() {
 
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Limite do Plano Free / Trial */}
+      {trialLimitModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-[#0A1426] border border-[#1E3A5F] rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
+            <button 
+              onClick={() => setTrialLimitModal(null)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+
+            <div>
+              <h3 className="text-base font-bold text-white tracking-tight">
+                {trialLimitModal.title}
+              </h3>
+              <p className="text-xs text-zinc-400 font-sans mt-2 leading-relaxed">
+                {trialLimitModal.message}
+              </p>
+            </div>
+
+            <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[11px] text-blue-300 font-sans flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-blue-400 shrink-0" />
+              <span>Seu teste de 7 dias gratuitos está ativo! Faça upgrade a qualquer momento para liberar todos os recursos.</span>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setTrialLimitModal(null)}
+                className="px-4 py-2 rounded-xl bg-[#070D1A] border border-white/10 text-xs font-semibold text-zinc-300 hover:text-white transition-colors cursor-pointer"
+              >
+                Entendi
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setTrialLimitModal(null);
+                  navigate('/planos');
+                }}
+                className="px-4 py-2 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-xs font-bold text-white shadow-lg shadow-brand/30 transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>{trialLimitModal.ctaText || 'Fazer Upgrade'}</span>
+                <span>→</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

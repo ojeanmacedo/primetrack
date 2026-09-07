@@ -368,21 +368,21 @@ export default function Dashboard({ onSimulateSale }) {
         </div>
       )}
 
-      {/* Red Alert Banner - Somente exibido se o período de 7 dias grátis expirar (removido da conta principal) */}
+      {/* Red Alert Banner - Somente exibido se o período de 7 dias grátis expirar */}
       {trialStatus.showExpiredBanner && (
-        <div className="w-full bg-[#E52222] text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-between shadow-md">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 fill-current shrink-0" />
+        <div className="w-full bg-[#E52222] text-white px-4 py-3 rounded-2xl text-xs sm:text-sm font-semibold flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xl border border-red-400/30 animate-in fade-in">
+          <div className="flex items-center gap-2.5">
+            <AlertTriangle className="w-5 h-5 fill-current shrink-0 text-white" />
             <span>
-              Seu período de teste de 7 dias grátis expirou! Renove seu plano para evitar a pausa dos serviços.
+              Seu plano expirou! Você tem <strong>2 dias</strong> para renovar antes dos serviços serem pausados.
             </span>
           </div>
           <button 
             type="button"
             onClick={() => navigate('/planos')}
-            className="underline hover:text-zinc-200 text-xs font-bold shrink-0 ml-4 cursor-pointer"
+            className="px-4 py-1.5 rounded-xl bg-white text-[#E52222] hover:bg-zinc-100 text-xs font-bold shrink-0 transition-all shadow-md self-start sm:self-auto cursor-pointer"
           >
-            Assinar agora →
+            Renovar agora →
           </button>
         </div>
       )}

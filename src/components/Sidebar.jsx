@@ -153,7 +153,10 @@ export default function Sidebar() {
                 {trialStatus.isTrial ? (
                   <>
                     <Clock className="w-3.5 h-3.5 text-[#5C9BFF]" />
-                    <span>Trial</span>
+                    <span className="text-[#5C9BFF] font-bold">Plano Free</span>
+                    <span className="text-[11px] font-mono text-amber-300 font-bold ml-1 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                      {trialStatus.dayLabel}
+                    </span>
                   </>
                 ) : (
                   <>
@@ -162,13 +165,22 @@ export default function Sidebar() {
                   </>
                 )}
               </span>
-              <span className="font-mono text-[10px] text-zinc-400 bg-[#070D1A] px-2 py-0.5 rounded-full border border-white/5">
-                {trialStatus.isTrial ? `${trialStatus.daysLeft}d restantes` : 'Ativo'}
+              <span className={`font-mono text-[10px] px-2 py-0.5 rounded-full border font-bold ${
+                trialStatus.isExpired 
+                  ? 'text-rose-400 bg-rose-500/10 border-rose-500/20' 
+                  : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+              }`}>
+                {trialStatus.isExpired ? 'Expirado' : 'Ativo'}
               </span>
             </div>
 
-            <div className="text-xs text-zinc-300 font-mono mt-1">
-              R$ 481,41 <span className="text-[10px] text-zinc-500">faturado</span>
+            <div className="text-xs text-zinc-300 font-mono mt-1 flex items-center justify-between">
+              <span>{trialStatus.isTrial ? 'R$ 0,00' : 'R$ 481,41'} <span className="text-[10px] text-zinc-500">faturado</span></span>
+              {trialStatus.isTrial && (
+                <span className="text-[10px] font-mono font-semibold text-zinc-300" title="Dias restantes do teste gratuito">
+                  {trialStatus.isExpired ? '0 de 7 dias' : `${trialStatus.daysLeft} de 7 dias`}
+                </span>
+              )}
             </div>
 
             <div className="text-[11px] text-amber-400 flex items-center gap-1 mt-1 mb-3 cursor-pointer hover:underline" onClick={() => navigate('/planos')}>

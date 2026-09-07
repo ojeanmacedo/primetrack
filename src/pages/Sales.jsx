@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
-import { getCurrentUser, isMasterAdmin } from '../utils/auth';
+import { getCurrentUser, isMasterAdmin, getTrialStatus } from '../utils/auth';
 import { 
   ChevronDown, 
   Download, 
   Eye, 
   Check, 
   X, 
-  Clock
+  Clock,
+  Sparkles
 } from 'lucide-react';
 
 export default function Sales() {
   const user = getCurrentUser();
   const isAdmin = isMasterAdmin(user);
+  const trialStatus = getTrialStatus(user);
   const [period, setPeriod] = useState('Hoje');
 
   const salesData = [
@@ -139,11 +141,21 @@ export default function Sales() {
         
         {/* Left Title */}
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-            Vendas
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+              Vendas
+            </h1>
+            {trialStatus.isTrial && (
+              <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-amber-400" />
+                <span>{displayedSales.filter(s => s.capi === 'approved').length}/50 vendas aprovadas no Trial</span>
+              </span>
+            )}
+          </div>
           <p className="text-xs text-zinc-400 font-sans mt-0.5">
-            {displayedSales.length} vendas hoje
+            {trialStatus.isTrial 
+              ? `${displayedSales.length} vendas registradas (limite de 50 vendas no período de 7 dias gratuito)` 
+              : `${displayedSales.length} vendas hoje`}
           </p>
         </div>
 
