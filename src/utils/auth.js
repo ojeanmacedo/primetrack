@@ -1,4 +1,5 @@
-// Gerenciamento de Sessão e Usuários PrimeTrack
+// Gerenciamento de Sessão e Usuários PrimeTrack conectado ao Supabase
+import { supabase } from '../lib/supabase';
 
 export const DEFAULT_ADMIN = {
   id: 'usr_admin_digitaljm',
@@ -42,7 +43,7 @@ export function setCurrentUser(user) {
   }
 }
 
-export function loginUser(email, password) {
+export async function loginUser(email, password) {
   const cleanEmail = (email || '').trim().toLowerCase();
   
   // Conta proprietária Digital JM Soluções
@@ -52,21 +53,71 @@ export function loginUser(email, password) {
       email: 'digitaljmsolucoes@gmail.com'
     };
     setCurrentUser(adminUser);
+
+    // Sincroniza admin com Supabase em segundo plano
+    try {
+      await supabase.from('users').upsert({
+        id: adminUser.id,
+        name: adminUser.name,
+        email: adminUser.email,
+        password: adminUser.password,
+        role: adminUser.role,
+        plan: adminUser.plan
+      });
+    } catch (e) {
+      console.log('Supabase sync background notice:', e.message);
+    }
+
     return { success: true, user: adminUser };
   }
 
-  // Novo cliente com 7 dias grátis isolado
-  const existingRaw = localStorage.getItem(`primetrack_usr_${cleanEmail}`);
-  let clientUser;
+  // Busca ou cria no Supabase
+  let clientUser = null;
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', cleanEmail)
+      .maybeSingle();
 
-  if (existingRaw) {
-    try {
-      clientUser = JSON.parse(existingRaw);
-    } catch (e) {
-      clientUser = null;
+    if (data) {
+      clientUser = {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        password: data.password,
+        role: data.role || 'client',
+        plan: data.plan || 'trial',
+        avatarLetter: (data.name || cleanEmail).charAt(0).toUpperCase(),
+        createdAt: data.created_at,
+        trialStartedAt: data.trial_started_at
+      };
+    } else {
+      // Novo cliente cadastrado no Supabase
+      const newId = `usr_${Date.now()}`;
+      const newRecord = {
+        id: newId,
+        name: cleanEmail.split('@')[0],
+        email: cleanEmail,
+        password: password || '123456',
+        role: 'client',
+        plan: 'trial',
+        trial_started_at: new Date().toISOString(),
+        created_at: new Date().toISOString()
+      };
+
+      await supabase.from('users').insert(newRecord);
+
+      clientUser = {
+        ...newRecord,
+        avatarLetter: cleanEmail.charAt(0).toUpperCase()
+      };
     }
+  } catch (err) {
+    console.warn('Erro ao conectar ao Supabase, usando cache local:', err.message);
   }
 
+  // Fallback local caso o cliente esteja offline
   if (!clientUser) {
     clientUser = {
       id: `usr_${Date.now()}`,
@@ -79,9 +130,9 @@ export function loginUser(email, password) {
       createdAt: new Date().toISOString(),
       trialStartedAt: new Date().toISOString()
     };
-    localStorage.setItem(`primetrack_usr_${cleanEmail}`, JSON.stringify(clientUser));
   }
 
+  localStorage.setItem(`primetrack_usr_${cleanEmail}`, JSON.stringify(clientUser));
   setCurrentUser(clientUser);
   return { success: true, user: clientUser };
 }

@@ -9,14 +9,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState('jean031522');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    loginUser(email, password);
-    setTimeout(() => {
-      setIsLoading(false);
-      navigate('/dashboard');
-    }, 400);
+    try {
+      await loginUser(email, password);
+    } catch (err) {
+      console.error(err);
+    }
+    setIsLoading(false);
+    navigate('/dashboard');
   };
 
   return (
