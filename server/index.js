@@ -419,10 +419,22 @@ app.post('/api/reset', (req, res) => {
  * 11. Meta / Facebook OAuth & Graph API Endpoints (PrimeTrack)
  */
 
+function getBaseUrl(req) {
+  if (process.env.APP_URL) return process.env.APP_URL;
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  const proto = req.headers['x-forwarded-proto'] || (req.secure ? 'https' : 'http');
+  if (host && !host.includes('localhost')) {
+    return `${proto}://${host}`;
+  }
+  return 'https://app.primetrack.top';
+}
+
 // A. Iniciar fluxo de Login OAuth
 app.get('/api/auth/facebook', (req, res) => {
   try {
-    const authUrl = getAuthorizationUrl();
+    const baseUrl = getBaseUrl(req);
+    const redirectUri = `${baseUrl}/api/auth/facebook/callback`;
+    const authUrl = getAuthorizationUrl('primetrack_oauth', redirectUri);
     if (req.headers.accept && req.headers.accept.includes('application/json')) {
       return res.json({ success: true, authUrl });
     }
@@ -435,15 +447,17 @@ app.get('/api/auth/facebook', (req, res) => {
 // B. Callback da Meta (recebe o 'code' e troca pelo token de 60 dias)
 app.get('/api/auth/facebook/callback', async (req, res) => {
   const { code, error, error_description } = req.query;
+  const baseUrl = getBaseUrl(req);
 
   if (error || !code) {
     console.error('[Facebook OAuth Error]:', error_description || 'Código ausente');
-    return res.redirect(`http://localhost:5173/integracoes?error=${encodeURIComponent(error_description || 'Autorização cancelada')}`);
+    return res.redirect(`${baseUrl}/integracoes?error=${encodeURIComponent(error_description || 'Autorização cancelada')}`);
   }
 
   try {
     console.log('[Meta OAuth] Trocando código por Long-Lived Token de 60 dias...');
-    const tokenData = await exchangeCodeForLongLivedToken(code);
+    const redirectUri = `${baseUrl}/api/auth/facebook/callback`;
+    const tokenData = await exchangeCodeForLongLivedToken(code, redirectUri);
     const accessToken = tokenData.accessToken;
 
     console.log('[Meta OAuth] Buscando perfil do anunciante...');
@@ -477,10 +491,10 @@ app.get('/api/auth/facebook/callback', async (req, res) => {
 
     console.log(`[Meta OAuth Sucesso!] Perfil ${userProfile.name} conectado com ${adAccounts.length} contas de anúncio!`);
 
-    return res.redirect(`http://localhost:5173/integracoes?connected=true&name=${encodeURIComponent(userProfile.name)}`);
+    return res.redirect(`${baseUrl}/integracoes?connected=true&name=${encodeURIComponent(userProfile.name)}`);
   } catch (err) {
     console.error('[Meta OAuth Callback Falhou]:', err.message);
-    return res.redirect(`http://localhost:5173/integracoes?error=${encodeURIComponent(err.message)}`);
+    return res.redirect(`${baseUrl}/integracoes?error=${encodeURIComponent(err.message)}`);
   }
 });
 

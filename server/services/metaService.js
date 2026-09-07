@@ -10,7 +10,7 @@ const GRAPH_BASE_URL = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
 /**
  * 1. Gera URL oficial do Facebook Login OAuth com permissões de anúncios
  */
-export function getAuthorizationUrl(state = 'primetrack_oauth') {
+export function getAuthorizationUrl(state = 'primetrack_oauth', customRedirectUri = null) {
   const scopes = [
     'public_profile',
     'ads_read',
@@ -18,9 +18,11 @@ export function getAuthorizationUrl(state = 'primetrack_oauth') {
     'business_management'
   ].join(',');
 
+  const redirectUri = customRedirectUri || META_REDIRECT_URI || 'https://app.primetrack.top/api/auth/facebook/callback';
+
   const params = new URLSearchParams({
     client_id: META_APP_ID,
-    redirect_uri: META_REDIRECT_URI,
+    redirect_uri: redirectUri,
     state: state,
     scope: scopes,
     response_type: 'code'
@@ -32,13 +34,14 @@ export function getAuthorizationUrl(state = 'primetrack_oauth') {
 /**
  * 2. Troca o código temporário retornado pelo Facebook por um Token de 60 Dias (Long-Lived)
  */
-export async function exchangeCodeForLongLivedToken(code) {
+export async function exchangeCodeForLongLivedToken(code, customRedirectUri = null) {
   try {
+    const redirectUri = customRedirectUri || META_REDIRECT_URI || 'https://app.primetrack.top/api/auth/facebook/callback';
     // Passo A: Troca 'code' por Short-Lived Access Token
     const shortTokenParams = new URLSearchParams({
       client_id: META_APP_ID,
       client_secret: META_APP_SECRET,
-      redirect_uri: META_REDIRECT_URI,
+      redirect_uri: redirectUri,
       code: code
     });
 
