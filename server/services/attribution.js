@@ -1,0 +1,113 @@
+import { db } from '../db.js';
+
+/**
+ * Motor de Atribuição Cross-Session e Resolução de Anúncios
+ */
+export function attributeOrder(parsedOrder, clientIp = null) {
+  const sessions = db.get('sessions') || [];
+  const tracking = parsedOrder.tracking || {};
+  const customer = parsedOrder.customer || {};
+
+  let matchedSession = null;
+  let matchType = 'direct_click';
+
+  // 1. Match por Session ID direto
+  if (tracking.sessionId) {
+    matchedSession = sessions.find(s => s.sessionId === tracking.sessionId);
+    if (matchedSession) matchType = 'session_id';
+  }
+
+  // 2. Match por FBP / FBC
+  if (!matchedSession && (tracking.fbp || tracking.fbc)) {
+    matchedSession = sessions.find(s => 
+      (tracking.fbp && s.fbp === tracking.fbp) ||
+      (tracking.fbc && s.fbc === tracking.fbc)
+    );
+    if (matchedSession) matchType = 'fbp_fbc_cookie';
+  }
+
+  // 3. Match por Email / Telefone caso tenha sido capturado em Lead anterior
+  if (!matchedSession && (customer.email || customer.phone)) {
+    matchedSession = sessions.find(s => 
+      (customer.email && s.customerEmail === customer.email) ||
+      (customer.phone && s.customerPhone === customer.phone)
+    );
+    if (matchedSession) matchType = 'customer_identity';
+  }
+
+  // 4. Match por IP dentro da janela de 30 dias (Cross-Session / Link da Bio)
+  if (!matchedSession && clientIp) {
+    matchedSession = sessions.find(s => s.ip === clientIp);
+    if (matchedSession) matchType = 'ip_cross_session';
+  }
+
+  // Identifica se foi uma compra "perdida" pela Bio ou Orgânico recuperada
+  const isOrganicOrDirect = !tracking.utm_campaign || 
+    tracking.utm_source === 'instagram' || 
+    tracking.utm_source === 'bio' || 
+    tracking.utm_source === 'direct';
+
+  if (matchedSession && isOrganicOrDirect && matchedSession.utms && matchedSession.utms.utm_campaign) {
+    matchType = 'cross_session_bio';
+  }
+
+  // Extrai as UTMs finais
+  const finalUtms = {
+    source: tracking.utm_source || (matchedSession && matchedSession.utms && matchedSession.utms.utm_source) || 'facebook',
+    campaign: tracking.utm_campaign || (matchedSession && matchedSession.utms && matchedSession.utms.utm_campaign) || 'campanha_direta',
+    adset: tracking.utm_medium || (matchedSession && matchedSession.utms && matchedSession.utms.utm_medium) || 'conjunto_padrao',
+    ad: tracking.utm_content || (matchedSession && matchedSession.utms && matchedSession.utms.utm_content) || 'criativo_padrao',
+    term: tracking.utm_term || (matchedSession && matchedSession.utms && matchedSession.utms.utm_term) || ''
+  };
+
+  const fbp = tracking.fbp || (matchedSession && matchedSession.fbp) || `fb.1.${Date.now()}.${Math.floor(Math.random() * 1000000)}`;
+  const fbc = tracking.fbc || (matchedSession && matchedSession.fbc) || undefined;
+
+  // Atualiza métricas agregadas da campanha no banco
+  updateCampaignStats(finalUtms.campaign, finalUtms.ad, parsedOrder.amount);
+
+  return {
+    campaign: finalUtms.campaign,
+    adset: finalUtms.adset,
+    ad: finalUtms.ad,
+    source: finalUtms.source,
+    term: finalUtms.term,
+    matchType,
+    fbp,
+    fbc,
+    sessionId: (matchedSession && matchedSession.sessionId) || tracking.sessionId || null,
+    recoveredFromBio: matchType === 'cross_session_bio'
+  };
+}
+
+function updateCampaignStats(campaignName, adName, amount) {
+  const campaigns = db.get('campaigns') || [];
+  let camp = campaigns.find(c => c.utm_campaign === campaignName || c.campaign_name.includes(campaignName));
+
+  if (!camp && campaigns.length > 0) {
+    camp = campaigns[0]; // Associa à principal caso não encontrada
+  }
+
+  if (camp) {
+    camp.sales = (camp.sales || 0) + 1;
+    camp.revenue = Number(((camp.revenue || 0) + amount).toFixed(2));
+    if (camp.spend > 0) {
+      camp.cpa = Number((camp.spend / camp.sales).toFixed(2));
+      camp.roas = Number((camp.revenue / camp.spend).toFixed(2));
+    }
+
+    if (camp.ads && camp.ads.length > 0) {
+      const ad = camp.ads.find(a => a.utm_content === adName || a.ad_name.includes(adName)) || camp.ads[0];
+      if (ad) {
+        ad.sales = (ad.sales || 0) + 1;
+        ad.revenue = Number(((ad.revenue || 0) + amount).toFixed(2));
+        if (ad.spend > 0) {
+          ad.cpa = Number((ad.spend / ad.sales).toFixed(2));
+          ad.roas = Number((ad.revenue / ad.spend).toFixed(2));
+        }
+      }
+    }
+
+    db.set('campaigns', campaigns);
+  }
+}
