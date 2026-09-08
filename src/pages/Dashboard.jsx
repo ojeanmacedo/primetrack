@@ -632,6 +632,51 @@ export default function Dashboard() {
     return `${Math.round((totalPixApproved / totalPixCreated) * 100)}%`;
   }, [filteredOrders, approvedOrders]);
 
+  // Cálculos de Vendas por Horário (distribuição pelas 24h do dia)
+  const hourlyData = useMemo(() => {
+    const hours = Array.from({ length: 24 }, (_, i) => {
+      const hStr = String(i).padStart(2, '0');
+      return {
+        hour: i,
+        timeLabel: `${hStr}:00`,
+        rangeLabel: `${hStr}:00 - ${hStr}:59`,
+        count: 0,
+        revenue: 0,
+        percentage: 0
+      };
+    });
+
+    const targetOrders = approvedOrders.length > 0 ? approvedOrders : [];
+    const totalSales = targetOrders.length;
+
+    targetOrders.forEach(o => {
+      const dateVal = o.createdAt || o.created_at;
+      if (!dateVal) return;
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) return;
+
+      const hour = d.getHours();
+      if (hour >= 0 && hour < 24) {
+        hours[hour].count += 1;
+        hours[hour].revenue += Number(o.amount || 0);
+      }
+    });
+
+    if (totalSales > 0) {
+      hours.forEach(h => {
+        h.percentage = (h.count / totalSales) * 100;
+      });
+    }
+
+    const maxCount = Math.max(...hours.map(h => h.count), 1);
+
+    return {
+      hours,
+      totalSales,
+      maxCount
+    };
+  }, [approvedOrders]);
+
   // Cálculos do Funil de Conversão (Meta Ads + Pixel PrimeTrack + MonsterPay)
   const totalMetaClicks = useMemo(() => {
     return filteredCampaigns.reduce((acc, c) => acc + Number(c.clicks || 0), 0);
@@ -1091,6 +1136,101 @@ export default function Dashboard() {
     </div>
   );
 
+  const renderHourlySalesSection = () => (
+    <div className={`bg-[#141C2E] border ${
+      isEditingLayout ? 'border-blue-500/50 ring-1 ring-blue-500/30' : 'border-[#1E293B]'
+    } rounded-xl p-4 sm:p-5 shadow-md transition-all duration-200 relative`}>
+      {/* Header do Card */}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">
+          Vendas por Horário
+        </h3>
+        <div className="flex items-center gap-1.5">
+          {isEditingLayout ? (
+            <GripVertical className="w-4 h-4 text-blue-400" title="Bloco de Vendas por Horário" />
+          ) : (
+            <span 
+              className="text-zinc-500 hover:text-zinc-300 text-[11px] cursor-help transition-colors" 
+              title="Distribuição das vendas aprovadas ao longo das 24 horas do dia"
+            >
+              ⓘ
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Gráfico de Vendas por Horário (24 colunas de 00:00 a 23:00) */}
+      <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-[#1E293B] pb-2">
+        <div className="min-w-[700px] sm:min-w-[760px] w-full">
+          {/* Área das Barras e Porcentagens */}
+          <div className="h-32 sm:h-36 flex items-end justify-between gap-1 sm:gap-1.5 px-1 pt-4 pb-2 border-b border-[#1E293B]">
+            {hourlyData.hours.map((h) => {
+              const hasSales = h.count > 0;
+              // Altura proporcional: se tiver vendas, varia entre 16px e 90px baseado no maxCount
+              const barHeight = hasSales 
+                ? Math.max(16, Math.round((h.count / hourlyData.maxCount) * 85))
+                : 0;
+
+              return (
+                <div 
+                  key={h.hour}
+                  className="flex-1 flex flex-col items-center justify-end h-full group relative cursor-pointer"
+                >
+                  {/* Tooltip Hover no card */}
+                  <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-30 pointer-events-none whitespace-nowrap">
+                    <div className="bg-[#0B0F19] text-white text-[11px] rounded-lg px-2.5 py-1.5 shadow-2xl border border-blue-500/40 flex flex-col items-center gap-0.5">
+                      <span className="font-bold text-blue-400 font-mono">{h.rangeLabel}</span>
+                      <span className="font-medium">
+                        {h.count} {h.count === 1 ? 'venda' : 'vendas'} ({h.percentage.toFixed(1)}%)
+                      </span>
+                      {h.count > 0 && (
+                        <span className="text-[10px] text-zinc-400 font-mono">
+                          R$ {h.revenue.toFixed(2).replace('.', ',')}
+                        </span>
+                      )}
+                    </div>
+                    <div className="w-2 h-2 bg-[#0B0F19] border-r border-b border-blue-500/40 rotate-45 -mt-1" />
+                  </div>
+
+                  {/* Rótulo de porcentagem acima da barra */}
+                  {hasSales ? (
+                    <span className="text-[10px] sm:text-[11px] text-zinc-400 font-mono font-medium pb-1.5 transition-colors group-hover:text-blue-300">
+                      {h.percentage.toFixed(1)}%
+                    </span>
+                  ) : (
+                    <div className="h-4" />
+                  )}
+
+                  {/* Barra Azul */}
+                  {hasSales ? (
+                    <div 
+                      style={{ height: `${barHeight}px` }}
+                      className="w-full max-w-[36px] min-w-[8px] bg-[#0066FF] group-hover:bg-[#2563EB] rounded-t-[3px] shadow-sm shadow-blue-500/20 transition-all duration-150"
+                    />
+                  ) : (
+                    <div className="w-full max-w-[36px] h-0" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Linha dos Horários (00:00 até 23:00) */}
+          <div className="flex items-center justify-between gap-1 sm:gap-1.5 px-1 pt-2">
+            {hourlyData.hours.map((h) => (
+              <div 
+                key={h.hour}
+                className="flex-1 text-center text-[10px] sm:text-[11px] text-zinc-400 font-mono tracking-tight"
+              >
+                {h.timeLabel}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-4 pb-16 font-sans select-none">
 
@@ -1390,6 +1530,9 @@ export default function Dashboard() {
           {renderFunnelSection()}
         </>
       )}
+
+      {/* Bloco de Vendas por Horário */}
+      {renderHourlySalesSection()}
 
     </div>
   );
