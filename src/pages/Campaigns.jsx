@@ -87,7 +87,18 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     }
   ];
 
-  const [campaignsList, setCampaignsList] = useState([]);
+  const [campaignsList, setCampaignsList] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('primetrack_cached_campaigns');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        } catch (e) {}
+      }
+    }
+    return [];
+  });
 
   const [adAccountsList, setAdAccountsList] = useState(() => {
     if (isDisconnected) return [];
@@ -114,10 +125,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const [saveSuccessMsg, setSaveSuccessMsg] = useState(null);
 
   const subTabs = ['Contas', 'Campanhas', 'Conjuntos', 'Anúncios'];
+  const isFirstMount = React.useRef(true);
 
   useEffect(() => {
-    // Sincroniza dinamicamente ao trocar de período com a Meta API
-    handleSyncNow(periodFilter);
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+    loadData(periodFilter);
   }, [periodFilter]);
 
   const loadData = async () => {
@@ -203,6 +218,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       const data = await cr.json();
       if (Array.isArray(data)) {
         setCampaignsList(data);
+        if (typeof window !== 'undefined' && data.length > 0) {
+          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(data));
+        }
       }
     } catch (err) {
       console.log('Erro ao carregar campanhas:', err);
@@ -259,6 +277,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       const syncData = await syncRes.json();
       if (syncData && Array.isArray(syncData.campaigns) && syncData.campaigns.length > 0) {
         setCampaignsList(syncData.campaigns);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(syncData.campaigns));
+        }
       }
 
       await loadData(selectedPreset);
@@ -352,12 +373,17 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   });
 
   // Totais calculados dinamicamente
+  const activeCurrency = filteredCampaigns[0]?.currency || activeAdAccount?.currency || 'BRL';
+  const isUsd = activeCurrency === 'USD' || String(activeCurrency).includes('USD');
+  const currencySymbol = isUsd ? '$' : 'R$';
+
   const totalSpend = filteredCampaigns.reduce((acc, c) => acc + Number(c.spend || 0), 0);
+  const totalSpendBrl = filteredCampaigns.reduce((acc, c) => acc + Number(c.spendBrl || c.spend || 0), 0);
   const totalRawSpendUsd = filteredCampaigns.reduce((acc, c) => acc + Number(c.rawSpendUsd || 0), 0);
   const totalSales = filteredCampaigns.reduce((acc, c) => acc + Number(c.sales || 0), 0);
   const totalRevenue = filteredCampaigns.reduce((acc, c) => acc + Number(c.revenue || 0), 0);
-  const totalProfit = totalRevenue - totalSpend;
-  const avgRoas = totalSpend > 0 ? (totalRevenue / totalSpend).toFixed(2) : '0.00';
+  const totalProfit = totalRevenue - (isUsd ? totalSpendBrl : totalSpend);
+  const avgRoas = (isUsd ? totalSpendBrl : totalSpend) > 0 ? (totalRevenue / (isUsd ? totalSpendBrl : totalSpend)).toFixed(2) : '0.00';
   const avgCpa = totalSales > 0 ? (totalSpend / totalSales).toFixed(2) : '0.00';
   const totalImpressions = filteredCampaigns.reduce((acc, c) => acc + Number(c.impressions || 0), 0);
   const totalClicks = filteredCampaigns.reduce((acc, c) => acc + Number(c.clicks || 0), 0);
@@ -713,18 +739,21 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                           title="Clique para alterar orçamento"
                         >
                           <div className="font-bold text-white font-mono flex items-center gap-1.5">
-                            <span>R$ {camp.budget || '256.99'}</span>
+                            <span>{camp.currency === 'USD' ? '$' : 'R$'} {camp.budget || '0.00'}</span>
                             <Edit3 className="w-2.5 h-2.5 text-zinc-500 group-hover:text-[#5C9BFF]" />
                           </div>
+                          {camp.currency === 'USD' && camp.budgetBrl && (
+                            <div className="text-[10px] text-zinc-400 font-mono">≈ R$ {camp.budgetBrl}</div>
+                          )}
                           <div className="text-[10px] text-zinc-400">{camp.budgetType || 'Diário'}</div>
                         </div>
                       </td>
 
                       <td className="py-4 px-4 text-white font-bold">
-                        <div>R$ {camp.spend}</div>
-                        {camp.rawSpendUsd && (
+                        <div>{camp.currency === 'USD' ? '$' : 'R$'} {camp.spend}</div>
+                        {camp.currency === 'USD' && camp.spendBrl && (
                           <div className="text-[10px] text-zinc-400 font-normal font-mono">
-                            ${camp.rawSpendUsd} USD
+                            ≈ R$ {camp.spendBrl}
                           </div>
                         )}
                       </td>
@@ -734,8 +763,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                         R$ {camp.profit}
                       </td>
                       <td className="py-4 px-4 font-extrabold text-[#5C9BFF]">{camp.roas}</td>
-                      <td className="py-4 px-4 font-bold text-[#5C9BFF]">R$ {camp.cpa}</td>
-                      <td className="py-4 px-4 text-zinc-300">R$ {camp.cpc}</td>
+                      <td className="py-4 px-4 font-bold text-[#5C9BFF]">{camp.currency === 'USD' ? '$' : 'R$'} {camp.cpa}</td>
+                      <td className="py-4 px-4 text-zinc-300">{camp.currency === 'USD' ? '$' : 'R$'} {camp.cpc}</td>
                       <td className="py-4 px-4 text-zinc-300">{Number(camp.impressions || 0).toLocaleString('pt-BR')}</td>
                       <td className="py-4 px-4 text-zinc-300">{Number(camp.clicks || 0).toLocaleString('pt-BR')}</td>
                     </tr>
@@ -752,10 +781,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     <td className="py-3 px-4"></td>
                     <td className="py-3 px-4"></td>
                     <td className="py-3 px-4 text-white">
-                      <div>R$ {totalSpend.toFixed(2)}</div>
-                      {totalRawSpendUsd > 0 && (
+                      <div>{currencySymbol} {totalSpend.toFixed(2)}</div>
+                      {isUsd && totalSpendBrl > 0 && (
                         <div className="text-[10px] text-zinc-400 font-normal font-mono">
-                          ${totalRawSpendUsd.toFixed(2)} USD
+                          ≈ R$ {totalSpendBrl.toFixed(2)}
                         </div>
                       )}
                     </td>
@@ -765,7 +794,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       R$ {totalProfit.toFixed(2)}
                     </td>
                     <td className="py-3 px-4 text-[#5C9BFF]">{avgRoas}</td>
-                    <td className="py-3 px-4 text-[#5C9BFF]">R$ {avgCpa}</td>
+                    <td className="py-3 px-4 text-[#5C9BFF]">{currencySymbol} {avgCpa}</td>
                     <td className="py-3 px-4 text-zinc-300"></td>
                     <td className="py-3 px-4 text-zinc-300">{totalImpressions.toLocaleString('pt-BR')}</td>
                     <td className="py-3 px-4 text-zinc-300">{totalClicks.toLocaleString('pt-BR')}</td>
@@ -824,15 +853,15 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                         <div className="font-bold text-white text-xs">{camp.name} — Conjunto Aberto</div>
                         <div className="text-[10px] text-zinc-500 font-mono">Público Aberto 18-65</div>
                       </td>
-                      <td className="py-4 px-4 text-white">R$ {camp.budget}</td>
-                      <td className="py-4 px-4 text-white font-bold">R$ {camp.spend}</td>
+                      <td className="py-4 px-4 text-white">{camp.currency === 'USD' ? '$' : 'R$'} {camp.budget}</td>
+                      <td className="py-4 px-4 text-white font-bold">{camp.currency === 'USD' ? '$' : 'R$'} {camp.spend}</td>
                       <td className="py-4 px-4 text-white text-center font-bold">{camp.sales}</td>
                       <td className="py-4 px-4 text-white font-bold">R$ {camp.revenue}</td>
                       <td className={`py-4 px-4 font-extrabold ${Number(camp.profit) >= 0 ? 'text-[#5C9BFF]' : 'text-red-400'}`}>
                         R$ {camp.profit}
                       </td>
                       <td className="py-4 px-4 font-extrabold text-[#5C9BFF]">{camp.roas}</td>
-                      <td className="py-4 px-4 font-bold text-[#5C9BFF]">R$ {camp.cpa}</td>
+                      <td className="py-4 px-4 font-bold text-[#5C9BFF]">{camp.currency === 'USD' ? '$' : 'R$'} {camp.cpa}</td>
                       <td className="py-4 px-4 text-zinc-300">{Number(camp.impressions).toLocaleString('pt-BR')}</td>
                       <td className="py-4 px-4 text-zinc-300">{Number(camp.clicks).toLocaleString('pt-BR')}</td>
                     </tr>
@@ -909,14 +938,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                           <Eye className="w-3.5 h-3.5" />
                         </button>
                       </td>
-                      <td className="py-4 px-4 text-white font-bold">R$ {camp.spend}</td>
+                      <td className="py-4 px-4 text-white font-bold">{camp.currency === 'USD' ? '$' : 'R$'} {camp.spend}</td>
                       <td className="py-4 px-4 text-white font-bold text-center">{camp.sales}</td>
                       <td className="py-4 px-4 text-white font-bold">R$ {camp.revenue}</td>
                       <td className={`py-4 px-4 font-extrabold ${Number(camp.profit) >= 0 ? 'text-[#5C9BFF]' : 'text-red-400'}`}>
                         R$ {camp.profit}
                       </td>
                       <td className="py-4 px-4 font-extrabold text-[#5C9BFF]">{camp.roas}</td>
-                      <td className="py-4 px-4 font-bold text-[#5C9BFF]">R$ {camp.cpa}</td>
+                      <td className="py-4 px-4 font-bold text-[#5C9BFF]">{camp.currency === 'USD' ? '$' : 'R$'} {camp.cpa}</td>
                       <td className="py-4 px-4 text-zinc-300">{Number(camp.impressions).toLocaleString('pt-BR')}</td>
                       <td className="py-4 px-4 text-zinc-300">{Number(camp.clicks).toLocaleString('pt-BR')}</td>
                     </tr>
@@ -975,15 +1004,19 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-zinc-300 font-semibold mb-1.5">Orçamento Diário (R$)</label>
+                  <label className="block text-zinc-300 font-semibold mb-1.5">
+                    Orçamento Diário ({editingCampaign?.currency === 'USD' ? 'USD $' : 'R$'})
+                  </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2 text-zinc-500 font-mono">R$</span>
+                    <span className="absolute left-3 top-2 text-zinc-500 font-mono">
+                      {editingCampaign?.currency === 'USD' ? '$' : 'R$'}
+                    </span>
                     <input 
                       type="text"
                       value={editBudget}
                       onChange={e => setEditBudget(e.target.value)}
                       className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white focus:outline-none focus:border-[#1A6DFF] font-mono font-bold"
-                      placeholder="256.99"
+                      placeholder="99.51"
                       required
                     />
                   </div>

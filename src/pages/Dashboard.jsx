@@ -44,11 +44,33 @@ export default function Dashboard({ onSimulateSale }) {
 
   const [accountFilter, setAccountFilter] = useState('Todas');
 
-  const [campaigns, setCampaigns] = useState([]);
+  const [campaigns, setCampaigns] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('primetrack_cached_campaigns');
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        } catch (e) {}
+      }
+    }
+    return [];
+  });
 
   const [syncing, setSyncing] = useState(false);
 
-  const loadDashboardData = async () => {
+  const periodToPreset = {
+    'Hoje': 'today',
+    'Ontem': 'yesterday',
+    '7 dias': 'last_7d',
+    '15 dias': 'last_14d',
+    '30 dias': 'last_30d',
+    'Personalizado': 'maximum'
+  };
+
+  const loadDashboardData = async (customPeriod = period) => {
+    const preset = periodToPreset[customPeriod] || 'today';
+
     const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
     let localSyncMap = {};
     if (saved) {
@@ -113,21 +135,14 @@ export default function Dashboard({ onSimulateSale }) {
       console.log('Erro ao carregar contas no dashboard:', err);
     }
 
-    const periodToPreset = {
-      'Hoje': 'today',
-      'Ontem': 'yesterday',
-      '7 dias': 'last_7d',
-      '15 dias': 'last_14d',
-      '30 dias': 'last_30d',
-      'Personalizado': 'maximum'
-    };
-    const preset = periodToPreset[customPeriod] || 'today';
-
     try {
       const cr = await fetch(`/api/campaigns?datePreset=${preset}`);
       const cData = await cr.json();
       if (Array.isArray(cData)) {
         setCampaigns(cData);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(cData));
+        }
       }
     } catch (err) {
       console.log('Fetch campaigns error:', err);
@@ -137,41 +152,15 @@ export default function Dashboard({ onSimulateSale }) {
   const handleRefresh = async (customPeriod = period) => {
     setSyncing(true);
     try {
-      const periodToPreset = {
-        'Hoje': 'today',
-        'Ontem': 'yesterday',
-        '7 dias': 'last_7d',
-        '15 dias': 'last_14d',
-        '30 dias': 'last_30d',
-        'Personalizado': 'maximum'
-      };
       const preset = periodToPreset[customPeriod] || 'today';
-      
-      const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
-      let activeAccountIds = [];
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) {
-            activeAccountIds = parsed.filter(a => a.sync === true).map(a => a.id);
-          }
-        } catch (e) {}
+      const cr = await fetch(`/api/campaigns?datePreset=${preset}&refresh=true`);
+      const cData = await cr.json();
+      if (Array.isArray(cData)) {
+        setCampaigns(cData);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(cData));
+        }
       }
-
-      const syncRes = await fetch('/api/meta/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          datePreset: preset,
-          accountIds: activeAccountIds.length > 0 ? activeAccountIds : undefined
-        })
-      });
-      const syncData = await syncRes.json();
-      if (syncData && Array.isArray(syncData.campaigns) && syncData.campaigns.length > 0) {
-        setCampaigns(syncData.campaigns);
-      }
-
-      await loadDashboardData(customPeriod);
     } catch (err) {
       console.error('Erro ao sincronizar dados com Meta:', err);
     } finally {
@@ -180,17 +169,19 @@ export default function Dashboard({ onSimulateSale }) {
   };
 
   useEffect(() => {
-    handleRefresh(period);
-  }, [period]);
+    loadDashboardData(period);
 
-  useEffect(() => {
     const handleProfileSync = () => {
-      loadDashboardData();
+      loadDashboardData(period);
     };
 
     window.addEventListener('primetrack_profile_sync', handleProfileSync);
     return () => window.removeEventListener('primetrack_profile_sync', handleProfileSync);
   }, []);
+
+  useEffect(() => {
+    loadDashboardData(period);
+  }, [period]);
 
   const periods = ['Hoje', 'Ontem', '7 dias', '15 dias', '30 dias', 'Personalizado'];
 
@@ -246,13 +237,18 @@ export default function Dashboard({ onSimulateSale }) {
     return true;
   });
 
+  const activeCurrency = filteredCampaigns[0]?.currency || activeAdAccount?.currency || 'BRL';
+  const isUsd = activeCurrency === 'USD' || String(activeCurrency).includes('USD');
+  const currencySymbol = isUsd ? '$' : 'R$';
+
   // Agregação dos dados reais da conta e campanhas
   const realSpend = filteredCampaigns.reduce((acc, c) => acc + Number(c.spend || 0), 0);
+  const realSpendBrl = filteredCampaigns.reduce((acc, c) => acc + Number(c.spendBrl || c.spend || 0), 0);
   const realRawSpendUsd = filteredCampaigns.reduce((acc, c) => acc + Number(c.rawSpendUsd || 0), 0);
   const realSales = filteredCampaigns.reduce((acc, c) => acc + Number(c.sales || 0), 0);
   const realRevenue = filteredCampaigns.reduce((acc, c) => acc + Number(c.revenue || 0), 0);
-  const realProfit = realRevenue - realSpend;
-  const realRoas = realSpend > 0 ? (realRevenue / realSpend).toFixed(2) : '0.00';
+  const realProfit = realRevenue - (isUsd ? realSpendBrl : realSpend);
+  const realRoas = (isUsd ? realSpendBrl : realSpend) > 0 ? (realRevenue / (isUsd ? realSpendBrl : realSpend)).toFixed(2) : '0.00';
   const realCpa = realSales > 0 ? (realSpend / realSales).toFixed(2) : '0.00';
   const realArpu = realSales > 0 ? (realRevenue / realSales).toFixed(2) : '0.00';
   const realMargin = realRevenue > 0 ? `${((realProfit / realRevenue) * 100).toFixed(1)}%` : '0.0%';
@@ -264,6 +260,9 @@ export default function Dashboard({ onSimulateSale }) {
     ? emptyMetrics 
     : {
         spend: realSpend,
+        spendBrl: realSpendBrl,
+        currencySymbol,
+        isUsd,
         rawSpendUsd: realRawSpendUsd,
         revenue: realRevenue,
         profit: realProfit,
@@ -502,11 +501,11 @@ export default function Dashboard({ onSimulateSale }) {
         <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
           <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">GASTO EM ADS ({period})</div>
           <div className="text-xl sm:text-2xl font-extrabold text-white mt-1">
-            R$ {currentMetrics.spend.toFixed(2)}
+            {currentMetrics.currencySymbol} {currentMetrics.spend.toFixed(2)}
           </div>
-          {currentMetrics.rawSpendUsd > 0 && (
+          {currentMetrics.isUsd && (
             <div className="text-[11px] font-mono text-zinc-400 mt-0.5">
-              ${currentMetrics.rawSpendUsd.toFixed(2)} USD
+              ≈ R$ {currentMetrics.spendBrl.toFixed(2)}
             </div>
           )}
         </div>
@@ -515,7 +514,7 @@ export default function Dashboard({ onSimulateSale }) {
         <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
           <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">CPA</div>
           <div className="text-xl sm:text-2xl font-extrabold text-white mt-1">
-            R$ {currentMetrics.cpa}
+            {currentMetrics.currencySymbol} {currentMetrics.cpa}
           </div>
         </div>
 

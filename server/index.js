@@ -388,6 +388,10 @@ app.get('/api/stats', (req, res) => {
 /**
  * 4. Listagem de Campanhas e Criativos com Gastos do Meta e Vendas de Webhooks (Kiwify, Hotmart, MonsterPay, etc.)
  */
+// Cache em memória de alta performance para resposta instantânea (< 5ms)
+const campaignsCache = new Map();
+const CACHE_TTL_MS = 60 * 1000; // 60 segundos
+
 app.get('/api/campaigns', async (req, res) => {
   const connections = db.get('facebook_connections') || [];
   
@@ -396,6 +400,15 @@ app.get('/api/campaigns', async (req, res) => {
   }
 
   const { datePreset = 'today', refresh } = req.query;
+  const cacheKey = datePreset;
+  const now = Date.now();
+  const cached = campaignsCache.get(cacheKey);
+
+  // Resposta instantânea (< 5ms) se tiver cache válido e não for refresh manual forçado
+  if (cached && (now - cached.timestamp < CACHE_TTL_MS) && refresh !== 'true') {
+    return res.json(cached.campaigns);
+  }
+
   try {
     await executeMetaSync({ datePreset });
   } catch (e) {
@@ -446,6 +459,11 @@ app.get('/api/campaigns', async (req, res) => {
       roas: roasNum,
       cpa: cpaNum
     };
+  });
+
+  campaignsCache.set(cacheKey, {
+    timestamp: now,
+    campaigns: enrichedCampaigns
   });
 
   res.json(enrichedCampaigns);
@@ -911,6 +929,11 @@ app.post('/api/meta/sync', async (req, res) => {
         roas: roasNum,
         cpa: cpaNum
       };
+    });
+
+    campaignsCache.set(datePreset, {
+      timestamp: Date.now(),
+      campaigns: enrichedCampaigns
     });
 
     res.json({

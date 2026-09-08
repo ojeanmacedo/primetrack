@@ -178,11 +178,15 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
   
   // Verifica a moeda da conta a partir da lista salva ou consulta rápida
   let isUsd = false;
+  let accountCurrency = 'BRL';
   try {
     const savedAccs = db.get('ad_accounts') || [];
     const found = savedAccs.find(a => a.id === actId || a.accountId === actId.replace('act_', ''));
-    if (found && found.currency === 'USD') {
-      isUsd = true;
+    if (found) {
+      accountCurrency = found.currency || 'BRL';
+      if (found.currency === 'USD') {
+        isUsd = true;
+      }
     }
   } catch (e) {}
 
@@ -197,23 +201,23 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
   return (data.data || []).map(c => {
     const insight = c.insights?.data?.[0] || {};
     const rawSpend = Number(insight.spend || 0);
-    const spend = rawSpend * rate;
     const clicks = Number(insight.clicks || 0);
     const impressions = Number(insight.impressions || 0);
-    const cpc = clicks > 0 ? spend / clicks : 0;
-    const cpm = impressions > 0 ? (spend / impressions) * 1000 : 0;
-    const ctr = Number(insight.ctr || (impressions > 0 ? (clicks / impressions) * 100 : 0));
-    
-    // Converte orçamento para BRL
+
     const rawDailyBudget = c.daily_budget ? (Number(c.daily_budget) / 100) : null;
     const rawLifetimeBudget = c.lifetime_budget ? (Number(c.lifetime_budget) / 100) : null;
-    
-    let budgetVal = 25.00;
-    if (rawDailyBudget) {
-      budgetVal = rawDailyBudget * rate;
-    } else if (rawLifetimeBudget) {
-      budgetVal = rawLifetimeBudget * rate;
-    }
+
+    // Valores reais na moeda nativa da conta (ex.: USD se for conta em dólar, BRL se for conta em real)
+    const nativeBudget = rawDailyBudget !== null ? rawDailyBudget : (rawLifetimeBudget !== null ? rawLifetimeBudget : 25.00);
+    const nativeSpend = rawSpend;
+
+    // Valores convertidos para BRL (para consolidação se necessário)
+    const spendBrl = isUsd ? rawSpend * rate : rawSpend;
+    const budgetBrl = isUsd ? nativeBudget * rate : nativeBudget;
+
+    const rawCpc = insight.cpc ? Number(insight.cpc) : (clicks > 0 ? nativeSpend / clicks : 0);
+    const rawCpm = insight.cpm ? Number(insight.cpm) : (impressions > 0 ? (nativeSpend / impressions) * 1000 : 0);
+    const rawCtr = insight.ctr ? Number(insight.ctr) : (impressions > 0 ? (clicks / impressions) * 100 : 0);
 
     return {
       id: c.id,
@@ -222,23 +226,25 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       rawStatus: c.status,
       effectiveStatus: c.effective_status || c.status,
       objective: c.objective,
-      budget: budgetVal.toFixed(2),
+      budget: nativeBudget.toFixed(2),
+      budgetBrl: budgetBrl.toFixed(2),
       budgetType: c.daily_budget ? 'Diário' : 'Vitalício',
-      spend: spend.toFixed(2),
+      spend: nativeSpend.toFixed(2),
+      spendBrl: spendBrl.toFixed(2),
       rawSpendUsd: isUsd ? rawSpend.toFixed(2) : null,
       impressions,
       clicks,
-      cpc: cpc.toFixed(2),
-      cpm: cpm.toFixed(2),
-      ctr: ctr.toFixed(2),
+      cpc: rawCpc.toFixed(2),
+      cpm: rawCpm.toFixed(2),
+      ctr: rawCtr.toFixed(2),
       sales: 0,
       revenue: '0.00',
-      profit: (0 - spend).toFixed(2),
+      profit: (0 - nativeSpend).toFixed(2),
       roas: '0.00',
       cpa: '0.00',
-      adAccountId,
+      adAccountId: actId,
       accountName: accountName || 'Conta de Anúncios',
-      currency: 'BRL'
+      currency: accountCurrency
     };
   });
 }
