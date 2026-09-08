@@ -19,7 +19,7 @@ export default function Header({ activeTab, setActiveTab, onQuickSimulate }) {
 
   const copyPixelScript = () => {
     const script = `<script>
-  window.pixelId = "lt_px_804f84899d2a";
+  window.pixelId = "pt_px_804f84899d2a";
   var a = document.createElement("script");
   a.setAttribute("async", "");
   a.setAttribute("defer", "");

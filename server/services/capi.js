@@ -105,7 +105,7 @@ export async function sendCapiEvent({
       {
         event_name: eventName,
         event_time: eventTime,
-        event_id: eventId || `lt_ev_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        event_id: eventId || `pt_ev_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         event_source_url: eventSourceUrl,
         action_source: "website",
         user_data: formattedUserData,

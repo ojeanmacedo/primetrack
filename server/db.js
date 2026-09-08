@@ -13,7 +13,7 @@ if (!fs.existsSync(DATA_DIR)) {
 
 const initialData = {
   settings: {
-    metaPixelId: "lt_px_804f84899d2a",
+    metaPixelId: "pt_px_804f84899d2a",
     metaAccessToken: "EAAB...demo_token_conversions_api",
     testEventCode: "TEST98231",
     autoCapienabled: true,
@@ -22,7 +22,7 @@ const initialData = {
   },
   pixels: [
     {
-      id: "lt_px_804f84899d2a",
+      id: "pt_px_804f84899d2a",
       name: "Pixel Principal - Oferta Low Ticket",
       domain: "seusite.com.br",
       status: "active",
@@ -153,7 +153,7 @@ const initialData = {
       eventName: "PageView",
       eventId: "ev_pv_9812739",
       sessionId: "sess_demo_101",
-      pixelId: "lt_px_804f84899d2a",
+      pixelId: "pt_px_804f84899d2a",
       timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
       emq: 9.2,
       capiStatus: "success"
@@ -163,7 +163,7 @@ const initialData = {
       eventName: "InitiateCheckout",
       eventId: "ev_ic_9812740",
       sessionId: "sess_demo_101",
-      pixelId: "lt_px_804f84899d2a",
+      pixelId: "pt_px_804f84899d2a",
       timestamp: new Date(Date.now() - 1800000).toISOString(),
       emq: 9.3,
       capiStatus: "success"
@@ -337,7 +337,7 @@ const cleanCustomerData = {
 
 const demoData = {
   settings: {
-    metaPixelId: "lt_px_804f84899d2a",
+    metaPixelId: "pt_px_804f84899d2a",
     metaAccessToken: "EAAB...demo_token_conversions_api",
     testEventCode: "TEST98231",
     autoCapienabled: true,
@@ -346,7 +346,7 @@ const demoData = {
   },
   pixels: [
     {
-      id: "lt_px_804f84899d2a",
+      id: "pt_px_804f84899d2a",
       name: "Pixel Principal - Oferta Low Ticket",
       domain: "seusite.com.br",
       status: "active",

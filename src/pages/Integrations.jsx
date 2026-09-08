@@ -1821,7 +1821,7 @@ export default function Integrations() {
               {/* Secondary Dark Button: Copiar link de conexão */}
               <button
                 onClick={() => {
-                  copyToClipboard(`${window.location.origin}/auth/facebook/connect?token=lt_auth_${Date.now()}`, 'connect');
+                  copyToClipboard(`${window.location.origin}/auth/facebook/connect?token=pt_auth_${Date.now()}`, 'connect');
                   setCopiedConnectLink(true);
                   setTimeout(() => setCopiedConnectLink(false), 2500);
                 }}

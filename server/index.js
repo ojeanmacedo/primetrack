@@ -130,7 +130,7 @@ app.post('/api/track/event', async (req, res) => {
 
     if (!session) {
       session = {
-        sessionId: sessionId || `lt_sess_${Date.now()}`,
+        sessionId: sessionId || `pt_sess_${Date.now()}`,
         ip: clientIp,
         fbp,
         fbc,
