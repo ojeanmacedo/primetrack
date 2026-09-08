@@ -790,12 +790,20 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                             <span>R$ {camp.budget || '0.00'}</span>
                             <Edit3 className="w-2.5 h-2.5 text-zinc-500 group-hover:text-[#5C9BFF]" />
                           </div>
-                          <div className="text-[10px] text-zinc-400">{camp.budgetType || 'Diário'}</div>
+                          <div className="text-[10px] text-zinc-400">
+                            {camp.budgetType || 'Diário'}
+                            {camp.rawBudgetUsd && ` ($ ${camp.rawBudgetUsd})`}
+                          </div>
                         </div>
                       </td>
 
                       <td className="py-4 px-4 text-white font-bold">
                         <div>R$ {camp.spend}</div>
+                        {camp.rawSpendUsd && (
+                          <div className="text-[10px] text-zinc-500 font-mono font-normal">
+                            ($ {camp.rawSpendUsd})
+                          </div>
+                        )}
                       </td>
                       <td className="py-4 px-4 text-white font-bold text-center">{camp.sales}</td>
                       <td className="py-4 px-4 text-white font-bold">R$ {camp.revenue}</td>

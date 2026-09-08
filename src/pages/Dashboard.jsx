@@ -287,6 +287,7 @@ export default function Dashboard({ onSimulateSale }) {
 
   // Agregação dos dados reais da conta e campanhas em Real Brasileiro (R$)
   const realSpend = filteredCampaigns.reduce((acc, c) => acc + Number(c.spend || 0), 0);
+  const realSpendUsd = filteredCampaigns.reduce((acc, c) => acc + Number(c.rawSpendUsd || 0), 0);
   const realSales = filteredCampaigns.reduce((acc, c) => acc + Number(c.sales || 0), 0);
   const realRevenue = filteredCampaigns.reduce((acc, c) => acc + Number(c.revenue || 0), 0);
   const realProfit = realRevenue - realSpend;
@@ -337,6 +338,7 @@ export default function Dashboard({ onSimulateSale }) {
     ? emptyMetrics 
     : {
         spend: realSpend,
+        spendUsd: realSpendUsd,
         revenue: realApprovedRevenue,
         profit: realTotalProfit,
         sales: realApprovedSales,
@@ -605,6 +607,11 @@ export default function Dashboard({ onSimulateSale }) {
           <div className="text-xl sm:text-2xl font-extrabold text-white mt-1">
             R$ {currentMetrics.spend.toFixed(2)}
           </div>
+          {currentMetrics.spendUsd > 0 && (
+            <div className="text-[10px] font-mono text-zinc-500 mt-0.5">
+              ($ {currentMetrics.spendUsd.toFixed(2)} USD)
+            </div>
+          )}
         </div>
 
         {/* CPA */}

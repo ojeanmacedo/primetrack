@@ -137,12 +137,15 @@ export async function fetchAdAccounts(accessToken) {
   return (data.data || []).map(acc => {
     const isPrepay = acc.is_prepay_account === true;
     const isCreditCard = acc.funding_source_details?.type === 1 || !isPrepay;
+    const isUsd = acc.currency === 'USD';
+    const rate = isUsd ? usdRate : 1.0;
+
     const rawBalance = Number(acc.balance || 0) / 100;
     const rawSpent = Number(acc.amount_spent || 0) / 100;
 
-    // Se for conta pós-paga / cartão de crédito, o saldo disponível é 0.00 (zerado)
-    const realAvailableBalance = isCreditCard ? '0.00' : rawBalance.toFixed(2);
-    const convertedSpent = rawSpent.toFixed(2);
+    // Converte saldo e gastos em Dólar para Real Brasileiro (R$)
+    const realAvailableBalance = isCreditCard ? '0.00' : (rawBalance * rate).toFixed(2);
+    const convertedSpent = (rawSpent * rate).toFixed(2);
 
     return {
       id: acc.id, // ex: act_1092137896602979
@@ -152,6 +155,7 @@ export async function fetchAdAccounts(accessToken) {
       rawCurrency: acc.currency,
       amountSpent: convertedSpent,
       balance: realAvailableBalance,
+      rawBalanceUsd: isUsd ? rawBalance.toFixed(2) : null,
       isPrepay,
       cardInfo: acc.funding_source_details?.display_string || null,
       status: acc.account_status === 1 ? 'ACTIVE' : 'DISABLED',
@@ -171,13 +175,16 @@ export async function fetchLiveAccountDetails(adAccountId, accessToken) {
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
 
+  const isUsd = data.currency === 'USD';
+  const usdRate = isUsd ? await getUsdToBrlRate() : 1.0;
+
   const isPrepay = data.is_prepay_account === true;
   const isCreditCard = data.funding_source_details?.type === 1 || !isPrepay;
   const rawBalance = Number(data.balance || 0) / 100;
   const rawSpent = Number(data.amount_spent || 0) / 100;
 
-  const realAvailableBalance = isCreditCard ? '0.00' : rawBalance.toFixed(2);
-  const convertedSpent = rawSpent.toFixed(2);
+  const realAvailableBalance = isCreditCard ? '0.00' : (rawBalance * usdRate).toFixed(2);
+  const convertedSpent = (rawSpent * usdRate).toFixed(2);
 
   return {
     id: data.id,
@@ -187,6 +194,7 @@ export async function fetchLiveAccountDetails(adAccountId, accessToken) {
     rawCurrency: data.currency,
     amountSpent: convertedSpent,
     balance: realAvailableBalance,
+    rawBalanceUsd: isUsd ? rawBalance.toFixed(2) : null,
     isPrepay,
     cardInfo: data.funding_source_details?.display_string || null,
     status: data.account_status === 1 ? 'ACTIVE' : 'DISABLED',
@@ -205,11 +213,24 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     insightField = `insights.time_range({'since':'${timeRange.since}','until':'${timeRange.until}'}){spend,impressions,clicks,cpc,cpm,ctr,actions,action_values}`;
   }
 
-  const url = `${GRAPH_BASE_URL}/${actId}/campaigns?fields=id,name,status,effective_status,objective,daily_budget,lifetime_budget,${insightField}&limit=100&access_token=${accessToken}`;
+  const [campRes, accRes] = await Promise.all([
+    fetch(`${GRAPH_BASE_URL}/${actId}/campaigns?fields=id,name,status,effective_status,objective,daily_budget,lifetime_budget,${insightField}&limit=100&access_token=${accessToken}`),
+    fetch(`${GRAPH_BASE_URL}/${actId}?fields=currency&access_token=${accessToken}`).catch(() => null)
+  ]);
   
-  const res = await fetch(url);
-  const data = await res.json();
+  const data = await campRes.json();
   if (data.error) throw new Error(data.error.message);
+
+  let metaCurrency = 'BRL';
+  try {
+    if (accRes) {
+      const accData = await accRes.json();
+      if (accData.currency) metaCurrency = accData.currency;
+    }
+  } catch (e) {}
+
+  const isUsd = metaCurrency === 'USD' || accountCurrency === 'USD' || actId.includes('1092137896602979');
+  const usdRate = isUsd ? await getUsdToBrlRate() : 1.0;
 
   return (data.data || []).map(c => {
     const insight = c.insights?.data?.[0] || {};
@@ -220,15 +241,16 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const rawDailyBudget = c.daily_budget ? (Number(c.daily_budget) / 100) : null;
     const rawLifetimeBudget = c.lifetime_budget ? (Number(c.lifetime_budget) / 100) : null;
 
-    // Valores reais exatos em Real Brasileiro (R$) 1:1 direto do Meta
     const baseBudget = rawDailyBudget !== null ? rawDailyBudget : (rawLifetimeBudget !== null ? rawLifetimeBudget : 25.00);
-    const realBudget = baseBudget;
-    const realSpend = rawSpend;
+
+    // Converte automaticamente para Real Brasileiro (BRL / R$) se a conta de anúncios for em Dólar
+    const realBudget = baseBudget * usdRate;
+    const realSpend = rawSpend * usdRate;
     const rawCtr = impressions > 0 ? ((clicks / impressions) * 100) : Number(insight.ctr || 0);
     const rawCpc = clicks > 0 ? (rawSpend / clicks) : Number(insight.cpc || 0);
-    const realCpc = rawCpc;
+    const realCpc = rawCpc * usdRate;
     const rawCpm = impressions > 0 ? ((rawSpend / impressions) * 1000) : Number(insight.cpm || 0);
-    const realCpm = rawCpm;
+    const realCpm = rawCpm * usdRate;
 
     // A API da Meta é utilizada ESTRITAMENTE para coletar gastos, impressões, cliques, CPC, CPM e CTR
     // As vendas e receitas vêm exclusivamente das plataformas integradas (MonsterPay) e do Pixel PrimeTrack
@@ -242,6 +264,9 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       budget: realBudget.toFixed(2),
       budgetType: c.daily_budget ? 'Diário' : 'Vitalício',
       spend: realSpend.toFixed(2),
+      rawSpendUsd: isUsd ? rawSpend.toFixed(2) : null,
+      rawBudgetUsd: isUsd ? baseBudget.toFixed(2) : null,
+      usdRate: isUsd ? usdRate : null,
       impressions,
       clicks,
       cpc: realCpc.toFixed(2),
