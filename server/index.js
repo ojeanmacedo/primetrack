@@ -26,37 +26,17 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Servir o arquivo pixel.js (dinâmico ou estático com fallback de metaPixelId)
+// Servir o arquivo pixel.js (dinâmico e protegido contra visualização direta no navegador)
 app.get('/pixel.js', (req, res) => {
-  const dest = req.headers['sec-fetch-dest'] || '';
-  const accept = req.headers['accept'] || '';
-  const isDirectBrowserDoc = dest === 'document' && accept.includes('text/html') && req.query.mode !== 'raw';
+  const dest = (req.headers['sec-fetch-dest'] || '').toLowerCase();
+  const accept = (req.headers['accept'] || '').toLowerCase();
+  const isDirectBrowserDoc = dest === 'document' || (accept.includes('text/html') && req.query.mode !== 'raw');
 
   // Se for aberto diretamente na barra de endereço do navegador pelo usuário/curioso
   if (isDirectBrowserDoc) {
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    return res.send(`<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8">
-  <title>PrimeTrack Pixel Engine</title>
-  <style>
-    body {
-      background-color: #0b0f19;
-      color: #ffffff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
-      padding: 24px;
-      margin: 0;
-      font-size: 15px;
-      font-weight: 500;
-    }
-  </style>
-</head>
-<body>
-  PrimeTrack Tracking Engine is running...
-</body>
-</html>`);
+    return res.status(403).send('PrimeTrack tracking engine carregando...');
   }
 
   // Para tags <script>, fetch, beacons ou qualquer outro carregamento
