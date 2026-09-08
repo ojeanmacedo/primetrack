@@ -396,6 +396,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   };
 
   const isNoAccountActive = adAccountsList.length === 0;
+  const activeAdAccount = adAccountsList.length > 0 ? adAccountsList[0] : null;
 
   // Filtragem
   const filteredCampaigns = isNoAccountActive ? [] : campaignsList.filter(c => {
