@@ -12,6 +12,8 @@ import Notifications from './pages/Notifications';
 import Plans from './pages/Plans';
 import Support from './pages/Support';
 import DocsWebhook from './pages/DocsWebhook';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
 import ErrorBoundary from './components/ErrorBoundary';
 import { supabase } from './lib/supabase';
 import { loginWithGoogle } from './utils/auth';
@@ -110,6 +112,12 @@ export default function App() {
 
               {/* Rota 1: Landing Page Pública */}
               <Route path="/" element={<LandingPage />} />
+
+              {/* Políticas e Termos exigidos pelo Facebook / Meta Review */}
+              <Route path="/privacidade" element={<PrivacyPolicy />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/termos" element={<TermsOfService />} />
+              <Route path="/terms" element={<TermsOfService />} />
 
               {/* Rota 2: Tela de Login */}
               <Route path="/login" element={<LoginPage />} />
