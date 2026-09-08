@@ -424,14 +424,14 @@ app.get('/api/stats', (req, res) => {
 const campaignsCache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
 
-async function getApprovedOrders() {
+async function getAllOrders() {
   let orders = [];
   try {
     const { data } = await supabaseAdmin
       .from('orders')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(100);
+      .limit(200);
     if (Array.isArray(data) && data.length > 0) {
       orders = data.map(row => ({
         id: row.id,
@@ -459,10 +459,12 @@ async function getApprovedOrders() {
     orders = db.get('orders') || [];
   }
 
-  return orders.filter(o => 
-    (o.status === 'approved' || !o.status) && 
-    (!o.gateway || o.gateway.toLowerCase().includes('monster'))
-  );
+  return orders.filter(o => !o.gateway || o.gateway.toLowerCase().includes('monster'));
+}
+
+async function getApprovedOrders() {
+  const all = await getAllOrders();
+  return all.filter(o => o.status === 'approved' || !o.status);
 }
 
 app.get('/api/campaigns', async (req, res) => {
@@ -615,7 +617,7 @@ function resolveDateRange(datePreset = 'today', since = null, until = null) {
  */
 app.get('/api/orders', async (req, res) => {
   try {
-    const orders = await getApprovedOrders();
+    const orders = await getAllOrders();
     res.json(orders);
   } catch (err) {
     const orders = db.get('orders') || [];
