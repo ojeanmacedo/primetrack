@@ -482,6 +482,11 @@ export default function Integrations() {
     if (typeof window !== 'undefined') {
       localStorage.setItem('primetrack_pixels', JSON.stringify(updated));
     }
+    fetch('/api/pixels', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pixels: updated })
+    }).catch(() => {});
     setShowNewPixelModal(false);
     setNewPixelName('');
     setNewPixelMetaId('');
@@ -535,6 +540,11 @@ export default function Integrations() {
     if (typeof window !== 'undefined') {
       localStorage.setItem('primetrack_pixels', JSON.stringify(updated));
     }
+    fetch('/api/pixels', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pixels: updated })
+    }).catch(() => {});
     setPixelToEdit(null);
     setPixelSuccessMsg(`Pixel "${editPixelName.trim()}" atualizado com sucesso!`);
     setTimeout(() => setPixelSuccessMsg(null), 3500);
@@ -1072,10 +1082,9 @@ export default function Integrations() {
             ) : (
               <div className="space-y-6">
                 {trackingPixels.map((px) => {
-                  const metaSnippetLine = px.metaPixelId ? `\n  window.metaPixelId = "${px.metaPixelId}";` : '';
                   const pxScript = `<!-- PrimeTrack Pixel -->
 <script>
-  window.pixelId = "${px.pixelId || px.internalPixelId || 'pt_px_590fedcfff65'}";${metaSnippetLine}
+  window.pixelId = "${px.pixelId || px.internalPixelId || 'pt_px_590fedcfff65'}";
   var a = document.createElement("script");
   a.setAttribute("async", "");
   a.setAttribute("defer", "");

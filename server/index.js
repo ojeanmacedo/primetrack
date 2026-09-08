@@ -26,7 +26,7 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Servir o arquivo pixel.js
+// Servir o arquivo pixel.js (dinâmico ou estático com fallback de metaPixelId)
 app.get('/pixel.js', (req, res) => {
   const dest = req.headers['sec-fetch-dest'] || '';
   const accept = req.headers['accept'] || '';
@@ -69,6 +69,38 @@ app.get('/pixel.js', (req, res) => {
 // Endpoint de teste de saúde
 app.get('/api/health', (req, res) => {
   res.json({ status: 'online', service: 'PrimeTrack Engine', version: '2.0.0' });
+});
+
+/**
+ * Endpoint de resolução automática de configuração do Pixel
+ * Permite que o pixel.js descubra o metaPixelId e regras apenas pelo pixelId (igual ao LowTrack/Utmify)
+ */
+app.get('/api/pixel/config', (req, res) => {
+  const id = req.query.id || req.query.pixelId;
+  const pixels = db.get('pixels') || [];
+  const settings = db.get('settings') || {};
+
+  let foundPixel = pixels.find(p => p.pixelId === id || p.internalPixelId === id || p.id === id);
+
+  res.json({
+    pixelId: id,
+    metaPixelId: (foundPixel && foundPixel.metaPixelId) ? foundPixel.metaPixelId : (settings.metaPixelId || ''),
+    icRule: foundPixel ? (foundPixel.icValue || foundPixel.icRule) : null,
+    icType: foundPixel ? (foundPixel.icType || 'css') : 'css'
+  });
+});
+
+app.get('/api/pixels', (req, res) => {
+  res.json(db.get('pixels') || []);
+});
+
+app.post('/api/pixels', (req, res) => {
+  const pixels = req.body.pixels || req.body;
+  if (Array.isArray(pixels)) {
+    db.set('pixels', pixels);
+    return res.json({ success: true, pixels });
+  }
+  res.status(400).json({ success: false, error: 'Lista de pixels inválida' });
 });
 
 /**

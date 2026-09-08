@@ -65,6 +65,30 @@
   }
   initMetaFbq();
 
+  // Se nenhum metaId estiver declarado inline, busca dinamicamente a configuração no PrimeTrack
+  var primaryId = ids[0] || w.pt_pixel_id || w.pixelId;
+  if(primaryId && !metaIds.length){
+    try{
+      fetch("https://app.primetrack.top/api/pixel/config?id=" + encodeURIComponent(primaryId))
+        .then(function(res){ return res.json(); })
+        .then(function(cfg){
+          if(cfg && cfg.metaPixelId){
+            _metaAdd(cfg.metaPixelId);
+            initMetaFbq();
+            if(w.fbq){
+              try{
+                w.fbq('track', 'PageView', { title: d.title, path: w.location.pathname }, { eventID: "ev_pv_" + Date.now() });
+              }catch(e){}
+            }
+          }
+          if(cfg && cfg.icRule && !w.pt_ic_rule){
+            w.pt_ic_rule = cfg.icRule;
+            w.pt_ic_type = cfg.icType || 'css';
+          }
+        }).catch(function(){});
+    }catch(e){}
+  }
+
   function gC(e){
     var r=d.cookie.match(new RegExp("(^|;\\s*)("+e+")=([^;]*)"));
     return r?decodeURIComponent(r[3]):null;
