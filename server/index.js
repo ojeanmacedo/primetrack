@@ -385,28 +385,48 @@ app.get('/api/stats', (req, res) => {
 });
 
 /**
- * 4. Listagem de Campanhas e Criativos
+ * 4. Listagem de Campanhas e Criativos com Gastos do Meta e Vendas de Webhooks (Kiwify, Hotmart, MonsterPay, etc.)
  */
 app.get('/api/campaigns', (req, res) => {
   const connections = db.get('facebook_connections') || [];
   
-  // Se não houver perfil conectado, não deve retornar nenhuma campanha
   if (connections.length === 0) {
     return res.json([]);
   }
 
   const allCampaigns = db.get('campaigns') || [];
-  
-  // Filtra apenas as campanhas que estão ativas e rodando hoje
-  const activeRunning = allCampaigns.filter(c => 
-    c.name === 'TESTE MI' || (c.status === true && (c.rawStatus === 'ACTIVE' || c.effectiveStatus === 'ACTIVE') && Number(c.spend) > 0)
-  );
+  const orders = db.get('orders') || [];
+  const approvedOrders = orders.filter(o => o.status === 'approved' || !o.status);
 
-  // Se TESTE MI estiver presente, coloca como principal
-  const testeMi = allCampaigns.find(c => c.name === 'TESTE MI');
-  const result = testeMi ? [testeMi] : (activeRunning.length > 0 ? activeRunning : []);
+  // Calcula vendas e receita atribuídas via UTM para cada campanha real
+  const enrichedCampaigns = allCampaigns.map(c => {
+    const cName = (c.name || '').toLowerCase();
+    const cUtm = (c.utm_campaign || '').toLowerCase();
+    const cId = String(c.id || '');
 
-  res.json(result);
+    const matchingOrders = approvedOrders.filter(o => {
+      const oCamp = ((o.attribution && o.attribution.campaign) || o.campaign || '').toLowerCase();
+      return (oCamp && (oCamp === cName || oCamp === cUtm || oCamp === cId || cName.includes(oCamp) || oCamp.includes(cName)));
+    });
+
+    const salesCount = matchingOrders.length;
+    const revenueSum = matchingOrders.reduce((acc, o) => acc + Number(o.amount || 0), 0);
+    const spendNum = Number(c.spend || 0);
+    const profitNum = revenueSum - spendNum;
+    const roasNum = spendNum > 0 ? (revenueSum / spendNum).toFixed(2) : '0.00';
+    const cpaNum = salesCount > 0 ? (spendNum / salesCount).toFixed(2) : '0.00';
+
+    return {
+      ...c,
+      sales: salesCount,
+      revenue: revenueSum.toFixed(2),
+      profit: profitNum.toFixed(2),
+      roas: roasNum,
+      cpa: cpaNum
+    };
+  });
+
+  res.json(enrichedCampaigns);
 });
 
 /**
@@ -695,15 +715,21 @@ app.post('/api/meta/sync', async (req, res) => {
       return res.status(400).json({ error: 'Nenhum perfil do Facebook conectado ainda.' });
     }
 
+    const { datePreset = 'today', accountId } = req.body || {};
     const latestConnection = connections[0];
-    const adAccounts = db.get('ad_accounts') || [];
+    let adAccounts = db.get('ad_accounts') || [];
     
+    if (accountId) {
+      const actClean = accountId.replace('act_', '');
+      adAccounts = adAccounts.filter(a => a.id === accountId || a.id === `act_${actClean}` || a.accountId === actClean);
+    }
+
     let allCampaigns = [];
     let allAds = [];
 
     for (const acc of adAccounts) {
       try {
-        const campaigns = await fetchCampaigns(acc.id, latestConnection.accessToken);
+        const campaigns = await fetchCampaigns(acc.id, latestConnection.accessToken, acc.name, datePreset);
         const ads = await fetchAdsWithCreatives(acc.id, latestConnection.accessToken);
         allCampaigns = allCampaigns.concat(campaigns);
         allAds = allAds.concat(ads);
@@ -713,7 +739,14 @@ app.post('/api/meta/sync', async (req, res) => {
     }
 
     if (allCampaigns.length > 0) {
-      db.set('campaigns', allCampaigns);
+      // Se sincronizou uma conta específica, atualiza mesclando
+      if (accountId) {
+        const existingCamps = db.get('campaigns') || [];
+        const filteredCamps = existingCamps.filter(c => c.adAccountId !== accountId && c.adAccountId !== `act_${accountId.replace('act_', '')}`);
+        db.set('campaigns', [...filteredCamps, ...allCampaigns]);
+      } else {
+        db.set('campaigns', allCampaigns);
+      }
     }
     if (allAds.length > 0) {
       db.set('meta_ads', allAds);

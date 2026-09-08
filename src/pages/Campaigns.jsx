@@ -87,27 +87,17 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     }
   ];
 
-  const defaultAccountsData = [
-    { id: "act_1092137896602979", name: "CA01", currency: "BRL", account_status: 1, amount_spent: "123.41" },
-    { id: "act_1101817232408751", name: "CA02 JEFFREY", currency: "BRL", account_status: 1, amount_spent: "0.00" }
-  ];
-
-  const [campaignsList, setCampaignsList] = useState(() => {
-    // Dados de TESTE MI pertencem exclusivamente à conta administradora
-    if (!isAdmin || isDisconnected) return [];
-    return defaultCampaignData;
-  });
-
   const [adAccountsList, setAdAccountsList] = useState(() => {
     if (isDisconnected) return [];
     const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) {
+          return parsed.filter(a => a.sync === true);
+        }
       } catch (e) {}
     }
-    if (isAdmin) return defaultAccountsData;
     return [];
   });
   const [syncing, setSyncing] = useState(false);
@@ -228,21 +218,20 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     }
 
     const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
+    let localSyncMap = {};
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setAdAccountsList(parsed);
-          const active = parsed.find(a => a.sync);
-          if (!active) {
+        if (Array.isArray(parsed)) {
+          parsed.forEach(p => {
+            if (p.id) localSyncMap[p.id] = p.sync;
+          });
+          const activeList = parsed.filter(a => a.sync === true);
+          setAdAccountsList(activeList);
+          if (activeList.length === 0) {
             setCampaignsList([]);
             return;
-          } else if (isAdmin) {
-            setCampaignsList(defaultCampaignData);
           }
-        } else {
-          setAdAccountsList([]);
-          setCampaignsList([]);
         }
       } catch (e) {}
     } else if (!isAdmin) {
@@ -255,15 +244,29 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
-          const activeOnly = data.filter(c => c.name === 'TESTE MI' || (c.status === true && Number(c.spend) > 0));
-          const pData = periodCampaignMap[periodFilter] || periodCampaignMap['Hoje'];
-          const merged = (activeOnly.length > 0 ? activeOnly : data).map(c => {
-            if (c.name === 'TESTE MI' || c.id === '52604661655655') {
-              return { ...c, ...pData };
-            }
-            return c;
+          const activeAccountsSaved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
+          let activeAccountIds = new Set();
+          if (activeAccountsSaved) {
+            try {
+              const p = JSON.parse(activeAccountsSaved);
+              if (Array.isArray(p)) {
+                p.filter(a => a.sync === true).forEach(a => {
+                  activeAccountIds.add(String(a.id));
+                  activeAccountIds.add(`act_${a.id}`);
+                  if (a.name) activeAccountIds.add(a.name);
+                });
+              }
+            } catch (e) {}
+          }
+
+          const filteredByActiveAccs = data.filter(c => {
+            if (activeAccountIds.size === 0) return false;
+            return activeAccountIds.has(String(c.adAccountId)) || 
+                   activeAccountIds.has(String(c.accountName)) ||
+                   (c.name === 'TESTE MI' && isAdmin);
           });
-          setCampaignsList(merged);
+
+          setCampaignsList(filteredByActiveAccs);
         } else if (Array.isArray(data) && data.length === 0) {
           setCampaignsList([]);
         }
@@ -279,31 +282,21 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             setAdAccountsList([]);
           }
         } else if (data.adAccounts && data.adAccounts.length > 0) {
-          const savedLocal = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
-          let localSyncMap = {};
-          if (savedLocal) {
-            try {
-              const parsed = JSON.parse(savedLocal);
-              if (Array.isArray(parsed)) {
-                parsed.forEach(p => {
-                  if (p.id) localSyncMap[p.id] = p.sync;
-                });
-              }
-            } catch (e) {}
-          }
-          const mappedAccs = data.adAccounts.map(a => {
-            const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
-            return {
-              name: a.name || 'Conta',
-              id: accId,
-              bm: a.businessName || 'BM Principal',
-              currency: a.currency === 'USD' ? 'USD (→ BRL @ 5,12)' : 'BRL',
-              status: a.status === 'ACTIVE' ? 'Ativa' : 'Desativada',
-              balance: a.balance || '0,00',
-              amountSpent: a.amountSpent || '0,00',
-              sync: localSyncMap[accId] === true
-            };
-          });
+          const mappedAccs = data.adAccounts
+            .map(a => {
+              const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
+              return {
+                name: a.name || 'Conta',
+                id: accId,
+                bm: a.businessName || 'BM Principal',
+                currency: a.currency === 'USD' ? 'USD (→ BRL @ 5,12)' : 'BRL',
+                status: a.status === 'ACTIVE' ? 'Ativa' : 'Desativada',
+                balance: a.balance || '0,00',
+                amountSpent: a.amountSpent || '0,00',
+                sync: localSyncMap[accId] === true
+              };
+            })
+            .filter(a => a.sync === true);
           setAdAccountsList(mappedAccs);
         }
       })
@@ -397,16 +390,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setSavingEdit(false);
   };
 
-  const activeAdAccount = adAccountsList.find(a => a.sync);
-  const isNoAccountActive = adAccountsList.length > 0 && !activeAdAccount;
+  const isNoAccountActive = adAccountsList.length === 0;
 
   // Filtragem
   const filteredCampaigns = isNoAccountActive ? [] : campaignsList.filter(c => {
     if (statusFilter === 'Ativo' && !c.status) return false;
     if (statusFilter === 'Pausado' && c.status) return false;
-    if (activeAdAccount && c.accountName && c.accountName !== activeAdAccount.name && c.adAccountId !== activeAdAccount.id) {
-      return false;
-    }
     if (accountFilter !== 'Todas' && c.accountName !== accountFilter && c.adAccountId !== accountFilter) return false;
     return true;
   });
