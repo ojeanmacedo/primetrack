@@ -188,7 +188,7 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
 
   const rate = isUsd ? await getUsdBrlRate() : 1.0;
 
-  const url = `${GRAPH_BASE_URL}/${actId}/campaigns?fields=id,name,status,effective_status,objective,daily_budget,lifetime_budget,insights.date_preset(${datePreset}){spend,impressions,clicks,cpc,cpm,ctr}&access_token=${accessToken}`;
+  const url = `${GRAPH_BASE_URL}/${actId}/campaigns?fields=id,name,status,effective_status,objective,daily_budget,lifetime_budget,insights.date_preset(${datePreset}){spend,impressions,clicks,cpc,cpm,ctr}&limit=100&access_token=${accessToken}`;
   
   const res = await fetch(url);
   const data = await res.json();

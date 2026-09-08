@@ -395,13 +395,11 @@ app.get('/api/campaigns', async (req, res) => {
     return res.json([]);
   }
 
-  const { datePreset, refresh } = req.query;
-  if (refresh === 'true') {
-    try {
-      await executeMetaSync({ datePreset: datePreset || 'today' });
-    } catch (e) {
-      console.warn('Sync sob demanda falhou:', e.message);
-    }
+  const { datePreset = 'today', refresh } = req.query;
+  try {
+    await executeMetaSync({ datePreset });
+  } catch (e) {
+    console.warn('[Sync Campaigns Error]:', e.message);
   }
 
   const allCampaigns = db.get('campaigns') || [];
@@ -872,7 +870,53 @@ app.post('/api/meta/sync', async (req, res) => {
   try {
     const { datePreset = 'today', accountId, accountIds } = req.body || {};
     const result = await executeMetaSync({ datePreset, accountId, accountIds });
-    res.json(result);
+
+    const adAccounts = db.get('ad_accounts') || [];
+    const activeAccountIds = new Set(
+      adAccounts
+        .filter(a => a.syncActive === true)
+        .map(a => String(a.accountId || a.id).replace('act_', ''))
+    );
+
+    const activeOnlyCampaigns = (result.campaigns || []).filter(c => {
+      const cAdId = String(c.adAccountId || '').replace('act_', '');
+      return activeAccountIds.has(cAdId);
+    });
+
+    const orders = db.get('orders') || [];
+    const approvedOrders = orders.filter(o => o.status === 'approved' || !o.status);
+
+    const enrichedCampaigns = activeOnlyCampaigns.map(c => {
+      const cName = (c.name || '').toLowerCase();
+      const cUtm = (c.utm_campaign || '').toLowerCase();
+      const cId = String(c.id || '');
+
+      const matchingOrders = approvedOrders.filter(o => {
+        const oCamp = ((o.attribution && o.attribution.campaign) || o.campaign || '').toLowerCase();
+        return (oCamp && (oCamp === cName || oCamp === cUtm || oCamp === cId || cName.includes(oCamp) || oCamp.includes(cName)));
+      });
+
+      const salesCount = matchingOrders.length;
+      const revenueSum = matchingOrders.reduce((acc, o) => acc + Number(o.amount || 0), 0);
+      const spendNum = Number(c.spend || 0);
+      const profitNum = revenueSum - spendNum;
+      const roasNum = spendNum > 0 ? (revenueSum / spendNum).toFixed(2) : '0.00';
+      const cpaNum = salesCount > 0 ? (spendNum / salesCount).toFixed(2) : '0.00';
+
+      return {
+        ...c,
+        sales: salesCount,
+        revenue: revenueSum.toFixed(2),
+        profit: profitNum.toFixed(2),
+        roas: roasNum,
+        cpa: cpaNum
+      };
+    });
+
+    res.json({
+      ...result,
+      campaigns: enrichedCampaigns
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

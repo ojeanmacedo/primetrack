@@ -113,8 +113,18 @@ export default function Dashboard({ onSimulateSale }) {
       console.log('Erro ao carregar contas no dashboard:', err);
     }
 
+    const periodToPreset = {
+      'Hoje': 'today',
+      'Ontem': 'yesterday',
+      '7 dias': 'last_7d',
+      '15 dias': 'last_14d',
+      '30 dias': 'last_30d',
+      'Personalizado': 'maximum'
+    };
+    const preset = periodToPreset[customPeriod] || 'today';
+
     try {
-      const cr = await fetch('/api/campaigns');
+      const cr = await fetch(`/api/campaigns?datePreset=${preset}`);
       const cData = await cr.json();
       if (Array.isArray(cData)) {
         setCampaigns(cData);
@@ -135,6 +145,7 @@ export default function Dashboard({ onSimulateSale }) {
         '30 dias': 'last_30d',
         'Personalizado': 'maximum'
       };
+      const preset = periodToPreset[customPeriod] || 'today';
       
       const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
       let activeAccountIds = [];
@@ -147,15 +158,20 @@ export default function Dashboard({ onSimulateSale }) {
         } catch (e) {}
       }
 
-      await fetch('/api/meta/sync', {
+      const syncRes = await fetch('/api/meta/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          datePreset: periodToPreset[customPeriod] || 'today',
+          datePreset: preset,
           accountIds: activeAccountIds.length > 0 ? activeAccountIds : undefined
         })
       });
-      await loadDashboardData();
+      const syncData = await syncRes.json();
+      if (syncData && Array.isArray(syncData.campaigns) && syncData.campaigns.length > 0) {
+        setCampaigns(syncData.campaigns);
+      }
+
+      await loadDashboardData(customPeriod);
     } catch (err) {
       console.error('Erro ao sincronizar dados com Meta:', err);
     } finally {
@@ -232,6 +248,7 @@ export default function Dashboard({ onSimulateSale }) {
 
   // Agregação dos dados reais da conta e campanhas
   const realSpend = filteredCampaigns.reduce((acc, c) => acc + Number(c.spend || 0), 0);
+  const realRawSpendUsd = filteredCampaigns.reduce((acc, c) => acc + Number(c.rawSpendUsd || 0), 0);
   const realSales = filteredCampaigns.reduce((acc, c) => acc + Number(c.sales || 0), 0);
   const realRevenue = filteredCampaigns.reduce((acc, c) => acc + Number(c.revenue || 0), 0);
   const realProfit = realRevenue - realSpend;
@@ -247,6 +264,7 @@ export default function Dashboard({ onSimulateSale }) {
     ? emptyMetrics 
     : {
         spend: realSpend,
+        rawSpendUsd: realRawSpendUsd,
         revenue: realRevenue,
         profit: realProfit,
         sales: realSales,
@@ -482,10 +500,15 @@ export default function Dashboard({ onSimulateSale }) {
 
         {/* Gasto em Ads */}
         <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
-          <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">GASTO EM ADS</div>
+          <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">GASTO EM ADS ({period})</div>
           <div className="text-xl sm:text-2xl font-extrabold text-white mt-1">
             R$ {currentMetrics.spend.toFixed(2)}
           </div>
+          {currentMetrics.rawSpendUsd > 0 && (
+            <div className="text-[11px] font-mono text-zinc-400 mt-0.5">
+              ${currentMetrics.rawSpendUsd.toFixed(2)} USD
+            </div>
+          )}
         </div>
 
         {/* CPA */}

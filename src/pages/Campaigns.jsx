@@ -185,8 +185,21 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       console.log('Erro ao carregar status Meta:', err);
     }
 
+    const periodMap = {
+      'Hoje': 'today',
+      'Ontem': 'yesterday',
+      'Últimos 7 dias': 'last_7d',
+      '7 dias': 'last_7d',
+      'Últimos 14 dias': 'last_14d',
+      '14 dias': 'last_14d',
+      'Últimos 30 dias': 'last_30d',
+      '30 dias': 'last_30d',
+      'Personalizado': 'maximum'
+    };
+    const datePreset = periodMap[customPreset] || 'today';
+
     try {
-      const cr = await fetch('/api/campaigns');
+      const cr = await fetch(`/api/campaigns?datePreset=${datePreset}`);
       const data = await cr.json();
       if (Array.isArray(data)) {
         setCampaignsList(data);
@@ -197,10 +210,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   };
 
   useEffect(() => {
-    loadData();
+    loadData(periodFilter);
 
     const handleProfileSync = () => {
-      loadData();
+      loadData(periodFilter);
     };
 
     window.addEventListener('primetrack_profile_sync', handleProfileSync);
@@ -235,7 +248,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         } catch (e) {}
       }
 
-      await fetch('/api/meta/sync', {
+      const syncRes = await fetch('/api/meta/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -243,7 +256,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           accountIds: activeAccountIds.length > 0 ? activeAccountIds : undefined
         })
       });
-      await loadData();
+      const syncData = await syncRes.json();
+      if (syncData && Array.isArray(syncData.campaigns) && syncData.campaigns.length > 0) {
+        setCampaignsList(syncData.campaigns);
+      }
+
+      await loadData(selectedPreset);
       const now = new Date();
       setLastSyncTime(`${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`);
     } catch (e) {
@@ -335,6 +353,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   // Totais calculados dinamicamente
   const totalSpend = filteredCampaigns.reduce((acc, c) => acc + Number(c.spend || 0), 0);
+  const totalRawSpendUsd = filteredCampaigns.reduce((acc, c) => acc + Number(c.rawSpendUsd || 0), 0);
   const totalSales = filteredCampaigns.reduce((acc, c) => acc + Number(c.sales || 0), 0);
   const totalRevenue = filteredCampaigns.reduce((acc, c) => acc + Number(c.revenue || 0), 0);
   const totalProfit = totalRevenue - totalSpend;
@@ -701,7 +720,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                         </div>
                       </td>
 
-                      <td className="py-4 px-4 text-white font-bold">R$ {camp.spend}</td>
+                      <td className="py-4 px-4 text-white font-bold">
+                        <div>R$ {camp.spend}</div>
+                        {camp.rawSpendUsd && (
+                          <div className="text-[10px] text-zinc-400 font-normal font-mono">
+                            ${camp.rawSpendUsd} USD
+                          </div>
+                        )}
+                      </td>
                       <td className="py-4 px-4 text-white font-bold text-center">{camp.sales}</td>
                       <td className="py-4 px-4 text-white font-bold">R$ {camp.revenue}</td>
                       <td className={`py-4 px-4 font-extrabold ${Number(camp.profit) >= 0 ? 'text-[#5C9BFF]' : 'text-red-400'}`}>
@@ -725,7 +751,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     </td>
                     <td className="py-3 px-4"></td>
                     <td className="py-3 px-4"></td>
-                    <td className="py-3 px-4 text-white">R$ {totalSpend.toFixed(2)}</td>
+                    <td className="py-3 px-4 text-white">
+                      <div>R$ {totalSpend.toFixed(2)}</div>
+                      {totalRawSpendUsd > 0 && (
+                        <div className="text-[10px] text-zinc-400 font-normal font-mono">
+                          ${totalRawSpendUsd.toFixed(2)} USD
+                        </div>
+                      )}
+                    </td>
                     <td className="py-3 px-4 text-white text-center">{totalSales}</td>
                     <td className="py-3 px-4 text-white">R$ {totalRevenue.toFixed(2)}</td>
                     <td className={`py-3 px-4 font-extrabold ${totalProfit >= 0 ? 'text-[#5C9BFF]' : 'text-red-400'}`}>
