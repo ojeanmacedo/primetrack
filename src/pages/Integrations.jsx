@@ -537,6 +537,8 @@ export default function Integrations() {
 
     if (params.get('connected') === 'true') {
       localStorage.removeItem('primetrack_meta_disconnected');
+      // Limpa cache antigo de contas ativas para garantir que todas venham desativadas na nova conexão
+      localStorage.removeItem('primetrack_ad_accounts');
       const userName = params.get('name') || 'Perfil';
       setConnectionSuccessMsg(`🎉 Perfil ${userName} conectado com sucesso ao PrimeTrack!`);
       setTimeout(() => setConnectionSuccessMsg(null), 5000);
@@ -544,8 +546,8 @@ export default function Integrations() {
       window.dispatchEvent(new Event('primetrack_profile_sync'));
     }
 
-    // Se for cliente normal ou estiver desconectado, não carrega perfis de admin
-    if (!isAdmin || localStorage.getItem('primetrack_meta_disconnected') === 'true') {
+    // Se estiver desconectado explicitamente, limpa tudo
+    if (localStorage.getItem('primetrack_meta_disconnected') === 'true') {
       setConnectedProfiles([]);
       setAdAccounts([]);
       return;
@@ -827,7 +829,11 @@ export default function Integrations() {
                         {acc.currency}
                       </td>
                       <td className="py-3.5 px-4 text-center">
-                        <span className="px-2.5 py-0.5 rounded-full bg-[#1A6DFF] text-white font-mono text-[10px] font-bold">
+                        <span className={`px-2.5 py-0.5 rounded-full font-mono text-[10px] font-bold ${
+                          acc.status === 'Ativa'
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                            : 'bg-zinc-800 text-zinc-400'
+                        }`}>
                           {acc.status}
                         </span>
                       </td>
