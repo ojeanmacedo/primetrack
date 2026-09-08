@@ -405,26 +405,22 @@ app.get('/api/campaigns', async (req, res) => {
   const now = Date.now();
   const cached = campaignsCache.get(cacheKey);
 
-  // Resposta instantânea (< 2ms) se tiver cache válido e não for refresh manual forçado
-  if (cached && (now - cached.timestamp < CACHE_TTL_MS) && refresh !== 'true') {
+  // Cache curto de 15 segundos para navegação ultrarrápida entre telas sem estragar filtros
+  if (cached && (now - cached.timestamp < 15 * 1000) && refresh !== 'true') {
     return res.json(cached.campaigns);
   }
 
-  const existingCampaigns = db.get('campaigns') || [];
-
-  // Se já temos campanhas salvas e não for refresh forçado pelo botão "Atualizar" ou range específico,
-  // retorna instantaneamente e sincroniza em background
-  if (existingCampaigns.length > 0 && refresh !== 'true' && !timeRange) {
-    executeMetaSync({ datePreset, timeRange }).catch(e => console.warn('[Background Sync Error]:', e.message));
-  } else {
-    try {
-      await executeMetaSync({ datePreset, timeRange });
-    } catch (e) {
-      console.warn('[Sync Campaigns Error]:', e.message);
-    }
+  // Busca SEMPRE em tempo real os dados exatos do período na API da Meta
+  let syncResult = null;
+  try {
+    syncResult = await executeMetaSync({ datePreset, timeRange });
+  } catch (e) {
+    console.warn('[Sync Campaigns Error]:', e.message);
   }
 
-  const allCampaigns = db.get('campaigns') || [];
+  const allCampaigns = (syncResult && Array.isArray(syncResult.campaigns) && syncResult.campaigns.length > 0)
+    ? syncResult.campaigns
+    : (db.get('campaigns') || []);
   const adAccounts = db.get('ad_accounts') || [];
   
   // Apenas contas ativadas pelo perfil em integrações (syncActive: true)

@@ -52,7 +52,13 @@ export default function Dashboard({ onSimulateSale }) {
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            if (parsed.some(c => String(c.spend) === '354.27')) {
+              localStorage.removeItem('primetrack_cached_campaigns');
+              return [];
+            }
+            return parsed;
+          }
         } catch (e) {}
       }
     }
