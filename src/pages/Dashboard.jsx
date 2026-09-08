@@ -148,148 +148,14 @@ export default function Dashboard({ onSimulateSale }) {
 
   const periods = ['Hoje', 'Ontem', '7 dias', '15 dias', '30 dias', 'Personalizado'];
 
-  const periodDataMap = {
-    'Hoje': {
-      spend: 0.00,
-      revenue: 0.00,
-      profit: 0.00,
-      sales: 0,
-      pendingSales: 0,
-      pendingValue: 0.00,
-      roas: '0.00',
-      cpa: '0.00',
-      arpu: '0.00',
-      margin: '0.0%',
-      clicks: 0,
-      visits: 0,
-      ics: 0,
-      initSales: 0,
-      approvedSales: 0,
-      pixApproval: '0.0%',
-      pixSales: 0,
-      sources: { fb: 0, ig: 0 },
-      hourly: [
-        { h: '00h', v: 0 }, { h: '01h', v: 0 }, { h: '02h', v: 0 }, { h: '03h', v: 0 },
-        { h: '04h', v: 0 }, { h: '05h', v: 0 }, { h: '06h', v: 0 }, { h: '07h', v: 0 },
-        { h: '08h', v: 0 }, { h: '09h', v: 0 }, { h: '10h', v: 0 }, { h: '11h', v: 0 },
-        { h: '12h', v: 0 }, { h: '13h', v: 0 }, { h: '14h', v: 0 }, { h: '15h', v: 0 },
-        { h: '16h', v: 0 }, { h: '17h', v: 0 }, { h: '18h', v: 0 }, { h: '19h', v: 0 },
-        { h: '20h', v: 0 }, { h: '21h', v: 0 }, { h: '22h', v: 0 }, { h: '23h', v: 0 }
-      ]
-    },
-    'Ontem': {
-      spend: 123.41,
-      revenue: 139.67,
-      profit: 16.26,
-      sales: 15,
-      pendingSales: 11,
-      pendingValue: 125.72,
-      roas: '1.13',
-      cpa: '8.23',
-      arpu: '9.31',
-      margin: '11.7%',
-      clicks: 421,
-      visits: 317,
-      ics: 192,
-      initSales: 26,
-      approvedSales: 15,
-      pixApproval: '57.7%',
-      pixSales: 15,
-      sources: { fb: 9, ig: 6 },
-      hourly: [
-        { h: '00h', v: 80 }, { h: '01h', v: 0 }, { h: '02h', v: 0 }, { h: '03h', v: 45 },
-        { h: '04h', v: 45 }, { h: '05h', v: 45 }, { h: '06h', v: 45 }, { h: '07h', v: 80 },
-        { h: '08h', v: 45 }, { h: '09h', v: 45 }, { h: '10h', v: 45 }, { h: '11h', v: 80 },
-        { h: '12h', v: 80 }, { h: '13h', v: 0 }, { h: '14h', v: 0 }, { h: '15h', v: 0 },
-        { h: '16h', v: 0 }, { h: '17h', v: 0 }, { h: '18h', v: 0 }, { h: '19h', v: 0 },
-        { h: '20h', v: 0 }, { h: '21h', v: 0 }, { h: '22h', v: 0 }, { h: '23h', v: 0 }
-      ]
-    },
-    '7 dias': {
-      spend: 890.20,
-      revenue: 1113.92,
-      profit: 223.72,
-      sales: 118,
-      pendingSales: 78,
-      pendingValue: 882.10,
-      roas: '1.25',
-      cpa: '7.54',
-      arpu: '9.44',
-      margin: '20.1%',
-      clicks: 3120,
-      visits: 2410,
-      ics: 1450,
-      initSales: 198,
-      approvedSales: 118,
-      pixApproval: '59.6%',
-      pixSales: 118,
-      sources: { fb: 72, ig: 46 },
-      hourly: [
-        { h: '00h', v: 50 }, { h: '01h', v: 35 }, { h: '02h', v: 20 }, { h: '03h', v: 30 },
-        { h: '04h', v: 25 }, { h: '05h', v: 40 }, { h: '06h', v: 60 }, { h: '07h', v: 75 },
-        { h: '08h', v: 80 }, { h: '09h', v: 85 }, { h: '10h', v: 90 }, { h: '11h', v: 85 },
-        { h: '12h', v: 95 }, { h: '13h', v: 80 }, { h: '14h', v: 75 }, { h: '15h', v: 70 },
-        { h: '16h', v: 80 }, { h: '17h', v: 85 }, { h: '18h', v: 90 }, { h: '19h', v: 100 },
-        { h: '20h', v: 95 }, { h: '21h', v: 85 }, { h: '22h', v: 70 }, { h: '23h', v: 55 }
-      ]
-    },
-    '15 dias': {
-      spend: 1840.00,
-      revenue: 2322.24,
-      profit: 482.24,
-      sales: 246,
-      pendingSales: 162,
-      pendingValue: 1832.00,
-      roas: '1.26',
-      cpa: '7.48',
-      arpu: '9.44',
-      margin: '20.8%',
-      clicks: 6480,
-      visits: 5020,
-      ics: 3010,
-      initSales: 410,
-      approvedSales: 246,
-      pixApproval: '60.3%',
-      pixSales: 246,
-      sources: { fb: 152, ig: 94 },
-      hourly: [
-        { h: '00h', v: 55 }, { h: '01h', v: 40 }, { h: '02h', v: 25 }, { h: '03h', v: 35 },
-        { h: '04h', v: 30 }, { h: '05h', v: 45 }, { h: '06h', v: 65 }, { h: '07h', v: 80 },
-        { h: '08h', v: 85 }, { h: '09h', v: 90 }, { h: '10h', v: 95 }, { h: '11h', v: 90 },
-        { h: '12h', v: 100 }, { h: '13h', v: 85 }, { h: '14h', v: 80 }, { h: '15h', v: 75 },
-        { h: '16h', v: 85 }, { h: '17h', v: 90 }, { h: '18h', v: 95 }, { h: '19h', v: 100 },
-        { h: '20h', v: 95 }, { h: '21h', v: 90 }, { h: '22h', v: 75 }, { h: '23h', v: 60 }
-      ]
-    },
-    '30 dias': {
-      spend: 3820.00,
-      revenue: 4644.48,
-      profit: 824.48,
-      sales: 492,
-      pendingSales: 310,
-      pendingValue: 3510.00,
-      roas: '1.21',
-      cpa: '7.76',
-      arpu: '9.44',
-      margin: '17.8%',
-      clicks: 13420,
-      visits: 10390,
-      ics: 6240,
-      initSales: 830,
-      approvedSales: 492,
-      pixApproval: '61.2%',
-      pixSales: 492,
-      sources: { fb: 305, ig: 187 },
-      hourly: [
-        { h: '00h', v: 60 }, { h: '01h', v: 45 }, { h: '02h', v: 30 }, { h: '03h', v: 40 },
-        { h: '04h', v: 35 }, { h: '05h', v: 50 }, { h: '06h', v: 70 }, { h: '07h', v: 85 },
-        { h: '08h', v: 90 }, { h: '09h', v: 95 }, { h: '10h', v: 100 }, { h: '11h', v: 95 },
-        { h: '12h', v: 100 }, { h: '13h', v: 90 }, { h: '14h', v: 85 }, { h: '15h', v: 80 },
-        { h: '16h', v: 90 }, { h: '17h', v: 95 }, { h: '18h', v: 100 }, { h: '19h', v: 100 },
-        { h: '20h', v: 95 }, { h: '21h', v: 90 }, { h: '22h', v: 80 }, { h: '23h', v: 65 }
-      ]
-    }
-  };
+  const emptyHourly = [
+    { h: '00h', v: 0 }, { h: '01h', v: 0 }, { h: '02h', v: 0 }, { h: '03h', v: 0 },
+    { h: '04h', v: 0 }, { h: '05h', v: 0 }, { h: '06h', v: 0 }, { h: '07h', v: 0 },
+    { h: '08h', v: 0 }, { h: '09h', v: 0 }, { h: '10h', v: 0 }, { h: '11h', v: 0 },
+    { h: '12h', v: 0 }, { h: '13h', v: 0 }, { h: '14h', v: 0 }, { h: '15h', v: 0 },
+    { h: '16h', v: 0 }, { h: '17h', v: 0 }, { h: '18h', v: 0 }, { h: '19h', v: 0 },
+    { h: '20h', v: 0 }, { h: '21h', v: 0 }, { h: '22h', v: 0 }, { h: '23h', v: 0 }
+  ];
 
   const emptyMetrics = {
     spend: 0.00,
@@ -310,14 +176,7 @@ export default function Dashboard({ onSimulateSale }) {
     pixApproval: '0.0%',
     pixSales: 0,
     sources: { fb: 0, ig: 0 },
-    hourly: [
-      { h: '00h', v: 0 }, { h: '01h', v: 0 }, { h: '02h', v: 0 }, { h: '03h', v: 0 },
-      { h: '04h', v: 0 }, { h: '05h', v: 0 }, { h: '06h', v: 0 }, { h: '07h', v: 0 },
-      { h: '08h', v: 0 }, { h: '09h', v: 0 }, { h: '10h', v: 0 }, { h: '11h', v: 0 },
-      { h: '12h', v: 0 }, { h: '13h', v: 0 }, { h: '14h', v: 0 }, { h: '15h', v: 0 },
-      { h: '16h', v: 0 }, { h: '17h', v: 0 }, { h: '18h', v: 0 }, { h: '19h', v: 0 },
-      { h: '20h', v: 0 }, { h: '21h', v: 0 }, { h: '22h', v: 0 }, { h: '23h', v: 0 }
-    ]
+    hourly: emptyHourly
   };
 
   const activeAdAccount = adAccountsList.length > 0 ? adAccountsList[0] : null;
@@ -377,7 +236,7 @@ export default function Dashboard({ onSimulateSale }) {
         pixApproval: realSales > 0 ? '100.0%' : '0.0%',
         pixSales: realSales,
         sources: { fb: realSales, ig: 0 },
-        hourly: (periodDataMap[period] || periodDataMap['Hoje']).hourly
+        hourly: emptyHourly
       };
 
   return (
