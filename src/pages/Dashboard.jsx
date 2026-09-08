@@ -86,26 +86,28 @@ export default function Dashboard({ onSimulateSale }) {
             const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
             const isSyncActive = a.syncActive !== undefined
               ? a.syncActive === true
-              : (localSyncMap[accId] !== undefined 
-                  ? localSyncMap[accId] === true 
-                  : (a.status === 'ACTIVE' && (Number(a.amountSpent) > 0 || accId === '1092137896602979')));
+              : (localSyncMap[accId] !== undefined ? localSyncMap[accId] === true : false);
 
             return {
               name: a.name || 'Conta',
               id: accId,
               bm: a.businessName || 'BM Principal',
-              currency: a.currency === 'USD' ? 'USD (→ BRL @ 5,12)' : 'BRL',
+              currency: a.currency === 'USD' ? 'USD' : (a.currency || 'BRL'),
               status: a.status === 'ACTIVE' ? 'Ativa' : 'Desativada',
               balance: a.balance || '0,00',
               amountSpent: a.amountSpent || '0,00',
               sync: isSyncActive
             };
           })
-          .filter(a => a.sync === true); // Apenas contas ativadas
+          .filter(a => a.sync === true); // Apenas contas ativadas no perfil em integrações
         
-        if (mappedAccs.length > 0) {
-          setAdAccountsList(mappedAccs);
+        setAdAccountsList(mappedAccs);
+
+        if (accountFilter !== 'Todas' && !mappedAccs.some(a => a.id === accountFilter || a.name === accountFilter)) {
+          setAccountFilter('Todas');
         }
+      } else {
+        setAdAccountsList([]);
       }
     } catch (err) {
       console.log('Erro ao carregar contas no dashboard:', err);

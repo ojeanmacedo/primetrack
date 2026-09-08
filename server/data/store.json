@@ -102,7 +102,7 @@
       "balance": "0.00",
       "status": "DISABLED",
       "businessName": "DIGITAL JM SOLUCOES LTDA",
-      "syncActive": true
+      "syncActive": false
     },
     {
       "id": "act_1095793299643643",
@@ -113,7 +113,7 @@
       "balance": "8.43",
       "status": "DISABLED",
       "businessName": "DIGITAL JM SOLUCOES LTDA",
-      "syncActive": true
+      "syncActive": false
     },
     {
       "id": "act_1043285988469816",
@@ -124,15 +124,15 @@
       "balance": "0.00",
       "status": "ACTIVE",
       "businessName": "Alpha Contingência",
-      "syncActive": true
+      "syncActive": false
     },
     {
       "id": "act_1092137896602979",
       "accountId": "1092137896602979",
       "name": "CA01",
       "currency": "USD",
-      "amountSpent": "24.36",
-      "balance": "0.40",
+      "amountSpent": "69.68",
+      "balance": "6.28",
       "status": "ACTIVE",
       "businessName": "Marinhos Dog",
       "syncActive": true
@@ -146,7 +146,7 @@
       "balance": "0.00",
       "status": "ACTIVE",
       "businessName": "BM Principal",
-      "syncActive": true
+      "syncActive": false
     },
     {
       "id": "act_768142077735838",
@@ -157,7 +157,7 @@
       "balance": "0.00",
       "status": "ACTIVE",
       "businessName": "BM MTZ",
-      "syncActive": true
+      "syncActive": false
     },
     {
       "id": "act_719933136445425",
@@ -168,7 +168,7 @@
       "balance": "53.26",
       "status": "ACTIVE",
       "businessName": "DIGITAL JM SOLUCOES LTDA",
-      "syncActive": true
+      "syncActive": false
     },
     {
       "id": "act_1893409298725562",
@@ -179,7 +179,7 @@
       "balance": "15.33",
       "status": "DISABLED",
       "businessName": "DIGITAL JM SOLUCOES LTDA",
-      "syncActive": true
+      "syncActive": false
     },
     {
       "id": "act_853877350942504",
@@ -190,7 +190,7 @@
       "balance": "411.28",
       "status": "DISABLED",
       "businessName": "DIGITAL JM SOLUCOES LTDA",
-      "syncActive": true
+      "syncActive": false
     },
     {
       "id": "act_1644138016951671",
@@ -201,7 +201,7 @@
       "balance": "23.03",
       "status": "DISABLED",
       "businessName": "DIGITAL JM SOLUCOES LTDA",
-      "syncActive": true
+      "syncActive": false
     },
     {
       "id": "act_1382762426809874",
@@ -212,7 +212,7 @@
       "balance": "237.95",
       "status": "DISABLED",
       "businessName": "DIGITAL JM SOLUCOES LTDA",
-      "syncActive": true
+      "syncActive": false
     },
     {
       "id": "act_1394391128741416",
@@ -223,7 +223,7 @@
       "balance": "0.01",
       "status": "ACTIVE",
       "businessName": "DIGITAL JM SOLUCOES LTDA",
-      "syncActive": true
+      "syncActive": false
     },
     {
       "id": "act_1218349886840112",
@@ -234,7 +234,7 @@
       "balance": "4.05",
       "status": "DISABLED",
       "businessName": "DIGITAL JM SOLUCOES LTDA",
-      "syncActive": true
+      "syncActive": false
     },
     {
       "id": "act_1218328933564373",
@@ -245,7 +245,7 @@
       "balance": "0.61",
       "status": "DISABLED",
       "businessName": "DIGITAL JM SOLUCOES LTDA",
-      "syncActive": true
+      "syncActive": false
     },
     {
       "id": "act_892092096617273",
@@ -256,7 +256,7 @@
       "balance": "71.18",
       "status": "DISABLED",
       "businessName": "DIGITAL JM SOLUCOES LTDA",
-      "syncActive": true
+      "syncActive": false
     },
     {
       "id": "act_890158093617924",
@@ -267,7 +267,7 @@
       "balance": "0.00",
       "status": "DISABLED",
       "businessName": "DJS02",
-      "syncActive": true
+      "syncActive": false
     },
     {
       "id": "act_4088067061443375",
@@ -278,7 +278,7 @@
       "balance": "28.03",
       "status": "DISABLED",
       "businessName": "ACOUGUE CENTRAL LTDA",
-      "syncActive": true
+      "syncActive": false
     },
     {
       "id": "act_1530496848523142",
@@ -289,7 +289,7 @@
       "balance": "0.00",
       "status": "DISABLED",
       "businessName": "MARKTPLACE ONLINE",
-      "syncActive": true
+      "syncActive": false
     },
     {
       "id": "act_1611243834049326",
@@ -300,7 +300,7 @@
       "balance": "0.00",
       "status": "ACTIVE",
       "businessName": "Mr. Tyler",
-      "syncActive": true
+      "syncActive": false
     },
     {
       "id": "act_28591581777115664",
@@ -311,7 +311,7 @@
       "balance": "0.80",
       "status": "ACTIVE",
       "businessName": "DIGITAL ONLINE",
-      "syncActive": true
+      "syncActive": false
     },
     {
       "id": "act_1803706660782856",
@@ -322,7 +322,7 @@
       "balance": "0.00",
       "status": "DISABLED",
       "businessName": "Jean Macedo",
-      "syncActive": true
+      "syncActive": false
     },
     {
       "id": "act_2090890291518170",
@@ -333,7 +333,7 @@
       "balance": "0.00",
       "status": "DISABLED",
       "businessName": "Jean Macedo",
-      "syncActive": true
+      "syncActive": false
     }
   ],
   "meta_ads": [

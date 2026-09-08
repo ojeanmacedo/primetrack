@@ -742,8 +742,10 @@ export default function Integrations() {
               name: a.name || 'Conta',
               id: accId,
               bm: a.businessName || 'BM Principal',
-              currency: a.currency === 'USD' ? 'USD (→ BRL @ 5,12)' : 'BRL',
+              currency: a.currency === 'USD' ? 'USD' : (a.currency || 'BRL'),
               status: a.status === 'ACTIVE' ? 'Ativa' : 'Desativada',
+              balance: a.balance || '0,00',
+              amountSpent: a.amountSpent || '0,00',
               sync: isSyncActive
             };
           });
@@ -955,6 +957,7 @@ export default function Integrations() {
                     <th className="py-3 px-4">CONTA</th>
                     <th className="py-3 px-4">ID</th>
                     <th className="py-3 px-4">BM</th>
+                    <th className="py-3 px-4">SALDO</th>
                     <th className="py-3 px-4">MOEDA</th>
                     <th className="py-3 px-4 text-center">STATUS META</th>
                     <th className="py-3 px-4 text-center">SINCRONIZAÇÃO</th>
@@ -964,7 +967,7 @@ export default function Integrations() {
                 <tbody className="divide-y divide-[#13233E]/60 font-sans">
                   {adAccounts.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-zinc-500 font-sans text-xs">
+                      <td colSpan={8} className="py-8 text-center text-zinc-500 font-sans text-xs">
                         Nenhuma conta de anúncio conectada. Clique em "Adicionar Facebook" acima para conectar seu perfil.
                       </td>
                     </tr>
@@ -979,6 +982,9 @@ export default function Integrations() {
                       </td>
                       <td className="py-3.5 px-4 text-zinc-300 font-mono text-[11px]">
                         {acc.bm}
+                      </td>
+                      <td className="py-3.5 px-4 font-mono text-emerald-400 font-bold text-xs">
+                        {acc.currency?.includes('USD') ? '$' : 'R$'} {acc.balance || '0,00'}
                       </td>
                       <td className="py-3.5 px-4 font-mono text-zinc-400 text-[11px]">
                         {acc.currency}

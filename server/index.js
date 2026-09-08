@@ -11,6 +11,7 @@ import {
   exchangeCodeForLongLivedToken, 
   fetchUserProfile, 
   fetchAdAccounts, 
+  fetchLiveAccountDetails,
   fetchCampaigns, 
   fetchAdsWithCreatives 
 } from './services/metaService.js';
@@ -404,11 +405,25 @@ app.get('/api/campaigns', async (req, res) => {
   }
 
   const allCampaigns = db.get('campaigns') || [];
+  const adAccounts = db.get('ad_accounts') || [];
+  
+  // Apenas contas ativadas pelo perfil em integrações (syncActive: true)
+  const activeAccountIds = new Set(
+    adAccounts
+      .filter(a => a.syncActive === true)
+      .map(a => String(a.accountId || a.id).replace('act_', ''))
+  );
+
+  const activeOnlyCampaigns = allCampaigns.filter(c => {
+    const cAdId = String(c.adAccountId || '').replace('act_', '');
+    return activeAccountIds.has(cAdId);
+  });
+
   const orders = db.get('orders') || [];
   const approvedOrders = orders.filter(o => o.status === 'approved' || !o.status);
 
   // Calcula vendas e receita atribuídas via UTM para cada campanha real
-  const enrichedCampaigns = allCampaigns.map(c => {
+  const enrichedCampaigns = activeOnlyCampaigns.map(c => {
     const cName = (c.name || '').toLowerCase();
     const cUtm = (c.utm_campaign || '').toLowerCase();
     const cId = String(c.id || '');
@@ -716,7 +731,7 @@ app.get('/api/meta/status', (req, res) => {
   }
 });
 
-// D. Função central para sincronizar campanhas de contas ativas
+// D. Função central para sincronizar campanhas e saldos reais das contas ativas em integrações
 async function executeMetaSync({ datePreset = 'today', accountIds = null, accountId = null } = {}) {
   const connections = db.get('facebook_connections') || [];
   if (connections.length === 0) {
@@ -735,22 +750,33 @@ async function executeMetaSync({ datePreset = 'today', accountIds = null, accoun
     const actClean = accountId.replace('act_', '');
     targetAccounts = allAdAccounts.filter(a => a.id === accountId || a.id === `act_${actClean}` || a.accountId === actClean);
   } else {
-    // Sincroniza contas marcadas com syncActive: true
+    // Sincroniza APENAS contas ativas em integrações (syncActive: true)
     targetAccounts = allAdAccounts.filter(a => a.syncActive === true);
-    // Se nenhuma estiver marcada com syncActive, usa contas ativas no Facebook (account_status === 1 ou status === 'ACTIVE')
-    if (targetAccounts.length === 0) {
-      targetAccounts = allAdAccounts.filter(a => a.status === 'ACTIVE' || a.account_status === 1);
-    }
   }
 
-  // Se mesmo assim não houver conta selecionada, usa a primeira conta
-  if (targetAccounts.length === 0 && allAdAccounts.length > 0) {
-    targetAccounts = [allAdAccounts[0]];
+  // Se nenhuma conta estiver ativa nas integrações, não puxa nada
+  if (targetAccounts.length === 0) {
+    return { 
+      success: true, 
+      message: 'Nenhuma conta ativa selecionada em integrações.',
+      syncedCampaigns: 0,
+      syncedAds: 0,
+      campaigns: [] 
+    };
   }
 
   // Garante que só consulta contas ativas para não tomar rate limit em contas desativadas da BM
-  const activeTargets = targetAccounts.filter(a => a.status !== 'DISABLED' && a.account_status !== 2 && a.account_status !== 101);
-  const accountsToQuery = activeTargets.length > 0 ? activeTargets : targetAccounts;
+  const accountsToQuery = targetAccounts.filter(a => a.status !== 'DISABLED' && a.account_status !== 2 && a.account_status !== 101);
+
+  if (accountsToQuery.length === 0) {
+    return { 
+      success: true, 
+      message: 'Contas selecionadas estão desativadas no Meta Ads.',
+      syncedCampaigns: 0,
+      syncedAds: 0,
+      campaigns: [] 
+    };
+  }
 
   const results = await Promise.all(accountsToQuery.map(async (acc) => {
     try {
@@ -761,7 +787,26 @@ async function executeMetaSync({ datePreset = 'today', accountIds = null, accoun
       } catch (adErr) {
         // Erros em anúncios/criativos não bloqueiam a sincronização de campanhas e gastos
       }
-      return { campaigns, ads, error: null, accId: acc.id };
+
+      // Puxa saldo real e gasto atualizado diretamente da conta no Meta
+      let liveBalance = acc.balance;
+      let liveSpent = acc.amountSpent;
+      try {
+        const liveDetails = await fetchLiveAccountDetails(acc.id, latestConnection.accessToken);
+        if (liveDetails.balance !== undefined) liveBalance = liveDetails.balance;
+        if (liveDetails.amountSpent !== undefined) liveSpent = liveDetails.amountSpent;
+      } catch (balErr) {
+        console.warn(`[Sync Meta] Não foi possível puxar saldo live da conta ${acc.id}:`, balErr.message);
+      }
+
+      return { 
+        campaigns, 
+        ads, 
+        error: null, 
+        accId: acc.id,
+        liveBalance,
+        liveSpent
+      };
     } catch (err) {
       console.warn(`[Sync Meta] Erro ao sincronizar conta ${acc.id}:`, err.message);
       return { campaigns: [], ads: [], error: err.message, accId: acc.id };
@@ -786,24 +831,31 @@ async function executeMetaSync({ datePreset = 'today', accountIds = null, accoun
     db.set('meta_ads', allAds);
   }
 
-  // Atualiza saldo e gasto total das contas
-  try {
-    const freshAccounts = await fetchAdAccounts(latestConnection.accessToken);
-    if (freshAccounts && freshAccounts.length > 0) {
-      const existingMap = new Map(allAdAccounts.map(a => [String(a.id || a.accountId).replace('act_', ''), a]));
-      const updatedAccounts = freshAccounts.map(fa => {
-        const clean = String(fa.id || fa.accountId).replace('act_', '');
-        const prev = existingMap.get(clean) || {};
-        return {
-          ...fa,
-          syncActive: prev.syncActive !== undefined ? prev.syncActive : (fa.status === 'ACTIVE')
-        };
+  // Atualiza saldo real e gasto total das contas ativas
+  const balanceMap = new Map();
+  results.forEach(r => {
+    if (r.accId) {
+      balanceMap.set(String(r.accId).replace('act_', ''), {
+        balance: r.liveBalance,
+        amountSpent: r.liveSpent
       });
-      db.set('ad_accounts', updatedAccounts);
     }
-  } catch (accErr) {
-    console.warn('[Sync Meta] Não foi possível atualizar lista de ad_accounts:', accErr.message);
-  }
+  });
+
+  const currentAccounts = db.get('ad_accounts') || [];
+  const updatedAccounts = currentAccounts.map(acc => {
+    const clean = String(acc.accountId || acc.id).replace('act_', '');
+    const live = balanceMap.get(clean);
+    if (live) {
+      return {
+        ...acc,
+        balance: live.balance !== undefined ? live.balance : acc.balance,
+        amountSpent: live.amountSpent !== undefined ? live.amountSpent : acc.amountSpent
+      };
+    }
+    return acc;
+  });
+  db.set('ad_accounts', updatedAccounts);
 
   return {
     success: true,

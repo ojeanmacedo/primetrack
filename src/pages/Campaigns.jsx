@@ -158,26 +158,28 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
             const isSyncActive = a.syncActive !== undefined
               ? a.syncActive === true
-              : (localSyncMap[accId] !== undefined 
-                  ? localSyncMap[accId] === true 
-                  : (a.status === 'ACTIVE' && (Number(a.amountSpent) > 0 || accId === '1092137896602979')));
+              : (localSyncMap[accId] !== undefined ? localSyncMap[accId] === true : false);
 
             return {
               name: a.name || 'Conta',
               id: accId,
               bm: a.businessName || 'BM Principal',
-              currency: a.currency === 'USD' ? 'USD (→ BRL @ 5,12)' : 'BRL',
+              currency: a.currency === 'USD' ? 'USD' : (a.currency || 'BRL'),
               status: a.status === 'ACTIVE' ? 'Ativa' : 'Desativada',
               balance: a.balance || '0,00',
               amountSpent: a.amountSpent || '0,00',
               sync: isSyncActive
             };
           })
-          .filter(a => a.sync === true);
+          .filter(a => a.sync === true); // Apenas contas ativadas no perfil em integrações
 
-        if (mappedAccs.length > 0) {
-          setAdAccountsList(mappedAccs);
+        setAdAccountsList(mappedAccs);
+
+        if (accountFilter !== 'Todas' && !mappedAccs.some(a => a.id === accountFilter || a.name === accountFilter)) {
+          setAccountFilter('Todas');
         }
+      } else {
+        setAdAccountsList([]);
       }
     } catch (err) {
       console.log('Erro ao carregar status Meta:', err);
@@ -546,12 +548,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     <tr key={acc.id || idx} className="hover:bg-white/[0.02] transition-colors">
                       <td className="py-3.5 px-4">
                         <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          acc.status === 'ACTIVE'
+                          acc.status === 'ACTIVE' || acc.status === 'Ativa'
                             ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
                             : 'bg-zinc-800 text-zinc-400'
                         }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${acc.status === 'ACTIVE' ? 'bg-emerald-400' : 'bg-zinc-500'}`} />
-                          <span>{acc.status === 'ACTIVE' ? 'Ativo' : 'Desativado'}</span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${acc.status === 'ACTIVE' || acc.status === 'Ativa' ? 'bg-emerald-400' : 'bg-zinc-500'}`} />
+                          <span>{acc.status === 'ACTIVE' || acc.status === 'Ativa' ? 'Ativo' : 'Desativado'}</span>
                         </span>
                       </td>
                       <td className="py-3.5 px-4 font-sans font-bold text-white">
@@ -561,13 +563,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                         {acc.id}
                       </td>
                       <td className="py-3.5 px-4 text-zinc-300 font-sans">
-                        {acc.businessName || 'DJS02'}
+                        {acc.bm || acc.businessName || 'BM Principal'}
                       </td>
                       <td className="py-3.5 px-4 text-white font-bold">
-                        R$ {acc.amountSpent || '0,00'}
+                        {acc.currency?.includes('USD') ? '$' : 'R$'} {acc.amountSpent || '0,00'}
                       </td>
-                      <td className="py-3.5 px-4 text-zinc-400">
-                        R$ {acc.balance || '0,00'}
+                      <td className="py-3.5 px-4 text-emerald-400 font-bold font-mono">
+                        {acc.currency?.includes('USD') ? '$' : 'R$'} {acc.balance || '0,00'}
                       </td>
                       <td className="py-3.5 px-4 text-zinc-400">
                         {acc.currency || 'BRL'}

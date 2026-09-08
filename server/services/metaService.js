@@ -106,7 +106,7 @@ export async function fetchUserProfile(accessToken) {
  * 4. Busca todas as Contas de Anúncios vinculadas a esse perfil
  */
 export async function fetchAdAccounts(accessToken) {
-  const url = `${GRAPH_BASE_URL}/me/adaccounts?fields=id,name,account_id,account_status,currency,amount_spent,balance,business_name,business&access_token=${accessToken}`;
+  const url = `${GRAPH_BASE_URL}/me/adaccounts?fields=id,name,account_id,account_status,currency,amount_spent,balance,business_name,business&limit=100&access_token=${accessToken}`;
   const res = await fetch(url);
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
@@ -123,6 +123,29 @@ export async function fetchAdAccounts(accessToken) {
     syncActive: false
   }));
 }
+
+/**
+ * 4.1 Busca saldo e métricas em tempo real direto da conta
+ */
+export async function fetchLiveAccountDetails(adAccountId, accessToken) {
+  const actId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`;
+  const url = `${GRAPH_BASE_URL}/${actId}?fields=id,name,account_status,currency,amount_spent,balance,business_name&access_token=${accessToken}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  
+  return {
+    id: data.id,
+    accountId: data.account_id || data.id.replace('act_', ''),
+    name: data.name,
+    currency: data.currency || 'BRL',
+    amountSpent: (Number(data.amount_spent || 0) / 100).toFixed(2),
+    balance: (Number(data.balance || 0) / 100).toFixed(2),
+    status: data.account_status === 1 ? 'ACTIVE' : 'DISABLED',
+    businessName: data.business_name || 'BM Principal'
+  };
+}
+
 
 /**
  * Taxa de conversão USD -> BRL
