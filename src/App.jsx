@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import AppLayout from './components/AppLayout';
@@ -11,10 +11,62 @@ import Integrations from './pages/Integrations';
 import Notifications from './pages/Notifications';
 import Plans from './pages/Plans';
 import Support from './pages/Support';
+import { supabase } from './lib/supabase';
+import { loginWithGoogle } from './utils/auth';
+
+function AuthListener() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Processa a sessão retornada pelo Google OAuth
+    const checkAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.email) {
+          const gEmail = session.user.email.toLowerCase();
+          const gName = session.user.user_metadata?.full_name || 
+                        session.user.user_metadata?.name || 
+                        session.user.user_metadata?.given_name || 
+                        gEmail.split('@')[0];
+
+          await loginWithGoogle(gEmail, gName);
+          
+          // Se estiver na landing page ou no login, direciona direto para /dashboard
+          if (location.pathname === '/' || location.pathname === '/login') {
+            navigate('/dashboard', { replace: true });
+          }
+        }
+      } catch (err) {
+        console.error('Erro no AuthListener:', err);
+      }
+    };
+
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user?.email) {
+        const gEmail = session.user.email.toLowerCase();
+        const gName = session.user.user_metadata?.full_name || 
+                      session.user.user_metadata?.name || 
+                      session.user.user_metadata?.given_name || 
+                      gEmail.split('@')[0];
+
+        await loginWithGoogle(gEmail, gName);
+        navigate('/dashboard', { replace: true });
+      }
+    });
+
+    return () => subscription?.unsubscribe();
+  }, [navigate, location]);
+
+  return null;
+}
 
 export default function App() {
   return (
     <BrowserRouter>
+      <AuthListener />
       <Routes>
         {/* Rota 1: Landing Page Pública (1:1 primetrack.com.br) */}
         <Route path="/" element={<LandingPage />} />
