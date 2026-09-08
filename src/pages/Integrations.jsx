@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { getCurrentUser, isMasterAdmin, setCurrentUser, getTrialStatus } from '../utils/auth';
 import { supabase } from '../lib/supabase';
 import { 
@@ -38,20 +38,12 @@ const INTEGRATION_TABS = [
 
 export default function Integrations() {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const currentUser = getCurrentUser();
   const isAdmin = isMasterAdmin(currentUser);
   const trialStatus = getTrialStatus(currentUser);
 
   const [activeTab, setActiveTab] = useState(() => {
-    // 1. Prioridade: Parâmetro da URL (?tab=)
     if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const tabFromUrl = urlParams.get('tab');
-      if (tabFromUrl && INTEGRATION_TABS.includes(tabFromUrl)) {
-        return tabFromUrl;
-      }
-      // 2. Fallback: localStorage persistido
       const savedTab = localStorage.getItem('primetrack_integrations_active_tab');
       if (savedTab && INTEGRATION_TABS.includes(savedTab)) {
         return savedTab;
@@ -60,26 +52,12 @@ export default function Integrations() {
     return 'Facebook Ads';
   });
 
-  // Sempre que mudar de aba, persiste no localStorage e sincroniza na URL
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     if (typeof window !== 'undefined') {
       localStorage.setItem('primetrack_integrations_active_tab', tab);
     }
-    setSearchParams({ tab }, { replace: true });
   };
-
-  // Garante que o estado inicial reflita na URL e no localStorage ao recarregar
-  useEffect(() => {
-    if (activeTab) {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('primetrack_integrations_active_tab', activeTab);
-      }
-      if (searchParams.get('tab') !== activeTab) {
-        setSearchParams({ tab: activeTab }, { replace: true });
-      }
-    }
-  }, [activeTab]);
   const [copiedUTM, setCopiedUTM] = useState(false);
   const [copiedPixel, setCopiedPixel] = useState(false);
   const [copiedConnectLink, setCopiedConnectLink] = useState(false);

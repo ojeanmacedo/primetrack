@@ -11,12 +11,13 @@ import Integrations from './pages/Integrations';
 import Notifications from './pages/Notifications';
 import Plans from './pages/Plans';
 import Support from './pages/Support';
+import DocsWebhook from './pages/DocsWebhook';
+import ErrorBoundary from './components/ErrorBoundary';
 import { supabase } from './lib/supabase';
 import { loginWithGoogle } from './utils/auth';
 
 function AuthListener() {
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     // Se o usuário acabou de clicar em sair, respeita a saída
@@ -45,7 +46,7 @@ function AuthListener() {
 
           await loginWithGoogle(gEmail, gName);
           
-          if (location.pathname === '/' || location.pathname === '/login') {
+          if (window.location.pathname === '/' || window.location.pathname === '/login') {
             navigate('/dashboard', { replace: true });
           }
         }
@@ -68,17 +69,17 @@ function AuthListener() {
                       gEmail.split('@')[0];
 
         await loginWithGoogle(gEmail, gName);
-        navigate('/dashboard', { replace: true });
+        if (window.location.pathname === '/' || window.location.pathname === '/login') {
+          navigate('/dashboard', { replace: true });
+        }
       }
     });
 
     return () => subscription?.unsubscribe();
-  }, [navigate, location]);
+  }, [navigate]);
 
   return null;
 }
-
-import DocsWebhook from './pages/DocsWebhook';
 
 function isDocsSubdomain() {
   if (typeof window === 'undefined') return false;
@@ -90,45 +91,47 @@ export default function App() {
   const isDocsHost = isDocsSubdomain();
 
   return (
-    <BrowserRouter>
-      {!isDocsHost && <AuthListener />}
-      <Routes>
-        {/* Subdomínio docs.primetrack.top ou rotas diretas de documentação */}
-        {isDocsHost ? (
-          <>
-            <Route path="/" element={<DocsWebhook />} />
-            <Route path="*" element={<DocsWebhook />} />
-          </>
-        ) : (
-          <>
-            {/* Documentação Oficial Webhook API */}
-            <Route path="/docs" element={<DocsWebhook />} />
-            <Route path="/docs/webhook" element={<DocsWebhook />} />
-            <Route path="/documentacao" element={<DocsWebhook />} />
+    <ErrorBoundary>
+      <BrowserRouter>
+        {!isDocsHost && <AuthListener />}
+        <Routes>
+          {/* Subdomínio docs.primetrack.top ou rotas diretas de documentação */}
+          {isDocsHost ? (
+            <>
+              <Route path="/" element={<DocsWebhook />} />
+              <Route path="*" element={<DocsWebhook />} />
+            </>
+          ) : (
+            <>
+              {/* Documentação Oficial Webhook API */}
+              <Route path="/docs" element={<DocsWebhook />} />
+              <Route path="/docs/webhook" element={<DocsWebhook />} />
+              <Route path="/documentacao" element={<DocsWebhook />} />
 
-            {/* Rota 1: Landing Page Pública */}
-            <Route path="/" element={<LandingPage />} />
+              {/* Rota 1: Landing Page Pública */}
+              <Route path="/" element={<LandingPage />} />
 
-            {/* Rota 2: Tela de Login */}
-            <Route path="/login" element={<LoginPage />} />
+              {/* Rota 2: Tela de Login */}
+              <Route path="/login" element={<LoginPage />} />
 
-            {/* Rotas do Painel Interno */}
-            <Route element={<AppLayout />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/campanhas" element={<Campaigns />} />
-              <Route path="/vendas" element={<Sales />} />
-              <Route path="/regras" element={<Rules />} />
-              <Route path="/integracoes" element={<Integrations />} />
-              <Route path="/notificacoes" element={<Notifications />} />
-              <Route path="/planos" element={<Plans />} />
-              <Route path="/suporte" element={<Support />} />
-            </Route>
+              {/* Rotas do Painel Interno */}
+              <Route element={<AppLayout />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/campanhas" element={<Campaigns />} />
+                <Route path="/vendas" element={<Sales />} />
+                <Route path="/regras" element={<Rules />} />
+                <Route path="/integracoes" element={<Integrations />} />
+                <Route path="/notificacoes" element={<Notifications />} />
+                <Route path="/planos" element={<Plans />} />
+                <Route path="/suporte" element={<Support />} />
+              </Route>
 
-            {/* Redirecionamento padrão para rotas desconhecidas */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </>
-        )}
-      </Routes>
-    </BrowserRouter>
+              {/* Redirecionamento padrão para rotas desconhecidas */}
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </>
+          )}
+        </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
