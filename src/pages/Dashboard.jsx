@@ -618,21 +618,28 @@ export default function Dashboard({ onSimulateSale }) {
             </div>
 
             <div className="space-y-4 text-xs">
-              <div className="flex items-center justify-between pb-3 border-b border-[#13233E]">
-                <div>
-                  <div className="font-bold text-white">CA01</div>
-                  <div className="text-[10px] font-mono text-zinc-500">1892117896682979</div>
+              {adAccountsList.filter(a => a.sync).length === 0 ? (
+                <div className="py-6 text-center text-zinc-500 text-xs">
+                  Nenhuma conta ativa no momento.
                 </div>
-                <div className="font-mono font-bold text-emerald-400">R$ 0,00</div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-bold text-white">CA02 JEFFREY</div>
-                  <div className="text-[10px] font-mono text-zinc-500">1101817232408751</div>
-                </div>
-                <div className="font-mono font-bold text-emerald-400">R$ 0,00</div>
-              </div>
+              ) : (
+                adAccountsList
+                  .filter(a => a.sync)
+                  .map((acc, idx, arr) => (
+                    <div 
+                      key={acc.id || idx} 
+                      className={`flex items-center justify-between ${idx !== arr.length - 1 ? 'pb-3 border-b border-[#13233E]' : ''}`}
+                    >
+                      <div>
+                        <div className="font-bold text-white">{acc.name}</div>
+                        <div className="text-[10px] font-mono text-zinc-500">{acc.id}</div>
+                      </div>
+                      <div className="font-mono font-bold text-emerald-400">
+                        {acc.currency === 'USD' || (acc.currency && acc.currency.includes('USD')) ? '$' : 'R$'} {acc.balance || '0,00'}
+                      </div>
+                    </div>
+                  ))
+              )}
             </div>
           </div>
         </div>
