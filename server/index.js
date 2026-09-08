@@ -764,6 +764,39 @@ app.post('/api/settings', (req, res) => {
 });
 
 /**
+ * 8.1 Webhook API Tokens
+ */
+app.get('/api/webhook/tokens', (req, res) => {
+  const baseUrl = getBaseUrl(req);
+  let tokens = db.get('webhook_tokens');
+  if (!tokens || !Array.isArray(tokens) || tokens.length === 0) {
+    tokens = [
+      {
+        id: 'tok_monsterpay',
+        name: 'Monsterpay',
+        platform: 'Monsterpay',
+        token: 'pt_9f8c12a47e0345b89a2345bcdef0123456789abcdef01234',
+        webhookUrl: `${baseUrl}/api/webhooks/monsterpay`,
+        status: 'Ativo',
+        lastUsed: 'Hoje',
+        createdAt: '08/09/2026'
+      }
+    ];
+    db.set('webhook_tokens', tokens);
+  }
+  res.json(tokens);
+});
+
+app.post('/api/webhook/tokens', (req, res) => {
+  const { tokens } = req.body;
+  if (Array.isArray(tokens)) {
+    db.set('webhook_tokens', tokens);
+    return res.json({ success: true, tokens });
+  }
+  res.status(400).json({ error: 'Lista de tokens inválida' });
+});
+
+/**
  * 9. Simulador Interativo (Test Lab)
  * Permite que o usuário gere um clique e uma venda simulada para ver o fluxo em tempo real!
  */

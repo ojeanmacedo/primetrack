@@ -74,15 +74,32 @@ export default function Integrations() {
 
   const [openFaq, setOpenFaq] = useState(null);
 
-  // Webhook API Tokens State (Inicia 100% Zerado para novos cadastros)
+  const DEFAULT_MONSTERPAY_TOKEN = {
+    id: 'tok_monsterpay',
+    name: 'Monsterpay',
+    platform: 'Monsterpay',
+    token: 'pt_9f8c12a47e0345b89a2345bcdef0123456789abcdef01234',
+    webhookUrl: 'https://app.primetrack.top/api/webhooks/monsterpay',
+    status: 'Ativo',
+    lastUsed: 'Hoje',
+    createdAt: '08/09/2026'
+  };
+
+  // Webhook API Tokens State (Inicia com MonsterPay nativo ativo)
   const [apiTokens, setApiTokens] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('primetrack_webhook_tokens');
       if (saved) {
-        try { return JSON.parse(saved); } catch (e) {}
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const hasMonster = parsed.some(t => (t.platform || t.name || '').toLowerCase().includes('monster'));
+            return hasMonster ? parsed : [DEFAULT_MONSTERPAY_TOKEN, ...parsed];
+          }
+        } catch (e) {}
       }
     }
-    return [];
+    return [DEFAULT_MONSTERPAY_TOKEN];
   });
 
   // Pixel de Rastreio State (Inicia 100% Zerado para novos cadastros)
@@ -765,6 +782,19 @@ export default function Integrations() {
         }
       })
       .catch(e => console.log('Backend offline ou usando cache local'));
+
+    // Sincroniza tokens de Webhook API com o servidor
+    fetch('/api/webhook/tokens')
+      .then(res => res.json())
+      .then(tokens => {
+        if (Array.isArray(tokens) && tokens.length > 0) {
+          setApiTokens(tokens);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('primetrack_webhook_tokens', JSON.stringify(tokens));
+          }
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const pixelScript = `<!-- PrimeTrack Pixel -->
@@ -1544,6 +1574,7 @@ export default function Integrations() {
                 <thead className="bg-[#070D1A] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E]">
                   <tr>
                     <th className="py-3 px-4">PLATAFORMA</th>
+                    <th className="py-3 px-4">URL DO WEBHOOK</th>
                     <th className="py-3 px-4">TOKEN</th>
                     <th className="py-3 px-4 text-center">STATUS</th>
                     <th className="py-3 px-4">ÚLTIMO USO</th>
@@ -1554,7 +1585,7 @@ export default function Integrations() {
                 <tbody className="divide-y divide-[#13233E]/60 font-sans">
                   {apiTokens.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-10 px-4 text-center">
+                      <td colSpan={7} className="py-10 px-4 text-center">
                         <div className="text-zinc-400 font-bold text-xs">
                           Nenhum token de API criado ainda
                         </div>
@@ -1564,37 +1595,90 @@ export default function Integrations() {
                       </td>
                     </tr>
                   ) : (
-                    apiTokens.map((tok) => (
-                    <tr key={tok.id} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="py-4 px-4 font-bold text-white">
-                        <span className="px-2.5 py-0.5 rounded-full bg-[#1A6DFF] text-white font-mono text-[10px] font-bold">
-                          {tok.platform || tok.name}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 font-mono text-zinc-300">
-                        {tok.token ? `${tok.token.slice(0, 3)}****${tok.token.slice(-6)}` : 'pt_****1775a8'}
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        <span className="px-2.5 py-0.5 rounded-full bg-[#1A6DFF] text-white font-mono text-[10px] font-bold">
-                          {tok.status || 'Ativo'}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 font-mono text-zinc-400 text-[11px]">
-                        {tok.lastUsed || '—'}
-                      </td>
-                      <td className="py-4 px-4 font-mono text-zinc-400 text-[11px]">
-                        {tok.createdAt || '07/09/2026'}
-                      </td>
-                      <td className="py-4 px-4 text-right font-mono">
-                        <button 
-                          onClick={() => setTokenToDelete(tok)}
-                          className="text-red-400 hover:text-red-300 text-xs font-medium transition-colors cursor-pointer"
-                        >
-                          Excluir
-                        </button>
-                      </td>
-                    </tr>
-                  )))}
+                    apiTokens.map((tok) => {
+                      const isMonster = (tok.platform || tok.name || '').toLowerCase().includes('monster');
+                      const fullWebhookUrl = tok.webhookUrl || `https://app.primetrack.top/api/webhooks/${(tok.platform || tok.name || 'generic').toLowerCase()}`;
+                      
+                      return (
+                        <tr key={tok.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="py-4 px-4 font-bold text-white">
+                            <div className="flex items-center gap-2">
+                              <span className="px-2.5 py-0.5 rounded-full bg-[#1A6DFF] text-white font-mono text-[10px] font-bold">
+                                {isMonster ? 'MonsterPay' : (tok.platform || tok.name)}
+                              </span>
+                              {isMonster && (
+                                <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono text-[9px] font-bold uppercase tracking-wider">
+                                  Conectada
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-4 px-4 font-mono text-zinc-300">
+                            <div className="flex items-center gap-2 bg-[#070D1A] border border-[#1E3254] px-2.5 py-1 rounded-lg w-fit">
+                              <span className="text-[11px] text-zinc-300 select-all font-mono">
+                                {fullWebhookUrl}
+                              </span>
+                              <button 
+                                type="button"
+                                onClick={() => copyPlatformField(fullWebhookUrl, 'url')}
+                                className="p-0.5 hover:text-white text-zinc-400 transition-colors cursor-pointer"
+                                title="Copiar URL do Webhook"
+                              >
+                                {copiedWebhookUrl ? (
+                                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                ) : (
+                                  <Copy className="w-3.5 h-3.5 text-[#0066FF] hover:text-blue-400" />
+                                )}
+                              </button>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4 font-mono text-zinc-300">
+                            <div className="flex items-center gap-1.5">
+                              <span>{tok.token ? `${tok.token.slice(0, 7)}••••${tok.token.slice(-6)}` : 'pt_****1775a8'}</span>
+                              <button
+                                type="button"
+                                onClick={() => copyPlatformField(tok.token, 'token')}
+                                className="p-0.5 hover:text-white text-zinc-400 transition-colors cursor-pointer"
+                                title="Copiar Token"
+                              >
+                                <Copy className="w-3 h-3 text-zinc-500 hover:text-white" />
+                              </button>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4 text-center">
+                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono text-[10px] font-bold">
+                              {tok.status || 'Ativo'}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 font-mono text-zinc-400 text-[11px]">
+                            {tok.lastUsed || 'Hoje'}
+                          </td>
+                          <td className="py-4 px-4 font-mono text-zinc-400 text-[11px]">
+                            {tok.createdAt || '08/09/2026'}
+                          </td>
+                          <td className="py-4 px-4 text-right font-mono">
+                            <div className="flex items-center justify-end gap-2">
+                              <button 
+                                type="button"
+                                onClick={() => copyPlatformField(fullWebhookUrl, 'url')}
+                                className="text-[#0066FF] hover:text-blue-400 text-xs font-semibold transition-colors cursor-pointer"
+                              >
+                                {copiedWebhookUrl ? 'Copiado!' : 'Copiar URL'}
+                              </button>
+                              {tok.id !== 'tok_monsterpay' && (
+                                <button 
+                                  onClick={() => setTokenToDelete(tok)}
+                                  className="text-red-400 hover:text-red-300 text-xs font-medium transition-colors cursor-pointer ml-2"
+                                >
+                                  Excluir
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
