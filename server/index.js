@@ -267,14 +267,25 @@ app.post('/api/track/event', async (req, res) => {
 /**
  * 2. Ingestão Universal de Webhooks (Kiwify, Hotmart, Eduzz, etc.)
  */
-app.post(['/api/webhook', '/api/webhooks/:gateway'], async (req, res) => {
+app.all([
+  '/api/webhook',
+  '/api/webhooks',
+  '/api/webhooks/:gateway',
+  '/webhook',
+  '/webhooks',
+  '/webhooks/:gateway',
+  '/webhook/monsterpay',
+  '/monsterpay',
+  '/monsterpay/webhook',
+  '/monsterpay/:action'
+], async (req, res) => {
   try {
     const gateway = req.params.gateway || req.query.gateway || req.query.platform || (req.body && req.body.gateway) || (req.body && req.body.platform) || 'monsterpay';
     const token = req.query.token || req.headers['x-api-token'] || (req.headers.authorization ? req.headers.authorization.replace('Bearer ', '') : null) || (req.body && req.body.token);
-    const body = req.body || {};
+    const body = { ...req.query, ...(req.body || {}) };
     const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
-    console.log(`[Webhook Recebido] Gateway: ${gateway}, Token: ${token || 'não fornecido'}, Código:`, body.order_id || body.transaction || body.id || body.code);
+    console.log(`[Webhook Recebido] URL: ${req.originalUrl}, Method: ${req.method}, Gateway: ${gateway}, Token: ${token || 'não fornecido'}, Código:`, body.order_id || body.transaction || body.id || body.code);
 
     // 1. Normaliza payload do gateway
     const parsed = parseWebhook(gateway, body);
