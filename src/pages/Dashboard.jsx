@@ -27,6 +27,25 @@ export default function Dashboard({ onSimulateSale }) {
 
   const isDisconnected = typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true';
 
+  const defaultAccountsData = [
+    { id: "act_1092137896602979", name: "CA01", currency: "BRL", account_status: 1, amount_spent: "123.41" },
+    { id: "act_1101817232408751", name: "CA02 JEFFREY", currency: "BRL", account_status: 1, amount_spent: "0.00" }
+  ];
+
+  const [adAccountsList, setAdAccountsList] = useState(() => {
+    if (!isAdmin || isDisconnected) return [];
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return defaultAccountsData;
+  });
+
+  const [accountFilter, setAccountFilter] = useState('Todas');
+
   const [campaigns, setCampaigns] = useState(() => {
     // Apenas a conta proprietária do admin tem acesso aos dados demo de TESTE MI
     if (!isAdmin || isDisconnected) return [];
@@ -45,8 +64,21 @@ export default function Dashboard({ onSimulateSale }) {
   const loadDashboardData = () => {
     if (!isAdmin || localStorage.getItem('primetrack_meta_disconnected') === 'true') {
       setCampaigns([]);
+      setAdAccountsList([]);
       return;
     }
+
+    fetch('/api/meta/status')
+      .then(r => r.json())
+      .then(data => {
+        if (data.connections && data.connections.length === 0) {
+          setCampaigns([]);
+          setAdAccountsList([]);
+        } else if (data.adAccounts && data.adAccounts.length > 0) {
+          setAdAccountsList(data.adAccounts);
+        }
+      })
+      .catch(err => console.log('Erro ao carregar contas no dashboard:', err));
 
     fetch('/api/campaigns')
       .then(r => r.json())
@@ -248,7 +280,10 @@ export default function Dashboard({ onSimulateSale }) {
 
   const isProfileDisconnected = (!isAdmin && campaigns.length === 0) || (typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true') || campaigns.length === 0;
 
-  const currentMetrics = isProfileDisconnected 
+  // Se a conta selecionada for uma conta vazia diferente de CA01, mostra dados zerados para ela
+  const isSelectedAccountEmpty = accountFilter !== 'Todas' && accountFilter !== 'CA01';
+
+  const currentMetrics = isProfileDisconnected || isSelectedAccountEmpty
     ? emptyMetrics 
     : (periodDataMap[period] || periodDataMap['Hoje']);
 
@@ -282,10 +317,21 @@ export default function Dashboard({ onSimulateSale }) {
             ))}
           </div>
 
-          {/* Account selector */}
-          <div className="flex items-center gap-2 bg-[#0A1426] border border-[#13233E] px-3 py-1.5 rounded-xl text-xs text-zinc-300 font-medium cursor-pointer">
-            <span>Todas as contas</span>
-            <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
+          {/* Account Dropdown igual ao de Campanhas */}
+          <div className="flex items-center gap-1.5 bg-[#0A1426] border border-[#13233E] px-3 py-1.5 rounded-xl text-zinc-300">
+            <span className="text-zinc-500 font-mono text-[10px] uppercase">Conta:</span>
+            <select
+              value={accountFilter}
+              onChange={e => setAccountFilter(e.target.value)}
+              className="bg-transparent text-white font-semibold text-xs focus:outline-none cursor-pointer max-w-[200px] truncate"
+            >
+              <option value="Todas" className="bg-[#0A1426] text-white">Todas as Contas ({adAccountsList.length})</option>
+              {adAccountsList.map(acc => (
+                <option key={acc.id} value={acc.name} className="bg-[#0A1426] text-white">
+                  {acc.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Buttons */}
@@ -296,13 +342,6 @@ export default function Dashboard({ onSimulateSale }) {
           >
             <RotateCw className="w-3.5 h-3.5" />
             <span>Atualizar</span>
-          </button>
-
-          <button 
-            className="px-3 py-1.5 rounded-xl bg-[#0A1426] hover:bg-[#12223D] border border-[#13233E] text-zinc-300 hover:text-white text-xs font-medium flex items-center gap-1.5 transition-colors"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Exportar</span>
           </button>
 
           <div className="flex items-center gap-1 bg-[#0A1426] border border-[#13233E] p-1 rounded-xl text-zinc-400">

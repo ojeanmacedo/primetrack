@@ -493,11 +493,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
             <span>Atualizar</span>
           </button>
-
-          <button className="px-3 py-1.5 rounded-xl bg-[#0A1426] border border-[#13233E] text-zinc-300 hover:text-white flex items-center gap-1.5 cursor-pointer">
-            <Download className="w-3.5 h-3.5" />
-            <span>Exportar</span>
-          </button>
         </div>
       </div>
 
