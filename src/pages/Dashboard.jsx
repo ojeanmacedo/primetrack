@@ -685,6 +685,78 @@ export default function Dashboard() {
 
       </div>
 
+      {/* Row 2: Vendas por Produto + Mini Cards (Vendas Pendentes, ROI, Margem) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+        
+        {/* Vendas por Produto (Lado Esquerdo - 5 colunas de 12) */}
+        <div className="lg:col-span-5 bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md">
+          <div>
+            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-4">
+              <span className="text-white font-semibold">Vendas por Produto</span>
+              <span className="text-zinc-500 text-[11px]">ⓘ</span>
+            </div>
+
+            {productsMap.length === 0 ? (
+              <div className="h-64 flex items-center justify-center text-zinc-500 text-xs font-sans">
+                Nenhuma venda por aqui
+              </div>
+            ) : (
+              <div className="space-y-3 py-2">
+                {productsMap.map((prod, i) => (
+                  <div key={i} className="flex items-center justify-between py-2 border-b border-[#1E293B]/60 text-xs">
+                    <div>
+                      <div className="font-bold text-white">{prod.name}</div>
+                      <div className="text-[11px] text-zinc-400">{prod.sales} {prod.sales === 1 ? 'venda aprovada' : 'vendas aprovadas'}</div>
+                    </div>
+                    <div className="font-mono font-bold text-emerald-400">
+                      R$ {prod.revenue.toFixed(2).replace('.', ',')}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Mini Cards (Lado Direito - 7 colunas de 12 em 3 colunas) */}
+        <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          
+          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
+            <div className="flex items-center justify-between text-xs text-zinc-400">
+              <span>Vendas Pendentes</span>
+              <span className="text-zinc-500 text-[11px]">ⓘ</span>
+            </div>
+            <div className="text-lg font-bold text-white mt-2">
+              R$ {realPendingValue.toFixed(2).replace('.', ',')}
+            </div>
+          </div>
+
+          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
+            <div className="flex items-center justify-between text-xs text-zinc-400">
+              <span>ROI</span>
+              <span className="text-zinc-500 text-[11px]">ⓘ</span>
+            </div>
+            <div className={`text-lg font-bold mt-2 ${
+              Number(realRoi) < 0 ? 'text-[#EF4444]' : 'text-white'
+            }`}>
+              {realRoi}
+            </div>
+          </div>
+
+          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
+            <div className="flex items-center justify-between text-xs text-zinc-400">
+              <span>Margem</span>
+              <span className="text-zinc-500 text-[11px]">ⓘ</span>
+            </div>
+            <div className="text-lg font-bold text-white mt-2">
+              {realMargin}
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
       {/* Funil de Conversão (Meta Ads) - Idêntico ao print da UTMify */}
       <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-5 sm:p-6 shadow-md">
         <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">
@@ -765,78 +837,6 @@ export default function Dashboard() {
 
           </div>
         </div>
-      </div>
-
-      {/* Row 2: Vendas por Produto (Card Largo) + Grid com os 12 Mini Cards idêntico ao print */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
-        
-        {/* Vendas por Produto (Lado Esquerdo - 5 colunas de 12) */}
-        <div className="lg:col-span-5 bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md">
-          <div>
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-4">
-              <span className="text-white font-semibold">Vendas por Produto</span>
-              <span className="text-zinc-500 text-[11px]">ⓘ</span>
-            </div>
-
-            {productsMap.length === 0 ? (
-              <div className="h-64 flex items-center justify-center text-zinc-500 text-xs font-sans">
-                Nenhuma venda por aqui
-              </div>
-            ) : (
-              <div className="space-y-3 py-2">
-                {productsMap.map((prod, i) => (
-                  <div key={i} className="flex items-center justify-between py-2 border-b border-[#1E293B]/60 text-xs">
-                    <div>
-                      <div className="font-bold text-white">{prod.name}</div>
-                      <div className="text-[11px] text-zinc-400">{prod.sales} {prod.sales === 1 ? 'venda aprovada' : 'vendas aprovadas'}</div>
-                    </div>
-                    <div className="font-mono font-bold text-emerald-400">
-                      R$ {prod.revenue.toFixed(2).replace('.', ',')}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Mini Cards (Lado Direito - 7 colunas de 12 em 3 colunas) */}
-        <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          
-          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
-            <div className="flex items-center justify-between text-xs text-zinc-400">
-              <span>Vendas Pendentes</span>
-              <span className="text-zinc-500 text-[11px]">ⓘ</span>
-            </div>
-            <div className="text-lg font-bold text-white mt-2">
-              R$ {realPendingValue.toFixed(2).replace('.', ',')}
-            </div>
-          </div>
-
-          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
-            <div className="flex items-center justify-between text-xs text-zinc-400">
-              <span>ROI</span>
-              <span className="text-zinc-500 text-[11px]">ⓘ</span>
-            </div>
-            <div className={`text-lg font-bold mt-2 ${
-              Number(realRoi) < 0 ? 'text-[#EF4444]' : 'text-white'
-            }`}>
-              {realRoi}
-            </div>
-          </div>
-
-          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
-            <div className="flex items-center justify-between text-xs text-zinc-400">
-              <span>Margem</span>
-              <span className="text-zinc-500 text-[11px]">ⓘ</span>
-            </div>
-            <div className="text-lg font-bold text-white mt-2">
-              {realMargin}
-            </div>
-          </div>
-
-        </div>
-
       </div>
 
       {/* Row 3: Vendas por Pagamento + Vendas por Fonte + Taxa de Aprovação idêntico ao print */}
