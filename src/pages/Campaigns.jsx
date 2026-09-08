@@ -414,6 +414,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const avgCpa = totalSales > 0 ? (totalSpend / totalSales).toFixed(2) : '0.00';
   const totalImpressions = filteredCampaigns.reduce((acc, c) => acc + Number(c.impressions || 0), 0);
   const totalClicks = filteredCampaigns.reduce((acc, c) => acc + Number(c.clicks || 0), 0);
+  const totalIcs = filteredCampaigns.reduce((acc, c) => acc + Number(c.initCheckouts || 0), 0);
+  const avgCpc = totalClicks > 0 ? (totalSpend / totalClicks).toFixed(2) : '0.00';
+  const avgCpm = totalImpressions > 0 ? ((totalSpend / totalImpressions) * 1000).toFixed(2) : '0.00';
+  const avgCostPerIc = totalIcs > 0 ? (totalSpend / totalIcs).toFixed(2) : '0.00';
 
   return (
     <div className="space-y-5 pb-16">
@@ -725,6 +729,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     <th className="py-3 px-4">ROAS</th>
                     <th className="py-3 px-4">CPA</th>
                     <th className="py-3 px-4">CPC</th>
+                    <th className="py-3 px-4">CPM</th>
+                    <th className="py-3 px-4 text-center">ICS</th>
+                    <th className="py-3 px-4">CUSTO IC</th>
                     <th className="py-3 px-4">IMPRESSÕES</th>
                     <th className="py-3 px-4">CLIQUES</th>
                   </tr>
@@ -812,7 +819,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       </td>
                       <td className="py-4 px-4 font-extrabold text-[#5C9BFF]">{camp.roas}</td>
                       <td className="py-4 px-4 font-bold text-[#5C9BFF]">R$ {camp.cpa}</td>
-                      <td className="py-4 px-4 text-zinc-300">R$ {camp.cpc}</td>
+                      <td className="py-4 px-4 text-zinc-300">R$ {camp.cpc || '0.00'}</td>
+                      <td className="py-4 px-4 text-zinc-300">R$ {camp.cpm || '0.00'}</td>
+                      <td className="py-4 px-4 text-white font-bold text-center font-mono">{Number(camp.initCheckouts || 0).toLocaleString('pt-BR')}</td>
+                      <td className="py-4 px-4 text-zinc-300 font-mono">R$ {camp.costPerIc || '0.00'}</td>
                       <td className="py-4 px-4 text-zinc-300">{Number(camp.impressions || 0).toLocaleString('pt-BR')}</td>
                       <td className="py-4 px-4 text-zinc-300">{Number(camp.clicks || 0).toLocaleString('pt-BR')}</td>
                     </tr>
@@ -838,7 +848,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     </td>
                     <td className="py-3 px-4 text-[#5C9BFF]">{avgRoas}</td>
                     <td className="py-3 px-4 text-[#5C9BFF]">R$ {avgCpa}</td>
-                    <td className="py-3 px-4 text-zinc-300"></td>
+                    <td className="py-3 px-4 text-zinc-300 font-mono">R$ {avgCpc}</td>
+                    <td className="py-3 px-4 text-zinc-300 font-mono">R$ {avgCpm}</td>
+                    <td className="py-3 px-4 text-white text-center font-mono">{totalIcs.toLocaleString('pt-BR')}</td>
+                    <td className="py-3 px-4 text-zinc-300 font-mono">R$ {avgCostPerIc}</td>
                     <td className="py-3 px-4 text-zinc-300">{totalImpressions.toLocaleString('pt-BR')}</td>
                     <td className="py-3 px-4 text-zinc-300">{totalClicks.toLocaleString('pt-BR')}</td>
                   </tr>

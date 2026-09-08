@@ -655,7 +655,16 @@ function resolveDateRange(datePreset = 'today', since = null, until = null) {
     return true;
   });
 
-  // Calcula vendas e receita EXCLUSIVAMENTE da MonsterPay e do Pixel da PrimeTrack
+  const pixelICs = events.filter(e => {
+    if (e.eventName !== 'InitiateCheckout') return false;
+    if (filterSince && filterUntil && e.timestamp) {
+      const eDate = e.timestamp.substring(0, 10);
+      return eDate >= filterSince && eDate <= filterUntil;
+    }
+    return true;
+  });
+
+  // Calcula vendas, receita e ICs EXCLUSIVAMENTE da MonsterPay e do Pixel da PrimeTrack
   const enrichedCampaigns = activeOnlyCampaigns.map(c => {
     const cName = (c.name || '').toLowerCase();
     const cUtm = (c.utm_campaign || '').toLowerCase();
@@ -668,7 +677,13 @@ function resolveDateRange(datePreset = 'today', since = null, until = null) {
     });
 
     const matchingPixelEvents = pixelPurchases.filter(e => {
-      const eCamp = ((e.attribution && e.attribution.campaign) || e.campaign || '').toLowerCase().trim();
+      const eCamp = ((e.attribution && e.attribution.campaign) || e.campaign || (e.utms && e.utms.utm_campaign) || '').toLowerCase().trim();
+      if (!eCamp || eCamp === 'orgânico' || eCamp === 'organico' || eCamp === 'histórico') return false;
+      return (eCamp === cName || eCamp === cUtm || eCamp === cId || cName.includes(eCamp) || eCamp.includes(cName));
+    });
+
+    const matchingPixelICs = pixelICs.filter(e => {
+      const eCamp = ((e.attribution && e.attribution.campaign) || e.campaign || (e.utms && e.utms.utm_campaign) || '').toLowerCase().trim();
       if (!eCamp || eCamp === 'orgânico' || eCamp === 'organico' || eCamp === 'histórico') return false;
       return (eCamp === cName || eCamp === cUtm || eCamp === cId || cName.includes(eCamp) || eCamp.includes(cName));
     });
@@ -686,13 +701,18 @@ function resolveDateRange(datePreset = 'today', since = null, until = null) {
     const roasNum = spendNum > 0 ? (totalRevenue / spendNum).toFixed(2) : '0.00';
     const cpaNum = totalSales > 0 ? (spendNum / totalSales).toFixed(2) : '0.00';
 
+    const totalICs = Math.max(Number(c.initCheckouts || 0), matchingPixelICs.length);
+    const costPerIc = totalICs > 0 ? (spendNum / totalICs).toFixed(2) : '0.00';
+
     return {
       ...c,
       sales: totalSales,
       revenue: totalRevenue.toFixed(2),
       profit: profitNum.toFixed(2),
       roas: roasNum,
-      cpa: cpaNum
+      cpa: cpaNum,
+      initCheckouts: totalICs,
+      costPerIc: costPerIc
     };
   });
 

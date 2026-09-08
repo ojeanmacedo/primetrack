@@ -254,7 +254,19 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const rawCpm = impressions > 0 ? ((rawSpend / impressions) * 1000) : Number(insight.cpm || 0);
     const realCpm = rawCpm * usdRate;
 
-    // A API da Meta é utilizada ESTRITAMENTE para coletar gastos, impressões, cliques, CPC, CPM e CTR
+    // Extrai Initiate Checkouts registrados pela Meta
+    let metaInitCheckouts = 0;
+    if (Array.isArray(insight.actions)) {
+      const icAction = insight.actions.find(a => 
+        a.action_type === 'initiate_checkout' || 
+        a.action_type === 'omni_initiated_checkout' ||
+        a.action_type === 'onsite_web_initiated_checkout'
+      );
+      if (icAction) metaInitCheckouts = Number(icAction.value || 0);
+    }
+    const costPerIc = metaInitCheckouts > 0 ? (realSpend / metaInitCheckouts).toFixed(2) : '0.00';
+
+    // A API da Meta é utilizada ESTRITAMENTE para coletar gastos, impressões, cliques, CPC, CPM, CTR e ICS
     // As vendas e receitas vêm exclusivamente das plataformas integradas (MonsterPay) e do Pixel PrimeTrack
     return {
       id: c.id,
@@ -279,7 +291,8 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       profit: (-realSpend).toFixed(2),
       roas: '0.00',
       cpa: '0.00',
-      initCheckouts: 0,
+      initCheckouts: metaInitCheckouts,
+      costPerIc: costPerIc,
       adAccountId: actId,
       accountName: accountName || 'Conta de Anúncios',
       currency: 'BRL'
