@@ -236,6 +236,11 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const baseBudget = rawDailyBudget !== null ? rawDailyBudget : (rawLifetimeBudget !== null ? rawLifetimeBudget : 25.00);
     const realBudget = baseBudget * rate;
     const realSpend = rawSpend * rate;
+    const rawCtr = impressions > 0 ? ((clicks / impressions) * 100) : Number(insight.ctr || 0);
+    const rawCpc = clicks > 0 ? (rawSpend / clicks) : Number(insight.cpc || 0);
+    const realCpc = rawCpc * rate;
+    const rawCpm = impressions > 0 ? ((rawSpend / impressions) * 1000) : Number(insight.cpm || 0);
+    const realCpm = rawCpm * rate;
 
     // A API da Meta é utilizada ESTRITAMENTE para coletar gastos, impressões, cliques, CPC, CPM e CTR
     // As vendas e receitas vêm exclusivamente das plataformas integradas (MonsterPay) e do Pixel PrimeTrack

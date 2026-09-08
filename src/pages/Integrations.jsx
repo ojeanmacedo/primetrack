@@ -163,36 +163,25 @@ export default function Integrations() {
   const tabs = INTEGRATION_TABS;
 
   const [adAccounts, setAdAccounts] = useState(() => {
-    if (!isAdmin || (typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true')) {
-      return [];
-    }
-    const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
-    if (saved) {
+    if (typeof window !== 'undefined') {
       try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          if (trialStatus.isTrial) {
-            let foundActive = false;
-            return parsed.map(acc => {
-              if (acc.sync && !foundActive) {
-                foundActive = true;
-                return acc;
-              }
-              return { ...acc, sync: false };
-            });
+        const cached = localStorage.getItem('primetrack_ad_accounts');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed.map(acc => ({ ...acc, currency: 'BRL' }));
           }
-          return parsed;
         }
       } catch (e) {}
     }
     return [
-      { name: 'CA01', id: '1892117896682979', bm: 'Marinhos Dog', currency: 'USD (→ BRL @ 5,12)', status: 'Ativa', sync: false },
+      { name: 'CA01', id: '1892117896682979', bm: 'Marinhos Dog', currency: 'BRL', status: 'Ativa', sync: false },
       { name: 'Rafaelli Ribeiro', id: '988187735672553', bm: '—', currency: 'BRL', status: 'Ativa', sync: false },
       { name: 'CA03', id: '1095793299643643', bm: 'DIGITAL JM SOLUCOES LTDA', currency: 'BRL', status: 'Ativa', sync: false },
-      { name: 'CA02 JEFFREY', id: '1101817232408751', bm: 'DIGITAL MEI', currency: 'USD (→ BRL @ 5,12)', status: 'Ativa', sync: false },
-      { name: 'Angel Kerry', id: '1387392810834788', bm: '—', currency: 'USD (→ BRL @ 5,12)', status: 'Ativa', sync: false },
-      { name: 'CA01 JEFFREY', id: '1588922422538250', bm: 'DIGITAL MEI', currency: 'USD (→ BRL @ 5,12)', status: 'Ativa', sync: false },
-      { name: 'CA03 JEFFREY', id: '2013649985959956', bm: 'DIGITAL MEI', currency: 'USD (→ BRL @ 5,12)', status: 'Ativa', sync: false },
+      { name: 'CA02 JEFFREY', id: '1101817232408751', bm: 'DIGITAL MEI', currency: 'BRL', status: 'Ativa', sync: false },
+      { name: 'Angel Kerry', id: '1387392810834788', bm: '—', currency: 'BRL', status: 'Ativa', sync: false },
+      { name: 'CA01 JEFFREY', id: '1588922422538250', bm: 'DIGITAL MEI', currency: 'BRL', status: 'Ativa', sync: false },
+      { name: 'CA03 JEFFREY', id: '2013649985959956', bm: 'DIGITAL MEI', currency: 'BRL', status: 'Ativa', sync: false },
       { name: 'CA02', id: '4157287571263652', bm: 'DIGITAL JM SOLUCOES LTDA', currency: 'BRL', status: 'Ativa', sync: false },
       { name: 'CA01', id: '719933136445425', bm: 'DIGITAL JM SOLUCOES LTDA', currency: 'BRL', status: 'Ativa', sync: false },
     ];
@@ -742,7 +731,7 @@ export default function Integrations() {
               name: a.name || 'Conta',
               id: accId,
               bm: a.businessName || 'BM Principal',
-              currency: a.currency === 'USD' ? 'USD' : (a.currency || 'BRL'),
+              currency: 'BRL',
               status: a.status === 'ACTIVE' ? 'Ativa' : 'Desativada',
               balance: a.balance || '0,00',
               amountSpent: a.amountSpent || '0,00',
@@ -984,10 +973,10 @@ export default function Integrations() {
                         {acc.bm}
                       </td>
                       <td className="py-3.5 px-4 font-mono text-emerald-400 font-bold text-xs">
-                        {acc.currency?.includes('USD') ? '$' : 'R$'} {acc.balance || '0,00'}
+                        R$ {acc.balance || '0,00'}
                       </td>
                       <td className="py-3.5 px-4 font-mono text-zinc-400 text-[11px]">
-                        {acc.currency}
+                        BRL
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         <span className={`px-2.5 py-0.5 rounded-full font-mono text-[10px] font-bold ${
