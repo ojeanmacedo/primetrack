@@ -30,121 +30,6 @@ export default function Sales() {
       .finally(() => setLoading(false));
   }, []);
 
-  const salesData = [
-    {
-      id: 1,
-      name: 'Juliano dos reis machado',
-      email: 'julianodober6@gmail.com',
-      city: 'Ribeirao Preto, Sao Paulo',
-      product: 'Privacy Mc Mirella',
-      value: 'R$ 9,44',
-      platform: 'Monsterpay',
-      source: 'FB',
-      campaign: 'TESTE MI',
-      capi: 'approved',
-      reason: '—',
-      date: '07/09 12:52'
-    },
-    {
-      id: 2,
-      name: 'Hallan Fabiano pasquim',
-      email: 'hallanfabiano20@gmail.com',
-      city: 'Iguatemi, Mato Grosso Do Sul',
-      product: 'Privacy Mc Mirella',
-      value: 'R$ 9,44',
-      platform: 'Monsterpay',
-      source: 'FB',
-      campaign: 'TESTE MI',
-      capi: 'approved',
-      reason: '—',
-      date: '07/09 12:05'
-    },
-    {
-      id: 3,
-      name: 'Joselas Eyji Tsugue',
-      email: 'joselasu@gmail.com',
-      city: 'Belo Horizonte, Minas Gerais',
-      product: 'Privacy Mc Mirella',
-      value: 'R$ 9,44',
-      platform: 'Monsterpay',
-      source: 'FB',
-      campaign: 'TESTE MI',
-      capi: 'pending',
-      reason: 'Pendente',
-      date: '07/09 11:54'
-    },
-    {
-      id: 4,
-      name: 'Savio Gabriel Querino Sampaio',
-      email: 'saviogabriel051@gmail.com',
-      city: 'Rio De Janeiro, Rio De Janeiro',
-      product: 'Privacy Mc Mirella',
-      value: 'R$ 9,44',
-      platform: 'Monsterpay',
-      source: 'FB',
-      campaign: 'TESTE MI',
-      capi: 'approved',
-      reason: '—',
-      date: '07/09 10:49'
-    },
-    {
-      id: 5,
-      name: 'Jorge Armando da Silva',
-      email: 'jorgedody138@gmail.com',
-      city: 'Sao José Dos Campos, Sao Paulo',
-      product: 'Privacy Mc Mirella',
-      value: 'R$ 9,44',
-      platform: 'Monsterpay',
-      source: 'FB',
-      campaign: 'TESTE MI',
-      capi: 'approved',
-      reason: '—',
-      date: '07/09 10:37'
-    },
-    {
-      id: 6,
-      name: 'Ivaneu pereira',
-      email: 'vaniupereira@gmail.com',
-      city: 'Goiânia, Goiás',
-      product: 'Privacy Mc Mirella',
-      value: 'R$ 9,44',
-      platform: 'Monsterpay',
-      source: 'FB',
-      campaign: 'TESTE MI',
-      capi: 'approved',
-      reason: '—',
-      date: '07/09 09:52'
-    },
-    {
-      id: 7,
-      name: 'Marcio aparecido costa',
-      email: 'marcioaparecido3337@gmail.com',
-      city: 'Palhoça, Santa Catarina',
-      product: 'Privacy Mc Mirella',
-      value: 'R$ 9,44',
-      platform: 'Monsterpay',
-      source: 'FB',
-      campaign: 'TESTE MI',
-      capi: 'pending',
-      reason: 'Pendente',
-      date: '07/09 08:51'
-    },
-    {
-      id: 8,
-      name: 'Gerson silva',
-      email: 'gersonssilvasilva05122019@gmail.com',
-      city: 'Paragominas, Pará',
-      product: 'Privacy Mc Mirella',
-      value: 'R$ 9,44',
-      platform: 'Monsterpay',
-      source: 'FB',
-      campaign: 'TESTE MI',
-      capi: 'pending',
-      reason: 'Pendente',
-      date: '07/09 08:08'
-    }
-  ];
-
   const formattedLiveOrders = liveOrders.map(o => {
     const cust = o.customer || {};
     const d = o.createdAt ? new Date(o.createdAt) : new Date();
@@ -160,7 +45,7 @@ export default function Sales() {
       value: `R$ ${Number(o.amount || 0).toFixed(2).replace('.', ',')}`,
       platform: o.gateway || 'MonsterPay',
       source: (o.attribution?.source || 'FB').toUpperCase().slice(0, 2),
-      campaign: o.attribution?.campaign || o.campaign || 'TESTE MI',
+      campaign: o.attribution?.campaign || o.campaign || 'Campanha',
       capi: o.status === 'approved' ? 'approved' : 'pending',
       emq: o.emqScore || 9.7,
       reason: o.status === 'approved' ? '—' : 'Pendente',
@@ -169,7 +54,8 @@ export default function Sales() {
     };
   });
 
-  const baseSales = formattedLiveOrders.length > 0 ? formattedLiveOrders : (isAdmin ? salesData : []);
+  // Apenas vendas reais que vierem da MonsterPay ou do Pixel da PrimeTrack
+  const baseSales = formattedLiveOrders;
 
   const displayedSales = baseSales.filter(sale => {
     if (!sale.rawDate) return true;

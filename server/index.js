@@ -485,7 +485,17 @@ function resolveDateRange(datePreset = 'today', since = null, until = null) {
     return true;
   });
 
-  // Calcula vendas e receita combinando Meta Pixel com Webhooks (se houver)
+  const events = db.get('events') || [];
+  const pixelPurchases = events.filter(e => {
+    if (e.eventName !== 'Purchase') return false;
+    if (filterSince && filterUntil && e.timestamp) {
+      const eDate = e.timestamp.substring(0, 10);
+      return eDate >= filterSince && eDate <= filterUntil;
+    }
+    return true;
+  });
+
+  // Calcula vendas e receita EXCLUSIVAMENTE da MonsterPay e do Pixel da PrimeTrack
   const enrichedCampaigns = activeOnlyCampaigns.map(c => {
     const cName = (c.name || '').toLowerCase();
     const cUtm = (c.utm_campaign || '').toLowerCase();
@@ -496,12 +506,19 @@ function resolveDateRange(datePreset = 'today', since = null, until = null) {
       return (oCamp && (oCamp === cName || oCamp === cUtm || oCamp === cId || cName.includes(oCamp) || oCamp.includes(cName)));
     });
 
+    const matchingPixelEvents = pixelPurchases.filter(e => {
+      const eCamp = ((e.attribution && e.attribution.campaign) || e.campaign || '').toLowerCase();
+      return (eCamp && (eCamp === cName || eCamp === cUtm || eCamp === cId || cName.includes(eCamp) || eCamp.includes(cName)));
+    });
+
     const webhookSales = matchingOrders.length;
     const webhookRevenue = matchingOrders.reduce((acc, o) => acc + Number(o.amount || 0), 0);
-    
-    // Usa as vendas do Pixel da Meta ou soma com as atribuídas por Webhook
-    const totalSales = webhookSales > 0 ? webhookSales : Number(c.sales || 0);
-    const totalRevenue = webhookRevenue > 0 ? webhookRevenue : Number(c.revenue || 0);
+    const pixelSales = matchingPixelEvents.length;
+    const pixelRevenue = matchingPixelEvents.reduce((acc, e) => acc + Number(e.amount || e.customData?.value || 0), 0);
+
+    // Vendas e receita vêm ESTRITAMENTE da MonsterPay e do Pixel da PrimeTrack
+    const totalSales = webhookSales + pixelSales;
+    const totalRevenue = webhookRevenue + pixelRevenue;
     const spendNum = Number(c.spend || 0);
     const profitNum = totalRevenue - spendNum;
     const roasNum = spendNum > 0 ? (totalRevenue / spendNum).toFixed(2) : '0.00';
@@ -965,6 +982,16 @@ app.post('/api/meta/sync', async (req, res) => {
       return true;
     });
 
+    const events = db.get('events') || [];
+    const pixelPurchases = events.filter(e => {
+      if (e.eventName !== 'Purchase') return false;
+      if (filterSince && filterUntil && e.timestamp) {
+        const eDate = e.timestamp.substring(0, 10);
+        return eDate >= filterSince && eDate <= filterUntil;
+      }
+      return true;
+    });
+
     const enrichedCampaigns = activeOnlyCampaigns.map(c => {
       const cName = (c.name || '').toLowerCase();
       const cUtm = (c.utm_campaign || '').toLowerCase();
@@ -975,10 +1002,19 @@ app.post('/api/meta/sync', async (req, res) => {
         return (oCamp && (oCamp === cName || oCamp === cUtm || oCamp === cId || cName.includes(oCamp) || oCamp.includes(cName)));
       });
 
+      const matchingPixelEvents = pixelPurchases.filter(e => {
+        const eCamp = ((e.attribution && e.attribution.campaign) || e.campaign || '').toLowerCase();
+        return (eCamp && (eCamp === cName || eCamp === cUtm || eCamp === cId || cName.includes(eCamp) || eCamp.includes(cName)));
+      });
+
       const webhookSales = matchingOrders.length;
       const webhookRevenue = matchingOrders.reduce((acc, o) => acc + Number(o.amount || 0), 0);
-      const totalSales = webhookSales > 0 ? webhookSales : Number(c.sales || 0);
-      const totalRevenue = webhookRevenue > 0 ? webhookRevenue : Number(c.revenue || 0);
+      const pixelSales = matchingPixelEvents.length;
+      const pixelRevenue = matchingPixelEvents.reduce((acc, e) => acc + Number(e.amount || e.customData?.value || 0), 0);
+
+      // Vendas e receita vêm ESTRITAMENTE da MonsterPay e do Pixel da PrimeTrack
+      const totalSales = webhookSales + pixelSales;
+      const totalRevenue = webhookRevenue + pixelRevenue;
       const spendNum = Number(c.spend || 0);
       const profitNum = totalRevenue - spendNum;
       const roasNum = spendNum > 0 ? (totalRevenue / spendNum).toFixed(2) : '0.00';

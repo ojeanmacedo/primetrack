@@ -237,26 +237,8 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const realBudget = baseBudget * rate;
     const realSpend = rawSpend * rate;
 
-    // Extrai compras reais e receita reportadas pelo Pixel da Meta
-    const actions = insight.actions || [];
-    const actionValues = insight.action_values || [];
-
-    const purchaseAction = actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase' || a.action_type === 'offsite_conversion.fb_pixel_purchase');
-    const purchaseVal = actionValues.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase' || a.action_type === 'offsite_conversion.fb_pixel_purchase');
-    const initCheckoutAction = actions.find(a => a.action_type === 'initiate_checkout' || a.action_type === 'omni_initiated_checkout');
-
-    const pixelSales = purchaseAction ? Number(purchaseAction.value) : 0;
-    const rawPixelRevenue = purchaseVal ? Number(purchaseVal.value) : 0;
-    const pixelRevenue = rawPixelRevenue * rate;
-    const initCheckouts = initCheckoutAction ? Number(initCheckoutAction.value) : 0;
-
-    const profit = pixelRevenue - realSpend;
-    const roas = realSpend > 0 ? (pixelRevenue / realSpend).toFixed(2) : '0.00';
-    const cpa = pixelSales > 0 ? (realSpend / pixelSales).toFixed(2) : '0.00';
-    const realCpc = clicks > 0 ? (realSpend / clicks) : 0;
-    const realCpm = impressions > 0 ? (realSpend / impressions) * 1000 : 0;
-    const rawCtr = insight.ctr ? Number(insight.ctr) : (impressions > 0 ? (clicks / impressions) * 100 : 0);
-
+    // A API da Meta é utilizada ESTRITAMENTE para coletar gastos, impressões, cliques, CPC, CPM e CTR
+    // As vendas e receitas vêm exclusivamente das plataformas integradas (MonsterPay) e do Pixel PrimeTrack
     return {
       id: c.id,
       name: c.name,
@@ -272,12 +254,12 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       cpc: realCpc.toFixed(2),
       cpm: realCpm.toFixed(2),
       ctr: rawCtr.toFixed(2),
-      sales: pixelSales,
-      revenue: pixelRevenue.toFixed(2),
-      profit: profit.toFixed(2),
-      roas,
-      cpa,
-      initCheckouts,
+      sales: 0,
+      revenue: '0.00',
+      profit: (-realSpend).toFixed(2),
+      roas: '0.00',
+      cpa: '0.00',
+      initCheckouts: 0,
       adAccountId: actId,
       accountName: accountName || 'Conta de Anúncios',
       currency: 'BRL'
