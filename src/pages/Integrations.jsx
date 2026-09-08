@@ -1852,9 +1852,9 @@ export default function Integrations() {
               </form>
             )}
 
-            {/* PASSO 3: Token Gerado e Configuração Webhook Monsterpay (Screenshot 3 + Instruções) */}
+            {/* PASSO 3: Token Gerado (Print 3) - Somente o Token */}
             {connectPlatformStep === 3 && (
-              <div className="space-y-4 animate-in fade-in duration-150">
+              <div className="space-y-5 animate-in fade-in duration-150">
                 {/* Banner de Sucesso verde */}
                 <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2 font-medium">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -1887,48 +1887,6 @@ export default function Integrations() {
                       )}
                     </button>
                   </div>
-                </div>
-
-                {/* Campo da URL DO WEBHOOK para Monsterpay */}
-                <div>
-                  <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
-                    URL DO WEBHOOK (MONSTERPAY)
-                  </label>
-                  <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#060D1A] border border-[#1E3254]">
-                    <span className="font-mono text-xs text-zinc-200 select-all truncate pl-1">
-                      {`https://app.primetrack.top/api/webhooks/monsterpay?token=${generatedPlatformToken}`}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => copyPlatformField(`https://app.primetrack.top/api/webhooks/monsterpay?token=${generatedPlatformToken}`, 'url')}
-                      className="px-3 py-1.5 rounded-lg bg-[#1A6DFF] hover:bg-blue-600 text-xs text-white font-medium transition-colors shrink-0 cursor-pointer flex items-center gap-1"
-                    >
-                      {copiedWebhookUrl ? (
-                        <>
-                          <Check className="w-3.5 h-3.5 text-white" />
-                          <span>Copiado</span>
-                        </>
-                      ) : (
-                        <span>Copiar URL</span>
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Box de Instruções de Instalação na Monsterpay */}
-                <div className="bg-[#070D1A] border border-[#13233E] rounded-xl p-3.5 text-xs text-zinc-400 leading-relaxed space-y-1.5">
-                  <div className="font-bold text-white text-[11px] flex items-center gap-1.5">
-                    <span>⚡ Como receber as vendas da Monsterpay:</span>
-                  </div>
-                  <ol className="list-decimal pl-4 space-y-1 text-[11px] text-zinc-300">
-                    <li>No painel da <strong>Monsterpay</strong>, acesse o menu de <strong>Webhooks / Integrações</strong>.</li>
-                    <li>Clique em <strong>Novo Webhook</strong> e cole a <strong>URL do Webhook</strong> acima.</li>
-                    <li>Marque os eventos de <strong>Compra Aprovada</strong>, <strong>Gerada</strong> e <strong>Reembolso</strong>.</li>
-                    <li>Cole o seu <strong>Token</strong> no campo de Token / Secret e salve.</li>
-                  </ol>
-                  <p className="text-[10px] text-zinc-500 pt-1">
-                    Pronto! Todas as vendas realizadas na Monsterpay serão computadas instantaneamente na PrimeTrack com rastreamento e Meta CAPI.
-                  </p>
                 </div>
 
                 {/* Botão Concluir */}
