@@ -11,7 +11,9 @@ import {
   PieChart,
   ArrowRight,
   Edit3,
-  Check
+  Check,
+  GripVertical,
+  Move
 } from 'lucide-react';
 import DateRangePicker from '../components/DateRangePicker';
 
@@ -157,6 +159,62 @@ export default function Dashboard() {
   const handleToggleEdit = (status) => {
     setIsEditingLayout(status);
     window.dispatchEvent(new CustomEvent('primetrack_edit_layout_status', { detail: { isEditing: status } }));
+  };
+
+  // Drag and Drop com Mouse para reposicionamento
+  const [draggedItem, setDraggedItem] = useState(null); // { type: 'analysis' | 'kpi', index: number }
+  const [dragOverItem, setDragOverItem] = useState(null); // { type: 'analysis' | 'kpi', index: number }
+
+  const handleDragStart = (e, type, index) => {
+    if (!isEditingLayout) return;
+    setDraggedItem({ type, index });
+    e.dataTransfer.effectAllowed = 'move';
+    try {
+      e.dataTransfer.setData('text/plain', JSON.stringify({ type, index }));
+    } catch (err) {}
+  };
+
+  const handleDragOver = (e, type, index) => {
+    if (!isEditingLayout || !draggedItem || draggedItem.type !== type) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (!dragOverItem || dragOverItem.type !== type || dragOverItem.index !== index) {
+      setDragOverItem({ type, index });
+    }
+  };
+
+  const handleDragLeave = (type, index) => {
+    if (dragOverItem?.type === type && dragOverItem?.index === index) {
+      setDragOverItem(null);
+    }
+  };
+
+  const handleDrop = (e, type, targetIndex) => {
+    e.preventDefault();
+    if (!isEditingLayout || !draggedItem || draggedItem.type !== type) return;
+    const sourceIndex = draggedItem.index;
+    if (sourceIndex === targetIndex) {
+      setDraggedItem(null);
+      setDragOverItem(null);
+      return;
+    }
+
+    if (type === 'analysis') {
+      swapAnalysisCards(sourceIndex, targetIndex);
+    } else if (type === 'kpi') {
+      const newKpis = [...layoutConfig.kpis];
+      const [moved] = newKpis.splice(sourceIndex, 1);
+      newKpis.splice(targetIndex, 0, moved);
+      saveLayoutConfig({ ...layoutConfig, kpis: newKpis });
+    }
+
+    setDraggedItem(null);
+    setDragOverItem(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItem(null);
+    setDragOverItem(null);
   };
 
   const [adAccountsList, setAdAccountsList] = useState(() => {
@@ -635,18 +693,31 @@ export default function Dashboard() {
   };
 
   const renderAnalysisCard = (cardKey, slotIndex) => {
+    const isDraggingThis = draggedItem?.type === 'analysis' && draggedItem?.index === slotIndex;
+    const isOverThis = dragOverItem?.type === 'analysis' && dragOverItem?.index === slotIndex && !isDraggingThis;
+
     const editHeaderControls = isEditingLayout && (
-      <div className="flex items-center gap-1.5 bg-[#0F1728] border border-blue-500/40 rounded-lg px-2 py-1 select-none">
-        <span className="text-[10px] text-blue-400 font-mono font-bold">Slot #{slotIndex + 1}</span>
+      <div className="flex items-center gap-1.5 bg-[#0F1728] border border-blue-500/40 rounded-lg px-2 py-1 select-none text-blue-300">
+        <span className="flex items-center gap-1 font-mono text-[10px] font-bold text-blue-400">
+          <GripVertical className="w-3.5 h-3.5" />
+          <span>Arraste</span>
+        </span>
+        <span className="text-zinc-600 text-xs">|</span>
         <button
-          onClick={() => swapAnalysisCards(slotIndex, slotIndex === 0 ? 1 : slotIndex === 1 ? 0 : slotIndex === 2 ? 3 : 2)}
+          onClick={(e) => {
+            e.stopPropagation();
+            swapAnalysisCards(slotIndex, slotIndex === 0 ? 1 : slotIndex === 1 ? 0 : slotIndex === 2 ? 3 : 2);
+          }}
           className="px-1.5 py-0.5 bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 rounded text-[10px] font-semibold transition-colors flex items-center gap-0.5 cursor-pointer"
           title="Inverter lado (horizontal)"
         >
           <span>⇄ Lado</span>
         </button>
         <button
-          onClick={() => swapAnalysisCards(slotIndex, (slotIndex + 2) % 4)}
+          onClick={(e) => {
+            e.stopPropagation();
+            swapAnalysisCards(slotIndex, (slotIndex + 2) % 4);
+          }}
           className="px-1.5 py-0.5 bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 rounded text-[10px] font-semibold transition-colors flex items-center gap-0.5 cursor-pointer"
           title="Inverter linha (vertical)"
         >
@@ -656,15 +727,43 @@ export default function Dashboard() {
     );
 
     const baseContainerClass = `bg-[#141C2E] border ${
-      isEditingLayout ? 'border-blue-500/50 ring-1 ring-blue-500/30' : 'border-[#1E293B]'
-    } rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md h-[340px] transition-all duration-200 relative`;
+      isDraggingThis
+        ? 'border-dashed border-blue-500 opacity-30 scale-[0.98] shadow-2xl ring-2 ring-blue-500/30'
+        : isOverThis
+          ? 'border-blue-400 ring-4 ring-blue-500/50 bg-[#16233E] scale-[1.01]'
+          : isEditingLayout
+            ? 'border-blue-500/50 ring-1 ring-blue-500/30 hover:border-blue-400 cursor-grab active:cursor-grabbing'
+            : 'border-[#1E293B]'
+    } rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md h-[340px] transition-all duration-200 relative select-none`;
+
+    const dropOverlay = isOverThis && (
+      <div className="absolute inset-0 bg-[#0066FF]/20 backdrop-blur-[1px] border-2 border-[#0066FF] rounded-xl flex flex-col items-center justify-center z-30 pointer-events-none">
+        <div className="bg-[#0066FF] text-white px-3.5 py-2 rounded-lg text-xs font-bold shadow-xl flex items-center gap-2 animate-bounce">
+          <Move className="w-4 h-4" />
+          <span>Solte o mouse aqui para trocar de posição</span>
+        </div>
+      </div>
+    );
 
     if (cardKey === 'products') {
       return (
-        <div key="products" className={baseContainerClass}>
+        <div 
+          key="products"
+          draggable={isEditingLayout}
+          onDragStart={(e) => handleDragStart(e, 'analysis', slotIndex)}
+          onDragOver={(e) => handleDragOver(e, 'analysis', slotIndex)}
+          onDragLeave={() => handleDragLeave('analysis', slotIndex)}
+          onDrop={(e) => handleDrop(e, 'analysis', slotIndex)}
+          onDragEnd={handleDragEnd}
+          className={baseContainerClass}
+        >
+          {dropOverlay}
           <div>
             <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-3">
-              <span className="text-white font-semibold">Vendas por Produto</span>
+              <span className="text-white font-semibold flex items-center gap-1.5">
+                {isEditingLayout && <GripVertical className="w-4 h-4 text-blue-400 cursor-grab active:cursor-grabbing" />}
+                <span>Vendas por Produto</span>
+              </span>
               {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Vendas agrupadas por produto">ⓘ</span>}
             </div>
 
@@ -698,10 +797,23 @@ export default function Dashboard() {
 
     if (cardKey === 'payments') {
       return (
-        <div key="payments" className={baseContainerClass}>
+        <div 
+          key="payments"
+          draggable={isEditingLayout}
+          onDragStart={(e) => handleDragStart(e, 'analysis', slotIndex)}
+          onDragOver={(e) => handleDragOver(e, 'analysis', slotIndex)}
+          onDragLeave={() => handleDragLeave('analysis', slotIndex)}
+          onDrop={(e) => handleDrop(e, 'analysis', slotIndex)}
+          onDragEnd={handleDragEnd}
+          className={baseContainerClass}
+        >
+          {dropOverlay}
           <div>
             <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2">
-              <span className="text-white font-semibold">Vendas por Pagamento</span>
+              <span className="text-white font-semibold flex items-center gap-1.5">
+                {isEditingLayout && <GripVertical className="w-4 h-4 text-blue-400 cursor-grab active:cursor-grabbing" />}
+                <span>Vendas por Pagamento</span>
+              </span>
               {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Distribuição por método de pagamento">ⓘ</span>}
             </div>
 
@@ -761,10 +873,23 @@ export default function Dashboard() {
 
     if (cardKey === 'sources') {
       return (
-        <div key="sources" className={baseContainerClass}>
+        <div 
+          key="sources"
+          draggable={isEditingLayout}
+          onDragStart={(e) => handleDragStart(e, 'analysis', slotIndex)}
+          onDragOver={(e) => handleDragOver(e, 'analysis', slotIndex)}
+          onDragLeave={() => handleDragLeave('analysis', slotIndex)}
+          onDrop={(e) => handleDrop(e, 'analysis', slotIndex)}
+          onDragEnd={handleDragEnd}
+          className={baseContainerClass}
+        >
+          {dropOverlay}
           <div>
             <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-3">
-              <span className="text-white font-semibold">Vendas por Fonte</span>
+              <span className="text-white font-semibold flex items-center gap-1.5">
+                {isEditingLayout && <GripVertical className="w-4 h-4 text-blue-400 cursor-grab active:cursor-grabbing" />}
+                <span>Vendas por Fonte</span>
+              </span>
               {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Origem de tráfego das vendas">ⓘ</span>}
             </div>
 
@@ -798,10 +923,23 @@ export default function Dashboard() {
 
     if (cardKey === 'approval') {
       return (
-        <div key="approval" className={baseContainerClass}>
+        <div 
+          key="approval"
+          draggable={isEditingLayout}
+          onDragStart={(e) => handleDragStart(e, 'analysis', slotIndex)}
+          onDragOver={(e) => handleDragOver(e, 'analysis', slotIndex)}
+          onDragLeave={() => handleDragLeave('analysis', slotIndex)}
+          onDrop={(e) => handleDrop(e, 'analysis', slotIndex)}
+          onDragEnd={handleDragEnd}
+          className={baseContainerClass}
+        >
+          {dropOverlay}
           <div>
             <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-4">
-              <span className="text-white font-semibold">Taxa de Aprovação</span>
+              <span className="text-white font-semibold flex items-center gap-1.5">
+                {isEditingLayout && <GripVertical className="w-4 h-4 text-blue-400 cursor-grab active:cursor-grabbing" />}
+                <span>Taxa de Aprovação</span>
+              </span>
               {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Percentual de pedidos aprovados por meio">ⓘ</span>}
             </div>
 
@@ -1007,7 +1145,7 @@ export default function Dashboard() {
                 </span>
               </div>
               <p className="text-xs text-zinc-300">
-                Use os botões nos blocos para alterar posições. O formato quadrado simétrico da dashboard é mantido sempre.
+                <span className="font-semibold text-white">🖱️ Arraste com o mouse</span> qualquer card ou métrica para mudar de posição. O formato quadrado simétrico da dashboard é mantido sempre.
               </p>
             </div>
           </div>
@@ -1171,20 +1309,41 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
         {layoutConfig.kpis.map((kpiKey, index) => {
           const card = kpiDataMap[kpiKey] || kpiDataMap.faturamento;
+          const isKpiDragging = draggedItem?.type === 'kpi' && draggedItem?.index === index;
+          const isKpiOver = dragOverItem?.type === 'kpi' && dragOverItem?.index === index && !isKpiDragging;
+
           return (
             <div 
               key={card.id}
+              draggable={isEditingLayout}
+              onDragStart={(e) => handleDragStart(e, 'kpi', index)}
+              onDragOver={(e) => handleDragOver(e, 'kpi', index)}
+              onDragLeave={() => handleDragLeave('kpi', index)}
+              onDrop={(e) => handleDrop(e, 'kpi', index)}
+              onDragEnd={handleDragEnd}
               className={`bg-[#141C2E] border ${
-                isEditingLayout ? 'border-blue-500/50 ring-1 ring-blue-500/30' : 'border-[#1E293B]'
-              } rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md h-[116px] transition-all duration-200 relative group`}
+                isKpiDragging
+                  ? 'border-dashed border-blue-500 opacity-30 scale-[0.97] shadow-2xl ring-2 ring-blue-500/30'
+                  : isKpiOver
+                    ? 'border-blue-400 ring-4 ring-blue-500/50 bg-[#16233E] scale-[1.02]'
+                    : isEditingLayout 
+                      ? 'border-blue-500/50 ring-1 ring-blue-500/30 hover:border-blue-400 cursor-grab active:cursor-grabbing' 
+                      : 'border-[#1E293B]'
+              } rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md h-[116px] transition-all duration-200 relative group select-none`}
             >
               <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
-                <span className="truncate">{card.label}</span>
+                <span className="truncate flex items-center gap-1.5">
+                  {isEditingLayout && <GripVertical className="w-3.5 h-3.5 text-blue-400 cursor-grab active:cursor-grabbing" />}
+                  <span>{card.label}</span>
+                </span>
                 <div className="flex items-center gap-1">
                   {isEditingLayout ? (
                     <div className="flex items-center gap-0.5 bg-[#0F1728] border border-blue-500/40 rounded px-1.5 py-0.5 select-none">
                       <button 
-                        onClick={() => moveKpi(index, -1)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          moveKpi(index, -1);
+                        }}
                         disabled={index === 0}
                         className="p-0.5 hover:text-white disabled:opacity-20 text-blue-300 transition-colors cursor-pointer"
                         title="Mover para a esquerda"
@@ -1193,7 +1352,10 @@ export default function Dashboard() {
                       </button>
                       <span className="text-[10px] text-blue-400 font-mono px-1 font-bold">#{index + 1}</span>
                       <button 
-                        onClick={() => moveKpi(index, 1)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          moveKpi(index, 1);
+                        }}
                         disabled={index === layoutConfig.kpis.length - 1}
                         className="p-0.5 hover:text-white disabled:opacity-20 text-blue-300 transition-colors cursor-pointer"
                         title="Mover para a direita"
