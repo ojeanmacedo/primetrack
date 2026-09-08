@@ -816,7 +816,7 @@ async function executeMetaSync({ datePreset = 'today', timeRange = null, account
     try {
       // Executa busca de campanhas e detalhes de saldo em paralelo para máxima velocidade
       const [campaigns, liveDetails] = await Promise.all([
-        fetchCampaigns(acc.id, latestConnection.accessToken, acc.name, datePreset, timeRange),
+        fetchCampaigns(acc.id, latestConnection.accessToken, acc.name, datePreset, timeRange, acc.rawCurrency || acc.currency),
         fetchLiveAccountDetails(acc.id, latestConnection.accessToken).catch(() => ({}))
       ]);
 

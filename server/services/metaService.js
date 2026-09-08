@@ -102,6 +102,27 @@ export async function fetchUserProfile(accessToken) {
   };
 }
 
+let cachedUsdRate = 5.0891;
+let lastRateFetch = 0;
+
+export async function getUsdToBrlRate() {
+  const now = Date.now();
+  if (now - lastRateFetch < 15 * 60 * 1000) {
+    return cachedUsdRate;
+  }
+  try {
+    const res = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL');
+    const data = await res.json();
+    if (data?.USDBRL?.bid) {
+      cachedUsdRate = Number(data.USDBRL.bid);
+      lastRateFetch = now;
+    }
+  } catch (e) {
+    console.warn('Erro ao obter cotação USD/BRL:', e.message);
+  }
+  return cachedUsdRate;
+}
+
 /**
  * 4. Busca todas as Contas de Anúncios vinculadas a esse perfil
  */
@@ -111,18 +132,28 @@ export async function fetchAdAccounts(accessToken) {
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
   
+  const usdRate = await getUsdToBrlRate();
+
   return (data.data || []).map(acc => {
     const isPrepay = acc.is_prepay_account === true;
     const isCreditCard = acc.funding_source_details?.type === 1 || !isPrepay;
+    const isUsd = acc.currency === 'USD';
+    const rate = isUsd ? usdRate : 1.0;
+
+    const rawBalance = Number(acc.balance || 0) / 100;
+    const rawSpent = Number(acc.amount_spent || 0) / 100;
+
     // Se for conta pós-paga / cartão de crédito, o saldo disponível é 0.00 (zerado)
-    const realAvailableBalance = isCreditCard ? '0.00' : (Number(acc.balance || 0) / 100).toFixed(2);
+    const realAvailableBalance = isCreditCard ? '0.00' : (rawBalance * rate).toFixed(2);
+    const convertedSpent = (rawSpent * rate).toFixed(2);
 
     return {
       id: acc.id, // ex: act_1092137896602979
       accountId: acc.account_id, // ex: 1092137896602979
       name: acc.name || `Conta ${acc.account_id}`,
       currency: 'BRL',
-      amountSpent: (Number(acc.amount_spent || 0) / 100).toFixed(2),
+      rawCurrency: acc.currency,
+      amountSpent: convertedSpent,
       balance: realAvailableBalance,
       isPrepay,
       cardInfo: acc.funding_source_details?.display_string || null,
@@ -143,16 +174,25 @@ export async function fetchLiveAccountDetails(adAccountId, accessToken) {
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
 
+  const usdRate = await getUsdToBrlRate();
+  const isUsd = data.currency === 'USD';
+  const rate = isUsd ? usdRate : 1.0;
+
   const isPrepay = data.is_prepay_account === true;
   const isCreditCard = data.funding_source_details?.type === 1 || !isPrepay;
-  const realAvailableBalance = isCreditCard ? '0.00' : (Number(data.balance || 0) / 100).toFixed(2);
+  const rawBalance = Number(data.balance || 0) / 100;
+  const rawSpent = Number(data.amount_spent || 0) / 100;
+
+  const realAvailableBalance = isCreditCard ? '0.00' : (rawBalance * rate).toFixed(2);
+  const convertedSpent = (rawSpent * rate).toFixed(2);
 
   return {
     id: data.id,
     accountId: data.account_id || data.id.replace('act_', ''),
     name: data.name,
     currency: 'BRL',
-    amountSpent: (Number(data.amount_spent || 0) / 100).toFixed(2),
+    rawCurrency: data.currency,
+    amountSpent: convertedSpent,
     balance: realAvailableBalance,
     isPrepay,
     cardInfo: data.funding_source_details?.display_string || null,
@@ -164,7 +204,7 @@ export async function fetchLiveAccountDetails(adAccountId, accessToken) {
 /**
  * 5. Busca Campanhas reais da Conta de Anúncios com Gastos, Vendas e Receita em Tempo Real (BRL)
  */
-export async function fetchCampaigns(adAccountId, accessToken, accountName = '', datePreset = 'today', timeRange = null) {
+export async function fetchCampaigns(adAccountId, accessToken, accountName = '', datePreset = 'today', timeRange = null, accountCurrency = null) {
   const actId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`;
 
   let insightField = `insights.date_preset(${datePreset}){spend,impressions,clicks,cpc,cpm,ctr,actions,action_values}`;
@@ -178,6 +218,11 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
 
+  const usdRate = await getUsdToBrlRate();
+  // Se for conta em Dólar (USD) como a CA01, aplica a taxa de conversão para BRL (Real Brasileiro)
+  const isUsd = accountCurrency === 'USD' || (!accountCurrency && actId.includes('1092137896602979'));
+  const rate = isUsd ? usdRate : 1.0;
+
   return (data.data || []).map(c => {
     const insight = c.insights?.data?.[0] || {};
     const rawSpend = Number(insight.spend || 0);
@@ -187,13 +232,10 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const rawDailyBudget = c.daily_budget ? (Number(c.daily_budget) / 100) : null;
     const rawLifetimeBudget = c.lifetime_budget ? (Number(c.lifetime_budget) / 100) : null;
 
-    // Valores reais exatos do Gerenciador de Anúncios exibidos em Real Brasileiro (R$)
-    const realBudget = rawDailyBudget !== null ? rawDailyBudget : (rawLifetimeBudget !== null ? rawLifetimeBudget : 25.00);
-    const realSpend = rawSpend;
-
-    const rawCpc = insight.cpc ? Number(insight.cpc) : (clicks > 0 ? realSpend / clicks : 0);
-    const rawCpm = insight.cpm ? Number(insight.cpm) : (impressions > 0 ? (realSpend / impressions) * 1000 : 0);
-    const rawCtr = insight.ctr ? Number(insight.ctr) : (impressions > 0 ? (clicks / impressions) * 100 : 0);
+    // Valores reais exatos em Real Brasileiro (R$)
+    const baseBudget = rawDailyBudget !== null ? rawDailyBudget : (rawLifetimeBudget !== null ? rawLifetimeBudget : 25.00);
+    const realBudget = baseBudget * rate;
+    const realSpend = rawSpend * rate;
 
     // Extrai compras reais e receita reportadas pelo Pixel da Meta
     const actions = insight.actions || [];
@@ -204,12 +246,16 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const initCheckoutAction = actions.find(a => a.action_type === 'initiate_checkout' || a.action_type === 'omni_initiated_checkout');
 
     const pixelSales = purchaseAction ? Number(purchaseAction.value) : 0;
-    const pixelRevenue = purchaseVal ? Number(purchaseVal.value) : 0;
+    const rawPixelRevenue = purchaseVal ? Number(purchaseVal.value) : 0;
+    const pixelRevenue = rawPixelRevenue * rate;
     const initCheckouts = initCheckoutAction ? Number(initCheckoutAction.value) : 0;
 
     const profit = pixelRevenue - realSpend;
     const roas = realSpend > 0 ? (pixelRevenue / realSpend).toFixed(2) : '0.00';
     const cpa = pixelSales > 0 ? (realSpend / pixelSales).toFixed(2) : '0.00';
+    const realCpc = clicks > 0 ? (realSpend / clicks) : 0;
+    const realCpm = impressions > 0 ? (realSpend / impressions) * 1000 : 0;
+    const rawCtr = insight.ctr ? Number(insight.ctr) : (impressions > 0 ? (clicks / impressions) * 100 : 0);
 
     return {
       id: c.id,
@@ -223,8 +269,8 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       spend: realSpend.toFixed(2),
       impressions,
       clicks,
-      cpc: rawCpc.toFixed(2),
-      cpm: rawCpm.toFixed(2),
+      cpc: realCpc.toFixed(2),
+      cpm: realCpm.toFixed(2),
       ctr: rawCtr.toFixed(2),
       sales: pixelSales,
       revenue: pixelRevenue.toFixed(2),
