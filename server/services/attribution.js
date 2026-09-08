@@ -82,28 +82,32 @@ export function attributeOrder(parsedOrder, clientIp = null) {
 
 function updateCampaignStats(campaignName, adName, amount) {
   const campaigns = db.get('campaigns') || [];
-  let camp = campaigns.find(c => c.utm_campaign === campaignName || c.campaign_name.includes(campaignName));
+  let camp = campaigns.find(c => (c.utm_campaign && c.utm_campaign === campaignName) || (c.campaign_name && campaignName && c.campaign_name.includes(campaignName)));
 
   if (!camp && campaigns.length > 0) {
     camp = campaigns[0]; // Associa à principal caso não encontrada
   }
 
   if (camp) {
-    camp.sales = (camp.sales || 0) + 1;
-    camp.revenue = Number(((camp.revenue || 0) + amount).toFixed(2));
-    if (camp.spend > 0) {
-      camp.cpa = Number((camp.spend / camp.sales).toFixed(2));
-      camp.roas = Number((camp.revenue / camp.spend).toFixed(2));
+    camp.sales = (Number(camp.sales) || 0) + 1;
+    const currentRev = Number(camp.revenue) || 0;
+    camp.revenue = Number((currentRev + Number(amount || 0)).toFixed(2));
+    const spend = Number(camp.spend) || 0;
+    if (spend > 0) {
+      camp.cpa = Number((spend / camp.sales).toFixed(2));
+      camp.roas = Number((camp.revenue / spend).toFixed(2));
     }
 
     if (camp.ads && camp.ads.length > 0) {
-      const ad = camp.ads.find(a => a.utm_content === adName || a.ad_name.includes(adName)) || camp.ads[0];
+      const ad = camp.ads.find(a => (a.utm_content && a.utm_content === adName) || (a.ad_name && adName && a.ad_name.includes(adName))) || camp.ads[0];
       if (ad) {
-        ad.sales = (ad.sales || 0) + 1;
-        ad.revenue = Number(((ad.revenue || 0) + amount).toFixed(2));
-        if (ad.spend > 0) {
-          ad.cpa = Number((ad.spend / ad.sales).toFixed(2));
-          ad.roas = Number((ad.revenue / ad.spend).toFixed(2));
+        ad.sales = (Number(ad.sales) || 0) + 1;
+        const currentAdRev = Number(ad.revenue) || 0;
+        ad.revenue = Number((currentAdRev + Number(amount || 0)).toFixed(2));
+        const adSpend = Number(ad.spend) || 0;
+        if (adSpend > 0) {
+          ad.cpa = Number((adSpend / ad.sales).toFixed(2));
+          ad.roas = Number((ad.revenue / adSpend).toFixed(2));
         }
       }
     }

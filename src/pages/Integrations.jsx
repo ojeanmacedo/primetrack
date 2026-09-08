@@ -915,9 +915,15 @@ export default function Integrations() {
               <h3 className="font-bold text-white text-sm">
                 Webhook API
               </h3>
-              <button className="px-3 py-1 rounded-lg bg-[#070D1A] hover:bg-[#12223D] border border-white/10 text-zinc-300 text-xs transition-colors">
-                Documentação
-              </button>
+              <a 
+                href={typeof window !== 'undefined' && window.location.hostname.includes('localhost') ? '/docs/webhook' : 'https://docs.primetrack.top'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3.5 py-1.5 rounded-lg bg-[#070D1A] hover:bg-[#12223D] border border-white/10 hover:border-[#0066FF]/50 text-zinc-200 hover:text-white text-xs font-semibold transition-all flex items-center gap-1.5 shadow-sm"
+              >
+                <span>Documentação</span>
+                <ExternalLink className="w-3.5 h-3.5 text-[#0066FF]" />
+              </a>
             </div>
 
             <p className="text-xs text-zinc-400 leading-relaxed">

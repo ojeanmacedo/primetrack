@@ -129,10 +129,10 @@ app.post('/api/track/event', async (req, res) => {
 /**
  * 2. Ingestão Universal de Webhooks (Kiwify, Hotmart, Eduzz, etc.)
  */
-app.post('/api/webhooks/:gateway', async (req, res) => {
+app.post(['/api/webhook', '/api/webhooks/:gateway'], async (req, res) => {
   try {
-    const { gateway } = req.params;
-    const body = req.body;
+    const gateway = req.params.gateway || 'generic';
+    const body = req.body || {};
     const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
     console.log(`[Webhook Recebido] Gateway: ${gateway}, Código:`, body.order_id || body.transaction || body.id);

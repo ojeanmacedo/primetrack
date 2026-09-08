@@ -78,31 +78,56 @@ function AuthListener() {
   return null;
 }
 
+import DocsWebhook from './pages/DocsWebhook';
+
+function isDocsSubdomain() {
+  if (typeof window === 'undefined') return false;
+  return window.location.hostname === 'docs.primetrack.top' || 
+         window.location.hostname.startsWith('docs.');
+}
+
 export default function App() {
+  const isDocsHost = isDocsSubdomain();
+
   return (
     <BrowserRouter>
-      <AuthListener />
+      {!isDocsHost && <AuthListener />}
       <Routes>
-        {/* Rota 1: Landing Page Pública (1:1 primetrack.com.br) */}
-        <Route path="/" element={<LandingPage />} />
+        {/* Subdomínio docs.primetrack.top ou rotas diretas de documentação */}
+        {isDocsHost ? (
+          <>
+            <Route path="/" element={<DocsWebhook />} />
+            <Route path="*" element={<DocsWebhook />} />
+          </>
+        ) : (
+          <>
+            {/* Documentação Oficial Webhook API */}
+            <Route path="/docs" element={<DocsWebhook />} />
+            <Route path="/docs/webhook" element={<DocsWebhook />} />
+            <Route path="/documentacao" element={<DocsWebhook />} />
 
-        {/* Rota 2: Tela de Login */}
-        <Route path="/login" element={<LoginPage />} />
+            {/* Rota 1: Landing Page Pública */}
+            <Route path="/" element={<LandingPage />} />
 
-        {/* Rotas do Painel Interno (com Sidebar e Topbar fiéis aos prints) */}
-        <Route element={<AppLayout />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/campanhas" element={<Campaigns />} />
-          <Route path="/vendas" element={<Sales />} />
-          <Route path="/regras" element={<Rules />} />
-          <Route path="/integracoes" element={<Integrations />} />
-          <Route path="/notificacoes" element={<Notifications />} />
-          <Route path="/planos" element={<Plans />} />
-          <Route path="/suporte" element={<Support />} />
-        </Route>
+            {/* Rota 2: Tela de Login */}
+            <Route path="/login" element={<LoginPage />} />
 
-        {/* Redirecionamento padrão para rotas desconhecidas */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            {/* Rotas do Painel Interno */}
+            <Route element={<AppLayout />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/campanhas" element={<Campaigns />} />
+              <Route path="/vendas" element={<Sales />} />
+              <Route path="/regras" element={<Rules />} />
+              <Route path="/integracoes" element={<Integrations />} />
+              <Route path="/notificacoes" element={<Notifications />} />
+              <Route path="/planos" element={<Plans />} />
+              <Route path="/suporte" element={<Support />} />
+            </Route>
+
+            {/* Redirecionamento padrão para rotas desconhecidas */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </>
+        )}
       </Routes>
     </BrowserRouter>
   );

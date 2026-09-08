@@ -262,19 +262,37 @@ function parseBraip(body) {
 function parseGeneric(body) {
   const customer = body.customer || body.buyer || body.client || {};
   const tracking = body.tracking || body.tracking_parameters || body.metadata || {};
+  const product = body.product || (Array.isArray(body.products) && body.products[0]) || {};
+
+  const rawEvent = (body.event || body.status || 'sale.approved').toLowerCase();
+  let status = 'approved';
+  if (['sale.pending', 'waiting_payment', 'pending'].includes(rawEvent)) {
+    status = 'waiting_payment';
+  } else if (['sale.refunded', 'subscription.cancelled', 'refunded', 'chargeback'].includes(rawEvent)) {
+    status = 'refunded';
+  }
+
+  const customerName = customer.name || 
+    (customer.first_name ? `${customer.first_name} ${customer.last_name || ''}`.trim() : '') || 
+    customer.full_name || body.name || 'Cliente';
+
   return {
     gateway: body.gateway || 'Custom Webhook',
-    orderCode: body.order_id || body.id || body.transaction || `ORD-${Date.now().toString().slice(-7)}`,
-    status: body.status || 'approved',
-    amount: Number(body.amount || body.total || body.price || 97.00),
+    orderCode: body.transaction_id || body.order_id || body.id || body.transaction || `ORD-${Date.now().toString().slice(-7)}`,
+    status,
+    amount: Number(body.amount || body.total || body.sale_amount || body.price || 97.00),
     paymentMethod: body.payment_method || body.paymentMethod || 'pix',
-    productName: body.product_name || body.productName || 'Produto Digital',
+    productName: product.name || body.product_name || body.productName || 'Produto Digital',
+    products: body.products || (product.name ? [product] : []),
     customer: {
-      name: customer.name || customer.full_name || body.name || 'Cliente',
+      name: customerName,
       email: customer.email || body.email || '',
       phone: customer.phone || customer.mobile || body.phone || '',
-      city: customer.city || body.city || '',
-      state: customer.state || body.state || ''
+      document: customer.document || customer.cpf || '',
+      country: customer.country || 'br',
+      city: customer.city || (customer.address && customer.address.city) || body.city || '',
+      state: customer.state || (customer.address && customer.address.state) || body.state || '',
+      zip: customer.zip || customer.cep || ''
     },
     tracking: {
       utm_source: tracking.utm_source || body.utm_source,
