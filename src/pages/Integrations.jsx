@@ -113,6 +113,15 @@ export default function Integrations() {
   const [isVerifyingPixel, setIsVerifyingPixel] = useState(false);
   const [pixelVerificationResult, setPixelVerificationResult] = useState(null); // { found: boolean, message: string }
 
+  // Modal de Edição de Pixel
+  const [pixelToEdit, setPixelToEdit] = useState(null);
+  const [editPixelName, setEditPixelName] = useState('');
+  const [editPixelMetaId, setEditPixelMetaId] = useState('');
+  const [editPixelCapiToken, setEditPixelCapiToken] = useState('');
+  const [editPixelIcType, setEditPixelIcType] = useState('css');
+  const [editPixelIcValue, setEditPixelIcValue] = useState('.btn-checkout');
+  const [editPixelDomains, setEditPixelDomains] = useState('');
+
   // Modal Conectar Plataforma Flow States (Monsterpay)
   const [showConnectPlatformModal, setShowConnectPlatformModal] = useState(false);
   const [connectPlatformStep, setConnectPlatformStep] = useState(1); // 1 = select, 2 = alias, 3 = result
@@ -476,6 +485,55 @@ export default function Integrations() {
     setNewPixelIcValue('.btn-checkout');
     setNewPixelDomains('');
     setPixelSuccessMsg(`Pixel "${newPx.name}" configurado com sucesso!`);
+    setTimeout(() => setPixelSuccessMsg(null), 3500);
+  };
+
+  const handleOpenEditPixel = (px) => {
+    setPixelToEdit(px);
+    setEditPixelName(px.name || '');
+    setEditPixelMetaId(px.pixelId || '');
+    setEditPixelCapiToken(px.capiTokenRaw || px.capiToken || '');
+    const currentType = px.icType || (px.icRule && px.icRule.startsWith('url') ? 'url' : px.icRule && px.icRule.startsWith('texto') ? 'text' : 'css');
+    setEditPixelIcType(currentType);
+    setEditPixelIcValue(px.icValue || (currentType === 'css' ? '.btn-checkout' : currentType === 'url' ? '/checkout' : 'Comprar'));
+    setEditPixelDomains(px.domains === '*' ? '' : (px.domains || ''));
+  };
+
+  const handleUpdatePixel = (e) => {
+    e.preventDefault();
+    if (!pixelToEdit || !editPixelName.trim() || !editPixelMetaId.trim()) return;
+
+    const ruleLabel = editPixelIcType === 'css' 
+      ? `css ${editPixelIcValue.trim() || '.btn-checkout'}` 
+      : editPixelIcType === 'url' 
+        ? `url contendo ${editPixelIcValue.trim() || '/checkout'}` 
+        : `texto contendo "${editPixelIcValue.trim() || 'Comprar'}"`;
+
+    const updated = trackingPixels.map(px => {
+      if (px.id === pixelToEdit.id) {
+        return {
+          ...px,
+          name: editPixelName.trim(),
+          pixelId: editPixelMetaId.trim(),
+          capiTokenRaw: editPixelCapiToken.trim(),
+          capiToken: editPixelCapiToken.trim() 
+            ? (editPixelCapiToken.includes('••••') ? px.capiToken : (editPixelCapiToken.slice(0, 6) + '••••' + editPixelCapiToken.slice(-4)))
+            : px.capiToken,
+          icType: editPixelIcType,
+          icValue: editPixelIcValue.trim() || (editPixelIcType === 'css' ? '.btn-checkout' : editPixelIcType === 'url' ? '/checkout' : 'Comprar'),
+          icRule: ruleLabel,
+          domains: editPixelDomains.trim() || '*'
+        };
+      }
+      return px;
+    });
+
+    setTrackingPixels(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('primetrack_pixels', JSON.stringify(updated));
+    }
+    setPixelToEdit(null);
+    setPixelSuccessMsg(`Pixel "${editPixelName.trim()}" atualizado com sucesso!`);
     setTimeout(() => setPixelSuccessMsg(null), 3500);
   };
 
@@ -1037,6 +1095,13 @@ export default function Integrations() {
                             className="px-3 py-1 rounded-lg bg-[#070D1A] hover:bg-[#12223D] border border-white/10 text-zinc-300 text-xs transition-colors cursor-pointer"
                           >
                             Testar
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={() => handleOpenEditPixel(px)}
+                            className="px-3 py-1 rounded-lg bg-[#070D1A] hover:bg-[#12223D] border border-white/10 text-zinc-300 text-xs transition-colors cursor-pointer"
+                          >
+                            Editar
                           </button>
                           <button 
                             type="button"
@@ -2401,6 +2466,154 @@ export default function Integrations() {
                   className="px-5 py-2 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all cursor-pointer"
                 >
                   Criar Pixel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL EDITAR PIXEL DE RASTREIO                                            */}
+      {/* ========================================================================= */}
+      {pixelToEdit && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => setPixelToEdit(null)}
+        >
+          <div 
+            className="bg-[#0C172B] border border-[#1E3254] rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-[#1E3254]">
+              <h3 className="text-sm font-bold text-white">
+                Editar Pixel
+              </h3>
+              <button
+                type="button"
+                onClick={() => setPixelToEdit(null)}
+                className="text-zinc-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdatePixel} className="space-y-4 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold mb-1.5">
+                    NOME DO PIXEL
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editPixelName}
+                    onChange={(e) => setEditPixelName(e.target.value)}
+                    className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold mb-1.5">
+                    PIXEL ID
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editPixelMetaId}
+                    onChange={(e) => setEditPixelMetaId(e.target.value)}
+                    className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold mb-1.5">
+                  TOKEN DA API DE CONVERSÕES (CAPI)
+                </label>
+                <input
+                  type="text"
+                  placeholder="EAAB... (Token do Gerenciador de Eventos da Meta)"
+                  value={editPixelCapiToken}
+                  onChange={(e) => setEditPixelCapiToken(e.target.value)}
+                  className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-mono text-[11px] focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                />
+              </div>
+
+              {/* Regra de Detecção IC */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold mb-1.5 flex items-center gap-1">
+                    <span>REGRA DE DETECÇÃO IC</span>
+                    <span className="w-3.5 h-3.5 rounded-full bg-blue-500/20 text-blue-400 text-[9px] flex items-center justify-center font-bold">i</span>
+                  </label>
+                  <select
+                    value={editPixelIcType}
+                    onChange={(e) => {
+                      const newType = e.target.value;
+                      setEditPixelIcType(newType);
+                      if (newType === 'css') setEditPixelIcValue('.btn-checkout');
+                      else if (newType === 'url') setEditPixelIcValue('/checkout');
+                      else setEditPixelIcValue('Comprar');
+                    }}
+                    className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3 py-2.5 text-white text-xs font-medium focus:outline-none focus:border-[#1A6DFF] transition-colors cursor-pointer"
+                  >
+                    <option value="css">Seletor CSS</option>
+                    <option value="url">Contém na URL</option>
+                    <option value="text">Contém no Texto</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold mb-1.5">
+                    VALOR DA REGRA
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editPixelIcValue}
+                    onChange={(e) => setEditPixelIcValue(e.target.value)}
+                    placeholder={editPixelIcType === 'css' ? '.btn-checkout' : editPixelIcType === 'url' ? '/checkout' : 'Comprar'}
+                    className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                  />
+                </div>
+              </div>
+
+              <p className="text-[11px] text-zinc-500 -mt-2">
+                {editPixelIcType === 'css' && 'Seletor CSS do elemento de checkout.'}
+                {editPixelIcType === 'url' && 'Trecho ou domínio contido no link de checkout.'}
+                {editPixelIcType === 'text' && 'Texto visível no botão que dispara o checkout.'}
+              </p>
+
+              <div>
+                <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold mb-1.5">
+                  DOMÍNIOS AUTORIZADOS <span className="text-zinc-500 text-[10px] lowercase font-normal">(opcional)</span>
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder={`meusite.com.br\nmeusite.com.br/p/123/produto-x`}
+                  value={editPixelDomains}
+                  onChange={(e) => setEditPixelDomains(e.target.value)}
+                  className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2 text-white font-mono text-xs focus:outline-none focus:border-[#1A6DFF] transition-colors resize-none"
+                />
+                <p className="text-[10px] text-zinc-500 mt-1 leading-relaxed">
+                  1 por linha. Vazio = aceita de qualquer lugar. Use o domínio (<code className="text-zinc-400">meusite.com.br</code>) ou a URL completa para travar uma página específica.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setPixelToEdit(null)}
+                  className="px-4 py-2 rounded-xl bg-[#070D1A] hover:bg-white/5 border border-white/10 text-zinc-300 font-semibold text-xs transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+                >
+                  Salvar
                 </button>
               </div>
             </form>
