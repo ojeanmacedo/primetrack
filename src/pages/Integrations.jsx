@@ -916,10 +916,10 @@ export default function Integrations() {
                 Webhook API
               </h3>
               <a 
-                href={typeof window !== 'undefined' && window.location.hostname.includes('localhost') ? '/docs/webhook' : 'https://docs.primetrack.top'}
+                href="https://docs.primetrack.top"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3.5 py-1.5 rounded-lg bg-[#070D1A] hover:bg-[#12223D] border border-white/10 hover:border-[#0066FF]/50 text-zinc-200 hover:text-white text-xs font-semibold transition-all flex items-center gap-1.5 shadow-sm"
+                className="px-3.5 py-1.5 rounded-lg bg-[#070D1A] hover:bg-[#12223D] border border-white/10 hover:border-[#0066FF]/50 text-zinc-200 hover:text-white text-xs font-semibold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
               >
                 <span>Documentação</span>
                 <ExternalLink className="w-3.5 h-3.5 text-[#0066FF]" />
@@ -927,7 +927,17 @@ export default function Integrations() {
             </div>
 
             <p className="text-xs text-zinc-400 leading-relaxed">
-              Cada integração usa seu próprio token e URL. Clique em "Conectar Plataforma" abaixo para gerar a URL certa para a sua ferramenta, ou consulte a documentação para integrações avançadas.
+              Cada integração usa seu próprio token e URL. Clique em "Conectar Plataforma" abaixo para gerar a URL certa para a sua ferramenta, ou consulte a documentação oficial em{' '}
+              <a 
+                href="https://docs.primetrack.top" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-[#0066FF] hover:underline font-semibold inline-flex items-center gap-0.5"
+              >
+                docs.primetrack.top
+                <ExternalLink className="w-2.5 h-2.5 ml-0.5" />
+              </a>{' '}
+              para integrações avançadas.
             </p>
           </div>
 
