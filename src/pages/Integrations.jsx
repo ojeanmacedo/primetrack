@@ -459,11 +459,16 @@ export default function Integrations() {
         ? `url contendo ${newPixelIcValue.trim() || '/checkout'}` 
         : `texto contendo "${newPixelIcValue.trim() || 'Comprar'}"`;
 
+    const autoInternalPixelId = `pt_px_${Math.random().toString(36).substr(2, 12)}`;
+
     const newPx = {
       id: `px_${Date.now()}`,
       name: newPixelName.trim(),
-      pixelId: newPixelMetaId.trim(),
+      internalPixelId: autoInternalPixelId,
+      pixelId: autoInternalPixelId, // Código identificador único PrimeTrack (ex: pt_px_590fedcfff65)
+      metaPixelId: newPixelMetaId.trim(), // ID do Pixel do Facebook/Meta (ex: 1056706567239394)
       capiToken: newPixelCapiToken.trim() ? (newPixelCapiToken.slice(0, 6) + '••••' + newPixelCapiToken.slice(-4)) : '••••••9y2D2D',
+      capiTokenRaw: newPixelCapiToken.trim(),
       icType: newPixelIcType,
       icValue: newPixelIcValue.trim() || (newPixelIcType === 'css' ? '.btn-checkout' : newPixelIcType === 'url' ? '/checkout' : 'Comprar'),
       icRule: ruleLabel,
@@ -729,7 +734,7 @@ export default function Integrations() {
   var a = document.createElement("script");
   a.setAttribute("async", "");
   a.setAttribute("defer", "");
-  a.setAttribute("src", "https://primetrack.com.br/pixel.js");
+  a.setAttribute("src", "https://app.primetrack.top/pixel.js");
   document.head.appendChild(a);
 </script>`;
 
@@ -1071,11 +1076,11 @@ export default function Integrations() {
                 {trackingPixels.map((px) => {
                   const pxScript = `<!-- PrimeTrack Pixel -->
 <script>
-  window.pixelId = "${px.pixelId}";
+  window.pixelId = "${px.pixelId || px.internalPixelId || 'pt_px_590fedcfff65'}";
   var a = document.createElement("script");
   a.setAttribute("async", "");
   a.setAttribute("defer", "");
-  a.setAttribute("src", "https://primetrack.com.br/pixel.js");
+  a.setAttribute("src", "https://app.primetrack.top/pixel.js");
   document.head.appendChild(a);
 </script>`;
                   return (
@@ -1123,7 +1128,9 @@ export default function Integrations() {
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
                         <div>
                           <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1">Pixel ID</div>
-                          <div className="font-mono text-zinc-300 truncate">{px.pixelId}</div>
+                          <div className="font-mono text-zinc-300 truncate" title={px.metaPixelId ? `Meta: ${px.metaPixelId}` : px.pixelId}>
+                            {px.pixelId}
+                          </div>
                         </div>
 
                         <div>
