@@ -1574,7 +1574,6 @@ export default function Integrations() {
                 <thead className="bg-[#070D1A] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E]">
                   <tr>
                     <th className="py-3 px-4">PLATAFORMA</th>
-                    <th className="py-3 px-4">URL DO WEBHOOK</th>
                     <th className="py-3 px-4">TOKEN</th>
                     <th className="py-3 px-4 text-center">STATUS</th>
                     <th className="py-3 px-4">ÚLTIMO USO</th>
@@ -1585,7 +1584,7 @@ export default function Integrations() {
                 <tbody className="divide-y divide-[#13233E]/60 font-sans">
                   {apiTokens.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-10 px-4 text-center">
+                      <td colSpan={6} className="py-10 px-4 text-center">
                         <div className="text-zinc-400 font-bold text-xs">
                           Nenhum token de API criado ainda
                         </div>
@@ -1597,7 +1596,6 @@ export default function Integrations() {
                   ) : (
                     apiTokens.map((tok) => {
                       const isMonster = (tok.platform || tok.name || '').toLowerCase().includes('monster');
-                      const fullWebhookUrl = tok.webhookUrl || `https://app.primetrack.top/api/webhooks/${(tok.platform || tok.name || 'generic').toLowerCase()}`;
                       
                       return (
                         <tr key={tok.id} className="hover:bg-white/[0.02] transition-colors">
@@ -1611,25 +1609,6 @@ export default function Integrations() {
                                   Conectada
                                 </span>
                               )}
-                            </div>
-                          </td>
-                          <td className="py-4 px-4 font-mono text-zinc-300">
-                            <div className="flex items-center gap-2 bg-[#070D1A] border border-[#1E3254] px-2.5 py-1 rounded-lg w-fit">
-                              <span className="text-[11px] text-zinc-300 select-all font-mono">
-                                {fullWebhookUrl}
-                              </span>
-                              <button 
-                                type="button"
-                                onClick={() => copyPlatformField(fullWebhookUrl, 'url')}
-                                className="p-0.5 hover:text-white text-zinc-400 transition-colors cursor-pointer"
-                                title="Copiar URL do Webhook"
-                              >
-                                {copiedWebhookUrl ? (
-                                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                                ) : (
-                                  <Copy className="w-3.5 h-3.5 text-[#0066FF] hover:text-blue-400" />
-                                )}
-                              </button>
                             </div>
                           </td>
                           <td className="py-4 px-4 font-mono text-zinc-300">
@@ -1657,23 +1636,16 @@ export default function Integrations() {
                             {tok.createdAt || '08/09/2026'}
                           </td>
                           <td className="py-4 px-4 text-right font-mono">
-                            <div className="flex items-center justify-end gap-2">
+                            {tok.id !== 'tok_monsterpay' ? (
                               <button 
-                                type="button"
-                                onClick={() => copyPlatformField(fullWebhookUrl, 'url')}
-                                className="text-[#0066FF] hover:text-blue-400 text-xs font-semibold transition-colors cursor-pointer"
+                                onClick={() => setTokenToDelete(tok)}
+                                className="text-red-400 hover:text-red-300 text-xs font-medium transition-colors cursor-pointer"
                               >
-                                {copiedWebhookUrl ? 'Copiado!' : 'Copiar URL'}
+                                Excluir
                               </button>
-                              {tok.id !== 'tok_monsterpay' && (
-                                <button 
-                                  onClick={() => setTokenToDelete(tok)}
-                                  className="text-red-400 hover:text-red-300 text-xs font-medium transition-colors cursor-pointer ml-2"
-                                >
-                                  Excluir
-                                </button>
-                              )}
-                            </div>
+                            ) : (
+                              <span className="text-zinc-500 text-xs">—</span>
+                            )}
                           </td>
                         </tr>
                       );
