@@ -665,13 +665,24 @@ export default function Dashboard() {
     return { pix, cc, boleto, outros, total: approvedOrders.length };
   }, [approvedOrders]);
 
-  // Taxa de aprovação Pix
-  const pixRate = useMemo(() => {
-    const totalPixCreated = filteredOrders.filter(o => (o.paymentMethod || '').toLowerCase().includes('pix') || !o.paymentMethod).length;
-    const totalPixApproved = approvedOrders.filter(o => (o.paymentMethod || '').toLowerCase().includes('pix') || !o.paymentMethod).length;
-    if (totalPixCreated === 0) return 'N/A';
-    return `${Math.round((totalPixApproved / totalPixCreated) * 100)}%`;
+  // Taxas de aprovação por método (Cartão, Pix, Boleto) no estilo UTMify
+  const approvalRates = useMemo(() => {
+    const calcRate = (matcher) => {
+      const created = filteredOrders.filter(o => matcher((o.paymentMethod || '').toLowerCase())).length;
+      const approved = approvedOrders.filter(o => matcher((o.paymentMethod || '').toLowerCase())).length;
+      if (created === 0) return { label: 'N/A', pct: 0, hasData: false };
+      const pct = (approved / created) * 100;
+      return { label: `${pct.toFixed(1)}%`, pct, hasData: true };
+    };
+
+    return [
+      { name: 'Cartão', ...calcRate(pm => pm.includes('card') || pm.includes('credit') || pm.includes('cartao')) },
+      { name: 'Pix', ...calcRate(pm => pm.includes('pix') || !pm) },
+      { name: 'Boleto', ...calcRate(pm => pm.includes('boleto')) }
+    ];
   }, [filteredOrders, approvedOrders]);
+
+  const pixRate = approvalRates[1]?.label || 'N/A';
 
   // Cálculos de Vendas por Horário (distribuição pelas 24h do dia)
   const hourlyData = useMemo(() => {
@@ -1073,47 +1084,60 @@ export default function Dashboard() {
           className={baseContainerClass}
         >
           {dropOverlay}
-          <div>
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2">
+          <div className="w-full">
+            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-3 sm:mb-3.5">
               <span className="text-white font-semibold">Taxa de Aprovação</span>
               {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Percentual de pedidos aprovados por meio">ⓘ</span>}
             </div>
 
-            <div className="space-y-2 py-1">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-zinc-300 font-medium">Cartão</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full border border-zinc-700 flex items-center justify-center">
-                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
-                  </div>
-                  <span className="text-zinc-400 font-mono text-xs">N/A</span>
-                </div>
-              </div>
+            <div className="space-y-3.5 sm:space-y-4 py-1">
+              {approvalRates.map((method, i) => {
+                const validPct = method.hasData ? Math.min(100, Math.max(0, method.pct)) : 0;
+                const circumference = 56.55; // 2 * pi * 9
+                const strokeDashoffset = circumference - (validPct / 100) * circumference;
 
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-zinc-300 font-medium">Pix</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full border border-[#0066FF] flex items-center justify-center">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#0066FF]" />
-                  </div>
-                  <span className="text-white font-mono font-bold text-xs">{pixRate}</span>
-                </div>
-              </div>
+                return (
+                  <div key={i} className="flex items-center justify-between text-xs group">
+                    <span className="font-normal text-zinc-200 text-xs tracking-tight">
+                      {method.name}
+                    </span>
 
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-zinc-300 font-medium">Boleto</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full border border-zinc-700 flex items-center justify-center">
-                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
+                    <div className="flex items-center gap-3 shrink-0">
+                      {/* Gauge Circular Mini */}
+                      <div className="w-4.5 h-4.5 sm:w-5 sm:h-5 relative flex items-center justify-center shrink-0">
+                        <svg className="w-full h-full -rotate-90" viewBox="0 0 24 24">
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="9"
+                            fill="none"
+                            stroke="#1E293B"
+                            strokeWidth="2.5"
+                          />
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="9"
+                            fill="none"
+                            stroke="#0066FF"
+                            strokeWidth="2.5"
+                            strokeDasharray={circumference}
+                            strokeDashoffset={method.hasData ? strokeDashoffset : circumference}
+                            strokeLinecap="round"
+                            className="transition-all duration-500"
+                          />
+                        </svg>
+                      </div>
+
+                      {/* Porcentagem ou N/A */}
+                      <span className={`font-mono text-xs w-12 text-right ${method.hasData ? 'text-white font-bold' : 'text-zinc-400 font-medium'}`}>
+                        {method.label}
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-zinc-400 font-mono text-xs">N/A</span>
-                </div>
-              </div>
+                );
+              })}
             </div>
-          </div>
-          <div className="text-[10px] text-zinc-500 pt-1.5 border-t border-[#1E293B]/40 flex items-center justify-between">
-            <span>Conversão Geral do Checkout</span>
-            <span className="font-mono font-bold text-white">{pixRate}</span>
           </div>
         </div>
       );
