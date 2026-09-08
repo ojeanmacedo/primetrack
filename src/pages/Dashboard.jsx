@@ -101,8 +101,10 @@ export default function Dashboard() {
   const DEFAULT_LAYOUT = {
     // 6 KPIs em ordem harmônica
     kpis: ['faturamento', 'gastos', 'lucro', 'pendentes', 'roi', 'margem'],
-    // 5 Cards Analíticos (Coluna 1: products, sources, approval; Coluna 2: payments, funnel)
-    analysisCards: ['products', 'sources', 'approval', 'payments', 'funnel']
+    // 5 Cards Analíticos:
+    // Linha 1 (3 horizontais): products, sources, approval
+    // Linha 2 (2 horizontais): funnel, payments
+    analysisCards: ['products', 'sources', 'approval', 'funnel', 'payments']
   };
 
   const [layoutConfig, setLayoutConfig] = useState(() => {
@@ -111,7 +113,7 @@ export default function Dashboard() {
         const saved = localStorage.getItem('primetrack_dashboard_layout_config');
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed.analysisCards) && parsed.analysisCards.includes('funnel') && parsed.analysisCards[0] === 'products' && parsed.analysisCards[1] === 'sources') {
+          if (Array.isArray(parsed.analysisCards) && parsed.analysisCards.includes('funnel') && parsed.analysisCards[0] === 'products' && parsed.analysisCards[1] === 'sources' && parsed.analysisCards[2] === 'approval') {
             return {
               kpis: Array.isArray(parsed.kpis) && parsed.kpis.length === 6 ? parsed.kpis : DEFAULT_LAYOUT.kpis,
               analysisCards: parsed.analysisCards
@@ -1536,17 +1538,14 @@ export default function Dashboard() {
         })}
       </div>
 
-      {/* Colunas Analíticas (Coluna 1: Vendas por Produto, Vendas por Pagamento, Funil; Coluna 2: Vendas por Fonte, Taxa de Aprovação) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-3.5">
-        {/* Coluna 1 */}
-        <div className="flex flex-col gap-3 sm:gap-3.5">
-          {layoutConfig.analysisCards.slice(0, 3).map((cardKey, i) => renderAnalysisCard(cardKey, i))}
-        </div>
+      {/* Linha Analítica 1 (Horizontal - 3 Blocos): Vendas por Produto, Vendas por Fonte, Taxa de Aprovação */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-3.5">
+        {layoutConfig.analysisCards.slice(0, 3).map((cardKey, i) => renderAnalysisCard(cardKey, i))}
+      </div>
 
-        {/* Coluna 2 */}
-        <div className="flex flex-col gap-3 sm:gap-3.5">
-          {layoutConfig.analysisCards.slice(3).map((cardKey, i) => renderAnalysisCard(cardKey, i + 3))}
-        </div>
+      {/* Linha Analítica 2 (Horizontal - 2 Blocos): Funil de Conversão e Vendas por Pagamento */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-3.5">
+        {layoutConfig.analysisCards.slice(3, 5).map((cardKey, i) => renderAnalysisCard(cardKey, i + 3))}
       </div>
 
       {/* Bloco de Vendas por Horário */}
