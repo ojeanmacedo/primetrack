@@ -2521,16 +2521,16 @@ export default function Integrations() {
               </div>
 
               <div>
-                <label className="block text-zinc-400 font-medium mb-1.5">
-                  Pixel ID (Facebook / Meta Ads)
+                <label className="block text-zinc-400 font-medium mb-1.5 flex items-center justify-between">
+                  <span>Pixel ID (Facebook / Meta Ads)</span>
+                  <span className="text-[10px] text-zinc-500 font-mono">Não editável</span>
                 </label>
                 <input
                   type="text"
-                  required
-                  placeholder="Ex: 1056786567239394"
+                  readOnly
+                  disabled
                   value={editPixelMetaId}
-                  onChange={(e) => setEditPixelMetaId(e.target.value)}
-                  className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                  className="w-full bg-[#070D1A]/60 border border-[#1E3254]/60 rounded-xl px-3.5 py-2.5 text-zinc-400 font-mono cursor-not-allowed select-all focus:outline-none"
                 />
               </div>
 
