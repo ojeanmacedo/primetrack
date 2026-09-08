@@ -28,15 +28,41 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Servir o arquivo pixel.js
 app.get('/pixel.js', (req, res) => {
+  const dest = req.headers['sec-fetch-dest'] || '';
   const accept = req.headers['accept'] || '';
-  if (accept.includes('text/html') && !req.xhr) {
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    return res.send('<!DOCTYPE html><html><head><meta charset="utf-8"><title>jean macedo carregando...</title><style>body{background-color:#000;color:#fff;font-family:monospace;padding:18px 24px;margin:0;font-size:16px;}</style></head><body>jean macedo carregando...</body></html>');
+  const isDirectBrowser = dest === 'document' || dest === 'empty' || accept.includes('text/html') || (!dest && accept.includes('*/*'));
+
+  // Quando for importado via tag <script src="..."> pela landing page do cliente
+  if (dest === 'script' || req.query.mode === 'raw') {
+    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return res.sendFile(path.join(__dirname, 'public', 'pixel.js'));
   }
 
-  res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+  // Se for aberto diretamente na barra de endereço do navegador pelo usuário/curioso
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-  res.sendFile(path.join(__dirname, 'public', 'pixel.js'));
+  return res.send(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>jean macedo carregando...</title>
+  <style>
+    body {
+      background-color: #0b0f19;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      padding: 24px;
+      margin: 0;
+      font-size: 15px;
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+  jean macedo carregando...
+</body>
+</html>`);
 });
 
 // Endpoint de teste de saúde
