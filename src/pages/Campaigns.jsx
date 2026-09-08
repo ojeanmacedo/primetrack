@@ -164,8 +164,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         '7 dias': 'last_7d',
         'Últimos 14 dias': 'last_14d',
         '14 dias': 'last_14d',
+        '15 dias': 'last_14d',
         'Últimos 30 dias': 'last_30d',
         '30 dias': 'last_30d',
+        'Este mês': 'this_month',
         'Personalizado': 'maximum'
       };
       const datePreset = periodMap[customPreset] || 'today';
@@ -267,8 +269,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         '7 dias': 'last_7d',
         'Últimos 14 dias': 'last_14d',
         '14 dias': 'last_14d',
+        '15 dias': 'last_14d',
         'Últimos 30 dias': 'last_30d',
         '30 dias': 'last_30d',
+        'Este mês': 'this_month',
         'Personalizado': 'maximum'
       };
       const datePreset = periodMap[selectedPreset] || selectedPreset || 'today';
@@ -519,7 +523,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
           {/* Period Filter with DateRangePicker */}
           <div className="flex items-center gap-1 bg-[#0A1426] border border-[#13233E] rounded-xl p-1 text-xs">
-            {['Hoje', 'Ontem', '7 dias', '30 dias'].map(p => (
+            {['Hoje', 'Ontem', '7 dias', '15 dias', '30 dias'].map(p => (
               <button
                 key={p}
                 type="button"

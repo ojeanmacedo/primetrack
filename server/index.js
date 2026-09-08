@@ -438,11 +438,45 @@ app.get('/api/campaigns', async (req, res) => {
   const orders = db.get('orders') || [];
   const approvedOrders = orders.filter(o => o.status === 'approved' || !o.status);
 
-  // Se houver filtro de data (since / until), filtra também os pedidos webhook por data
+function resolveDateRange(datePreset = 'today', since = null, until = null) {
+  if (since && until) {
+    return { since, until };
+  }
+  const now = new Date();
+  const formatYMD = (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  if (datePreset === 'today') {
+    const t = formatYMD(now);
+    return { since: t, until: t };
+  } else if (datePreset === 'yesterday') {
+    const yest = formatYMD(new Date(now.getTime() - 86400000));
+    return { since: yest, until: yest };
+  } else if (datePreset === 'last_7d') {
+    const d7 = formatYMD(new Date(now.getTime() - 6 * 86400000));
+    return { since: d7, until: formatYMD(now) };
+  } else if (datePreset === 'last_14d') {
+    const d14 = formatYMD(new Date(now.getTime() - 13 * 86400000));
+    return { since: d14, until: formatYMD(now) };
+  } else if (datePreset === 'last_30d') {
+    const d30 = formatYMD(new Date(now.getTime() - 29 * 86400000));
+    return { since: d30, until: formatYMD(now) };
+  } else if (datePreset === 'this_month') {
+    const mStart = formatYMD(new Date(now.getFullYear(), now.getMonth(), 1));
+    return { since: mStart, until: formatYMD(now) };
+  }
+  return { since: null, until: null };
+}
+
+  const { since: filterSince, until: filterUntil } = resolveDateRange(datePreset, since, until);
   const filteredOrders = approvedOrders.filter(o => {
-    if (since && until && o.createdAt) {
+    if (filterSince && filterUntil && o.createdAt) {
       const oDate = o.createdAt.substring(0, 10);
-      return oDate >= since && oDate <= until;
+      return oDate >= filterSince && oDate <= filterUntil;
     }
     return true;
   });
@@ -913,10 +947,11 @@ app.post('/api/meta/sync', async (req, res) => {
     const orders = db.get('orders') || [];
     const approvedOrders = orders.filter(o => o.status === 'approved' || !o.status);
 
+    const { since: filterSince, until: filterUntil } = resolveDateRange(datePreset, since, until);
     const filteredOrders = approvedOrders.filter(o => {
-      if (since && until && o.createdAt) {
+      if (filterSince && filterUntil && o.createdAt) {
         const oDate = o.createdAt.substring(0, 10);
-        return oDate >= since && oDate <= until;
+        return oDate >= filterSince && oDate <= filterUntil;
       }
       return true;
     });

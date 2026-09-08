@@ -25,12 +25,20 @@ export default function DateRangePicker({
 
   // Hoje no fuso local
   const today = new Date();
-  const [viewDate, setViewDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
+  // Exibe mês anterior na esquerda e mês atual na direita, idêntico à UTMify
+  const [viewDate, setViewDate] = useState(new Date(today.getFullYear(), today.getMonth() - 1, 1));
 
   // Seleção temporária de range
-  const [tempStart, setTempStart] = useState(() => customRange?.since || formatISODate(new Date(today.getTime() - 7 * 86400000)));
+  const [tempStart, setTempStart] = useState(() => customRange?.since || formatISODate(new Date(today.getTime() - 6 * 86400000)));
   const [tempEnd, setTempEnd] = useState(() => customRange?.until || formatISODate(today));
   const [hoverDate, setHoverDate] = useState(null);
+
+  useEffect(() => {
+    if (customRange?.since && customRange?.until) {
+      setTempStart(customRange.since);
+      setTempEnd(customRange.until);
+    }
+  }, [isOpen, customRange]);
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -85,6 +93,7 @@ export default function DateRangePicker({
     const untilStr = formatISODate(u);
     setTempStart(sinceStr);
     setTempEnd(untilStr);
+    setViewDate(new Date(s.getFullYear(), s.getMonth() - 1, 1));
   };
 
   const handleDayClick = (dateStr) => {

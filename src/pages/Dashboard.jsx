@@ -71,8 +71,10 @@ export default function Dashboard({ onSimulateSale }) {
     'Hoje': 'today',
     'Ontem': 'yesterday',
     '7 dias': 'last_7d',
+    '14 dias': 'last_14d',
     '15 dias': 'last_14d',
     '30 dias': 'last_30d',
+    'Este mês': 'this_month',
     'Personalizado': 'maximum'
   };
 
