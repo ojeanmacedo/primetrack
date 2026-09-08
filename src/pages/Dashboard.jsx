@@ -12,6 +12,7 @@ import {
   ArrowRight,
   Edit3,
   Check,
+  X,
   GripVertical,
   Move
 } from 'lucide-react';
@@ -156,9 +157,22 @@ export default function Dashboard() {
     saveLayoutConfig({ ...layoutConfig, funnelPosition: pos });
   };
 
+  const initialLayoutSnapshot = useRef(null);
+
   const handleToggleEdit = (status) => {
+    if (status) {
+      initialLayoutSnapshot.current = JSON.parse(JSON.stringify(layoutConfig));
+    }
     setIsEditingLayout(status);
     window.dispatchEvent(new CustomEvent('primetrack_edit_layout_status', { detail: { isEditing: status } }));
+  };
+
+  const handleCancelEdit = () => {
+    if (initialLayoutSnapshot.current) {
+      saveLayoutConfig(initialLayoutSnapshot.current);
+    }
+    setIsEditingLayout(false);
+    window.dispatchEvent(new CustomEvent('primetrack_edit_layout_status', { detail: { isEditing: false } }));
   };
 
   // Drag and Drop com Mouse para reposicionamento
@@ -453,6 +467,9 @@ export default function Dashboard() {
     const handleEditEvent = (e) => {
       setIsEditingLayout(prev => {
         const next = typeof e.detail?.isEditing === 'boolean' ? e.detail.isEditing : !prev;
+        if (next) {
+          initialLayoutSnapshot.current = JSON.parse(JSON.stringify(layoutConfig));
+        }
         window.dispatchEvent(new CustomEvent('primetrack_edit_layout_status', { detail: { isEditing: next } }));
         return next;
       });
@@ -696,34 +713,10 @@ export default function Dashboard() {
     const isDraggingThis = draggedItem?.type === 'analysis' && draggedItem?.index === slotIndex;
     const isOverThis = dragOverItem?.type === 'analysis' && dragOverItem?.index === slotIndex && !isDraggingThis;
 
-    const editHeaderControls = isEditingLayout && (
-      <div className="flex items-center gap-1.5 bg-[#0F1728] border border-blue-500/40 rounded-lg px-2 py-1 select-none text-blue-300">
-        <span className="flex items-center gap-1 font-mono text-[10px] font-bold text-blue-400">
-          <GripVertical className="w-3.5 h-3.5" />
-          <span>Arraste</span>
-        </span>
-        <span className="text-zinc-600 text-xs">|</span>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            swapAnalysisCards(slotIndex, slotIndex === 0 ? 1 : slotIndex === 1 ? 0 : slotIndex === 2 ? 3 : 2);
-          }}
-          className="px-1.5 py-0.5 bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 rounded text-[10px] font-semibold transition-colors flex items-center gap-0.5 cursor-pointer"
-          title="Inverter lado (horizontal)"
-        >
-          <span>⇄ Lado</span>
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            swapAnalysisCards(slotIndex, (slotIndex + 2) % 4);
-          }}
-          className="px-1.5 py-0.5 bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 rounded text-[10px] font-semibold transition-colors flex items-center gap-0.5 cursor-pointer"
-          title="Inverter linha (vertical)"
-        >
-          <span>⇅ Linha</span>
-        </button>
-      </div>
+    const editHeaderControls = isEditingLayout ? (
+      <GripVertical className="w-4 h-4 text-blue-400 cursor-grab active:cursor-grabbing" title="Arraste com o mouse para reposicionar" />
+    ) : (
+      <span className="text-zinc-500 text-[11px] cursor-help">ⓘ</span>
     );
 
     const baseContainerClass = `bg-[#141C2E] border ${
@@ -760,10 +753,7 @@ export default function Dashboard() {
           {dropOverlay}
           <div>
             <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-3">
-              <span className="text-white font-semibold flex items-center gap-1.5">
-                {isEditingLayout && <GripVertical className="w-4 h-4 text-blue-400 cursor-grab active:cursor-grabbing" />}
-                <span>Vendas por Produto</span>
-              </span>
+              <span className="text-white font-semibold">Vendas por Produto</span>
               {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Vendas agrupadas por produto">ⓘ</span>}
             </div>
 
@@ -810,10 +800,7 @@ export default function Dashboard() {
           {dropOverlay}
           <div>
             <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2">
-              <span className="text-white font-semibold flex items-center gap-1.5">
-                {isEditingLayout && <GripVertical className="w-4 h-4 text-blue-400 cursor-grab active:cursor-grabbing" />}
-                <span>Vendas por Pagamento</span>
-              </span>
+              <span className="text-white font-semibold">Vendas por Pagamento</span>
               {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Distribuição por método de pagamento">ⓘ</span>}
             </div>
 
@@ -886,10 +873,7 @@ export default function Dashboard() {
           {dropOverlay}
           <div>
             <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-3">
-              <span className="text-white font-semibold flex items-center gap-1.5">
-                {isEditingLayout && <GripVertical className="w-4 h-4 text-blue-400 cursor-grab active:cursor-grabbing" />}
-                <span>Vendas por Fonte</span>
-              </span>
+              <span className="text-white font-semibold">Vendas por Fonte</span>
               {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Origem de tráfego das vendas">ⓘ</span>}
             </div>
 
@@ -936,10 +920,7 @@ export default function Dashboard() {
           {dropOverlay}
           <div>
             <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-4">
-              <span className="text-white font-semibold flex items-center gap-1.5">
-                {isEditingLayout && <GripVertical className="w-4 h-4 text-blue-400 cursor-grab active:cursor-grabbing" />}
-                <span>Taxa de Aprovação</span>
-              </span>
+              <span className="text-white font-semibold">Taxa de Aprovação</span>
               {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Percentual de pedidos aprovados por meio">ⓘ</span>}
             </div>
 
@@ -1151,6 +1132,14 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button 
+              onClick={handleCancelEdit}
+              className="px-3 py-1.5 rounded-lg bg-[#1E293B] hover:bg-[#334155] text-zinc-300 hover:text-white text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Cancelar e descartar alterações"
+            >
+              <X className="w-3.5 h-3.5 text-zinc-400" />
+              <span>Cancelar</span>
+            </button>
+            <button 
               onClick={resetLayoutConfig}
               className="px-3 py-1.5 rounded-lg bg-[#1E293B] hover:bg-[#334155] text-zinc-300 hover:text-white text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
               title="Restaurar posições originais"
@@ -1332,37 +1321,12 @@ export default function Dashboard() {
               } rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md h-[116px] transition-all duration-200 relative group select-none`}
             >
               <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
-                <span className="truncate flex items-center gap-1.5">
-                  {isEditingLayout && <GripVertical className="w-3.5 h-3.5 text-blue-400 cursor-grab active:cursor-grabbing" />}
-                  <span>{card.label}</span>
+                <span className="truncate">
+                  {card.label}
                 </span>
                 <div className="flex items-center gap-1">
                   {isEditingLayout ? (
-                    <div className="flex items-center gap-0.5 bg-[#0F1728] border border-blue-500/40 rounded px-1.5 py-0.5 select-none">
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          moveKpi(index, -1);
-                        }}
-                        disabled={index === 0}
-                        className="p-0.5 hover:text-white disabled:opacity-20 text-blue-300 transition-colors cursor-pointer"
-                        title="Mover para a esquerda"
-                      >
-                        <ChevronLeft className="w-3.5 h-3.5" />
-                      </button>
-                      <span className="text-[10px] text-blue-400 font-mono px-1 font-bold">#{index + 1}</span>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          moveKpi(index, 1);
-                        }}
-                        disabled={index === layoutConfig.kpis.length - 1}
-                        className="p-0.5 hover:text-white disabled:opacity-20 text-blue-300 transition-colors cursor-pointer"
-                        title="Mover para a direita"
-                      >
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                    <GripVertical className="w-3.5 h-3.5 text-blue-400 cursor-grab active:cursor-grabbing" title="Arraste com o mouse para reposicionar" />
                   ) : (
                     <span className="text-zinc-500 text-[11px] cursor-help" title={card.label}>ⓘ</span>
                   )}
