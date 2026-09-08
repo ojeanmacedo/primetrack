@@ -101,8 +101,8 @@ export default function Dashboard() {
   const DEFAULT_LAYOUT = {
     // 6 KPIs em ordem harmônica
     kpis: ['faturamento', 'gastos', 'lucro', 'pendentes', 'roi', 'margem'],
-    // 5 Cards Analíticos (Coluna 1: products, payments, funnel; Coluna 2: sources, approval)
-    analysisCards: ['products', 'payments', 'funnel', 'sources', 'approval']
+    // 5 Cards Analíticos (Coluna 1: products, sources, approval; Coluna 2: payments, funnel)
+    analysisCards: ['products', 'sources', 'approval', 'payments', 'funnel']
   };
 
   const [layoutConfig, setLayoutConfig] = useState(() => {
@@ -111,12 +111,12 @@ export default function Dashboard() {
         const saved = localStorage.getItem('primetrack_dashboard_layout_config');
         if (saved) {
           const parsed = JSON.parse(saved);
-          return {
-            kpis: Array.isArray(parsed.kpis) && parsed.kpis.length === 6 ? parsed.kpis : DEFAULT_LAYOUT.kpis,
-            analysisCards: Array.isArray(parsed.analysisCards) && parsed.analysisCards.includes('funnel') && parsed.analysisCards.length === 5 
-              ? parsed.analysisCards 
-              : DEFAULT_LAYOUT.analysisCards
-          };
+          if (Array.isArray(parsed.analysisCards) && parsed.analysisCards.includes('funnel') && parsed.analysisCards[0] === 'products' && parsed.analysisCards[1] === 'sources') {
+            return {
+              kpis: Array.isArray(parsed.kpis) && parsed.kpis.length === 6 ? parsed.kpis : DEFAULT_LAYOUT.kpis,
+              analysisCards: parsed.analysisCards
+            };
+          }
         }
       } catch (e) {}
     }
