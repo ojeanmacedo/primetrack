@@ -161,7 +161,7 @@ export default function Dashboard() {
         fetch('/api/meta/status'),
         fetch(`/api/campaigns?${query}`),
         fetch('/api/orders'),
-        fetch('/api/pixel/stats').catch(() => null)
+        fetch(`/api/pixel/stats?${query}`).catch(() => null)
       ]);
 
       try {
@@ -228,7 +228,7 @@ export default function Dashboard() {
       const [cr, ord, pix] = await Promise.all([
         fetch(`/api/campaigns?${query}`),
         fetch('/api/orders'),
-        fetch('/api/pixel/stats').catch(() => null)
+        fetch(`/api/pixel/stats?${query}`).catch(() => null)
       ]);
       const [cData, oData] = await Promise.all([cr.json(), ord.json()]);
       if (Array.isArray(cData)) {
@@ -282,7 +282,8 @@ export default function Dashboard() {
         })
         .catch(() => {});
 
-      fetch('/api/pixel/stats')
+      const currentPreset = periodToPreset[period] || 'today';
+      fetch(`/api/pixel/stats?datePreset=${currentPreset}`)
         .then(res => res.json())
         .then(pData => {
           if (pData && typeof pData.pageViews === 'number') {

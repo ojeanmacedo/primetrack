@@ -801,12 +801,51 @@ app.post('/api/webhook/tokens', (req, res) => {
  */
 app.get('/api/pixel/stats', (req, res) => {
   const events = db.get('events') || [];
-  const pageViews = events.filter(e => e.eventName === 'PageView').length;
-  const initiateCheckouts = events.filter(e => e.eventName === 'InitiateCheckout').length;
+  const sessions = db.get('sessions') || [];
+  const { datePreset, since, until } = req.query;
+
+  const now = new Date();
+  const filterByDate = (itemDate) => {
+    if (!itemDate) return true;
+    const d = new Date(itemDate);
+    const diffHours = (now - d) / (1000 * 60 * 60);
+
+    if (datePreset === 'today' || datePreset === 'Hoje') {
+      return d.toDateString() === now.toDateString() || (diffHours >= -1 && diffHours <= 24);
+    }
+    if (datePreset === 'yesterday' || datePreset === 'Ontem') {
+      return diffHours > 24 && diffHours <= 48;
+    }
+    if (datePreset === 'last_7d' || datePreset === '7 dias') {
+      return diffHours <= 24 * 7;
+    }
+    if (datePreset === 'last_14d' || datePreset === '14 dias') {
+      return diffHours <= 24 * 14;
+    }
+    if (datePreset === 'last_30d' || datePreset === 'this_month' || datePreset === '30 dias') {
+      return diffHours <= 24 * 30;
+    }
+    if (since) {
+      const s = new Date(since);
+      const u = until ? new Date(until) : now;
+      return d >= s && d <= u;
+    }
+    return true;
+  };
+
+  const filteredEvents = datePreset || since ? events.filter(e => filterByDate(e.timestamp)) : events;
+  const filteredSessions = datePreset || since ? sessions.filter(s => filterByDate(s.firstSeen || s.lastSeen)) : sessions;
+
+  let pageViews = filteredEvents.filter(e => e.eventName === 'PageView').length;
+  if (filteredSessions.length > pageViews) {
+    pageViews = filteredSessions.length;
+  }
+  const initiateCheckouts = filteredEvents.filter(e => e.eventName === 'InitiateCheckout').length;
+
   res.json({
     pageViews,
     initiateCheckouts,
-    totalEvents: events.length
+    totalEvents: filteredEvents.length
   });
 });
 
