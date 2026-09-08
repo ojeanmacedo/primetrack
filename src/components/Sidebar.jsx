@@ -72,20 +72,17 @@ export default function Sidebar() {
       {/* Top Brand Header */}
       <div className="flex flex-col h-full overflow-hidden">
         <div className="h-16 flex items-center justify-between px-5 border-b border-[#182238] shrink-0">
-          <NavLink to="/" className="flex items-center gap-2 overflow-hidden">
-            {/* Ícone de logo no estilo da UTMify (u arredondado estilizado + alvo) */}
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#0055FF] to-[#1877F2] flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-blue-500/20 shrink-0">
-              <span className="tracking-tighter">u</span>
-            </div>
+          <NavLink to="/" className="flex items-center gap-2.5 overflow-hidden">
+            <img 
+              src="/images/logo-primetrack.png" 
+              alt="PrimeTrack" 
+              className="w-8 h-8 rounded-lg object-contain shadow-md shadow-blue-500/20 shrink-0" 
+            />
             {!collapsed && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-xl font-bold tracking-tight text-white font-sans">
-                  utm<span className="text-zinc-400 font-normal">ify</span>
-                </span>
-                <span className="w-3.5 h-3.5 rounded-full border border-zinc-500 flex items-center justify-center">
-                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-400"></span>
-                </span>
-              </div>
+              <span className="text-lg font-bold tracking-tight text-white font-sans flex items-center">
+                <span>Prime</span>
+                <span className="text-[#1877F2]">Track</span>
+              </span>
             )}
           </NavLink>
 
