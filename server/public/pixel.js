@@ -200,16 +200,51 @@
     path: window.location.pathname
   });
 
-  // Listener para cliques em botões de compra
+  // Listener para cliques em botões de compra / InitiateCheckout configurado
   document.addEventListener('click', function(e) {
-    var target = e.target.closest('a, button');
+    var target = e.target.closest('a, button, [role="button"], input[type="submit"], input[type="button"]');
     if (!target) return;
-    var href = target.getAttribute('href') || '';
-    var text = (target.innerText || '').toLowerCase();
     
-    if (href.indexOf('checkout') !== -1 || text.indexOf('comprar') !== -1 || text.indexOf('quero') !== -1 || text.indexOf('garantir') !== -1) {
+    var href = target.getAttribute('href') || '';
+    var text = (target.innerText || target.value || '').toLowerCase();
+    var customRule = window.primetrackIcRule || window.pixelIcRule || null;
+    var customRuleType = window.primetrackIcType || window.pixelIcType || null; // 'css', 'url', 'text'
+
+    var isIc = false;
+
+    // 1. Verificação por Regra Personalizada (se configurada)
+    if (customRule) {
+      if (customRuleType === 'css' || (!customRuleType && (customRule.startsWith('.') || customRule.startsWith('#')))) {
+        try {
+          if (target.matches(customRule) || target.closest(customRule)) isIc = true;
+        } catch(err){}
+      } else if (customRuleType === 'url') {
+        if (href.indexOf(customRule) !== -1) isIc = true;
+      } else if (customRuleType === 'text') {
+        if (text.indexOf(customRule.toLowerCase()) !== -1) isIc = true;
+      }
+    }
+
+    // 2. Detecção Padrão Inteligente (Fallback Universal)
+    if (!isIc) {
+      if (
+        href.indexOf('checkout') !== -1 || 
+        href.indexOf('pay.') !== -1 ||
+        CHECKOUT_DOMAINS.some(function(d){ return href.indexOf(d) !== -1; }) ||
+        text.indexOf('comprar') !== -1 || 
+        text.indexOf('quero') !== -1 || 
+        text.indexOf('garantir') !== -1 ||
+        text.indexOf('adquirir') !== -1 ||
+        target.classList.contains('btn-checkout') ||
+        target.hasAttribute('data-track-checkout')
+      ) {
+        isIc = true;
+      }
+    }
+
+    if (isIc) {
       sendEvent('InitiateCheckout', {
-        buttonText: target.innerText ? target.innerText.trim().slice(0, 30) : 'Comprar',
+        buttonText: target.innerText ? target.innerText.trim().slice(0, 30) : (target.value || 'Checkout'),
         href: href
       });
     }

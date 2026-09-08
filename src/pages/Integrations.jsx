@@ -100,6 +100,9 @@ export default function Integrations() {
   const [newPixelName, setNewPixelName] = useState('');
   const [newPixelMetaId, setNewPixelMetaId] = useState('');
   const [newPixelCapiToken, setNewPixelCapiToken] = useState('');
+  const [newPixelIcType, setNewPixelIcType] = useState('css'); // 'css', 'url', 'text'
+  const [newPixelIcValue, setNewPixelIcValue] = useState('.btn-checkout');
+  const [newPixelDomains, setNewPixelDomains] = useState('');
   const [pixelToDelete, setPixelToDelete] = useState(null);
   const [pixelSuccessMsg, setPixelSuccessMsg] = useState(null);
   const [accountSwitchToast, setAccountSwitchToast] = useState(null);
@@ -435,12 +438,21 @@ export default function Integrations() {
       return;
     }
 
+    const ruleLabel = newPixelIcType === 'css' 
+      ? `css ${newPixelIcValue.trim() || '.btn-checkout'}` 
+      : newPixelIcType === 'url' 
+        ? `url contendo ${newPixelIcValue.trim() || '/checkout'}` 
+        : `texto contendo "${newPixelIcValue.trim() || 'Comprar'}"`;
+
     const newPx = {
       id: `px_${Date.now()}`,
       name: newPixelName.trim(),
       pixelId: newPixelMetaId.trim(),
       capiToken: newPixelCapiToken.trim() ? (newPixelCapiToken.slice(0, 6) + '••••' + newPixelCapiToken.slice(-4)) : '••••••9y2D2D',
-      icRule: 'css .btn-checkout',
+      icType: newPixelIcType,
+      icValue: newPixelIcValue.trim() || (newPixelIcType === 'css' ? '.btn-checkout' : newPixelIcType === 'url' ? '/checkout' : 'Comprar'),
+      icRule: ruleLabel,
+      domains: newPixelDomains.trim() || '*',
       status: 'Ativo',
       createdAt: new Date().toLocaleDateString('pt-BR')
     };
@@ -454,6 +466,9 @@ export default function Integrations() {
     setNewPixelName('');
     setNewPixelMetaId('');
     setNewPixelCapiToken('');
+    setNewPixelIcType('css');
+    setNewPixelIcValue('.btn-checkout');
+    setNewPixelDomains('');
     setPixelSuccessMsg(`Pixel "${newPx.name}" configurado com sucesso!`);
     setTimeout(() => setPixelSuccessMsg(null), 3500);
   };
@@ -995,8 +1010,12 @@ export default function Integrations() {
                         <div>
                           <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1">Regra de IC</div>
                           <div className="flex items-center gap-1.5">
-                            <span className="px-1.5 py-0.5 rounded bg-[#1A6DFF] text-white font-mono text-[10px] font-bold">css</span>
-                            <span className="font-mono text-zinc-300">{px.icRule || '.btn-checkout'}</span>
+                            <span className="px-1.5 py-0.5 rounded bg-[#1A6DFF] text-white font-mono text-[10px] font-bold">
+                              {px.icType || (px.icRule && px.icRule.startsWith('url') ? 'url' : px.icRule && px.icRule.startsWith('texto') ? 'text' : 'css')}
+                            </span>
+                            <span className="font-mono text-zinc-300 truncate max-w-[140px]" title={px.icRule}>
+                              {px.icValue || px.icRule || '.btn-checkout'}
+                            </span>
                           </div>
                         </div>
 
@@ -2222,15 +2241,91 @@ export default function Integrations() {
 
               <div>
                 <label className="block text-zinc-400 font-medium mb-1.5 flex items-center justify-between">
-                  <span>Token de Acesso CAPI</span>
+                  <span>Token de Acesso CAPI (Conversions API)</span>
                   <span className="text-[10px] text-zinc-500 font-mono">Opcional</span>
                 </label>
                 <input
                   type="password"
-                  placeholder="EAAB... (Token do Gerenciador de Eventos da Meta)"
+                  placeholder="EAAB... (Token gerado no Gerenciador de Eventos da Meta)"
                   value={newPixelCapiToken}
                   onChange={(e) => setNewPixelCapiToken(e.target.value)}
                   className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                />
+              </div>
+
+              {/* Regra de Detecção de InitiateCheckout */}
+              <div>
+                <label className="block text-zinc-400 font-medium mb-1.5">
+                  Regra de Detecção de Initiate Checkout (IC)
+                </label>
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => { setNewPixelIcType('css'); if (newPixelIcValue === '/checkout' || newPixelIcValue === 'Comprar') setNewPixelIcValue('.btn-checkout'); }}
+                    className={`py-2 px-2.5 rounded-xl text-center font-bold border transition-all cursor-pointer ${
+                      newPixelIcType === 'css' 
+                        ? 'bg-[#1A6DFF]/20 border-[#1A6DFF] text-[#5C9BFF]' 
+                        : 'bg-[#070D1A] border-[#1E3254] text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    Seletor CSS
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setNewPixelIcType('url'); if (newPixelIcValue === '.btn-checkout' || newPixelIcValue === 'Comprar') setNewPixelIcValue('/checkout'); }}
+                    className={`py-2 px-2.5 rounded-xl text-center font-bold border transition-all cursor-pointer ${
+                      newPixelIcType === 'url' 
+                        ? 'bg-[#1A6DFF]/20 border-[#1A6DFF] text-[#5C9BFF]' 
+                        : 'bg-[#070D1A] border-[#1E3254] text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    Contém na URL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setNewPixelIcType('text'); if (newPixelIcValue === '.btn-checkout' || newPixelIcValue === '/checkout') setNewPixelIcValue('Comprar'); }}
+                    className={`py-2 px-2.5 rounded-xl text-center font-bold border transition-all cursor-pointer ${
+                      newPixelIcType === 'text' 
+                        ? 'bg-[#1A6DFF]/20 border-[#1A6DFF] text-[#5C9BFF]' 
+                        : 'bg-[#070D1A] border-[#1E3254] text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    Contém no Texto
+                  </button>
+                </div>
+
+                <input
+                  type="text"
+                  required
+                  placeholder={
+                    newPixelIcType === 'css' 
+                      ? 'Ex: .btn-checkout, #btn-comprar, .btn-cta' 
+                      : newPixelIcType === 'url' 
+                        ? 'Ex: pay.hotmart, kiwify.com.br, /checkout' 
+                        : 'Ex: Comprar Agora, Quero Garantir'
+                  }
+                  value={newPixelIcValue}
+                  onChange={(e) => setNewPixelIcValue(e.target.value)}
+                  className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                />
+                <p className="text-[11px] text-zinc-500 mt-1">
+                  {newPixelIcType === 'css' && 'Dispara quando o usuário clicar em qualquer elemento que tenha a classe/ID configurada.'}
+                  {newPixelIcType === 'url' && 'Dispara quando o link clicado contiver o texto ou domínio informado.'}
+                  {newPixelIcType === 'text' && 'Dispara quando o botão clicado contiver o texto informado.'}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-zinc-400 font-medium mb-1.5 flex items-center justify-between">
+                  <span>Domínios Autorizados</span>
+                  <span className="text-[10px] text-zinc-500 font-mono">Opcional</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: meusite.com, checkout.meusite.com (ou deixe em branco para todos)"
+                  value={newPixelDomains}
+                  onChange={(e) => setNewPixelDomains(e.target.value)}
+                  className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#1A6DFF] transition-colors"
                 />
               </div>
 
