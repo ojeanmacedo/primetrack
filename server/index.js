@@ -797,6 +797,20 @@ app.post('/api/webhook/tokens', (req, res) => {
 });
 
 /**
+ * 8.2 Estatísticas do Pixel para o Funil de Conversão (PageView & InitiateCheckout)
+ */
+app.get('/api/pixel/stats', (req, res) => {
+  const events = db.get('events') || [];
+  const pageViews = events.filter(e => e.eventName === 'PageView').length;
+  const initiateCheckouts = events.filter(e => e.eventName === 'InitiateCheckout').length;
+  res.json({
+    pageViews,
+    initiateCheckouts,
+    totalEvents: events.length
+  });
+});
+
+/**
  * 9. Simulador Interativo (Test Lab)
  * Permite que o usuário gere um clique e uma venda simulada para ver o fluxo em tempo real!
  */

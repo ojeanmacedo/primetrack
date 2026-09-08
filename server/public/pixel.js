@@ -1,1 +1,466 @@
-!function(){if(window.__ptPixelLoaded)return;window.__ptPixelLoaded=!0;var t={a:function(t){return atob(t)},b:function(e){for(var n=[],r=0;r<e.length;r++)n.push(t.a(e[r]));return n}},e=[];function _ptAdd(x){x=String(x||"").trim();if(x&&-1===e.indexOf(x))e.push(x)}if(window.pixelId)_ptAdd(window.pixelId);if(window.pt_pixel_id)_ptAdd(window.pt_pixel_id);if(window.PrimeTrackIds&&window.PrimeTrackIds.length)for(var _li=0;_li<window.PrimeTrackIds.length;_li++)_ptAdd(window.PrimeTrackIds[_li]);for(var _n=document.getElementsByTagName(t.a("c2NyaXB0")),_r=0;_r<_n.length;_r++){var _sc=_n[_r];if(_sc.src&&-1!==_sc.src.indexOf(t.a("cGl4ZWwuanM="))){try{var _pid=new URL(_sc.src).searchParams.get("id");if(_pid)_ptAdd(_pid)}catch(w){}var _da=_sc.getAttribute&&(_sc.getAttribute("data-pt-id")||_sc.getAttribute("data-pixel-id"));if(_da)_ptAdd(_da)}}window.PrimeTrackIds={push:function(x){_ptAdd(x);return e.length},length:0};Object.defineProperty(window.PrimeTrackIds,"length",{get:function(){return e.length}});if(e.length){var a,i=t.a("aHR0cHM6Ly9hcHAucHJpbWV0cmFjay50b3A="),o=i+t.a("L2FwaS90cmFjay9ldmVudA=="),c=i+t.a("L2FwaS90cmFjay9ldmVudA=="),u=i+t.a("L2FwaS9waXhlbC9jb25maWc="),l=t.b(["Y2hlY2tvdXQ=","cGFnYW1lbnRv","cGF5bWVudA==","cGF5","a2l3aWZ5","aG90bWFydA==","ZWR1eno=","bW9uZXRpenpl","dmluZGk=","cGFndWU=","Y29tcHJhcg==","ZmluYWxpemFy","Y29tcHJh","Y2FydA==","Y2FycmluaG8=","b3JkZXI=","cGVkaWRv","Y29uZmlybWFy","Y29uZmlybWFjYW8=","Y29uZmlybWF0aW9u","YWRvb3JlaQ==","dmVnYQ==","YnV5Z29vZHM=","b2N0dXNwYXk=","cGVyZmVjdA==","aWV4cGVyaWVuY2U=","cGF5dA==","Z3VydQ==","Z3JlZW4=","eWFtcGk=","YXBwbWF4","cGVwcGVy","bGFzdGxpbms=","YnJhaXA=","dGljdG8=","ZG9wcHVz","a2lydmFubw==","Z3JlZW5u","Y2FrdG8=","cGFnYXJtZQ==","c3RyaXBl","cGF5cGFs","bWVyY2Fkb3BhZ28=","bG93aWZ5"]),f=t.b(["Y29tcHJhcg==","ZmluYWxpemFy","Y29tcHJh","Y29uZmlybWFy","cXVlcm8gdGVy","cHJveGltbyBwYXNzbw==","cHLDs3hpbW8gcGFzc28=","aW5zY3Jpw6fDo28=","aW5zY3JpY2Fv","cGFydGljaXBhcg==","cGFydGljaXBl","cXVlcm8gcGFydGljaXBhcg==","Y2hlY2tvdXQ=","YnV5IG5vdw==","cHVyY2hhc2U=","YWRxdWlyaXI=","Z2FyYW50aXI=","cXVlcm8=","YXNzaW5hcg==","Y29udHJhdGFy","Y29tZcOnYXI=","aW5pY2lhcg=="]),d=null,m="url",s=null,p=!1,h=0,w={},jDone=!1;function E(t){if(!t)return!1;try{t=decodeURIComponent(t)}catch(e){}t=t.toLowerCase();for(var e=0;e<l.length;e++)if(-1!==t.indexOf(l[e]))return!0;return!1}function Z(t){if(!t||!d)return!1;try{t=decodeURIComponent(t)}catch(e){}t=t.toLowerCase();if("url"===m&&-1!==t.indexOf(d))return!0;if("css"===m&&s){try{var el=document.querySelector(s);if(el&&(el.href===t||el.getAttribute("href")===t))return!0}catch(e){}}return!1}function X(t){if(!t||1!==t.nodeType)return!1;if("css"===m&&s){try{if(t.matches(s)||t.closest(s))return!0}catch(e){}}if("text"===m&&s){var e=(t.innerText||t.value||"").trim().toLowerCase();if(e&&-1!==e.indexOf(s.toLowerCase()))return!0}for(var n=t;n&&n!==document.body;){if("A"===n.tagName){var r=n.getAttribute("href")||"";if(r&&!r.startsWith("#")&&!r.startsWith("javascript:")&&(E(r)||Z(r)))return!0}n=n.parentElement}var o=(t.innerText||t.value||"").trim().toLowerCase();if(o&&o.length<=50)for(var a=0;a<f.length;a++)if(-1!==o.indexOf(f[a]))return!0;return!1}function k(n){if(p)return void(n&&n());var r=Date.now();if(!(r-h<1e3)){h=r;var a=G("_pt_click_id")||b||F(),i=S();for(var _pk=0;_pk<e.length;_pk++)O(c,{pixel_id:e[_pk],click_id:a,event_name:"InitiateCheckout",page:window.location.href,referrer:document.referrer||"",fbp:L(),fbc:W(),utm_source:i.utm_source,utm_medium:i.utm_medium,utm_campaign:i.utm_campaign,utm_content:i.utm_content,utm_term:i.utm_term,fbclid:i.fbclid,src:i.src,sck:i.sck});if(window.fbq&&w.fbqMetaId){try{window.fbq("track","InitiateCheckout",{},{eventID:"ev_ic_"+Date.now()})}catch(e){}}n&&setTimeout(n,150)}}function j(){try{for(var t=document.querySelectorAll("a[href]"),e=S(),n=G("_pt_click_id")||b||"",r=L(),a=W(),i=0;i<t.length;i++){var o=t[i],c=o.getAttribute("href");if(c&&!c.startsWith("#")&&!c.startsWith("javascript:")&&!c.startsWith("mailto:")&&!c.startsWith("tel:")&&(E(c)||Z(c))){try{var u=new URL(c,window.location.href);["utm_source","utm_medium","utm_campaign","utm_content","utm_term","fbclid","src","sck"].forEach(function(t){e[t]&&!u.searchParams.get(t)&&u.searchParams.set(t,e[t])}),n&&!u.searchParams.get("pt_sid")&&u.searchParams.set("pt_sid",n),r&&!u.searchParams.get("_fbp")&&u.searchParams.set("_fbp",r),a&&!u.searchParams.get("_fbc")&&u.searchParams.set("_fbc",a);var l=u.toString();l!==c&&o.setAttribute("href",l)}catch(t){}}}}catch(t){}}a=window.open,window.open=function(t,e,n){return t&&(E(t.toString())||Z(t.toString()))?(k(function(){a.call(window,t,e||"",n||"")}),null):a.call(window,t,e||"",n||"")},function(){function t(t){return function(e){return e&&E(String(e))&&k(),t.apply(this,arguments)}}try{window.location&&"function"==typeof window.location.assign&&(window.location.assign=t(window.location.assign))}catch(t){}try{window.location&&"function"==typeof window.location.replace&&(window.location.replace=t(window.location.replace))}catch(t){}try{var e=Object.getOwnPropertyDescriptor(Location.prototype,"href");if(e&&e.set){var n=e.set;Object.defineProperty(Location.prototype,"href",{configurable:!0,enumerable:e.enumerable,get:e.get,set:function(t){try{t&&E(String(t))&&k()}catch(t){}return n.call(this,t)}})}}catch(t){}try{if(window.history&&"function"==typeof window.history.pushState){var r=window.history.pushState;window.history.pushState=function(t,e,n){return n&&E(String(n))&&k(),r.apply(this,arguments)}}if(window.history&&"function"==typeof window.history.replaceState){var ao=window.history.replaceState;window.history.replaceState=function(t,e,n){return n&&E(String(n))&&k(),ao.apply(this,arguments)}}}catch(t){}}(),function(){function t(t){var e="function"==typeof t.composedPath?t.composedPath():[];if(e&&e.length)for(var n=0;n<e.length&&n<8;n++){var r=e[n];if(r&&1===r.nodeType&&X(r))return void k()}}document.addEventListener("pointerdown",t,!0),document.addEventListener("touchstart",t,!0),document.addEventListener("mousedown",t,!0)}(),document.addEventListener("click",function(t){var e="function"==typeof t.composedPath?t.composedPath():[];if(e&&e.length)for(var n=0;n<e.length&&n<10;n++){var r=e[n];if(r&&1===r.nodeType&&X(r))return void k()}for(var a=t.target&&1===t.target.nodeType?t.target:t.target?t.target.parentElement:null,i=0;i<8&&a&&a!==document.body;i++){if(X(a))return void k();a=a.parentElement}},!0);var g=S(),_=g.utm_source||g.fbclid,y=G("_pt_click_id"),b=null;_?(Y("_pt_click_id",b=F(),30),Y("_pt_utms",JSON.stringify(g),30)):y||(Y("_pt_click_id",b=F(),30),Y("_pt_utms",JSON.stringify(g),30));if(b)for(var _pi=0;_pi<e.length;_pi++)O(o,{pixel_id:e[_pi],click_id:b,event_name:"PageView",page:window.location.href,referrer:document.referrer||"",fbp:L(),fbc:W(),utm_source:g.utm_source,utm_medium:g.utm_medium,utm_campaign:g.utm_campaign,utm_content:g.utm_content,utm_term:g.utm_term,fbclid:g.fbclid,src:g.src,sck:g.sck});function initFbq(t){if(!t||!/^\d{10,25}$/.test(String(t)))return;try{var e=window,n=document,r="script";if(!e.fbq){var a=e.fbq=function(){a.callMethod?a.callMethod.apply(a,arguments):a.queue.push(arguments)};e._fbq||(e._fbq=a);a.push=a;a.loaded=!0;a.version="2.0";a.queue=[];var i=n.createElement(r);i.async=!0;i.src="https://connect.facebook.net/en_US/fbevents.js";var o=n.getElementsByTagName(r)[0];o.parentNode.insertBefore(i,o)}w.fbqMetaId=String(t);window.fbq("init",String(t));window.fbq("track","PageView",{},{eventID:"ev_pv_"+Date.now()})}catch(r){}}var _pending=e.length;for(var _pj=0;_pj<e.length;_pj++)(function(pxId){var v=new XMLHttpRequest;v.open("GET",u+"?id="+encodeURIComponent(pxId),!0);v.onreadystatechange=function(){if(4===v.readyState&&200===v.status)try{var t=JSON.parse(v.responseText);if(null===d&&!p){var mm=t.icType||t.ic_detection_type||"url",ss=t.icRule||t.ic_detection_value||"";if("url"===mm&&ss){d=ss.replace(/^https?:\/\//,"").replace(/\/+$/,"").toLowerCase();m=mm;s=ss}else if("text"===mm&&ss||"css"===mm&&ss){m=mm;s=ss;p=!0}else if(t.checkout_url){d=t.checkout_url.replace(/^https?:\/\//,"").replace(/\/+$/,"").toLowerCase();p=!0}}var fbId=t.metaPixelId||t.pixel_id;if(fbId)initFbq(fbId)}catch(t){}if(4===v.readyState){_pending--;if(_pending<=0&&!jDone){jDone=!0;"complete"===document.readyState?j():window.addEventListener("load",j);setInterval(j,1500)}}};v.send()})(e[_pj]);window[t.a("UHJpbWVUcmFjaw==")]={getClickId:function(){return G("_pt_click_id")||""},getUtms:function(){try{return JSON.parse(G("_pt_utms")||"{}")}catch(t){return{}}},getFbp:L,getFbc:W,trackIC:function(){k()},getPixelIds:function(){return e.slice()}}}function S(){var t=new URLSearchParams(window.location.search);var res={utm_source:t.get("utm_source")||"",utm_medium:t.get("utm_medium")||"",utm_campaign:t.get("utm_campaign")||"",utm_content:t.get("utm_content")||"",utm_term:t.get("utm_term")||"",fbclid:t.get("fbclid")||"",src:t.get("src")||t.get("utm_source")||"",sck:t.get("sck")||""};if(!res.utm_campaign){try{var sv=JSON.parse(localStorage.getItem("pt_ad_hist")||"null");if(sv&&Date.now()-sv.time<2592e6){res=Object.assign({},sv.utms);}}catch(e){}}if(res.utm_campaign||res.utm_content||res.fbclid){try{localStorage.setItem("pt_ad_hist",JSON.stringify({utms:res,time:Date.now()}));}catch(e){}}return res}function F(){return"pt_"+Date.now().toString(36)+"_"+Math.random().toString(36).substr(2,9)}function Y(t,e,n){var r=new Date;r.setTime(r.getTime()+864e5*n),document.cookie=t+"="+encodeURIComponent(e)+";expires="+r.toUTCString()+";path=/;SameSite=Lax"+(window.location.protocol==="https:"?";Secure":"")}function G(t){var e=document.cookie.match(new RegExp("(^| )"+t+"=([^;]+)"));return e?decodeURIComponent(e[2]):null}function L(){var t=G("_fbp");if(t)return t;var e="fb.1."+Date.now()+"."+Math.floor(2147483647*Math.random());return Y("_fbp",e,90),e}function W(){var t=G("_fbc");if(t)return t;var e=new URLSearchParams(window.location.search).get("fbclid");if(e){var n="fb.1."+Date.now()+"."+e;return Y("_fbc",n,90),n}return""}function O(t,e,n){var r=JSON.stringify(e);try{if("function"==typeof fetch){var a=fetch(t,{method:"POST",headers:{"Content-Type":"application/json"},body:r,keepalive:!0,credentials:"omit",mode:"cors"});return void(n&&a.then(function(){n()},function(){n()}))}}catch(t){}if(navigator.sendBeacon)try{var i=new Blob([r],{type:"application/json"});return navigator.sendBeacon(t,i),void(n&&n())}catch(t){}var o=new XMLHttpRequest;o.open("POST",t,!0),o.setRequestHeader("Content-Type","application/json"),n&&(o.onloadend=function(){n()},o.onerror=function(){n()}),o.send(r)}}();
+/**
+ * PrimeTrack Intelligent Client Pixel v2.1
+ * Rastreamento Server-Side CAPI, Atribuição Cross-Session de UTMs e Detecção Automática de Checkout
+ */
+(function() {
+  if (window.__ptPixelLoaded) return;
+  window.__ptPixelLoaded = true;
+
+  var pixelIds = [];
+  function addPixelId(id) {
+    if (!id) return;
+    id = String(id).trim();
+    if (id && pixelIds.indexOf(id) === -1) pixelIds.push(id);
+  }
+
+  if (window.pixelId) addPixelId(window.pixelId);
+  if (window.pt_pixel_id) addPixelId(window.pt_pixel_id);
+  if (window.PrimeTrackIds && Array.isArray(window.PrimeTrackIds)) {
+    for (var i = 0; i < window.PrimeTrackIds.length; i++) addPixelId(window.PrimeTrackIds[i]);
+  }
+
+  // Detecta pixelId em tags <script>
+  var scripts = document.getElementsByTagName('script');
+  for (var s = 0; s < scripts.length; s++) {
+    var src = scripts[s].src || '';
+    if (src && src.indexOf('pixel.js') !== -1) {
+      try {
+        var pId = new URL(src, window.location.href).searchParams.get('id');
+        if (pId) addPixelId(pId);
+      } catch (e) {}
+      var attrId = scripts[s].getAttribute('data-pt-id') || scripts[s].getAttribute('data-pixel-id');
+      if (attrId) addPixelId(attrId);
+    }
+  }
+
+  window.PrimeTrackIds = {
+    push: function(id) {
+      addPixelId(id);
+      return pixelIds.length;
+    },
+    length: pixelIds.length
+  };
+
+  // Base API URL
+  var API_BASE = 'https://app.primetrack.top';
+  try {
+    var currentScript = document.currentScript;
+    if (currentScript && currentScript.src) {
+      var scriptUrl = new URL(currentScript.src);
+      if (scriptUrl.origin && !scriptUrl.origin.includes('localhost')) {
+        API_BASE = scriptUrl.origin;
+      }
+    }
+  } catch (e) {}
+
+  var TRACK_EVENT_URL = API_BASE + '/api/track/event';
+  var CONFIG_URL = API_BASE + '/api/pixel/config';
+
+  // Checkout keywords para detecção inteligente
+  var CHECKOUT_PATTERNS = [
+    'checkout', 'pagamento', 'payment', 'monsterpay', 'kiwify', 'hotmart',
+    'eduzz', 'monetizze', 'braip', 'cakto', 'kirvano', 'perfectpay',
+    'comprar', 'finalizar', 'compra', 'cart', 'carrinho', 'pedido', 'order'
+  ];
+
+  var BUTTON_TEXT_PATTERNS = [
+    'comprar', 'finalizar', 'compra', 'confirmar', 'quero ter', 'próximo passo',
+    'proximo passo', 'inscrição', 'inscricao', 'participar', 'participe',
+    'quero participar', 'checkout', 'buy now', 'purchase', 'adquirir',
+    'garantir', 'quero', 'assinar', 'contratar', 'começar', 'iniciar'
+  ];
+
+  var configuredIcType = 'css';
+  var configuredIcRule = null;
+  var lastIcTime = 0;
+  var metaPixelId = null;
+
+  function getCookie(name) {
+    var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return match ? decodeURIComponent(match[2]) : null;
+  }
+
+  function setCookie(name, value, days) {
+    var d = new Date();
+    d.setTime(d.getTime() + (days * 86400000));
+    var secure = window.location.protocol === 'https:' ? ';Secure' : '';
+    document.cookie = name + '=' + encodeURIComponent(value) + ';expires=' + d.toUTCString() + ';path=/;SameSite=Lax' + secure;
+  }
+
+  function getFbp() {
+    var fbp = getCookie('_fbp');
+    if (fbp) return fbp;
+    fbp = 'fb.1.' + Date.now() + '.' + Math.floor(Math.random() * 2147483647);
+    setCookie('_fbp', fbp, 90);
+    return fbp;
+  }
+
+  function getFbc() {
+    var fbc = getCookie('_fbc');
+    if (fbc) return fbc;
+    var fbclid = new URLSearchParams(window.location.search).get('fbclid');
+    if (fbclid) {
+      fbc = 'fb.1.' + Date.now() + '.' + fbclid;
+      setCookie('_fbc', fbc, 90);
+      return fbc;
+    }
+    return '';
+  }
+
+  function getUtms() {
+    var params = new URLSearchParams(window.location.search);
+    var utms = {
+      utm_source: params.get('utm_source') || params.get('src') || '',
+      utm_medium: params.get('utm_medium') || '',
+      utm_campaign: params.get('utm_campaign') || '',
+      utm_content: params.get('utm_content') || '',
+      utm_term: params.get('utm_term') || '',
+      fbclid: params.get('fbclid') || '',
+      src: params.get('src') || params.get('utm_source') || '',
+      sck: params.get('sck') || ''
+    };
+
+    // Se a página não tem UTMs na URL, recupera do histórico de navegação local (30 dias)
+    if (!utms.utm_campaign) {
+      try {
+        var saved = JSON.parse(localStorage.getItem('pt_ad_hist') || 'null');
+        if (saved && (Date.now() - saved.time < 30 * 86400000)) {
+          utms = Object.assign({}, saved.utms);
+        }
+      } catch (e) {}
+    }
+
+    if (utms.utm_campaign || utms.utm_content || utms.fbclid) {
+      try {
+        localStorage.setItem('pt_ad_hist', JSON.stringify({ utms: utms, time: Date.now() }));
+      } catch (e) {}
+    }
+
+    return utms;
+  }
+
+  function getOrCreateClickId() {
+    var clickId = getCookie('_pt_click_id');
+    if (!clickId) {
+      clickId = 'pt_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 9);
+      setCookie('_pt_click_id', clickId, 30);
+    }
+    return clickId;
+  }
+
+  function sendEvent(payload, callback) {
+    var data = JSON.stringify(payload);
+    if (typeof fetch === 'function') {
+      fetch(TRACK_EVENT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: data,
+        keepalive: true,
+        credentials: 'omit',
+        mode: 'cors'
+      }).then(function() { if (callback) callback(); }).catch(function() { if (callback) callback(); });
+      return;
+    }
+
+    if (navigator.sendBeacon) {
+      try {
+        var blob = new Blob([data], { type: 'application/json' });
+        navigator.sendBeacon(TRACK_EVENT_URL, blob);
+        if (callback) callback();
+        return;
+      } catch (e) {}
+    }
+
+    try {
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', TRACK_EVENT_URL, true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 && callback) callback();
+      };
+      xhr.send(data);
+    } catch (e) {
+      if (callback) callback();
+    }
+  }
+
+  // Disparo de InitiateCheckout
+  function trackInitiateCheckout(callback) {
+    var now = Date.now();
+    if (now - lastIcTime < 1200) {
+      if (callback) callback();
+      return;
+    }
+    lastIcTime = now;
+
+    var clickId = getOrCreateClickId();
+    var utms = getUtms();
+    var fbp = getFbp();
+    var fbc = getFbc();
+
+    var targetPixels = pixelIds.length > 0 ? pixelIds : ['pt_px_default'];
+    for (var i = 0; i < targetPixels.length; i++) {
+      sendEvent({
+        pixel_id: targetPixels[i],
+        click_id: clickId,
+        event_name: 'InitiateCheckout',
+        page: window.location.href,
+        referrer: document.referrer || '',
+        fbp: fbp,
+        fbc: fbc,
+        utm_source: utms.utm_source,
+        utm_medium: utms.utm_medium,
+        utm_campaign: utms.utm_campaign,
+        utm_content: utms.utm_content,
+        utm_term: utms.utm_term,
+        fbclid: utms.fbclid,
+        src: utms.src,
+        sck: utms.sck
+      });
+    }
+
+    if (window.fbq && metaPixelId) {
+      try {
+        window.fbq('track', 'InitiateCheckout', {}, { eventID: 'ev_ic_' + Date.now() });
+      } catch (e) {}
+    }
+
+    if (callback) setTimeout(callback, 150);
+  }
+
+  // Verifica se um link aponta para checkout
+  function isCheckoutUrl(url) {
+    if (!url) return false;
+    try { url = decodeURIComponent(url); } catch (e) {}
+    url = url.toLowerCase();
+    for (var i = 0; i < CHECKOUT_PATTERNS.length; i++) {
+      if (url.indexOf(CHECKOUT_PATTERNS[i]) !== -1) return true;
+    }
+    return false;
+  }
+
+  // Verifica se o elemento clicado corresponde ao botão de compra
+  function isPurchaseElement(el) {
+    if (!el || el.nodeType !== 1) return false;
+
+    // 1. Checagem do Seletor CSS configurado no PrimeTrack (ex: .btn-checkout, #comprar)
+    if (configuredIcRule) {
+      try {
+        var rule = configuredIcRule.trim();
+        if (rule) {
+          // Se não começa com . ou #, adiciona . por padrão
+          var cssSel = (rule.startsWith('.') || rule.startsWith('#')) ? rule : ('.' + rule);
+          if (el.matches && (el.matches(cssSel) || el.closest(cssSel))) return true;
+          if (el.matches && (el.matches(rule) || el.closest(rule))) return true;
+        }
+      } catch (e) {}
+    }
+
+    // 2. Checagem de Tag <a> com link para MonsterPay / Checkout
+    var current = el;
+    for (var d = 0; d < 8 && current && current !== document.body; d++) {
+      if (current.tagName === 'A') {
+        var href = current.getAttribute('href') || '';
+        if (href && !href.startsWith('#') && !href.startsWith('javascript:') && isCheckoutUrl(href)) {
+          return true;
+        }
+      }
+      current = current.parentElement;
+    }
+
+    // 3. Checagem do texto do botão
+    var txt = (el.innerText || el.value || '').trim().toLowerCase();
+    if (txt && txt.length <= 60) {
+      for (var b = 0; b < BUTTON_TEXT_PATTERNS.length; b++) {
+        if (txt.indexOf(BUTTON_TEXT_PATTERNS[b]) !== -1) return true;
+      }
+    }
+
+    return false;
+  }
+
+  // Injeta automaticamente UTMs e pt_sid em todos os links de checkout da página
+  function injectParametersIntoCheckoutLinks() {
+    try {
+      var links = document.querySelectorAll('a[href]');
+      var utms = getUtms();
+      var clickId = getOrCreateClickId();
+      var fbp = getFbp();
+      var fbc = getFbc();
+
+      for (var i = 0; i < links.length; i++) {
+        var link = links[i];
+        var href = link.getAttribute('href');
+        if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+          continue;
+        }
+
+        var isConfiguredTarget = false;
+        if (configuredIcRule) {
+          try {
+            var rule = configuredIcRule.trim();
+            var cssSel = (rule.startsWith('.') || rule.startsWith('#')) ? rule : ('.' + rule);
+            if (link.matches && (link.matches(cssSel) || link.closest(cssSel))) {
+              isConfiguredTarget = true;
+            }
+          } catch (e) {}
+        }
+
+        if (isCheckoutUrl(href) || isConfiguredTarget) {
+          try {
+            var urlObj = new URL(href, window.location.href);
+            ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'src', 'sck'].forEach(function(key) {
+              if (utms[key] && !urlObj.searchParams.get(key)) {
+                urlObj.searchParams.set(key, utms[key]);
+              }
+            });
+
+            if (clickId && !urlObj.searchParams.get('pt_sid')) {
+              urlObj.searchParams.set('pt_sid', clickId);
+            }
+            if (fbp && !urlObj.searchParams.get('_fbp')) {
+              urlObj.searchParams.set('_fbp', fbp);
+            }
+            if (fbc && !urlObj.searchParams.get('_fbc')) {
+              urlObj.searchParams.set('_fbc', fbc);
+            }
+
+            var newUrl = urlObj.toString();
+            if (newUrl !== href) {
+              link.setAttribute('href', newUrl);
+            }
+          } catch (e) {}
+        }
+      }
+    } catch (e) {}
+  }
+
+  // Interceptadores de eventos de clique
+  function handleElementInteraction(e) {
+    var path = typeof e.composedPath === 'function' ? e.composedPath() : [];
+    if (path && path.length) {
+      for (var p = 0; p < path.length && p < 10; p++) {
+        var node = path[p];
+        if (node && node.nodeType === 1 && isPurchaseElement(node)) {
+          trackInitiateCheckout();
+          return;
+        }
+      }
+    }
+
+    var target = e.target;
+    if (target && isPurchaseElement(target)) {
+      trackInitiateCheckout();
+      return;
+    }
+  }
+
+  document.addEventListener('click', handleElementInteraction, true);
+  document.addEventListener('pointerdown', handleElementInteraction, true);
+  document.addEventListener('touchstart', handleElementInteraction, true);
+
+  // Intercepta window.open
+  var originalOpen = window.open;
+  window.open = function(url, name, features) {
+    if (url && isCheckoutUrl(url.toString())) {
+      trackInitiateCheckout(function() {
+        originalOpen.call(window, url, name || '', features || '');
+      });
+      return null;
+    }
+    return originalOpen.call(window, url, name || '', features || '');
+  };
+
+  // Inicializa Meta Pixel CAPI se metaPixelId fornecido
+  function initFbq(fbId) {
+    if (!fbId || !/^\d{10,25}$/.test(String(fbId))) return;
+    try {
+      metaPixelId = String(fbId);
+      var w = window, d = document, s = 'script';
+      if (!w.fbq) {
+        var fb = w.fbq = function() {
+          fb.callMethod ? fb.callMethod.apply(fb, arguments) : fb.queue.push(arguments);
+        };
+        if (!w._fbq) w._fbq = fb;
+        fb.push = fb;
+        fb.loaded = true;
+        fb.version = '2.0';
+        fb.queue = [];
+        var el = d.createElement(s);
+        el.async = true;
+        el.src = 'https://connect.facebook.net/en_US/fbevents.js';
+        var firstScript = d.getElementsByTagName(s)[0];
+        firstScript.parentNode.insertBefore(el, firstScript);
+      }
+      w.fbq('init', metaPixelId);
+      w.fbq('track', 'PageView', {}, { eventID: 'ev_pv_' + Date.now() });
+    } catch (e) {}
+  }
+
+  // Dispara PageView imediatamente ao carregar
+  var clickId = getOrCreateClickId();
+  var utms = getUtms();
+  var fbp = getFbp();
+  var fbc = getFbc();
+
+  var initialPixels = pixelIds.length > 0 ? pixelIds : ['pt_px_default'];
+  for (var p = 0; p < initialPixels.length; p++) {
+    sendEvent({
+      pixel_id: initialPixels[p],
+      click_id: clickId,
+      event_name: 'PageView',
+      page: window.location.href,
+      referrer: document.referrer || '',
+      fbp: fbp,
+      fbc: fbc,
+      utm_source: utms.utm_source,
+      utm_medium: utms.utm_medium,
+      utm_campaign: utms.utm_campaign,
+      utm_content: utms.utm_content,
+      utm_term: utms.utm_term,
+      fbclid: utms.fbclid,
+      src: utms.src,
+      sck: utms.sck
+    });
+  }
+
+  // Carrega configurações dos pixels criados (Meta Pixel ID e Seletor CSS do botão)
+  for (var k = 0; k < initialPixels.length; k++) {
+    (function(pxId) {
+      try {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', CONFIG_URL + '?id=' + encodeURIComponent(pxId), true);
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState === 4 && xhr.status === 200) {
+            try {
+              var cfg = JSON.parse(xhr.responseText);
+              if (cfg.icRule) configuredIcRule = cfg.icRule;
+              if (cfg.icType) configuredIcType = cfg.icType;
+              if (cfg.metaPixelId) initFbq(cfg.metaPixelId);
+            } catch (e) {}
+            injectParametersIntoCheckoutLinks();
+          }
+        };
+        xhr.send();
+      } catch (e) {}
+    })(initialPixels[k]);
+  }
+
+  // Garante injeção contínua nos botões
+  if (document.readyState === 'complete') {
+    injectParametersIntoCheckoutLinks();
+  } else {
+    window.addEventListener('load', injectParametersIntoCheckoutLinks);
+  }
+  setInterval(injectParametersIntoCheckoutLinks, 2000);
+
+  // Métodos globais
+  window.PrimeTrack = {
+    getClickId: getOrCreateClickId,
+    getUtms: getUtms,
+    getFbp: getFbp,
+    getFbc: getFbc,
+    trackIC: function(cb) { trackInitiateCheckout(cb); },
+    getPixelIds: function() { return pixelIds.slice(); }
+  };
+})();

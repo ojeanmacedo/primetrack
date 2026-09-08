@@ -5,9 +5,70 @@ import {
   ChevronDown, 
   HelpCircle, 
   RotateCw, 
-  PieChart 
+  PieChart,
+  ArrowRight
 } from 'lucide-react';
 import DateRangePicker from '../components/DateRangePicker';
+
+function FunnelGauge({ percentage, strokeColor = '#0066FF', isFull = false }) {
+  const radius = 30;
+  const strokeWidth = 4.5;
+  const circumference = 2 * Math.PI * radius; // ~188.49
+  const validPct = Math.min(100, Math.max(0, Number(percentage) || 0));
+  const dashoffset = circumference - (validPct / 100) * circumference;
+
+  const displayPct = isFull || validPct >= 99.9 
+    ? '100%' 
+    : `${validPct.toFixed(1).replace('.', ',')}%`;
+
+  return (
+    <div className="relative w-18 h-18 sm:w-20 sm:h-20 flex items-center justify-center">
+      <svg className="w-full h-full -rotate-90" viewBox="0 0 72 72">
+        {/* Background Track */}
+        <circle
+          cx="36"
+          cy="36"
+          r={radius}
+          fill="none"
+          stroke="#1E293B"
+          strokeWidth={strokeWidth}
+        />
+        {/* Active Arc */}
+        {validPct > 0 && (
+          <circle
+            cx="36"
+            cy="36"
+            r={radius}
+            fill="none"
+            stroke={strokeColor}
+            strokeWidth={strokeWidth}
+            strokeDasharray={circumference}
+            strokeDashoffset={dashoffset}
+            strokeLinecap="round"
+            className="transition-all duration-700 ease-out"
+          />
+        )}
+      </svg>
+      {/* Percentage Center Text */}
+      <span className="absolute text-xs sm:text-sm font-bold text-white tracking-tight font-sans">
+        {displayPct}
+      </span>
+    </div>
+  );
+}
+
+function FunnelConnector({ dropPct }) {
+  return (
+    <div className="flex flex-col items-center justify-center px-1 sm:px-2 min-w-[56px]">
+      <ArrowRight className="w-3.5 h-3.5 text-zinc-600/70 mb-1.5" />
+      {dropPct !== undefined && dropPct !== null && (
+        <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-[#24131A] border border-red-500/20 text-[#EF4444]">
+          {dropPct < 0 ? `${dropPct.toFixed(1).replace('.', ',')}%` : `${dropPct > 0 ? '+' : ''}${dropPct.toFixed(1).replace('.', ',')}%`}
+        </span>
+      )}
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -64,6 +125,16 @@ export default function Dashboard() {
     return [];
   });
 
+  const [pixelStats, setPixelStats] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('primetrack_cached_pixel_stats');
+        if (cached) return JSON.parse(cached);
+      } catch (e) {}
+    }
+    return { pageViews: 0, initiateCheckouts: 0, totalEvents: 0 };
+  });
+
   const periodToPreset = {
     'Hoje': 'today',
     'Ontem': 'yesterday',
@@ -86,10 +157,11 @@ export default function Dashboard() {
     }
 
     try {
-      const [rRes, crRes, ordRes] = await Promise.all([
+      const [rRes, crRes, ordRes, pixRes] = await Promise.all([
         fetch('/api/meta/status'),
         fetch(`/api/campaigns?${query}`),
-        fetch('/api/orders')
+        fetch('/api/orders'),
+        fetch('/api/pixel/stats').catch(() => null)
       ]);
 
       try {
@@ -101,6 +173,18 @@ export default function Dashboard() {
           }
         }
       } catch (oErr) {}
+
+      if (pixRes) {
+        try {
+          const pData = await pixRes.json();
+          if (pData && typeof pData.pageViews === 'number') {
+            setPixelStats(pData);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('primetrack_cached_pixel_stats', JSON.stringify(pData));
+            }
+          }
+        } catch (pErr) {}
+      }
 
       const data = await rRes.json();
       if (data.adAccounts && data.adAccounts.length > 0) {
@@ -141,9 +225,10 @@ export default function Dashboard() {
     }
 
     try {
-      const [cr, ord] = await Promise.all([
+      const [cr, ord, pix] = await Promise.all([
         fetch(`/api/campaigns?${query}`),
-        fetch('/api/orders')
+        fetch('/api/orders'),
+        fetch('/api/pixel/stats').catch(() => null)
       ]);
       const [cData, oData] = await Promise.all([cr.json(), ord.json()]);
       if (Array.isArray(cData)) {
@@ -157,6 +242,17 @@ export default function Dashboard() {
         if (typeof window !== 'undefined') {
           localStorage.setItem('primetrack_cached_orders', JSON.stringify(oData));
         }
+      }
+      if (pix) {
+        try {
+          const pData = await pix.json();
+          if (pData && typeof pData.pageViews === 'number') {
+            setPixelStats(pData);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('primetrack_cached_pixel_stats', JSON.stringify(pData));
+            }
+          }
+        } catch (pErr) {}
       }
       setMinsAgo(0);
     } catch (err) {
@@ -181,6 +277,18 @@ export default function Dashboard() {
             setOrdersList(oData);
             try {
               localStorage.setItem('primetrack_cached_orders', JSON.stringify(oData));
+            } catch (e) {}
+          }
+        })
+        .catch(() => {});
+
+      fetch('/api/pixel/stats')
+        .then(res => res.json())
+        .then(pData => {
+          if (pData && typeof pData.pageViews === 'number') {
+            setPixelStats(pData);
+            try {
+              localStorage.setItem('primetrack_cached_pixel_stats', JSON.stringify(pData));
             } catch (e) {}
           }
         })
@@ -347,6 +455,37 @@ export default function Dashboard() {
     if (totalPixCreated === 0) return 'N/A';
     return `${Math.round((totalPixApproved / totalPixCreated) * 100)}%`;
   }, [filteredOrders, approvedOrders]);
+
+  // Cálculos do Funil de Conversão (Meta Ads + Pixel PrimeTrack + MonsterPay)
+  const totalMetaClicks = useMemo(() => {
+    return filteredCampaigns.reduce((acc, c) => acc + Number(c.clicks || 0), 0);
+  }, [filteredCampaigns]);
+
+  const rawVis = pixelStats.pageViews || 0;
+  const rawIcs = pixelStats.initiateCheckouts || 0;
+  const rawInic = filteredOrders.length;
+  const rawApr = realApprovedSales;
+
+  const funnelClicks = totalMetaClicks > 0 
+    ? totalMetaClicks 
+    : (rawVis > 0 ? rawVis : (rawInic > 0 ? rawInic : 0));
+
+  const funnelVis = rawVis;
+  const funnelIcs = rawIcs;
+  const funnelInic = rawInic;
+  const funnelApr = rawApr;
+
+  const pctClicks = funnelClicks > 0 ? 100 : 0;
+  const pctVis = funnelClicks > 0 ? Math.min(100, (funnelVis / funnelClicks) * 100) : 0;
+  const dropVis = funnelClicks > 0 && funnelVis > 0 ? ((funnelVis - funnelClicks) / funnelClicks) * 100 : null;
+
+  const pctIcs = funnelClicks > 0 ? Math.min(100, (funnelIcs / funnelClicks) * 100) : 0;
+  const dropIcs = funnelVis > 0 && funnelIcs > 0 ? ((funnelIcs - funnelVis) / funnelVis) * 100 : null;
+
+  const pctInic = funnelClicks > 0 ? Math.min(100, (funnelInic / funnelClicks) * 100) : 0;
+  const dropInic = funnelIcs > 0 && funnelInic > 0 ? ((funnelInic - funnelIcs) / funnelIcs) * 100 : null;
+
+  const pctApr = funnelClicks > 0 ? Math.min(100, (funnelApr / funnelClicks) * 100) : 0;
 
   return (
     <div className="space-y-4 pb-16 font-sans select-none">
@@ -556,6 +695,88 @@ export default function Dashboard() {
           </div>
         </div>
 
+      </div>
+
+      {/* Funil de Conversão (Meta Ads) - Idêntico ao print da UTMify */}
+      <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-5 sm:p-6 shadow-md">
+        <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">
+          Funil de Conversão (Meta Ads)
+        </h3>
+
+        <div className="border-b border-[#1E293B]/70 my-5" />
+
+        <div className="overflow-x-auto pb-2">
+          <div className="flex items-center justify-between min-w-[680px] px-2 py-2">
+            
+            {/* 1. CLIQUES */}
+            <div className="flex flex-col items-center text-center">
+              <FunnelGauge percentage={pctClicks} strokeColor="#0066FF" isFull={pctClicks === 100} />
+              <div className="text-lg sm:text-xl font-bold text-white mt-3 font-sans">
+                {funnelClicks.toLocaleString('pt-BR')}
+              </div>
+              <div className="text-[11px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
+                CLIQUES
+              </div>
+            </div>
+
+            {/* Conector 1 -> 2 */}
+            <FunnelConnector dropPct={dropVis} />
+
+            {/* 2. VIS. PÁGINA */}
+            <div className="flex flex-col items-center text-center">
+              <FunnelGauge percentage={pctVis} strokeColor="#0066FF" />
+              <div className="text-lg sm:text-xl font-bold text-white mt-3 font-sans">
+                {funnelVis.toLocaleString('pt-BR')}
+              </div>
+              <div className="text-[11px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
+                VIS. PÁGINA
+              </div>
+            </div>
+
+            {/* Conector 2 -> 3 */}
+            <FunnelConnector dropPct={dropIcs} />
+
+            {/* 3. ICS */}
+            <div className="flex flex-col items-center text-center">
+              <FunnelGauge percentage={pctIcs} strokeColor="#0066FF" />
+              <div className="text-lg sm:text-xl font-bold text-white mt-3 font-sans">
+                {funnelIcs.toLocaleString('pt-BR')}
+              </div>
+              <div className="text-[11px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
+                ICS
+              </div>
+            </div>
+
+            {/* Conector 3 -> 4 */}
+            <FunnelConnector dropPct={dropInic} />
+
+            {/* 4. VENDAS INIC. */}
+            <div className="flex flex-col items-center text-center">
+              <FunnelGauge percentage={pctInic} strokeColor="#A855F7" />
+              <div className="text-lg sm:text-xl font-bold text-white mt-3 font-sans">
+                {funnelInic.toLocaleString('pt-BR')}
+              </div>
+              <div className="text-[11px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
+                VENDAS INIC.
+              </div>
+            </div>
+
+            {/* Conector 4 -> 5 */}
+            <FunnelConnector />
+
+            {/* 5. VENDAS APR. */}
+            <div className="flex flex-col items-center text-center">
+              <FunnelGauge percentage={pctApr} strokeColor="#10B981" />
+              <div className="text-lg sm:text-xl font-bold text-white mt-3 font-sans">
+                {funnelApr.toLocaleString('pt-BR')}
+              </div>
+              <div className="text-[11px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
+                VENDAS APR.
+              </div>
+            </div>
+
+          </div>
+        </div>
       </div>
 
       {/* Row 2: Vendas por Produto (Card Largo) + Grid com os 12 Mini Cards idêntico ao print */}
