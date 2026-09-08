@@ -992,7 +992,7 @@ export default function Integrations() {
                         {acc.bm}
                       </td>
                       <td className="py-3.5 px-4 font-mono text-emerald-400 font-bold text-xs">
-                        {acc.currency === 'USD' ? '$' : 'R$'} {acc.balance || '0,00'}
+                        R$ {acc.balance || '0,00'}
                       </td>
                       <td className="py-3.5 px-4 font-mono text-zinc-400 text-[11px]">
                         {acc.currency || 'BRL'}
