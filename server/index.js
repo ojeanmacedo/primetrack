@@ -904,6 +904,70 @@ app.post('/api/auth/update-password', async (req, res) => {
   }
 });
 
+/**
+ * 6. Rota para Testar / Verificar se o Pixel está instalado na Página de Vendas
+ */
+app.post('/api/pixel/verify', async (req, res) => {
+  try {
+    const { url, pixelId } = req.body;
+    if (!url) {
+      return res.status(400).json({ success: false, error: 'URL do site é obrigatória.' });
+    }
+
+    let targetUrl = url.trim();
+    if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+      targetUrl = 'https://' + targetUrl;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
+    const response = await fetch(targetUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 PrimeTrack-Verifier/2.0'
+      },
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      return res.json({
+        success: false,
+        found: false,
+        message: `Não foi possível acessar a página (Status HTTP ${response.status}). Verifique se o site está online e publicado.`
+      });
+    }
+
+    const html = await response.text();
+
+    // Procura por evidências do script PrimeTrack / LowTrack ou pixel.js
+    const hasPixelJs = html.includes('pixel.js');
+    const hasPrimeTrack = html.toLowerCase().includes('primetrack') || html.toLowerCase().includes('lowtrack');
+    const hasPixelId = pixelId ? html.includes(pixelId) : false;
+
+    if (hasPixelJs || (hasPrimeTrack && (hasPixelId || html.includes('window.pixelId')))) {
+      return res.json({
+        success: true,
+        found: true,
+        message: 'Pixel funcionando corretamente'
+      });
+    }
+
+    return res.json({
+      success: true,
+      found: false,
+      message: 'Script do PrimeTrack não encontrado no HTML do site. Verifique se o snippet do pixel está dentro da tag <head> e se o site foi publicado.'
+    });
+  } catch (err) {
+    console.error('Erro em /api/pixel/verify:', err);
+    return res.json({
+      success: true,
+      found: false,
+      message: 'Script do PrimeTrack não encontrado no HTML do site. Verifique se o snippet do pixel está dentro da tag <head> e se o site foi publicado.'
+    });
+  }
+});
+
 if (process.env.VERCEL !== '1') {
   app.listen(PORT, () => {
     console.log(`[PrimeTrack Server] Rodando na porta ${PORT}`);

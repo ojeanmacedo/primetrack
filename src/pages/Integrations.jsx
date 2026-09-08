@@ -107,6 +107,12 @@ export default function Integrations() {
   const [pixelSuccessMsg, setPixelSuccessMsg] = useState(null);
   const [accountSwitchToast, setAccountSwitchToast] = useState(null);
 
+  // Modal de Teste de Pixel
+  const [pixelToTest, setPixelToTest] = useState(null);
+  const [testSiteUrl, setTestSiteUrl] = useState('');
+  const [isVerifyingPixel, setIsVerifyingPixel] = useState(false);
+  const [pixelVerificationResult, setPixelVerificationResult] = useState(null); // { found: boolean, message: string }
+
   // Modal Conectar Plataforma Flow States (Monsterpay)
   const [showConnectPlatformModal, setShowConnectPlatformModal] = useState(false);
   const [connectPlatformStep, setConnectPlatformStep] = useState(1); // 1 = select, 2 = alias, 3 = result
@@ -471,6 +477,43 @@ export default function Integrations() {
     setNewPixelDomains('');
     setPixelSuccessMsg(`Pixel "${newPx.name}" configurado com sucesso!`);
     setTimeout(() => setPixelSuccessMsg(null), 3500);
+  };
+
+  const handleOpenTestPixel = (px) => {
+    setPixelToTest(px);
+    setTestSiteUrl('');
+    setPixelVerificationResult(null);
+  };
+
+  const handleVerifyPixelScript = async (e) => {
+    e?.preventDefault();
+    if (!testSiteUrl.trim() || isVerifyingPixel) return;
+
+    setIsVerifyingPixel(true);
+    setPixelVerificationResult(null);
+
+    try {
+      const res = await fetch('/api/pixel/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: testSiteUrl.trim(),
+          pixelId: pixelToTest?.pixelId
+        })
+      });
+      const data = await res.json();
+      setPixelVerificationResult({
+        found: data.found === true,
+        message: data.message || (data.found ? 'Pixel funcionando corretamente' : 'Script do PrimeTrack não encontrado no HTML do site.')
+      });
+    } catch (err) {
+      setPixelVerificationResult({
+        found: false,
+        message: 'Script do PrimeTrack não encontrado no HTML do site. Verifique se o snippet do pixel está dentro da tag <head> e se o site foi publicado.'
+      });
+    } finally {
+      setIsVerifyingPixel(false);
+    }
   };
 
   const handleTogglePixelStatus = (pxId) => {
@@ -974,7 +1017,7 @@ export default function Integrations() {
                         <div className="flex items-center gap-2">
                           <button 
                             type="button"
-                            onClick={() => alert(`Enviando evento de teste para o pixel ${px.pixelId}... OK!`)}
+                            onClick={() => handleOpenTestPixel(px)}
                             className="px-3 py-1 rounded-lg bg-[#070D1A] hover:bg-[#12223D] border border-white/10 text-zinc-300 text-xs transition-colors cursor-pointer"
                           >
                             Testar
@@ -2342,6 +2385,94 @@ export default function Integrations() {
                   className="px-5 py-2 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all cursor-pointer"
                 >
                   Criar Pixel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL DE TESTE DE PIXEL NA PÁGINA DE VENDAS                               */}
+      {/* ========================================================================= */}
+      {pixelToTest && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => setPixelToTest(null)}
+        >
+          <div 
+            className="bg-[#0C172B] border border-[#1E3254] rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-[#1E3254]">
+              <h3 className="text-sm font-bold text-white">
+                Testar Pixel
+              </h3>
+              <button
+                type="button"
+                onClick={() => setPixelToTest(null)}
+                className="text-zinc-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleVerifyPixelScript} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold mb-1.5">
+                  URL DO SITE
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="https://seusite.com.br"
+                  value={testSiteUrl}
+                  onChange={(e) => {
+                    setTestSiteUrl(e.target.value);
+                    if (pixelVerificationResult) setPixelVerificationResult(null);
+                  }}
+                  className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-mono placeholder:text-zinc-600 focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                />
+                <p className="text-[11px] text-zinc-500 mt-1.5">
+                  Vamos verificar se o script da PrimeTrack está instalado.
+                </p>
+              </div>
+
+              {/* Resultado do Teste: Sucesso */}
+              {pixelVerificationResult && pixelVerificationResult.found && (
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-medium text-xs flex items-center gap-2 animate-in fade-in duration-200">
+                  <Check className="w-4 h-4 text-emerald-400 shrink-0 stroke-[3]" />
+                  <span>{pixelVerificationResult.message || 'Pixel funcionando corretamente'}</span>
+                </div>
+              )}
+
+              {/* Resultado do Teste: Erro */}
+              {pixelVerificationResult && !pixelVerificationResult.found && (
+                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 space-y-2 animate-in fade-in duration-200">
+                  <div className="flex items-center gap-2 font-bold text-xs text-amber-400">
+                    <span>⚠️ Script não encontrado no HTML do site.</span>
+                  </div>
+                  <p className="text-[11px] text-amber-300/80 leading-relaxed">
+                    Verifique se o snippet do pixel está dentro da tag <code className="bg-black/40 px-1 py-0.5 rounded font-mono text-white">&lt;head&gt;</code> e se o site foi publicado.
+                  </p>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setPixelToTest(null)}
+                  className="px-4 py-2 rounded-xl bg-[#070D1A] hover:bg-white/5 border border-white/10 text-zinc-300 font-semibold text-xs transition-colors cursor-pointer"
+                >
+                  Fechar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isVerifyingPixel || !testSiteUrl.trim()}
+                  className="px-5 py-2 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all cursor-pointer flex items-center gap-2"
+                >
+                  {isVerifyingPixel && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{isVerifyingPixel ? 'Verificando...' : 'Verificar'}</span>
                 </button>
               </div>
             </form>
