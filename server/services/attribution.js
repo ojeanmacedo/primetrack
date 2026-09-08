@@ -51,12 +51,39 @@ export function attributeOrder(parsedOrder, clientIp = null) {
     matchType = 'cross_session_bio';
   }
 
+function cleanTrackingValue(val) {
+  if (!val) return '';
+  let str = String(val);
+  if (str.includes('::')) str = str.split('::')[0];
+  if (str.includes('|')) str = str.split('|')[0];
+  str = str.replace(/[-_]\s*\d{6,}$/, '');
+  return str.trim();
+}
+
+  // Extrai e normaliza o nome da campanha
+  let rawCampaign = tracking.utm_campaign || (matchedSession && matchedSession.utms && matchedSession.utms.utm_campaign) || '';
+  let resolvedCampaign = rawCampaign;
+  if (!resolvedCampaign || resolvedCampaign === 'campanha_direta' || resolvedCampaign.toLowerCase().includes('direta')) {
+    resolvedCampaign = 'Orgânico';
+  } else {
+    resolvedCampaign = cleanTrackingValue(resolvedCampaign) || 'Orgânico';
+  }
+
+  const rawSource = tracking.utm_source || (matchedSession && matchedSession.utms && matchedSession.utms.utm_source) || '';
+  const resolvedSource = resolvedCampaign === 'Orgânico' ? 'Orgânico' : (rawSource || 'facebook');
+
+  const rawAdset = tracking.utm_medium || (matchedSession && matchedSession.utms && matchedSession.utms.utm_medium) || 'conjunto_padrao';
+  const resolvedAdset = cleanTrackingValue(rawAdset) || 'conjunto_padrao';
+
+  const rawAd = tracking.utm_content || (matchedSession && matchedSession.utms && matchedSession.utms.utm_content) || 'criativo_padrao';
+  const resolvedAd = cleanTrackingValue(rawAd) || 'criativo_padrao';
+
   // Extrai as UTMs finais
   const finalUtms = {
-    source: tracking.utm_source || (matchedSession && matchedSession.utms && matchedSession.utms.utm_source) || 'facebook',
-    campaign: tracking.utm_campaign || (matchedSession && matchedSession.utms && matchedSession.utms.utm_campaign) || 'campanha_direta',
-    adset: tracking.utm_medium || (matchedSession && matchedSession.utms && matchedSession.utms.utm_medium) || 'conjunto_padrao',
-    ad: tracking.utm_content || (matchedSession && matchedSession.utms && matchedSession.utms.utm_content) || 'criativo_padrao',
+    source: resolvedSource,
+    campaign: resolvedCampaign,
+    adset: resolvedAdset,
+    ad: resolvedAd,
     term: tracking.utm_term || (matchedSession && matchedSession.utms && matchedSession.utms.utm_term) || ''
   };
 

@@ -424,6 +424,29 @@ app.get('/api/stats', (req, res) => {
 const campaignsCache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
 
+function sanitizeAttribution(rawAttr) {
+  const attr = { ...(rawAttr || {}) };
+  let camp = attr.campaign || '';
+  if (!camp || camp === 'campanha_direta' || camp.toLowerCase().includes('direta')) {
+    camp = 'Orgânico';
+  } else {
+    camp = camp.split('::')[0].split('|')[0].replace(/[-_]\s*\d{6,}$/, '').trim();
+    if (!camp) camp = 'Orgânico';
+  }
+  attr.campaign = camp;
+
+  if (camp === 'Orgânico' || !attr.source || attr.source.toLowerCase().includes('direta')) {
+    attr.source = camp === 'Orgânico' ? 'Orgânico' : attr.source;
+  }
+  if (attr.adset) {
+    attr.adset = String(attr.adset).split('::')[0].split('|')[0].replace(/[-_]\s*\d{6,}$/, '').trim();
+  }
+  if (attr.ad) {
+    attr.ad = String(attr.ad).split('::')[0].split('|')[0].replace(/[-_]\s*\d{6,}$/, '').trim();
+  }
+  return attr;
+}
+
 async function getAllOrders() {
   let orders = [];
   try {
@@ -446,7 +469,7 @@ async function getAllOrders() {
           email: row.customer_email,
           phone: row.customer_phone
         },
-        attribution: row.attribution,
+        attribution: sanitizeAttribution(row.attribution),
         emqScore: row.emq_score,
         createdAt: row.created_at
       }));
@@ -456,7 +479,10 @@ async function getAllOrders() {
   }
 
   if (orders.length === 0) {
-    orders = db.get('orders') || [];
+    orders = (db.get('orders') || []).map(o => ({
+      ...o,
+      attribution: sanitizeAttribution(o.attribution)
+    }));
   }
 
   return orders.filter(o => !o.gateway || o.gateway.toLowerCase().includes('monster'));

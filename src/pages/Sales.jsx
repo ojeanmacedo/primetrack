@@ -36,6 +36,18 @@ export default function Sales() {
     const formattedDate = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
     const cityState = [cust.city, cust.state].filter(Boolean).join(', ') || 'Brasil';
     
+    let cleanCampaign = o.attribution?.campaign || o.campaign || '';
+    if (!cleanCampaign || cleanCampaign === 'campanha_direta' || cleanCampaign.toLowerCase().includes('direta')) {
+      cleanCampaign = 'Orgânico';
+    } else {
+      cleanCampaign = cleanCampaign.split('::')[0].split('|')[0].replace(/[-_]\s*\d{6,}$/, '').trim();
+      if (!cleanCampaign) cleanCampaign = 'Orgânico';
+    }
+
+    const isOrganic = cleanCampaign === 'Orgânico' || (o.attribution?.source && o.attribution.source.toLowerCase().includes('org'));
+    let cleanSource = isOrganic ? 'ORG' : (o.attribution?.source ? o.attribution.source.toUpperCase().slice(0, 2) : 'FB');
+    if (cleanSource.length > 3) cleanSource = cleanSource.slice(0, 2);
+
     return {
       id: o.id || o.orderCode,
       name: cust.name || 'Cliente MonsterPay',
@@ -44,8 +56,9 @@ export default function Sales() {
       product: o.productName || 'Produto MonsterPay',
       value: `R$ ${Number(o.amount || 0).toFixed(2).replace('.', ',')}`,
       platform: o.gateway || 'MonsterPay',
-      source: (o.attribution?.source || 'FB').toUpperCase().slice(0, 2),
-      campaign: o.attribution?.campaign || o.campaign || 'Campanha',
+      source: cleanSource,
+      isOrganic,
+      campaign: cleanCampaign,
       capi: o.status === 'approved' ? 'approved' : 'pending',
       emq: o.emqScore || 9.7,
       reason: o.status === 'approved' ? '—' : 'Pendente',
@@ -207,7 +220,9 @@ export default function Sales() {
 
                   {/* Origem */}
                   <td className="py-3.5 px-4">
-                    <span className="w-6 h-6 rounded-full bg-[#1877F2] text-white font-bold text-[10px] flex items-center justify-center font-mono shadow-sm">
+                    <span className={`w-7 h-6 px-1 rounded-full text-white font-bold text-[10px] flex items-center justify-center font-mono shadow-sm ${
+                      sale.isOrganic || sale.source === 'ORG' ? 'bg-emerald-600' : 'bg-[#1877F2]'
+                    }`}>
                       {sale.source}
                     </span>
                   </td>
