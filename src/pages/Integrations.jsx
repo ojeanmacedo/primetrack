@@ -1072,9 +1072,10 @@ export default function Integrations() {
             ) : (
               <div className="space-y-6">
                 {trackingPixels.map((px) => {
+                  const metaSnippetLine = px.metaPixelId ? `\n  window.metaPixelId = "${px.metaPixelId}";` : '';
                   const pxScript = `<!-- PrimeTrack Pixel -->
 <script>
-  window.pixelId = "${px.pixelId || px.internalPixelId || 'pt_px_590fedcfff65'}";
+  window.pixelId = "${px.pixelId || px.internalPixelId || 'pt_px_590fedcfff65'}";${metaSnippetLine}
   var a = document.createElement("script");
   a.setAttribute("async", "");
   a.setAttribute("defer", "");

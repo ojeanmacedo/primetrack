@@ -24,6 +24,7 @@ export default function PixelManager({ pixelHealth, settings, onSaveSettings }) 
   const snippet = `<!-- PrimeTrack Pixel -->
 <script>
   window.pixelId = "${metaPixelId}";
+  window.metaPixelId = "${metaPixelId}";
   var a = document.createElement("script");
   a.setAttribute("async", "");
   a.setAttribute("defer", "");
