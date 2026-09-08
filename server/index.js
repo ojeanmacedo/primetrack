@@ -387,11 +387,20 @@ app.get('/api/stats', (req, res) => {
 /**
  * 4. Listagem de Campanhas e Criativos com Gastos do Meta e Vendas de Webhooks (Kiwify, Hotmart, MonsterPay, etc.)
  */
-app.get('/api/campaigns', (req, res) => {
+app.get('/api/campaigns', async (req, res) => {
   const connections = db.get('facebook_connections') || [];
   
   if (connections.length === 0) {
     return res.json([]);
+  }
+
+  const { datePreset, refresh } = req.query;
+  if (refresh === 'true') {
+    try {
+      await executeMetaSync({ datePreset: datePreset || 'today' });
+    } catch (e) {
+      console.warn('Sync sob demanda falhou:', e.message);
+    }
   }
 
   const allCampaigns = db.get('campaigns') || [];
@@ -707,75 +716,143 @@ app.get('/api/meta/status', (req, res) => {
   }
 });
 
-// D. Sincronizar campanhas de uma ou todas as contas (execução paralela com Promise.all)
+// D. Função central para sincronizar campanhas de contas ativas
+async function executeMetaSync({ datePreset = 'today', accountIds = null, accountId = null } = {}) {
+  const connections = db.get('facebook_connections') || [];
+  if (connections.length === 0) {
+    return { success: false, error: 'Nenhum perfil do Facebook conectado ainda.', syncedCampaigns: 0 };
+  }
+
+  const latestConnection = connections[0];
+  let allAdAccounts = db.get('ad_accounts') || [];
+
+  // Se o usuário especificou contas
+  let targetAccounts = [];
+  if (Array.isArray(accountIds) && accountIds.length > 0) {
+    const idSet = new Set(accountIds.map(id => String(id).replace('act_', '')));
+    targetAccounts = allAdAccounts.filter(a => idSet.has((a.accountId || a.id || '').replace('act_', '')));
+  } else if (accountId) {
+    const actClean = accountId.replace('act_', '');
+    targetAccounts = allAdAccounts.filter(a => a.id === accountId || a.id === `act_${actClean}` || a.accountId === actClean);
+  } else {
+    // Sincroniza contas marcadas com syncActive: true
+    targetAccounts = allAdAccounts.filter(a => a.syncActive === true);
+    // Se nenhuma estiver marcada com syncActive, usa contas ativas no Facebook (account_status === 1 ou status === 'ACTIVE')
+    if (targetAccounts.length === 0) {
+      targetAccounts = allAdAccounts.filter(a => a.status === 'ACTIVE' || a.account_status === 1);
+    }
+  }
+
+  // Se mesmo assim não houver conta selecionada, usa a primeira conta
+  if (targetAccounts.length === 0 && allAdAccounts.length > 0) {
+    targetAccounts = [allAdAccounts[0]];
+  }
+
+  // Garante que só consulta contas ativas para não tomar rate limit em contas desativadas da BM
+  const activeTargets = targetAccounts.filter(a => a.status !== 'DISABLED' && a.account_status !== 2 && a.account_status !== 101);
+  const accountsToQuery = activeTargets.length > 0 ? activeTargets : targetAccounts;
+
+  const results = await Promise.all(accountsToQuery.map(async (acc) => {
+    try {
+      const campaigns = await fetchCampaigns(acc.id, latestConnection.accessToken, acc.name, datePreset);
+      let ads = [];
+      try {
+        ads = await fetchAdsWithCreatives(acc.id, latestConnection.accessToken);
+      } catch (adErr) {
+        // Erros em anúncios/criativos não bloqueiam a sincronização de campanhas e gastos
+      }
+      return { campaigns, ads, error: null, accId: acc.id };
+    } catch (err) {
+      console.warn(`[Sync Meta] Erro ao sincronizar conta ${acc.id}:`, err.message);
+      return { campaigns: [], ads: [], error: err.message, accId: acc.id };
+    }
+  }));
+
+  const hasErrors = results.some(r => r.error);
+  const allCampaigns = results.flatMap(r => r.campaigns);
+  const allAds = results.flatMap(r => r.ads);
+
+  if (allCampaigns.length > 0) {
+    const syncedIds = new Set(accountsToQuery.map(a => String(a.id || a.accountId).replace('act_', '')));
+    const existingCamps = db.get('campaigns') || [];
+    const remainingCamps = existingCamps.filter(c => {
+      const clean = String(c.adAccountId || '').replace('act_', '');
+      return !syncedIds.has(clean);
+    });
+    db.set('campaigns', [...remainingCamps, ...allCampaigns]);
+  }
+
+  if (allAds.length > 0) {
+    db.set('meta_ads', allAds);
+  }
+
+  // Atualiza saldo e gasto total das contas
+  try {
+    const freshAccounts = await fetchAdAccounts(latestConnection.accessToken);
+    if (freshAccounts && freshAccounts.length > 0) {
+      const existingMap = new Map(allAdAccounts.map(a => [String(a.id || a.accountId).replace('act_', ''), a]));
+      const updatedAccounts = freshAccounts.map(fa => {
+        const clean = String(fa.id || fa.accountId).replace('act_', '');
+        const prev = existingMap.get(clean) || {};
+        return {
+          ...fa,
+          syncActive: prev.syncActive !== undefined ? prev.syncActive : (fa.status === 'ACTIVE')
+        };
+      });
+      db.set('ad_accounts', updatedAccounts);
+    }
+  } catch (accErr) {
+    console.warn('[Sync Meta] Não foi possível atualizar lista de ad_accounts:', accErr.message);
+  }
+
+  return {
+    success: true,
+    rateLimited: hasErrors,
+    syncedCampaigns: allCampaigns.length,
+    syncedAds: allAds.length,
+    campaigns: allCampaigns,
+    timestamp: new Date().toISOString()
+  };
+}
+
+// Endpoint de sincronização manual ou acionado pela dashboard/campanhas
 app.post('/api/meta/sync', async (req, res) => {
   try {
-    const connections = db.get('facebook_connections') || [];
-    if (connections.length === 0) {
-      return res.status(400).json({ error: 'Nenhum perfil do Facebook conectado ainda.' });
-    }
-
     const { datePreset = 'today', accountId, accountIds } = req.body || {};
-    const latestConnection = connections[0];
+    const result = await executeMetaSync({ datePreset, accountId, accountIds });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Endpoint para persistir status de sincronização de contas (Ativar/Desativar sincronização de contas de anúncio)
+app.post('/api/meta/accounts/sync-status', (req, res) => {
+  try {
+    const { accountId, activeAccounts, syncActive } = req.body || {};
     let adAccounts = db.get('ad_accounts') || [];
     
-    if (Array.isArray(accountIds) && accountIds.length > 0) {
-      const idSet = new Set(accountIds.map(id => String(id).replace('act_', '')));
-      adAccounts = adAccounts.filter(a => {
-        const clean = (a.accountId || a.id || '').replace('act_', '');
-        return idSet.has(clean);
+    if (Array.isArray(activeAccounts)) {
+      const activeSet = new Set(activeAccounts.map(id => String(id).replace('act_', '')));
+      adAccounts = adAccounts.map(acc => {
+        const clean = (acc.accountId || acc.id || '').replace('act_', '');
+        return {
+          ...acc,
+          syncActive: activeSet.has(clean)
+        };
       });
-    } else if (accountId) {
-      const actClean = accountId.replace('act_', '');
-      adAccounts = adAccounts.filter(a => a.id === accountId || a.id === `act_${actClean}` || a.accountId === actClean);
+    } else if (accountId !== undefined) {
+      const cleanTarget = String(accountId).replace('act_', '');
+      adAccounts = adAccounts.map(acc => {
+        const clean = (acc.accountId || acc.id || '').replace('act_', '');
+        if (clean === cleanTarget) {
+          return { ...acc, syncActive: !!syncActive };
+        }
+        return acc;
+      });
     }
-
-    const results = await Promise.all(adAccounts.map(async (acc) => {
-      try {
-        const campaigns = await fetchCampaigns(acc.id, latestConnection.accessToken, acc.name, datePreset);
-        const ads = await fetchAdsWithCreatives(acc.id, latestConnection.accessToken);
-        return { campaigns, ads, error: null };
-      } catch (err) {
-        console.warn(`Erro ao sincronizar conta ${acc.id}:`, err.message);
-        return { campaigns: [], ads: [], error: err.message, accId: acc.id };
-      }
-    }));
-
-    const hasErrors = results.some(r => r.error);
-    const allCampaigns = results.flatMap(r => r.campaigns);
-    const allAds = results.flatMap(r => r.ads);
-
-    if (allCampaigns.length > 0) {
-      if (Array.isArray(accountIds) && accountIds.length > 0) {
-        const idSet = new Set(accountIds.map(id => String(id).replace('act_', '')));
-        const existingCamps = db.get('campaigns') || [];
-        const filteredCamps = existingCamps.filter(c => {
-          const clean = String(c.adAccountId || '').replace('act_', '');
-          return !idSet.has(clean);
-        });
-        db.set('campaigns', [...filteredCamps, ...allCampaigns]);
-      } else if (accountId) {
-        const existingCamps = db.get('campaigns') || [];
-        const filteredCamps = existingCamps.filter(c => c.adAccountId !== accountId && c.adAccountId !== `act_${accountId.replace('act_', '')}`);
-        db.set('campaigns', [...filteredCamps, ...allCampaigns]);
-      } else {
-        db.set('campaigns', allCampaigns);
-      }
-    } else if (hasErrors) {
-      // Se a Meta bloqueou temporariamente por limite de chamadas (Rate Limit), não mantém dados do período anterior
-      console.log('Meta retornou rate limit para a conta. Aguardando liberação do Meta Ads.');
-    }
-    if (allAds.length > 0) {
-      db.set('meta_ads', allAds);
-    }
-
-    res.json({
-      success: true,
-      rateLimited: hasErrors,
-      syncedCampaigns: allCampaigns.length,
-      syncedAds: allAds.length,
-      timestamp: new Date().toISOString()
-    });
+    db.set('ad_accounts', adAccounts);
+    res.json({ success: true, adAccounts });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1162,6 +1239,19 @@ if (process.env.VERCEL !== '1') {
     console.log(`[Pixel Script] Disponível em http://localhost:${PORT}/pixel.js`);
     console.log(`[Webhooks] Escutando em http://localhost:${PORT}/api/webhooks/:gateway`);
   });
+
+  // Sincronização automática em segundo plano a cada 5 minutos das contas ativas conectadas ao Meta Ads
+  setInterval(async () => {
+    try {
+      const connections = db.get('facebook_connections') || [];
+      if (connections.length > 0) {
+        console.log('[Auto-Sync Meta] Atualizando métricas e gastos reais das campanhas em segundo plano...');
+        await executeMetaSync({ datePreset: 'today' });
+      }
+    } catch (autoErr) {
+      console.warn('[Auto-Sync Meta Aviso]:', autoErr.message);
+    }
+  }, 5 * 60 * 1000);
 
   // Mantém o event loop ativo em qualquer ambiente
   setInterval(() => {}, 1 << 30);

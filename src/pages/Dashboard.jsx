@@ -49,12 +49,6 @@ export default function Dashboard({ onSimulateSale }) {
   const [syncing, setSyncing] = useState(false);
 
   const loadDashboardData = async () => {
-    if (localStorage.getItem('primetrack_meta_disconnected') === 'true') {
-      setCampaigns([]);
-      setAdAccountsList([]);
-      return;
-    }
-
     const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
     let localSyncMap = {};
     if (saved) {
@@ -65,7 +59,9 @@ export default function Dashboard({ onSimulateSale }) {
             if (p.id) localSyncMap[p.id] = p.sync;
           });
           const activeList = parsed.filter(a => a.sync === true);
-          setAdAccountsList(activeList);
+          if (activeList.length > 0) {
+            setAdAccountsList(activeList);
+          }
         }
       } catch (e) {}
     }
@@ -73,15 +69,27 @@ export default function Dashboard({ onSimulateSale }) {
     try {
       const r = await fetch('/api/meta/status');
       const data = await r.json();
-      if (data.connections && data.connections.length === 0) {
+      
+      if (data.connections && data.connections.length > 0) {
+        localStorage.removeItem('primetrack_meta_disconnected');
+      } else if (data.connections && data.connections.length === 0) {
         if (!isAdmin) {
           setCampaigns([]);
           setAdAccountsList([]);
+          return;
         }
-      } else if (data.adAccounts && data.adAccounts.length > 0) {
+      }
+
+      if (data.adAccounts && data.adAccounts.length > 0) {
         const mappedAccs = data.adAccounts
           .map(a => {
             const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
+            const isSyncActive = a.syncActive !== undefined
+              ? a.syncActive === true
+              : (localSyncMap[accId] !== undefined 
+                  ? localSyncMap[accId] === true 
+                  : (a.status === 'ACTIVE' && (Number(a.amountSpent) > 0 || accId === '1092137896602979')));
+
             return {
               name: a.name || 'Conta',
               id: accId,
@@ -90,11 +98,14 @@ export default function Dashboard({ onSimulateSale }) {
               status: a.status === 'ACTIVE' ? 'Ativa' : 'Desativada',
               balance: a.balance || '0,00',
               amountSpent: a.amountSpent || '0,00',
-              sync: localSyncMap[accId] === true
+              sync: isSyncActive
             };
           })
-          .filter(a => a.sync === true); // Apenas contas ativadas em Integrações
-        setAdAccountsList(mappedAccs);
+          .filter(a => a.sync === true); // Apenas contas ativadas
+        
+        if (mappedAccs.length > 0) {
+          setAdAccountsList(mappedAccs);
+        }
       }
     } catch (err) {
       console.log('Erro ao carregar contas no dashboard:', err);
@@ -197,10 +208,8 @@ export default function Dashboard({ onSimulateSale }) {
   };
 
   const activeAdAccount = adAccountsList.length > 0 ? adAccountsList[0] : null;
-  const isNoAccountActive = adAccountsList.length === 0;
-  const isProfileDisconnected = (!isAdmin && adAccountsList.length === 0) || 
-                                (typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true') || 
-                                isNoAccountActive;
+  const isNoAccountActive = adAccountsList.length === 0 && campaigns.length === 0;
+  const isProfileDisconnected = (typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true' && adAccountsList.length === 0);
 
   // Filtra as campanhas baseado na conta selecionada e se está ativa
   const filteredCampaigns = campaigns.filter(c => {
@@ -216,7 +225,7 @@ export default function Dashboard({ onSimulateSale }) {
     if (adAccountsList.length > 0) {
       return adAccountsList.some(acc => cAdId === String(acc.id));
     }
-    return false;
+    return true;
   });
 
   // Agregação dos dados reais da conta e campanhas

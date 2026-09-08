@@ -121,12 +121,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   }, [periodFilter]);
 
   const loadData = async () => {
-    if (localStorage.getItem('primetrack_meta_disconnected') === 'true') {
-      setCampaignsList([]);
-      setAdAccountsList([]);
-      return;
-    }
-
     const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
     let localSyncMap = {};
     if (saved) {
@@ -137,51 +131,37 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             if (p.id) localSyncMap[p.id] = p.sync;
           });
           const activeList = parsed.filter(a => a.sync === true);
-          setAdAccountsList(activeList);
+          if (activeList.length > 0) {
+            setAdAccountsList(activeList);
+          }
         }
       } catch (e) {}
     }
 
     try {
-      const cr = await fetch('/api/campaigns');
-      const data = await cr.json();
-      if (Array.isArray(data)) {
-        const activeAccountsSaved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
-        let activeAccountIds = new Set();
-        if (activeAccountsSaved) {
-          try {
-            const p = JSON.parse(activeAccountsSaved);
-            if (Array.isArray(p)) {
-              p.filter(a => a.sync === true).forEach(a => {
-                activeAccountIds.add(String(a.id));
-                activeAccountIds.add(`act_${a.id}`);
-                if (a.name) activeAccountIds.add(a.name);
-              });
-            }
-          } catch (e) {}
-        }
-
-        const filteredByActiveAccs = data.filter(c => {
-          if (activeAccountIds.size === 0) return true;
-          const cAdId = String(c.adAccountId || '').replace('act_', '');
-          return activeAccountIds.has(cAdId) || 
-                 activeAccountIds.has(`act_${cAdId}`) || 
-                 activeAccountIds.has(String(c.adAccountId));
-        });
-
-        setCampaignsList(filteredByActiveAccs);
-      }
-    } catch (err) {
-      console.log('Erro ao carregar campanhas:', err);
-    }
-
-    try {
       const statusRes = await fetch('/api/meta/status');
       const data = await statusRes.json();
+
+      if (data.connections && data.connections.length > 0) {
+        localStorage.removeItem('primetrack_meta_disconnected');
+      } else if (data.connections && data.connections.length === 0) {
+        if (!isAdmin) {
+          setCampaignsList([]);
+          setAdAccountsList([]);
+          return;
+        }
+      }
+
       if (data.adAccounts && data.adAccounts.length > 0) {
         const mappedAccs = data.adAccounts
           .map(a => {
             const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
+            const isSyncActive = a.syncActive !== undefined
+              ? a.syncActive === true
+              : (localSyncMap[accId] !== undefined 
+                  ? localSyncMap[accId] === true 
+                  : (a.status === 'ACTIVE' && (Number(a.amountSpent) > 0 || accId === '1092137896602979')));
+
             return {
               name: a.name || 'Conta',
               id: accId,
@@ -190,14 +170,27 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               status: a.status === 'ACTIVE' ? 'Ativa' : 'Desativada',
               balance: a.balance || '0,00',
               amountSpent: a.amountSpent || '0,00',
-              sync: localSyncMap[accId] === true
+              sync: isSyncActive
             };
           })
           .filter(a => a.sync === true);
-        setAdAccountsList(mappedAccs);
+
+        if (mappedAccs.length > 0) {
+          setAdAccountsList(mappedAccs);
+        }
       }
     } catch (err) {
-      console.log('Erro ao carregar contas:', err);
+      console.log('Erro ao carregar status Meta:', err);
+    }
+
+    try {
+      const cr = await fetch('/api/campaigns');
+      const data = await cr.json();
+      if (Array.isArray(data)) {
+        setCampaignsList(data);
+      }
+    } catch (err) {
+      console.log('Erro ao carregar campanhas:', err);
     }
   };
 

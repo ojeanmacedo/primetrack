@@ -433,9 +433,27 @@ export default function Integrations() {
     }
 
     setAdAccounts(updated);
+    const activeIds = updated.filter(a => a.sync).map(a => a.id);
     if (typeof window !== 'undefined') {
       localStorage.setItem('primetrack_ad_accounts', JSON.stringify(updated));
     }
+
+    // Persiste no backend imediatamente para nunca perder a configuração
+    fetch('/api/meta/accounts/sync-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ activeAccounts: activeIds })
+    }).catch(err => console.warn('Erro ao salvar status da conta no servidor:', err.message));
+
+    // Se ativou conta(s), dispara sincronização com o Meta Ads imediatamente
+    if (activeIds.length > 0) {
+      fetch('/api/meta/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountIds: activeIds, datePreset: 'today' })
+      }).catch(err => console.warn('Erro ao sincronizar Meta:', err.message));
+    }
+
     window.dispatchEvent(new Event('primetrack_profile_sync'));
     setTimeout(() => setAccountSwitchToast(null), 4500);
   };
@@ -675,28 +693,22 @@ export default function Integrations() {
       window.dispatchEvent(new Event('primetrack_profile_sync'));
     }
 
-    // Se estiver desconectado explicitamente, limpa tudo
-    if (localStorage.getItem('primetrack_meta_disconnected') === 'true') {
-      setConnectedProfiles([]);
-      setAdAccounts([]);
-      return;
-    }
-
-    // Busca status das conexões salvas no backend
+    // Busca status real das conexões salvas no backend (fonte única de verdade)
     fetch('/api/meta/status')
       .then(res => res.json())
       .then(data => {
         if (data.connections && data.connections.length > 0) {
+          localStorage.removeItem('primetrack_meta_disconnected');
           const mapped = data.connections.map(c => ({
             id: c.id,
             name: c.name,
             initial: c.name ? c.name.charAt(0).toUpperCase() : 'M',
-            accountsCount: c.accountsCount || 0,
+            accountsCount: c.accountsCount || (data.adAccounts ? data.adAccounts.length : 0),
             isNew: true
           }));
           setConnectedProfiles(mapped);
           localStorage.setItem('primetrack_connected_profiles', JSON.stringify(mapped));
-        } else if (data.connections && data.connections.length === 0) {
+        } else {
           // Se backend reportar 0 conexões
           setConnectedProfiles([]);
           setAdAccounts([]);
@@ -719,14 +731,20 @@ export default function Integrations() {
 
           const mappedAccs = data.adAccounts.map(a => {
             const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
+            // Prioridade: syncActive salvo no backend > localStorage > ativação inteligente para contas ativas com gasto
+            const isSyncActive = a.syncActive !== undefined
+              ? a.syncActive === true
+              : (localSyncMap[accId] !== undefined 
+                  ? localSyncMap[accId] === true 
+                  : (a.status === 'ACTIVE' && (Number(a.amountSpent) > 0 || accId === '1092137896602979')));
+
             return {
               name: a.name || 'Conta',
               id: accId,
               bm: a.businessName || 'BM Principal',
               currency: a.currency === 'USD' ? 'USD (→ BRL @ 5,12)' : 'BRL',
               status: a.status === 'ACTIVE' ? 'Ativa' : 'Desativada',
-              // Sempre inicia desativada (sync: false), a menos que o usuário já tenha ativado manualmente no localStorage
-              sync: localSyncMap[accId] === true
+              sync: isSyncActive
             };
           });
           setAdAccounts(mappedAccs);
