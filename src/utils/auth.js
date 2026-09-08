@@ -79,6 +79,24 @@ export async function loginUser(email, password) {
       localStorage.setItem(`primetrack_usr_${cleanEmail}`, JSON.stringify(data.user));
       return { success: true, user: data.user };
     } else if (data && data.error) {
+      // Se o backend diz que ainda não possui senha, mas o usuário acabou de criar e salvou localmente neste navegador
+      const localRaw = localStorage.getItem(`primetrack_usr_${cleanEmail}`);
+      if (localRaw) {
+        try {
+          const localUser = JSON.parse(localRaw);
+          if (localUser && localUser.password && localUser.password === inputPass) {
+            // Sincroniza com o Supabase via backend imediatamente
+            fetch('/api/auth/update-password', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: cleanEmail, password: inputPass })
+            }).catch(() => {});
+
+            setCurrentUser(localUser);
+            return { success: true, user: localUser };
+          }
+        } catch (e) {}
+      }
       return { success: false, error: data.error };
     }
   } catch (apiErr) {

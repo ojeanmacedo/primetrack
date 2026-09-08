@@ -849,14 +849,37 @@ app.post('/api/auth/update-password', async (req, res) => {
       return res.status(400).json({ success: false, error: 'A senha deve conter no mínimo 6 caracteres.' });
     }
 
-    const { error: updateErr } = await supabaseAdmin
+    const { data: updatedRows, error: updateErr } = await supabaseAdmin
       .from('users')
       .update({ password: cleanPass })
-      .eq('email', cleanEmail);
+      .eq('email', cleanEmail)
+      .select();
 
     if (updateErr) {
       console.error('Erro ao atualizar senha no Supabase:', updateErr);
       return res.status(500).json({ success: false, error: 'Erro ao atualizar no banco de dados.' });
+    }
+
+    if (!updatedRows || updatedRows.length === 0) {
+      // Se não existia ainda na tabela users, cria o registro
+      const newUserId = 'usr_' + Date.now();
+      const { error: insertErr } = await supabaseAdmin
+        .from('users')
+        .insert({
+          id: newUserId,
+          email: cleanEmail,
+          name: cleanEmail.split('@')[0],
+          password: cleanPass,
+          role: 'client',
+          plan: 'trial',
+          trial_started_at: new Date().toISOString(),
+          created_at: new Date().toISOString()
+        });
+
+      if (insertErr) {
+        console.error('Erro ao inserir novo usuário com senha:', insertErr);
+        return res.status(500).json({ success: false, error: 'Erro ao criar credenciais no banco de dados.' });
+      }
     }
 
     return res.json({ success: true, message: 'Senha atualizada com sucesso.' });

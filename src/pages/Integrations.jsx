@@ -118,11 +118,38 @@ export default function Integrations() {
     setIsSavingPass(true);
 
     try {
+      let savedToBackend = false;
+
+      // 1. Salva via API backend central (supabaseAdmin com Service Role Key, sem bloqueio de RLS)
+      try {
+        const response = await fetch('/api/auth/update-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: currentUser?.email,
+            password: cleanPass
+          })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (response.ok && data.success) {
+          savedToBackend = true;
+        } else if (data?.error) {
+          console.warn('Resposta da API update-password:', data.error);
+        }
+      } catch (apiErr) {
+        console.warn('Erro ao chamar /api/auth/update-password:', apiErr);
+      }
+
+      // 2. Tenta também diretamente no Supabase como garantia adicional
       if (currentUser?.email) {
-        await supabase
-          .from('users')
-          .update({ password: cleanPass })
-          .eq('email', currentUser.email);
+        try {
+          await supabase
+            .from('users')
+            .update({ password: cleanPass })
+            .eq('email', currentUser.email);
+        } catch (sbErr) {
+          console.warn('Erro no update direto Supabase:', sbErr);
+        }
       }
 
       const updatedUser = {
@@ -132,6 +159,7 @@ export default function Integrations() {
       };
 
       setCurrentUser(updatedUser);
+      localStorage.setItem('primetrack_current_user', JSON.stringify(updatedUser));
       if (currentUser?.email) {
         localStorage.setItem(`primetrack_usr_${currentUser.email}`, JSON.stringify(updatedUser));
       }
