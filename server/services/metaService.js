@@ -137,15 +137,12 @@ export async function fetchAdAccounts(accessToken) {
   return (data.data || []).map(acc => {
     const isPrepay = acc.is_prepay_account === true;
     const isCreditCard = acc.funding_source_details?.type === 1 || !isPrepay;
-    const isUsd = acc.currency === 'USD';
-    const rate = isUsd ? usdRate : 1.0;
-
     const rawBalance = Number(acc.balance || 0) / 100;
     const rawSpent = Number(acc.amount_spent || 0) / 100;
 
     // Se for conta pós-paga / cartão de crédito, o saldo disponível é 0.00 (zerado)
-    const realAvailableBalance = isCreditCard ? '0.00' : (rawBalance * rate).toFixed(2);
-    const convertedSpent = (rawSpent * rate).toFixed(2);
+    const realAvailableBalance = isCreditCard ? '0.00' : rawBalance.toFixed(2);
+    const convertedSpent = rawSpent.toFixed(2);
 
     return {
       id: acc.id, // ex: act_1092137896602979
@@ -174,17 +171,13 @@ export async function fetchLiveAccountDetails(adAccountId, accessToken) {
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
 
-  const usdRate = await getUsdToBrlRate();
-  const isUsd = data.currency === 'USD';
-  const rate = isUsd ? usdRate : 1.0;
-
   const isPrepay = data.is_prepay_account === true;
   const isCreditCard = data.funding_source_details?.type === 1 || !isPrepay;
   const rawBalance = Number(data.balance || 0) / 100;
   const rawSpent = Number(data.amount_spent || 0) / 100;
 
-  const realAvailableBalance = isCreditCard ? '0.00' : (rawBalance * rate).toFixed(2);
-  const convertedSpent = (rawSpent * rate).toFixed(2);
+  const realAvailableBalance = isCreditCard ? '0.00' : rawBalance.toFixed(2);
+  const convertedSpent = rawSpent.toFixed(2);
 
   return {
     id: data.id,
@@ -218,11 +211,6 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
 
-  const usdRate = await getUsdToBrlRate();
-  // Se for conta em Dólar (USD) como a CA01, aplica a taxa de conversão para BRL (Real Brasileiro)
-  const isUsd = accountCurrency === 'USD' || (!accountCurrency && actId.includes('1092137896602979'));
-  const rate = isUsd ? usdRate : 1.0;
-
   return (data.data || []).map(c => {
     const insight = c.insights?.data?.[0] || {};
     const rawSpend = Number(insight.spend || 0);
@@ -232,15 +220,15 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const rawDailyBudget = c.daily_budget ? (Number(c.daily_budget) / 100) : null;
     const rawLifetimeBudget = c.lifetime_budget ? (Number(c.lifetime_budget) / 100) : null;
 
-    // Valores reais exatos em Real Brasileiro (R$)
+    // Valores reais exatos em Real Brasileiro (R$) 1:1 direto do Meta
     const baseBudget = rawDailyBudget !== null ? rawDailyBudget : (rawLifetimeBudget !== null ? rawLifetimeBudget : 25.00);
-    const realBudget = baseBudget * rate;
-    const realSpend = rawSpend * rate;
+    const realBudget = baseBudget;
+    const realSpend = rawSpend;
     const rawCtr = impressions > 0 ? ((clicks / impressions) * 100) : Number(insight.ctr || 0);
     const rawCpc = clicks > 0 ? (rawSpend / clicks) : Number(insight.cpc || 0);
-    const realCpc = rawCpc * rate;
+    const realCpc = rawCpc;
     const rawCpm = impressions > 0 ? ((rawSpend / impressions) * 1000) : Number(insight.cpm || 0);
-    const realCpm = rawCpm * rate;
+    const realCpm = rawCpm;
 
     // A API da Meta é utilizada ESTRITAMENTE para coletar gastos, impressões, cliques, CPC, CPM e CTR
     // As vendas e receitas vêm exclusivamente das plataformas integradas (MonsterPay) e do Pixel PrimeTrack
