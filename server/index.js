@@ -30,23 +30,17 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.get('/pixel.js', (req, res) => {
   const dest = req.headers['sec-fetch-dest'] || '';
   const accept = req.headers['accept'] || '';
-  const isDirectBrowser = dest === 'document' || dest === 'empty' || accept.includes('text/html') || (!dest && accept.includes('*/*'));
-
-  // Quando for importado via tag <script src="..."> pela landing page do cliente
-  if (dest === 'script' || req.query.mode === 'raw') {
-    res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    return res.sendFile(path.join(__dirname, 'public', 'pixel.js'));
-  }
+  const isDirectBrowserDoc = dest === 'document' && accept.includes('text/html') && req.query.mode !== 'raw';
 
   // Se for aberto diretamente na barra de endereço do navegador pelo usuário/curioso
-  res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-  return res.send(`<!DOCTYPE html>
+  if (isDirectBrowserDoc) {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    return res.send(`<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <title>jean macedo carregando...</title>
+  <title>PrimeTrack Pixel Engine</title>
   <style>
     body {
       background-color: #0b0f19;
@@ -60,9 +54,16 @@ app.get('/pixel.js', (req, res) => {
   </style>
 </head>
 <body>
-  jean macedo carregando...
+  PrimeTrack Tracking Engine is running...
 </body>
 </html>`);
+  }
+
+  // Para tags <script>, fetch, beacons ou qualquer outro carregamento
+  res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  return res.sendFile(path.join(__dirname, 'public', 'pixel.js'));
 });
 
 // Endpoint de teste de saúde
