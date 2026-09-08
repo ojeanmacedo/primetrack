@@ -234,9 +234,14 @@ app.post('/api/track/event', async (req, res) => {
 
     // Envia para o Meta CAPI Server-Side
     const settings = db.get('settings') || {};
+    const pixels = db.get('pixels') || [];
+    const matchedPixel = pixels.find(p => p.pixelId === pixelId || p.id === pixelId || p.metaPixelId === pixelId) || pixels[0] || {};
+    const activePixelId = matchedPixel.metaPixelId || pixelId || settings.metaPixelId;
+    const activeAccessToken = matchedPixel.capiToken || matchedPixel.capiTokenRaw || settings.metaAccessToken;
+
     const capiResult = await sendCapiEvent({
-      pixelId: pixelId || settings.metaPixelId,
-      accessToken: settings.metaAccessToken,
+      pixelId: activePixelId,
+      accessToken: activeAccessToken,
       eventName: eventName || 'PageView',
       eventId: eventId,
       eventSourceUrl,
@@ -305,12 +310,17 @@ app.all([
 
     // 3. Envia evento Purchase enriquecido para Meta CAPI
     const settings = db.get('settings') || {};
+    const pixels = db.get('pixels') || [];
+    const primaryPixel = pixels.find(p => (p.capiToken || p.capiTokenRaw) && (p.metaPixelId || p.pixelId)) || pixels[0] || {};
+    const targetPixelId = primaryPixel.metaPixelId || primaryPixel.pixelId || settings.metaPixelId;
+    const targetCapiToken = primaryPixel.capiToken || primaryPixel.capiTokenRaw || settings.metaAccessToken;
+
     const capiResult = await sendCapiEvent({
-      pixelId: settings.metaPixelId,
-      accessToken: settings.metaAccessToken,
+      pixelId: targetPixelId,
+      accessToken: targetCapiToken,
       eventName: 'Purchase',
       eventId: `capi_pur_${parsed.orderCode}`,
-      eventSourceUrl: `https://${settings.metaPixelId}.primetrack.com.br/checkout`,
+      eventSourceUrl: `https://${targetPixelId || 'checkout'}.primetrack.top/checkout`,
       userData: {
         email: parsed.customer.email,
         phone: parsed.customer.phone,
