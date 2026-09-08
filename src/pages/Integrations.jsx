@@ -541,9 +541,6 @@ export default function Integrations() {
     setPixelSuccessMsg(`Pixel "${editPixelName.trim()}" atualizado com sucesso!`);
     setTimeout(() => setPixelSuccessMsg(null), 3500);
   };
-    setPixelSuccessMsg(`Pixel "${editPixelName.trim()}" atualizado com sucesso!`);
-    setTimeout(() => setPixelSuccessMsg(null), 3500);
-  };
 
   const handleOpenTestPixel = (px) => {
     setPixelToTest(px);
@@ -2652,8 +2649,6 @@ export default function Integrations() {
               </div>
             </form>
           </div>
-        </div>
-      )}
         </div>
       )}
 
