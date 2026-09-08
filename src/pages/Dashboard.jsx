@@ -169,6 +169,34 @@ export default function Dashboard({ onSimulateSale }) {
 
   const periodDataMap = {
     'Hoje': {
+      spend: 0.00,
+      revenue: 0.00,
+      profit: 0.00,
+      sales: 0,
+      pendingSales: 0,
+      pendingValue: 0.00,
+      roas: '0.00',
+      cpa: '0.00',
+      arpu: '0.00',
+      margin: '0.0%',
+      clicks: 0,
+      visits: 0,
+      ics: 0,
+      initSales: 0,
+      approvedSales: 0,
+      pixApproval: '0.0%',
+      pixSales: 0,
+      sources: { fb: 0, ig: 0 },
+      hourly: [
+        { h: '00h', v: 0 }, { h: '01h', v: 0 }, { h: '02h', v: 0 }, { h: '03h', v: 0 },
+        { h: '04h', v: 0 }, { h: '05h', v: 0 }, { h: '06h', v: 0 }, { h: '07h', v: 0 },
+        { h: '08h', v: 0 }, { h: '09h', v: 0 }, { h: '10h', v: 0 }, { h: '11h', v: 0 },
+        { h: '12h', v: 0 }, { h: '13h', v: 0 }, { h: '14h', v: 0 }, { h: '15h', v: 0 },
+        { h: '16h', v: 0 }, { h: '17h', v: 0 }, { h: '18h', v: 0 }, { h: '19h', v: 0 },
+        { h: '20h', v: 0 }, { h: '21h', v: 0 }, { h: '22h', v: 0 }, { h: '23h', v: 0 }
+      ]
+    },
+    'Ontem': {
       spend: 123.41,
       revenue: 139.67,
       profit: 16.26,
@@ -194,34 +222,6 @@ export default function Dashboard({ onSimulateSale }) {
         { h: '12h', v: 80 }, { h: '13h', v: 0 }, { h: '14h', v: 0 }, { h: '15h', v: 0 },
         { h: '16h', v: 0 }, { h: '17h', v: 0 }, { h: '18h', v: 0 }, { h: '19h', v: 0 },
         { h: '20h', v: 0 }, { h: '21h', v: 0 }, { h: '22h', v: 0 }, { h: '23h', v: 0 }
-      ]
-    },
-    'Ontem': {
-      spend: 142.50,
-      revenue: 198.24,
-      profit: 55.74,
-      sales: 21,
-      pendingSales: 14,
-      pendingValue: 158.40,
-      roas: '1.39',
-      cpa: '6.78',
-      arpu: '9.44',
-      margin: '28.1%',
-      clicks: 512,
-      visits: 394,
-      ics: 238,
-      initSales: 34,
-      approvedSales: 21,
-      pixApproval: '60.0%',
-      pixSales: 21,
-      sources: { fb: 13, ig: 8 },
-      hourly: [
-        { h: '00h', v: 30 }, { h: '01h', v: 20 }, { h: '02h', v: 0 }, { h: '03h', v: 20 },
-        { h: '04h', v: 0 }, { h: '05h', v: 30 }, { h: '06h', v: 50 }, { h: '07h', v: 70 },
-        { h: '08h', v: 85 }, { h: '09h', v: 90 }, { h: '10h', v: 75 }, { h: '11h', v: 60 },
-        { h: '12h', v: 95 }, { h: '13h', v: 80 }, { h: '14h', v: 65 }, { h: '15h', v: 55 },
-        { h: '16h', v: 70 }, { h: '17h', v: 85 }, { h: '18h', v: 90 }, { h: '19h', v: 100 },
-        { h: '20h', v: 85 }, { h: '21h', v: 75 }, { h: '22h', v: 60 }, { h: '23h', v: 40 }
       ]
     },
     '7 dias': {

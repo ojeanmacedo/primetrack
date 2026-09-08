@@ -125,6 +125,19 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   const periodCampaignMap = {
     'Hoje': {
+      spend: '0.00',
+      revenue: '0.00',
+      profit: '0.00',
+      roas: '0.00',
+      cpa: '0.00',
+      sales: 0,
+      pendingSales: 0,
+      impressions: 0,
+      clicks: 0,
+      visits: 0,
+      cpc: '0.00'
+    },
+    'Ontem': {
       spend: '123.41',
       revenue: '139.67',
       profit: '16.26',
@@ -136,19 +149,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       clicks: 421,
       visits: 317,
       cpc: '0.29'
-    },
-    'Ontem': {
-      spend: '142.50',
-      revenue: '198.24',
-      profit: '55.74',
-      roas: '1.39',
-      cpa: '6.78',
-      sales: 21,
-      pendingSales: 14,
-      impressions: 5290,
-      clicks: 512,
-      visits: 394,
-      cpc: '0.28'
     },
     '7 dias': {
       spend: '890.20',
