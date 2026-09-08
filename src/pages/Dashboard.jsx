@@ -44,20 +44,7 @@ export default function Dashboard({ onSimulateSale }) {
 
   const [accountFilter, setAccountFilter] = useState('Todas');
 
-  const [campaigns, setCampaigns] = useState(() => {
-    if (isDisconnected) return [];
-    if (!isAdmin) return [];
-    return [
-      {
-        id: "52604661655655",
-        name: "TESTE MI",
-        status: true,
-        spend: "123.41",
-        sales: 15,
-        revenue: "139.67"
-      }
-    ];
-  });
+  const [campaigns, setCampaigns] = useState([]);
 
   const [syncing, setSyncing] = useState(false);
 
@@ -77,7 +64,8 @@ export default function Dashboard({ onSimulateSale }) {
           parsed.forEach(p => {
             if (p.id) localSyncMap[p.id] = p.sync;
           });
-          setAdAccountsList(parsed);
+          const activeList = parsed.filter(a => a.sync === true);
+          setAdAccountsList(activeList);
         }
       } catch (e) {}
     }
@@ -340,12 +328,17 @@ export default function Dashboard({ onSimulateSale }) {
 
   // Filtra as campanhas baseado na conta selecionada e se está ativa
   const filteredCampaigns = campaigns.filter(c => {
+    const cAdId = String(c.adAccountId || '').replace('act_', '');
     if (accountFilter !== 'Todas') {
-      return c.accountName === accountFilter || c.adAccountId === accountFilter;
+      const selectedAcc = adAccountsList.find(a => a.name === accountFilter || a.id === accountFilter);
+      if (selectedAcc) {
+        return cAdId === String(selectedAcc.id);
+      }
+      return c.accountName === accountFilter || cAdId === accountFilter;
     }
-    // Se selecionou 'Todas', filtra pelas contas que estão com sincronização ativa
+    // Se selecionou 'Todas', filtra pelas contas que estão com sincronização ativa em Integrações
     if (adAccountsList.length > 0) {
-      return adAccountsList.some(acc => c.adAccountId === acc.id || c.adAccountId === `act_${acc.id}` || c.accountName === acc.name);
+      return adAccountsList.some(acc => cAdId === String(acc.id));
     }
     return false;
   });

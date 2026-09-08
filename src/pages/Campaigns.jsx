@@ -87,6 +87,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     }
   ];
 
+  const [campaignsList, setCampaignsList] = useState(() => {
+    if (!isAdmin || isDisconnected) return [];
+    return defaultCampaignData;
+  });
+
   const [adAccountsList, setAdAccountsList] = useState(() => {
     if (isDisconnected) return [];
     const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
@@ -396,8 +401,15 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const filteredCampaigns = isNoAccountActive ? [] : campaignsList.filter(c => {
     if (statusFilter === 'Ativo' && !c.status) return false;
     if (statusFilter === 'Pausado' && c.status) return false;
-    if (accountFilter !== 'Todas' && c.accountName !== accountFilter && c.adAccountId !== accountFilter) return false;
-    return true;
+    const cAdId = String(c.adAccountId || '').replace('act_', '');
+    if (accountFilter !== 'Todas') {
+      const selectedAcc = adAccountsList.find(a => a.name === accountFilter || a.id === accountFilter);
+      if (selectedAcc) {
+        return cAdId === String(selectedAcc.id);
+      }
+      return c.accountName === accountFilter || cAdId === accountFilter;
+    }
+    return adAccountsList.some(acc => cAdId === String(acc.id));
   });
 
   // Totais calculados dinamicamente
