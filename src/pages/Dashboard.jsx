@@ -101,10 +101,8 @@ export default function Dashboard() {
   const DEFAULT_LAYOUT = {
     // 6 KPIs em ordem harmônica
     kpis: ['faturamento', 'gastos', 'lucro', 'pendentes', 'roi', 'margem'],
-    // 4 Cards Analíticos (posições 0, 1, 2, 3)
-    analysisCards: ['products', 'payments', 'sources', 'approval'],
-    // Posição do funil: 'middle' (acima de sources/approval e abaixo de products/payments), 'top', 'bottom'
-    funnelPosition: 'middle'
+    // 5 Cards Analíticos (Coluna 1: products, payments, funnel; Coluna 2: sources, approval)
+    analysisCards: ['products', 'payments', 'funnel', 'sources', 'approval']
   };
 
   const [layoutConfig, setLayoutConfig] = useState(() => {
@@ -115,8 +113,9 @@ export default function Dashboard() {
           const parsed = JSON.parse(saved);
           return {
             kpis: Array.isArray(parsed.kpis) && parsed.kpis.length === 6 ? parsed.kpis : DEFAULT_LAYOUT.kpis,
-            analysisCards: Array.isArray(parsed.analysisCards) && parsed.analysisCards.length === 4 ? parsed.analysisCards : DEFAULT_LAYOUT.analysisCards,
-            funnelPosition: ['top', 'middle', 'bottom'].includes(parsed.funnelPosition) ? parsed.funnelPosition : 'middle'
+            analysisCards: Array.isArray(parsed.analysisCards) && parsed.analysisCards.includes('funnel') && parsed.analysisCards.length === 5 
+              ? parsed.analysisCards 
+              : DEFAULT_LAYOUT.analysisCards
           };
         }
       } catch (e) {}
@@ -145,16 +144,12 @@ export default function Dashboard() {
   };
 
   const swapAnalysisCards = (idx1, idx2) => {
-    if (idx1 < 0 || idx1 >= 4 || idx2 < 0 || idx2 >= 4 || idx1 === idx2) return;
+    if (idx1 < 0 || idx1 >= layoutConfig.analysisCards.length || idx2 < 0 || idx2 >= layoutConfig.analysisCards.length || idx1 === idx2) return;
     const newCards = [...layoutConfig.analysisCards];
     const temp = newCards[idx1];
     newCards[idx1] = newCards[idx2];
     newCards[idx2] = temp;
     saveLayoutConfig({ ...layoutConfig, analysisCards: newCards });
-  };
-
-  const updateFunnelPosition = (pos) => {
-    saveLayoutConfig({ ...layoutConfig, funnelPosition: pos });
   };
 
   const initialLayoutSnapshot = useRef(null);
@@ -1055,131 +1050,140 @@ export default function Dashboard() {
       );
     }
 
+    if (cardKey === 'funnel') {
+      const centerY = 65;
+      const halfH = (pct) => {
+        if (!pct || pct <= 0) return 2.5;
+        const norm = Math.min(100, Math.max(0, pct));
+        if (norm >= 99.5) return 46;
+        return Math.max(2.5, Math.min(46, 3 + Math.pow(norm / 100, 0.65) * 43));
+      };
+
+      const h0 = halfH(pctClicks);
+      const h1 = halfH(pctVis);
+      const h2 = halfH(pctIcs);
+      const h3 = halfH(pctInic);
+      const h4 = halfH(pctApr);
+
+      const t0 = centerY - h0, b0 = centerY + h0;
+      const t1 = centerY - h1, b1 = centerY + h1;
+      const t2 = centerY - h2, b2 = centerY + h2;
+      const t3 = centerY - h3, b3 = centerY + h3;
+      const t4 = centerY - h4, b4 = centerY + h4;
+
+      const pathD = `
+        M 0 ${t0.toFixed(1)}
+        L 70 ${t0.toFixed(1)}
+        C 150 ${t0.toFixed(1)}, 250 ${t1.toFixed(1)}, 300 ${t1.toFixed(1)}
+        L 310 ${t1.toFixed(1)}
+        C 370 ${t1.toFixed(1)}, 440 ${t2.toFixed(1)}, 500 ${t2.toFixed(1)}
+        L 510 ${t2.toFixed(1)}
+        C 570 ${t2.toFixed(1)}, 640 ${t3.toFixed(1)}, 700 ${t3.toFixed(1)}
+        L 710 ${t3.toFixed(1)}
+        C 770 ${t3.toFixed(1)}, 840 ${t4.toFixed(1)}, 900 ${t4.toFixed(1)}
+        L 920 ${t4.toFixed(1)}
+        C 950 ${t4.toFixed(1)}, 970 ${centerY}, 1000 ${centerY}
+        C 970 ${centerY}, 950 ${b4.toFixed(1)}, 920 ${b4.toFixed(1)}
+        L 900 ${b4.toFixed(1)}
+        C 840 ${b4.toFixed(1)}, 770 ${b3.toFixed(1)}, 710 ${b3.toFixed(1)}
+        L 700 ${b3.toFixed(1)}
+        C 640 ${b3.toFixed(1)}, 570 ${b2.toFixed(1)}, 510 ${b2.toFixed(1)}
+        L 500 ${b2.toFixed(1)}
+        C 440 ${b2.toFixed(1)}, 370 ${b1.toFixed(1)}, 310 ${b1.toFixed(1)}
+        L 300 ${b1.toFixed(1)}
+        C 250 ${b1.toFixed(1)}, 150 ${b0.toFixed(1)}, 70 ${b0.toFixed(1)}
+        L 0 ${b0.toFixed(1)}
+        Z
+      `;
+
+      return (
+        <div 
+          key="funnel"
+          draggable={isEditingLayout}
+          onDragStart={(e) => handleDragStart(e, 'analysis', slotIndex)}
+          onDragOver={(e) => handleDragOver(e, 'analysis', slotIndex)}
+          onDragLeave={() => handleDragLeave('analysis', slotIndex)}
+          onDrop={(e) => handleDrop(e, 'analysis', slotIndex)}
+          onDragEnd={handleDragEnd}
+          className={baseContainerClass}
+        >
+          {dropOverlay}
+          <div className="w-full flex flex-col justify-between h-full">
+            {/* Header */}
+            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-1">
+              <span className="text-white font-semibold">Funil de Conversão (Meta Ads)</span>
+              {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Funil de conversão de cliques até vendas aprovadas">ⓘ</span>}
+            </div>
+
+            {/* Rótulos Superiores das Etapas */}
+            <div className="flex items-center justify-between text-center text-[10px] sm:text-[11px] font-semibold text-zinc-300">
+              <span className="w-1/5">Cliques</span>
+              <span className="w-1/5">Vis. Página</span>
+              <span className="w-1/5">ICs</span>
+              <span className="w-1/5">Vendas Inic.</span>
+              <span className="w-1/5">Vendas Apr.</span>
+            </div>
+
+            {/* Onda Horizontal com Gradiente (SVG) */}
+            <div className="relative w-full my-1 sm:my-1.5">
+              <svg className="w-full h-24 sm:h-26 overflow-visible" viewBox="0 0 1000 130">
+                <defs>
+                  <linearGradient id="streamFunnelGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#0066FF" />
+                    <stop offset="25%" stopColor="#2563EB" />
+                    <stop offset="52%" stopColor="#5B21B6" />
+                    <stop offset="75%" stopColor="#86198F" />
+                    <stop offset="92%" stopColor="#BE185D" />
+                    <stop offset="100%" stopColor="#E11D48" />
+                  </linearGradient>
+                </defs>
+
+                {/* Divisórias verticais sutis entre as 5 etapas */}
+                <line x1="200" y1="5" x2="200" y2="125" stroke="#223048" strokeWidth="1.5" />
+                <line x1="400" y1="5" x2="400" y2="125" stroke="#223048" strokeWidth="1.5" />
+                <line x1="600" y1="5" x2="600" y2="125" stroke="#223048" strokeWidth="1.5" />
+                <line x1="800" y1="5" x2="800" y2="125" stroke="#223048" strokeWidth="1.5" />
+
+                {/* Fluxo Orgânico do Funil com Curvas Suaves */}
+                <path d={pathD} fill="url(#streamFunnelGrad)" />
+
+                {/* Linha magenta horizontal de saída no final */}
+                <line x1="920" y1={centerY} x2="1000" y2={centerY} stroke="#E11D48" strokeWidth="2.5" strokeLinecap="round" />
+
+                {/* Porcentagens no Centro da Onda */}
+                <text x="100" y="70" textAnchor="middle" fill="#FFFFFF" fontWeight="bold" fontSize="16" fontFamily="sans-serif">
+                  {funnelClicks > 0 ? '100%' : '0%'}
+                </text>
+                <text x="300" y="70" textAnchor="middle" fill="#FFFFFF" fontWeight="bold" fontSize="15" fontFamily="sans-serif">
+                  {pctVis.toFixed(1)}%
+                </text>
+                <text x="500" y="70" textAnchor="middle" fill="#FFFFFF" fontWeight="bold" fontSize="14" fontFamily="sans-serif">
+                  {pctIcs.toFixed(1)}%
+                </text>
+                <text x="700" y="70" textAnchor="middle" fill="#FFFFFF" fontWeight="bold" fontSize="13" fontFamily="sans-serif">
+                  {pctInic.toFixed(1)}%
+                </text>
+                <text x="900" y={h4 < 8 ? "57" : "70"} textAnchor="middle" fill="#FFFFFF" fontWeight="bold" fontSize="12" fontFamily="sans-serif">
+                  {pctApr.toFixed(1)}%
+                </text>
+              </svg>
+            </div>
+
+            {/* Quantidades Numéricas Inferiores */}
+            <div className="flex items-center justify-between text-center text-[11px] sm:text-xs font-mono font-bold text-zinc-300">
+              <span className="w-1/5">{funnelClicks.toLocaleString('pt-BR')}</span>
+              <span className="w-1/5">{funnelVis.toLocaleString('pt-BR')}</span>
+              <span className="w-1/5">{funnelIcs.toLocaleString('pt-BR')}</span>
+              <span className="w-1/5">{funnelInic.toLocaleString('pt-BR')}</span>
+              <span className="w-1/5">{funnelApr.toLocaleString('pt-BR')}</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return null;
   };
-
-  const renderFunnelSection = () => (
-    <div className={`bg-[#141C2E] border ${
-      isEditingLayout ? 'border-blue-500/50 ring-1 ring-blue-500/30' : 'border-[#1E293B]'
-    } rounded-xl p-3.5 sm:p-4 shadow-md transition-all duration-200 relative`}>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
-        <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight">
-          Funil de Conversão (Meta Ads)
-        </h3>
-
-        {isEditingLayout && (
-          <div className="flex items-center gap-1.5 bg-[#0F1728] border border-blue-500/40 rounded-lg p-1 text-xs">
-            <span className="text-zinc-400 px-1 text-[10px]">Posição do Funil:</span>
-            <button
-              onClick={() => updateFunnelPosition('top')}
-              className={`px-2 py-0.5 rounded text-[10px] transition-all cursor-pointer ${
-                layoutConfig.funnelPosition === 'top'
-                  ? 'bg-[#0066FF] text-white font-bold'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              Acima
-            </button>
-            <button
-              onClick={() => updateFunnelPosition('middle')}
-              className={`px-2 py-0.5 rounded text-[10px] transition-all cursor-pointer ${
-                layoutConfig.funnelPosition === 'middle'
-                  ? 'bg-[#0066FF] text-white font-bold'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              No Meio (Padrão)
-            </button>
-            <button
-              onClick={() => updateFunnelPosition('bottom')}
-              className={`px-2 py-0.5 rounded text-[10px] transition-all cursor-pointer ${
-                layoutConfig.funnelPosition === 'bottom'
-                  ? 'bg-[#0066FF] text-white font-bold'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              Abaixo
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div className="border-b border-[#1E293B]/70 my-3" />
-
-      <div className="overflow-x-auto pb-1">
-        <div className="flex items-center justify-between min-w-[640px] px-1 py-1">
-          
-          {/* 1. CLIQUES */}
-          <div className="flex flex-col items-center text-center">
-            <FunnelGauge percentage={pctClicks} strokeColor="#0066FF" isFull={pctClicks === 100} />
-            <div className="text-base sm:text-lg font-bold text-white mt-1.5 font-sans">
-              {funnelClicks.toLocaleString('pt-BR')}
-            </div>
-            <div className="text-[10px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
-              CLIQUES
-            </div>
-          </div>
-
-          {/* Conector 1 -> 2 */}
-          <FunnelConnector dropPct={dropVis} />
-
-          {/* 2. VIS. PÁGINA */}
-          <div className="flex flex-col items-center text-center">
-            <FunnelGauge percentage={pctVis} strokeColor="#0066FF" />
-            <div className="text-base sm:text-lg font-bold text-white mt-1.5 font-sans">
-              {funnelVis.toLocaleString('pt-BR')}
-            </div>
-            <div className="text-[10px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
-              VIS. PÁGINA
-            </div>
-          </div>
-
-          {/* Conector 2 -> 3 */}
-          <FunnelConnector dropPct={dropIcs} />
-
-          {/* 3. ICS */}
-          <div className="flex flex-col items-center text-center">
-            <FunnelGauge percentage={pctIcs} strokeColor="#0066FF" />
-            <div className="text-base sm:text-lg font-bold text-white mt-1.5 font-sans">
-              {funnelIcs.toLocaleString('pt-BR')}
-            </div>
-            <div className="text-[10px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
-              ICS
-            </div>
-          </div>
-
-          {/* Conector 3 -> 4 */}
-          <FunnelConnector dropPct={dropInic} />
-
-          {/* 4. VENDAS INIC. */}
-          <div className="flex flex-col items-center text-center">
-            <FunnelGauge percentage={pctInic} strokeColor="#A855F7" />
-            <div className="text-base sm:text-lg font-bold text-white mt-1.5 font-sans">
-              {funnelInic.toLocaleString('pt-BR')}
-            </div>
-            <div className="text-[10px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
-              VENDAS INIC.
-            </div>
-          </div>
-
-          {/* Conector 4 -> 5 */}
-          <FunnelConnector />
-
-          {/* 5. VENDAS APR. */}
-          <div className="flex flex-col items-center text-center">
-            <FunnelGauge percentage={pctApr} strokeColor="#10B981" />
-            <div className="text-base sm:text-lg font-bold text-white mt-1.5 font-sans">
-              {funnelApr.toLocaleString('pt-BR')}
-            </div>
-            <div className="text-[10px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
-              VENDAS APR.
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  );
 
   const renderHourlySalesSection = () => (
     <div className={`bg-[#141C2E] border ${
@@ -1532,49 +1536,18 @@ export default function Dashboard() {
         })}
       </div>
 
-      {/* Fluxo Dinâmico dos Blocos Analíticos e do Funil */}
-      {layoutConfig.funnelPosition === 'top' && (
-        <>
-          {renderFunnelSection()}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {renderAnalysisCard(layoutConfig.analysisCards[0], 0)}
-            {renderAnalysisCard(layoutConfig.analysisCards[1], 1)}
-            {renderAnalysisCard(layoutConfig.analysisCards[2], 2)}
-            {renderAnalysisCard(layoutConfig.analysisCards[3], 3)}
-          </div>
-        </>
-      )}
+      {/* Colunas Analíticas (Coluna 1: Vendas por Produto, Vendas por Pagamento, Funil; Coluna 2: Vendas por Fonte, Taxa de Aprovação) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-3.5">
+        {/* Coluna 1 */}
+        <div className="flex flex-col gap-3 sm:gap-3.5">
+          {layoutConfig.analysisCards.slice(0, 3).map((cardKey, i) => renderAnalysisCard(cardKey, i))}
+        </div>
 
-      {layoutConfig.funnelPosition === 'middle' && (
-        <>
-          {/* Linha 1 Analítica (Acima do Funil): Cards 0 e 1 (ex: Vendas por Produto + Vendas por Pagamento) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {renderAnalysisCard(layoutConfig.analysisCards[0], 0)}
-            {renderAnalysisCard(layoutConfig.analysisCards[1], 1)}
-          </div>
-
-          {/* Funil de Conversão */}
-          {renderFunnelSection()}
-
-          {/* Linha 2 Analítica (Abaixo do Funil): Cards 2 e 3 (ex: Vendas por Fonte + Taxa de Aprovação) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {renderAnalysisCard(layoutConfig.analysisCards[2], 2)}
-            {renderAnalysisCard(layoutConfig.analysisCards[3], 3)}
-          </div>
-        </>
-      )}
-
-      {layoutConfig.funnelPosition === 'bottom' && (
-        <>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {renderAnalysisCard(layoutConfig.analysisCards[0], 0)}
-            {renderAnalysisCard(layoutConfig.analysisCards[1], 1)}
-            {renderAnalysisCard(layoutConfig.analysisCards[2], 2)}
-            {renderAnalysisCard(layoutConfig.analysisCards[3], 3)}
-          </div>
-          {renderFunnelSection()}
-        </>
-      )}
+        {/* Coluna 2 */}
+        <div className="flex flex-col gap-3 sm:gap-3.5">
+          {layoutConfig.analysisCards.slice(3).map((cardKey, i) => renderAnalysisCard(cardKey, i + 3))}
+        </div>
+      </div>
 
       {/* Bloco de Vendas por Horário */}
       {renderHourlySalesSection()}
