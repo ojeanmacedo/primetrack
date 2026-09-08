@@ -597,9 +597,10 @@ export default function Dashboard() {
   const impostoMetaAds = realSpend > 0 ? (realSpend * 0.12).toFixed(2) : '0,00';
   const impostoTotal = realSpend > 0 ? (realSpend * 0.12).toFixed(2) : '0,00';
 
-  // Vendas agrupadas por produto
+  // Vendas agrupadas por produto com quantidade e porcentagem
   const productsMap = useMemo(() => {
     const map = {};
+    const totalApproved = approvedOrders.length;
     approvedOrders.forEach(o => {
       const pName = o.productName || 'Produto MonsterPay';
       if (!map[pName]) {
@@ -608,7 +609,13 @@ export default function Dashboard() {
       map[pName].sales += 1;
       map[pName].revenue += Number(o.amount || 0);
     });
-    return Object.values(map);
+
+    return Object.values(map)
+      .map(p => ({
+        ...p,
+        percentage: totalApproved > 0 ? (p.sales / totalApproved) * 100 : 0
+      }))
+      .sort((a, b) => b.sales - a.sales);
   }, [approvedOrders]);
 
   // Métodos de pagamento
@@ -797,8 +804,8 @@ export default function Dashboard() {
           className={baseContainerClass}
         >
           {dropOverlay}
-          <div>
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2">
+          <div className="w-full">
+            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-3">
               <span className="text-white font-semibold">Vendas por Produto</span>
               {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Vendas agrupadas por produto">ⓘ</span>}
             </div>
@@ -808,24 +815,62 @@ export default function Dashboard() {
                 Nenhuma venda por aqui
               </div>
             ) : (
-              <div className="space-y-1.5 py-1 max-h-36 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-[#1E293B]">
-                {productsMap.map((prod, i) => (
-                  <div key={i} className="flex items-center justify-between py-1.5 border-b border-[#1E293B]/60 text-xs">
-                    <div>
-                      <div className="font-bold text-white text-xs truncate max-w-[180px] sm:max-w-[240px]">{prod.name}</div>
-                      <div className="text-[10px] text-zinc-400">{prod.sales} {prod.sales === 1 ? 'venda aprovada' : 'vendas aprovadas'}</div>
+              <div className="space-y-3 py-1 max-h-[185px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-[#1E293B]">
+                {productsMap.map((prod, i) => {
+                  const validPct = Math.min(100, Math.max(0, prod.percentage || 0));
+                  const circumference = 56.55; // 2 * pi * 9
+                  const strokeDashoffset = circumference - (validPct / 100) * circumference;
+
+                  return (
+                    <div key={i} className="flex items-center justify-between text-xs group">
+                      <div className="font-normal text-zinc-200 truncate pr-3 text-xs tracking-tight" title={prod.name}>
+                        {prod.name}
+                      </div>
+                      
+                      <div className="flex items-center gap-3 shrink-0">
+                        {/* Quantidade vendida */}
+                        <span className="text-zinc-300 font-mono text-xs w-3 text-right">
+                          {prod.sales}
+                        </span>
+
+                        {/* Gauge Circular Mini */}
+                        <div className="w-4.5 h-4.5 sm:w-5 sm:h-5 relative flex items-center justify-center shrink-0">
+                          <svg className="w-full h-full -rotate-90" viewBox="0 0 24 24">
+                            <circle
+                              cx="12"
+                              cy="12"
+                              r="9"
+                              fill="none"
+                              stroke="#1E293B"
+                              strokeWidth="2.5"
+                            />
+                            {validPct > 0 && (
+                              <circle
+                                cx="12"
+                                cy="12"
+                                r="9"
+                                fill="none"
+                                stroke="#0066FF"
+                                strokeWidth="2.5"
+                                strokeDasharray={circumference}
+                                strokeDashoffset={strokeDashoffset}
+                                strokeLinecap="round"
+                                className="transition-all duration-500"
+                              />
+                            )}
+                          </svg>
+                        </div>
+
+                        {/* Porcentagem */}
+                        <span className="text-white font-bold font-mono text-xs w-11 text-right">
+                          {validPct.toFixed(1)}%
+                        </span>
+                      </div>
                     </div>
-                    <div className="font-mono font-bold text-emerald-400 text-xs">
-                      R$ {prod.revenue.toFixed(2).replace('.', ',')}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
-          </div>
-          <div className="text-[10px] text-zinc-500 pt-1.5 border-t border-[#1E293B]/40 flex items-center justify-between">
-            <span>Total de produtos ativos</span>
-            <span className="font-mono font-bold text-zinc-300">{productsMap.length}</span>
           </div>
         </div>
       );
