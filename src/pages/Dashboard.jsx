@@ -65,6 +65,7 @@ export default function Dashboard({ onSimulateSale }) {
     return [];
   });
 
+  const [ordersList, setOrdersList] = useState([]);
   const [syncing, setSyncing] = useState(false);
 
   const periodToPreset = {
@@ -107,10 +108,18 @@ export default function Dashboard({ onSimulateSale }) {
     }
 
     try {
-      const [rRes, crRes] = await Promise.all([
+      const [rRes, crRes, ordRes] = await Promise.all([
         fetch('/api/meta/status'),
-        fetch(`/api/campaigns?${query}`)
+        fetch(`/api/campaigns?${query}`),
+        fetch('/api/orders')
       ]);
+
+      try {
+        const oData = await ordRes.json();
+        if (Array.isArray(oData)) {
+          setOrdersList(oData);
+        }
+      } catch (oErr) {}
 
       const data = await rRes.json();
       
@@ -179,13 +188,20 @@ export default function Dashboard({ onSimulateSale }) {
         const preset = periodToPreset[customPeriod] || 'today';
         query = `datePreset=${preset}&refresh=true`;
       }
-      const cr = await fetch(`/api/campaigns?${query}`);
-      const cData = await cr.json();
+
+      const [cr, ord] = await Promise.all([
+        fetch(`/api/campaigns?${query}`),
+        fetch('/api/orders')
+      ]);
+      const [cData, oData] = await Promise.all([cr.json(), ord.json()]);
       if (Array.isArray(cData)) {
         setCampaigns(cData);
         if (typeof window !== 'undefined') {
           localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(cData));
         }
+      }
+      if (Array.isArray(oData)) {
+        setOrdersList(oData);
       }
     } catch (err) {
       console.error('Erro ao sincronizar dados com Meta:', err);
@@ -281,28 +297,49 @@ export default function Dashboard({ onSimulateSale }) {
   const realClicks = filteredCampaigns.reduce((acc, c) => acc + Number(c.clicks || 0), 0);
   const realVisits = filteredCampaigns.reduce((acc, c) => acc + Number(c.visits || c.clicks || 0), 0);
 
+  // Vendas Pendentes (Aguardando Pagamento / Pix Gerado) reais da MonsterPay
+  const pendingOrders = ordersList.filter(o => 
+    o.status === 'waiting_payment' || 
+    o.status === 'pending' || 
+    o.status === 'aguardando_pagamento'
+  );
+  const realPendingSales = pendingOrders.length;
+  const realPendingValue = pendingOrders.reduce((acc, o) => acc + Number(o.amount || 0), 0);
+
+  // Vendas Aprovadas (Pagas) reais da MonsterPay
+  const approvedOrdersFromList = ordersList.filter(o => o.status === 'approved');
+  const realApprovedSales = approvedOrdersFromList.length > 0 ? approvedOrdersFromList.length : realSales;
+  const realApprovedRevenue = approvedOrdersFromList.length > 0 ? approvedOrdersFromList.reduce((acc, o) => acc + Number(o.amount || 0), 0) : realRevenue;
+  const realTotalProfit = realApprovedRevenue - realSpend;
+  const realRoasVal = realSpend > 0 ? (realApprovedRevenue / realSpend).toFixed(2) : '0.00';
+  const realCpaVal = realApprovedSales > 0 ? (realSpend / realApprovedSales).toFixed(2) : '0.00';
+  const realArpuVal = realApprovedSales > 0 ? (realApprovedRevenue / realApprovedSales).toFixed(2) : '0.00';
+  const realMarginVal = realApprovedRevenue > 0 ? `${((realTotalProfit / realApprovedRevenue) * 100).toFixed(1)}%` : '0.0%';
+
   // Se houver dados reais de campanhas ativas, usa eles; senão faz fallback para a tabela de período
   const currentMetrics = isProfileDisconnected
     ? emptyMetrics 
     : {
         spend: realSpend,
-        revenue: realRevenue,
-        profit: realProfit,
-        sales: realSales,
-        pendingSales: Math.round(realSales * 0.7),
-        pendingValue: Number((realRevenue * 0.7).toFixed(2)),
-        roas: realRoas,
-        cpa: realCpa,
-        arpu: realArpu,
-        margin: realMargin,
+        revenue: realApprovedRevenue,
+        profit: realTotalProfit,
+        sales: realApprovedSales,
+        pendingSales: realPendingSales,
+        pendingValue: realPendingValue,
+        roas: realRoasVal,
+        cpa: realCpaVal,
+        arpu: realArpuVal,
+        margin: realMarginVal,
         clicks: realClicks,
         visits: realVisits,
         ics: Math.round(realVisits * 0.6),
-        initSales: Math.round(realSales * 1.5),
-        approvedSales: realSales,
-        pixApproval: realSales > 0 ? '100.0%' : '0.0%',
-        pixSales: realSales,
-        sources: { fb: realSales, ig: 0 },
+        initSales: realApprovedSales + realPendingSales,
+        approvedSales: realApprovedSales,
+        pixApproval: (realApprovedSales + realPendingSales) > 0 
+          ? `${((realApprovedSales / (realApprovedSales + realPendingSales)) * 100).toFixed(1)}%` 
+          : '0.0%',
+        pixSales: realApprovedSales + realPendingSales,
+        sources: { fb: realApprovedSales, ig: 0 },
         hourly: emptyHourly
       };
 
