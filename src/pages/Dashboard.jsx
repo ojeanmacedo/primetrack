@@ -19,9 +19,9 @@ import {
 import DateRangePicker from '../components/DateRangePicker';
 
 function FunnelGauge({ percentage, strokeColor = '#0066FF', isFull = false }) {
-  const radius = 30;
-  const strokeWidth = 4.5;
-  const circumference = 2 * Math.PI * radius; // ~188.49
+  const radius = 24;
+  const strokeWidth = 3.5;
+  const circumference = 2 * Math.PI * radius; // ~150.8
   const validPct = Math.min(100, Math.max(0, Number(percentage) || 0));
   const dashoffset = circumference - (validPct / 100) * circumference;
 
@@ -30,12 +30,12 @@ function FunnelGauge({ percentage, strokeColor = '#0066FF', isFull = false }) {
     : `${validPct.toFixed(1).replace('.', ',')}%`;
 
   return (
-    <div className="relative w-18 h-18 sm:w-20 sm:h-20 flex items-center justify-center">
-      <svg className="w-full h-full -rotate-90" viewBox="0 0 72 72">
+    <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center">
+      <svg className="w-full h-full -rotate-90" viewBox="0 0 58 58">
         {/* Background Track */}
         <circle
-          cx="36"
-          cy="36"
+          cx="29"
+          cy="29"
           r={radius}
           fill="none"
           stroke="#1E293B"
@@ -44,8 +44,8 @@ function FunnelGauge({ percentage, strokeColor = '#0066FF', isFull = false }) {
         {/* Active Arc */}
         {validPct > 0 && (
           <circle
-            cx="36"
-            cy="36"
+            cx="29"
+            cy="29"
             r={radius}
             fill="none"
             stroke={strokeColor}
@@ -58,7 +58,7 @@ function FunnelGauge({ percentage, strokeColor = '#0066FF', isFull = false }) {
         )}
       </svg>
       {/* Percentage Center Text */}
-      <span className="absolute text-xs sm:text-sm font-bold text-white tracking-tight font-sans">
+      <span className="absolute text-[11px] sm:text-xs font-bold text-white tracking-tight font-sans">
         {displayPct}
       </span>
     </div>
@@ -67,10 +67,10 @@ function FunnelGauge({ percentage, strokeColor = '#0066FF', isFull = false }) {
 
 function FunnelConnector({ dropPct }) {
   return (
-    <div className="flex flex-col items-center justify-center px-1 sm:px-2 min-w-[56px]">
-      <ArrowRight className="w-3.5 h-3.5 text-zinc-600/70 mb-1.5" />
+    <div className="flex flex-col items-center justify-center px-0.5 sm:px-1 min-w-[44px]">
+      <ArrowRight className="w-3 h-3 text-zinc-600/70 mb-1" />
       {dropPct !== undefined && dropPct !== null && (
-        <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-[#24131A] border border-red-500/20 text-[#EF4444]">
+        <span className="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded bg-[#24131A] border border-red-500/20 text-[#EF4444]">
           {dropPct < 0 ? `${dropPct.toFixed(1).replace('.', ',')}%` : `${dropPct > 0 ? '+' : ''}${dropPct.toFixed(1).replace('.', ',')}%`}
         </span>
       )}
@@ -773,7 +773,7 @@ export default function Dashboard() {
           : isEditingLayout
             ? 'border-blue-500/50 ring-1 ring-blue-500/30 hover:border-blue-400 cursor-grab active:cursor-grabbing'
             : 'border-[#1E293B]'
-    } rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md h-[340px] transition-all duration-200 relative select-none`;
+    } rounded-xl p-3.5 sm:p-4 flex flex-col justify-between shadow-md h-[240px] transition-all duration-200 relative select-none`;
 
     const dropOverlay = isOverThis && (
       <div className="absolute inset-0 bg-[#0066FF]/20 backdrop-blur-[1px] border-2 border-[#0066FF] rounded-xl flex flex-col items-center justify-center z-30 pointer-events-none">
@@ -798,24 +798,24 @@ export default function Dashboard() {
         >
           {dropOverlay}
           <div>
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-3">
+            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2">
               <span className="text-white font-semibold">Vendas por Produto</span>
               {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Vendas agrupadas por produto">ⓘ</span>}
             </div>
 
             {productsMap.length === 0 ? (
-              <div className="h-56 flex items-center justify-center text-zinc-500 text-xs font-sans">
+              <div className="h-32 flex items-center justify-center text-zinc-500 text-xs font-sans">
                 Nenhuma venda por aqui
               </div>
             ) : (
-              <div className="space-y-2 py-1 max-h-56 overflow-y-auto pr-1">
+              <div className="space-y-1.5 py-1 max-h-36 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-[#1E293B]">
                 {productsMap.map((prod, i) => (
-                  <div key={i} className="flex items-center justify-between py-2 border-b border-[#1E293B]/60 text-xs">
+                  <div key={i} className="flex items-center justify-between py-1.5 border-b border-[#1E293B]/60 text-xs">
                     <div>
-                      <div className="font-bold text-white">{prod.name}</div>
-                      <div className="text-[11px] text-zinc-400">{prod.sales} {prod.sales === 1 ? 'venda aprovada' : 'vendas aprovadas'}</div>
+                      <div className="font-bold text-white text-xs truncate max-w-[180px] sm:max-w-[240px]">{prod.name}</div>
+                      <div className="text-[10px] text-zinc-400">{prod.sales} {prod.sales === 1 ? 'venda aprovada' : 'vendas aprovadas'}</div>
                     </div>
-                    <div className="font-mono font-bold text-emerald-400">
+                    <div className="font-mono font-bold text-emerald-400 text-xs">
                       R$ {prod.revenue.toFixed(2).replace('.', ',')}
                     </div>
                   </div>
@@ -823,7 +823,7 @@ export default function Dashboard() {
               </div>
             )}
           </div>
-          <div className="text-[11px] text-zinc-500 pt-2 border-t border-[#1E293B]/40 flex items-center justify-between">
+          <div className="text-[10px] text-zinc-500 pt-1.5 border-t border-[#1E293B]/40 flex items-center justify-between">
             <span>Total de produtos ativos</span>
             <span className="font-mono font-bold text-zinc-300">{productsMap.length}</span>
           </div>
@@ -845,14 +845,14 @@ export default function Dashboard() {
         >
           {dropOverlay}
           <div>
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2">
+            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-1">
               <span className="text-white font-semibold">Vendas por Pagamento</span>
               {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Distribuição por método de pagamento">ⓘ</span>}
             </div>
 
             {/* Gráfico Donut com Total no centro */}
-            <div className="my-4 flex flex-col items-center justify-center relative">
-              <div className="w-32 h-32 relative flex items-center justify-center">
+            <div className="my-1.5 flex flex-col items-center justify-center relative">
+              <div className="w-22 h-22 sm:w-24 sm:h-24 relative flex items-center justify-center">
                 <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
                   <path
                     className="text-[#0D1424]"
@@ -874,28 +874,28 @@ export default function Dashboard() {
                   )}
                 </svg>
                 <div className="absolute flex flex-col items-center text-center">
-                  <span className="text-[10px] text-zinc-400 font-medium">Total</span>
-                  <span className="text-xl font-extrabold text-white font-sans">{realApprovedSales}</span>
+                  <span className="text-[9px] text-zinc-400 font-medium">Total</span>
+                  <span className="text-lg font-bold text-white font-sans">{realApprovedSales}</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Legenda com as pills idênticas ao print */}
-          <div className="flex items-center justify-center gap-4 text-xs pt-2 border-t border-[#1E293B]/40">
-            <div className="flex items-center gap-1.5 text-zinc-300">
+          <div className="flex items-center justify-center gap-3.5 text-[11px] pt-1.5 border-t border-[#1E293B]/40">
+            <div className="flex items-center gap-1 text-zinc-300">
               <span className="w-2 h-2 rounded-full bg-[#0066FF]" />
               <span>Pix</span>
             </div>
-            <div className="flex items-center gap-1.5 text-zinc-300">
+            <div className="flex items-center gap-1 text-zinc-300">
               <span className="w-2 h-2 rounded-full bg-[#38BDF8]" />
               <span>Cartão</span>
             </div>
-            <div className="flex items-center gap-1.5 text-zinc-300">
+            <div className="flex items-center gap-1 text-zinc-300">
               <span className="w-2 h-2 rounded-full bg-[#FACC15]" />
               <span>Boleto</span>
             </div>
-            <div className="flex items-center gap-1.5 text-zinc-300">
+            <div className="flex items-center gap-1 text-zinc-300">
               <span className="w-2 h-2 rounded-full bg-[#F43F5E]" />
               <span>Outros</span>
             </div>
@@ -918,30 +918,30 @@ export default function Dashboard() {
         >
           {dropOverlay}
           <div>
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-3">
+            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2">
               <span className="text-white font-semibold">Vendas por Fonte</span>
               {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Origem de tráfego das vendas">ⓘ</span>}
             </div>
 
             {realApprovedSales === 0 ? (
-              <div className="h-44 flex items-center justify-center text-zinc-500 text-xs font-sans">
+              <div className="h-28 flex items-center justify-center text-zinc-500 text-xs font-sans">
                 Nenhuma venda por aqui
               </div>
             ) : (
-              <div className="space-y-4 my-auto py-6">
+              <div className="space-y-2.5 py-3">
                 <div>
-                  <div className="flex justify-between text-xs text-zinc-300 mb-1.5">
+                  <div className="flex justify-between text-xs text-zinc-300 mb-1">
                     <span className="font-medium">Facebook Ads</span>
                     <span className="font-bold text-white">{realApprovedSales} (100%)</span>
                   </div>
-                  <div className="w-full bg-[#0D1424] h-2.5 rounded-full overflow-hidden border border-[#1E293B]/60">
+                  <div className="w-full bg-[#0D1424] h-2 rounded-full overflow-hidden border border-[#1E293B]/60">
                     <div className="bg-[#0066FF] h-full rounded-full transition-all duration-500" style={{ width: '100%' }} />
                   </div>
                 </div>
               </div>
             )}
           </div>
-          <div className="text-[11px] text-zinc-500 pt-2 border-t border-[#1E293B]/40 flex items-center justify-between">
+          <div className="text-[10px] text-zinc-500 pt-1.5 border-t border-[#1E293B]/40 flex items-center justify-between">
             <span>Rastreamento CAPI & Pixel</span>
             <span className="text-emerald-400 font-semibold flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Ativo
@@ -965,16 +965,16 @@ export default function Dashboard() {
         >
           {dropOverlay}
           <div>
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-4">
+            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2">
               <span className="text-white font-semibold">Taxa de Aprovação</span>
               {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Percentual de pedidos aprovados por meio">ⓘ</span>}
             </div>
 
-            <div className="space-y-4 py-2">
+            <div className="space-y-2 py-1">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-zinc-300 font-medium">Cartão</span>
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full border border-zinc-700 flex items-center justify-center">
+                  <div className="w-5 h-5 rounded-full border border-zinc-700 flex items-center justify-center">
                     <span className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
                   </div>
                   <span className="text-zinc-400 font-mono text-xs">N/A</span>
@@ -984,7 +984,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between text-xs">
                 <span className="text-zinc-300 font-medium">Pix</span>
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full border border-[#0066FF] flex items-center justify-center">
+                  <div className="w-5 h-5 rounded-full border border-[#0066FF] flex items-center justify-center">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#0066FF]" />
                   </div>
                   <span className="text-white font-mono font-bold text-xs">{pixRate}</span>
@@ -994,7 +994,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between text-xs">
                 <span className="text-zinc-300 font-medium">Boleto</span>
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full border border-zinc-700 flex items-center justify-center">
+                  <div className="w-5 h-5 rounded-full border border-zinc-700 flex items-center justify-center">
                     <span className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
                   </div>
                   <span className="text-zinc-400 font-mono text-xs">N/A</span>
@@ -1002,7 +1002,7 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-          <div className="text-[11px] text-zinc-500 pt-2 border-t border-[#1E293B]/40 flex items-center justify-between">
+          <div className="text-[10px] text-zinc-500 pt-1.5 border-t border-[#1E293B]/40 flex items-center justify-between">
             <span>Conversão Geral do Checkout</span>
             <span className="font-mono font-bold text-white">{pixRate}</span>
           </div>
@@ -1016,18 +1016,18 @@ export default function Dashboard() {
   const renderFunnelSection = () => (
     <div className={`bg-[#141C2E] border ${
       isEditingLayout ? 'border-blue-500/50 ring-1 ring-blue-500/30' : 'border-[#1E293B]'
-    } rounded-xl p-5 sm:p-6 shadow-md transition-all duration-200 relative`}>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-        <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">
+    } rounded-xl p-3.5 sm:p-4 shadow-md transition-all duration-200 relative`}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
+        <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight">
           Funil de Conversão (Meta Ads)
         </h3>
 
         {isEditingLayout && (
           <div className="flex items-center gap-1.5 bg-[#0F1728] border border-blue-500/40 rounded-lg p-1 text-xs">
-            <span className="text-zinc-400 px-1 text-[11px]">Posição do Funil:</span>
+            <span className="text-zinc-400 px-1 text-[10px]">Posição do Funil:</span>
             <button
               onClick={() => updateFunnelPosition('top')}
-              className={`px-2 py-0.5 rounded text-[11px] transition-all cursor-pointer ${
+              className={`px-2 py-0.5 rounded text-[10px] transition-all cursor-pointer ${
                 layoutConfig.funnelPosition === 'top'
                   ? 'bg-[#0066FF] text-white font-bold'
                   : 'text-zinc-400 hover:text-white'
@@ -1037,7 +1037,7 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => updateFunnelPosition('middle')}
-              className={`px-2 py-0.5 rounded text-[11px] transition-all cursor-pointer ${
+              className={`px-2 py-0.5 rounded text-[10px] transition-all cursor-pointer ${
                 layoutConfig.funnelPosition === 'middle'
                   ? 'bg-[#0066FF] text-white font-bold'
                   : 'text-zinc-400 hover:text-white'
@@ -1047,7 +1047,7 @@ export default function Dashboard() {
             </button>
             <button
               onClick={() => updateFunnelPosition('bottom')}
-              className={`px-2 py-0.5 rounded text-[11px] transition-all cursor-pointer ${
+              className={`px-2 py-0.5 rounded text-[10px] transition-all cursor-pointer ${
                 layoutConfig.funnelPosition === 'bottom'
                   ? 'bg-[#0066FF] text-white font-bold'
                   : 'text-zinc-400 hover:text-white'
@@ -1059,18 +1059,18 @@ export default function Dashboard() {
         )}
       </div>
 
-      <div className="border-b border-[#1E293B]/70 my-5" />
+      <div className="border-b border-[#1E293B]/70 my-3" />
 
-      <div className="overflow-x-auto pb-2">
-        <div className="flex items-center justify-between min-w-[680px] px-2 py-2">
+      <div className="overflow-x-auto pb-1">
+        <div className="flex items-center justify-between min-w-[640px] px-1 py-1">
           
           {/* 1. CLIQUES */}
           <div className="flex flex-col items-center text-center">
             <FunnelGauge percentage={pctClicks} strokeColor="#0066FF" isFull={pctClicks === 100} />
-            <div className="text-lg sm:text-xl font-bold text-white mt-3 font-sans">
+            <div className="text-base sm:text-lg font-bold text-white mt-1.5 font-sans">
               {funnelClicks.toLocaleString('pt-BR')}
             </div>
-            <div className="text-[11px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
+            <div className="text-[10px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
               CLIQUES
             </div>
           </div>
@@ -1081,10 +1081,10 @@ export default function Dashboard() {
           {/* 2. VIS. PÁGINA */}
           <div className="flex flex-col items-center text-center">
             <FunnelGauge percentage={pctVis} strokeColor="#0066FF" />
-            <div className="text-lg sm:text-xl font-bold text-white mt-3 font-sans">
+            <div className="text-base sm:text-lg font-bold text-white mt-1.5 font-sans">
               {funnelVis.toLocaleString('pt-BR')}
             </div>
-            <div className="text-[11px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
+            <div className="text-[10px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
               VIS. PÁGINA
             </div>
           </div>
@@ -1095,10 +1095,10 @@ export default function Dashboard() {
           {/* 3. ICS */}
           <div className="flex flex-col items-center text-center">
             <FunnelGauge percentage={pctIcs} strokeColor="#0066FF" />
-            <div className="text-lg sm:text-xl font-bold text-white mt-3 font-sans">
+            <div className="text-base sm:text-lg font-bold text-white mt-1.5 font-sans">
               {funnelIcs.toLocaleString('pt-BR')}
             </div>
-            <div className="text-[11px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
+            <div className="text-[10px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
               ICS
             </div>
           </div>
@@ -1109,10 +1109,10 @@ export default function Dashboard() {
           {/* 4. VENDAS INIC. */}
           <div className="flex flex-col items-center text-center">
             <FunnelGauge percentage={pctInic} strokeColor="#A855F7" />
-            <div className="text-lg sm:text-xl font-bold text-white mt-3 font-sans">
+            <div className="text-base sm:text-lg font-bold text-white mt-1.5 font-sans">
               {funnelInic.toLocaleString('pt-BR')}
             </div>
-            <div className="text-[11px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
+            <div className="text-[10px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
               VENDAS INIC.
             </div>
           </div>
@@ -1123,10 +1123,10 @@ export default function Dashboard() {
           {/* 5. VENDAS APR. */}
           <div className="flex flex-col items-center text-center">
             <FunnelGauge percentage={pctApr} strokeColor="#10B981" />
-            <div className="text-lg sm:text-xl font-bold text-white mt-3 font-sans">
+            <div className="text-base sm:text-lg font-bold text-white mt-1.5 font-sans">
               {funnelApr.toLocaleString('pt-BR')}
             </div>
-            <div className="text-[11px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
+            <div className="text-[10px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
               VENDAS APR.
             </div>
           </div>
@@ -1139,10 +1139,10 @@ export default function Dashboard() {
   const renderHourlySalesSection = () => (
     <div className={`bg-[#141C2E] border ${
       isEditingLayout ? 'border-blue-500/50 ring-1 ring-blue-500/30' : 'border-[#1E293B]'
-    } rounded-xl p-4 sm:p-5 shadow-md transition-all duration-200 relative`}>
+    } rounded-xl p-3.5 sm:p-4 shadow-md transition-all duration-200 relative`}>
       {/* Header do Card */}
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">
+      <div className="flex items-center justify-between mb-2 sm:mb-2.5">
+        <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight">
           Vendas por Horário
         </h3>
         <div className="flex items-center gap-1.5">
@@ -1160,15 +1160,15 @@ export default function Dashboard() {
       </div>
 
       {/* Gráfico de Vendas por Horário (24 colunas de 00:00 a 23:00) */}
-      <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-[#1E293B] pb-2">
+      <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-[#1E293B] pb-1">
         <div className="min-w-[700px] sm:min-w-[760px] w-full">
           {/* Área das Barras e Porcentagens */}
-          <div className="h-32 sm:h-36 flex items-end justify-between gap-1 sm:gap-1.5 px-1 pt-4 pb-2 border-b border-[#1E293B]">
+          <div className="h-24 sm:h-28 flex items-end justify-between gap-1 sm:gap-1.5 px-1 pt-3 pb-1.5 border-b border-[#1E293B]">
             {hourlyData.hours.map((h) => {
               const hasSales = h.count > 0;
-              // Altura proporcional: se tiver vendas, varia entre 16px e 90px baseado no maxCount
+              // Altura proporcional comprimida
               const barHeight = hasSales 
-                ? Math.max(16, Math.round((h.count / hourlyData.maxCount) * 85))
+                ? Math.max(14, Math.round((h.count / hourlyData.maxCount) * 65))
                 : 0;
 
               return (
@@ -1177,8 +1177,8 @@ export default function Dashboard() {
                   className="flex-1 flex flex-col items-center justify-end h-full group relative cursor-pointer"
                 >
                   {/* Tooltip Hover no card */}
-                  <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-30 pointer-events-none whitespace-nowrap">
-                    <div className="bg-[#0B0F19] text-white text-[11px] rounded-lg px-2.5 py-1.5 shadow-2xl border border-blue-500/40 flex flex-col items-center gap-0.5">
+                  <div className="absolute bottom-full mb-1.5 hidden group-hover:flex flex-col items-center z-30 pointer-events-none whitespace-nowrap">
+                    <div className="bg-[#0B0F19] text-white text-[10px] rounded-lg px-2 py-1 shadow-2xl border border-blue-500/40 flex flex-col items-center gap-0.5">
                       <span className="font-bold text-blue-400 font-mono">{h.rangeLabel}</span>
                       <span className="font-medium">
                         {h.count} {h.count === 1 ? 'venda' : 'vendas'} ({h.percentage.toFixed(1)}%)
@@ -1189,26 +1189,26 @@ export default function Dashboard() {
                         </span>
                       )}
                     </div>
-                    <div className="w-2 h-2 bg-[#0B0F19] border-r border-b border-blue-500/40 rotate-45 -mt-1" />
+                    <div className="w-1.5 h-1.5 bg-[#0B0F19] border-r border-b border-blue-500/40 rotate-45 -mt-1" />
                   </div>
 
                   {/* Rótulo de porcentagem acima da barra */}
                   {hasSales ? (
-                    <span className="text-[10px] sm:text-[11px] text-zinc-400 font-mono font-medium pb-1.5 transition-colors group-hover:text-blue-300">
+                    <span className="text-[9px] sm:text-[10px] text-zinc-400 font-mono font-medium pb-1 transition-colors group-hover:text-blue-300">
                       {h.percentage.toFixed(1)}%
                     </span>
                   ) : (
-                    <div className="h-4" />
+                    <div className="h-3" />
                   )}
 
                   {/* Barra Azul */}
                   {hasSales ? (
                     <div 
                       style={{ height: `${barHeight}px` }}
-                      className="w-full max-w-[36px] min-w-[8px] bg-[#0066FF] group-hover:bg-[#2563EB] rounded-t-[3px] shadow-sm shadow-blue-500/20 transition-all duration-150"
+                      className="w-full max-w-[32px] min-w-[6px] bg-[#0066FF] group-hover:bg-[#2563EB] rounded-t-[2px] shadow-sm shadow-blue-500/20 transition-all duration-150"
                     />
                   ) : (
-                    <div className="w-full max-w-[36px] h-0" />
+                    <div className="w-full max-w-[32px] h-0" />
                   )}
                 </div>
               );
@@ -1216,11 +1216,11 @@ export default function Dashboard() {
           </div>
 
           {/* Linha dos Horários (00:00 até 23:00) */}
-          <div className="flex items-center justify-between gap-1 sm:gap-1.5 px-1 pt-2">
+          <div className="flex items-center justify-between gap-1 sm:gap-1.5 px-1 pt-1.5">
             {hourlyData.hours.map((h) => (
               <div 
                 key={h.hour}
-                className="flex-1 text-center text-[10px] sm:text-[11px] text-zinc-400 font-mono tracking-tight"
+                className="flex-1 text-center text-[9px] sm:text-[10px] text-zinc-400 font-mono tracking-tight"
               >
                 {h.timeLabel}
               </div>
@@ -1232,7 +1232,7 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="space-y-4 pb-16 font-sans select-none">
+    <div className="space-y-3 pb-12 font-sans select-none">
 
       {/* Banner de Aviso no estilo exato da UTMify */}
       {trialStatus.isTrial && (
@@ -1254,19 +1254,19 @@ export default function Dashboard() {
 
       {/* Banner de Edição Ativa (Canetinha) */}
       {isEditingLayout && (
-        <div className="bg-gradient-to-r from-[#0F1D38] via-[#142347] to-[#0F1D38] border border-blue-500/50 rounded-xl p-4 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">
+        <div className="bg-gradient-to-r from-[#0F1D38] via-[#142347] to-[#0F1D38] border border-blue-500/50 rounded-xl p-3 sm:p-3.5 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-[#0066FF] text-white flex items-center justify-center shrink-0 shadow-md shadow-blue-600/30">
-              <Edit3 className="w-4 h-4" />
+            <div className="w-8 h-8 rounded-lg bg-[#0066FF] text-white flex items-center justify-center shrink-0 shadow-md shadow-blue-600/30">
+              <Edit3 className="w-3.5 h-3.5" />
             </div>
             <div>
-              <div className="text-sm font-bold text-white flex items-center gap-2">
+              <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
                 <span>Personalização de Layout Ativa</span>
-                <span className="text-[10px] uppercase font-mono px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded border border-blue-500/30 font-bold">
+                <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 bg-blue-500/20 text-blue-300 rounded border border-blue-500/30 font-bold">
                   Modo de Edição
                 </span>
               </div>
-              <p className="text-xs text-zinc-300">
+              <p className="text-[11px] text-zinc-300">
                 <span className="font-semibold text-white">🖱️ Arraste com o mouse</span> qualquer card ou métrica para mudar de posição. O formato quadrado simétrico da dashboard é mantido sempre.
               </p>
             </div>
@@ -1274,25 +1274,25 @@ export default function Dashboard() {
           <div className="flex items-center gap-2 shrink-0">
             <button 
               onClick={handleCancelEdit}
-              className="px-3 py-1.5 rounded-lg bg-[#1E293B] hover:bg-[#334155] text-zinc-300 hover:text-white text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-2.5 py-1 rounded-lg bg-[#1E293B] hover:bg-[#334155] text-zinc-300 hover:text-white text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
               title="Cancelar e descartar alterações"
             >
-              <X className="w-3.5 h-3.5 text-zinc-400" />
+              <X className="w-3 h-3 text-zinc-400" />
               <span>Cancelar</span>
             </button>
             <button 
               onClick={resetLayoutConfig}
-              className="px-3 py-1.5 rounded-lg bg-[#1E293B] hover:bg-[#334155] text-zinc-300 hover:text-white text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-2.5 py-1 rounded-lg bg-[#1E293B] hover:bg-[#334155] text-zinc-300 hover:text-white text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
               title="Restaurar posições originais"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
+              <RotateCcw className="w-3 h-3" />
               <span>Restaurar Padrão</span>
             </button>
             <button 
               onClick={() => handleToggleEdit(false)}
-              className="px-4 py-1.5 rounded-lg bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-bold transition-all shadow-md shadow-blue-600/30 flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-1 rounded-lg bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-bold transition-all shadow-md shadow-blue-600/30 flex items-center gap-1.5 cursor-pointer"
             >
-              <Check className="w-3.5 h-3.5" />
+              <Check className="w-3 h-3" />
               <span>Salvar e Concluir</span>
             </button>
           </div>
@@ -1300,10 +1300,10 @@ export default function Dashboard() {
       )}
 
       {/* Card "Resumo" com filtros idênticos ao print da UTMify */}
-      <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 sm:p-5 shadow-lg">
+      <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-3.5 sm:p-4 shadow-md">
         {/* Header do card Resumo */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-          <h2 className="text-base font-bold text-white tracking-tight">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
+          <h2 className="text-sm sm:text-base font-bold text-white tracking-tight">
             Resumo
           </h2>
           <div className="flex items-center gap-3">
@@ -1313,7 +1313,7 @@ export default function Dashboard() {
             <button 
               onClick={handleSync}
               disabled={syncing}
-              className="px-4 py-1.5 rounded-lg bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-bold transition-all shadow-md shadow-blue-600/25 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="px-3.5 py-1 rounded-lg bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-bold transition-all shadow-md shadow-blue-600/25 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
               <RotateCw className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`} />
               <span>{syncing ? 'Atualizando...' : 'Atualizar'}</span>
@@ -1322,11 +1322,11 @@ export default function Dashboard() {
         </div>
 
         {/* Linha dos 5 Filtros Dropdowns da UTMify */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 text-xs">
           
           {/* 1. Período de Visualização */}
           <div>
-            <label className="text-[11px] text-zinc-400 mb-1.5 flex items-center gap-1 font-medium">
+            <label className="text-[10px] text-zinc-400 mb-1 flex items-center gap-1 font-medium">
               <span>Período de Visualização</span>
               <span className="text-zinc-500 text-[10px] cursor-help" title="Filtro de período de análise">ⓘ</span>
             </label>
@@ -1334,7 +1334,7 @@ export default function Dashboard() {
               <select
                 value={period}
                 onChange={(e) => setPeriod(e.target.value)}
-                className="w-full appearance-none bg-[#0F1728] border border-[#1E293B] rounded-lg px-3 py-2 text-zinc-200 focus:outline-none focus:border-[#0066FF] text-xs cursor-pointer font-medium"
+                className="w-full appearance-none bg-[#0F1728] border border-[#1E293B] rounded-lg px-2.5 py-1.5 text-zinc-200 focus:outline-none focus:border-[#0066FF] text-xs cursor-pointer font-medium"
               >
                 <option value="Hoje">Hoje</option>
                 <option value="Ontem">Ontem</option>
@@ -1343,92 +1343,92 @@ export default function Dashboard() {
                 <option value="30 dias">30 dias</option>
                 <option value="Este mês">Este mês</option>
               </select>
-              <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
 
           {/* 2. Conta de Anúncio */}
           <div>
-            <label className="text-[11px] text-zinc-400 mb-1.5 block font-medium">
+            <label className="text-[10px] text-zinc-400 mb-1 block font-medium">
               Conta de Anúncio
             </label>
             <div className="relative">
               <select
                 value={selectedAccount}
                 onChange={(e) => setSelectedAccount(e.target.value)}
-                className="w-full appearance-none bg-[#0F1728] border border-[#1E293B] rounded-lg px-3 py-2 text-zinc-200 focus:outline-none focus:border-[#0066FF] text-xs cursor-pointer font-medium"
+                className="w-full appearance-none bg-[#0F1728] border border-[#1E293B] rounded-lg px-2.5 py-1.5 text-zinc-200 focus:outline-none focus:border-[#0066FF] text-xs cursor-pointer font-medium"
               >
                 <option value="Todas">Qualquer</option>
                 {adAccountsList.map(acc => (
                   <option key={acc.id} value={acc.id}>{acc.name} ({acc.id})</option>
                 ))}
               </select>
-              <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
 
           {/* 3. Fonte de Tráfego */}
           <div>
-            <label className="text-[11px] text-zinc-400 mb-1.5 block font-medium">
+            <label className="text-[10px] text-zinc-400 mb-1 block font-medium">
               Fonte de Tráfego
             </label>
             <div className="relative">
               <select
                 value={selectedSource}
                 onChange={(e) => setSelectedSource(e.target.value)}
-                className="w-full appearance-none bg-[#0F1728] border border-[#1E293B] rounded-lg px-3 py-2 text-zinc-200 focus:outline-none focus:border-[#0066FF] text-xs cursor-pointer font-medium"
+                className="w-full appearance-none bg-[#0F1728] border border-[#1E293B] rounded-lg px-2.5 py-1.5 text-zinc-200 focus:outline-none focus:border-[#0066FF] text-xs cursor-pointer font-medium"
               >
                 <option value="Qualquer">Qualquer</option>
                 <option value="Facebook">Facebook Ads</option>
                 <option value="Organico">Orgânico</option>
               </select>
-              <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
 
           {/* 4. Plataforma */}
           <div>
-            <label className="text-[11px] text-zinc-400 mb-1.5 block font-medium">
+            <label className="text-[10px] text-zinc-400 mb-1 block font-medium">
               Plataforma
             </label>
             <div className="relative">
               <select
                 value={selectedPlatform}
                 onChange={(e) => setSelectedPlatform(e.target.value)}
-                className="w-full appearance-none bg-[#0F1728] border border-[#1E293B] rounded-lg px-3 py-2 text-zinc-200 focus:outline-none focus:border-[#0066FF] text-xs cursor-pointer font-medium"
+                className="w-full appearance-none bg-[#0F1728] border border-[#1E293B] rounded-lg px-2.5 py-1.5 text-zinc-200 focus:outline-none focus:border-[#0066FF] text-xs cursor-pointer font-medium"
               >
                 <option value="Qualquer">Qualquer</option>
                 <option value="MonsterPay">MonsterPay</option>
               </select>
-              <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
 
           {/* 5. Produto */}
           <div>
-            <label className="text-[11px] text-zinc-400 mb-1.5 block font-medium">
+            <label className="text-[10px] text-zinc-400 mb-1 block font-medium">
               Produto
             </label>
             <div className="relative">
               <select
                 value={selectedProduct}
                 onChange={(e) => setSelectedProduct(e.target.value)}
-                className="w-full appearance-none bg-[#0F1728] border border-[#1E293B] rounded-lg px-3 py-2 text-zinc-200 focus:outline-none focus:border-[#0066FF] text-xs cursor-pointer font-medium"
+                className="w-full appearance-none bg-[#0F1728] border border-[#1E293B] rounded-lg px-2.5 py-1.5 text-zinc-200 focus:outline-none focus:border-[#0066FF] text-xs cursor-pointer font-medium"
               >
                 <option value="Qualquer">Qualquer</option>
                 {uniqueProducts.map(p => (
                   <option key={p} value={p}>{p}</option>
                 ))}
               </select>
-              <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
 
         </div>
 
         {/* Link Mais filtros no canto inferior direito */}
-        <div className="flex justify-end mt-2.5">
-          <button className="text-[11px] text-zinc-400 hover:text-zinc-200 flex items-center gap-1 transition-colors cursor-pointer">
+        <div className="flex justify-end mt-2">
+          <button className="text-[10px] text-zinc-400 hover:text-zinc-200 flex items-center gap-1 transition-colors cursor-pointer">
             <span>Mais filtros</span>
             <ChevronDown className="w-3 h-3 text-zinc-500" />
           </button>
@@ -1436,7 +1436,7 @@ export default function Dashboard() {
       </div>
 
       {/* 6 Cards KPIs Principais em Grid 3x2 Perfeito e Harmônico */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
         {layoutConfig.kpis.map((kpiKey, index) => {
           const card = kpiDataMap[kpiKey] || kpiDataMap.faturamento;
           const isKpiDragging = draggedItem?.type === 'kpi' && draggedItem?.index === index;
@@ -1459,7 +1459,7 @@ export default function Dashboard() {
                     : isEditingLayout 
                       ? 'border-blue-500/50 ring-1 ring-blue-500/30 hover:border-blue-400 cursor-grab active:cursor-grabbing' 
                       : 'border-[#1E293B]'
-              } rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md h-[116px] transition-all duration-200 relative group select-none`}
+              } rounded-xl p-3 sm:p-3.5 flex flex-col justify-between shadow-md h-[92px] sm:h-[98px] transition-all duration-200 relative group select-none`}
             >
               <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
                 <span className="truncate">
@@ -1475,10 +1475,10 @@ export default function Dashboard() {
               </div>
 
               <div>
-                <div className={`text-xl sm:text-2xl font-bold tracking-tight font-sans ${card.valueColor}`}>
+                <div className={`text-lg sm:text-xl font-bold tracking-tight font-sans ${card.valueColor}`}>
                   {showValues ? card.value : '••••••'}
                 </div>
-                <div className="text-[11px] text-zinc-400 mt-1 truncate font-sans">
+                <div className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 truncate font-sans">
                   {card.subtitle}
                 </div>
               </div>
