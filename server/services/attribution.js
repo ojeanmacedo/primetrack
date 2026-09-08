@@ -102,6 +102,7 @@ function cleanTrackingValue(val) {
     matchType,
     fbp,
     fbc,
+    landingUrl: (matchedSession && matchedSession.landingUrl) || null,
     sessionId: (matchedSession && matchedSession.sessionId) || tracking.sessionId || null,
     recoveredFromBio: matchType === 'cross_session_bio'
   };

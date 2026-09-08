@@ -320,7 +320,7 @@ app.all([
       accessToken: targetCapiToken,
       eventName: 'Purchase',
       eventId: `capi_pur_${parsed.orderCode}`,
-      eventSourceUrl: `https://${targetPixelId || 'checkout'}.primetrack.top/checkout`,
+      eventSourceUrl: attribution.landingUrl || `https://${targetPixelId || 'checkout'}.primetrack.top/checkout`,
       userData: {
         email: parsed.customer.email,
         phone: parsed.customer.phone,
