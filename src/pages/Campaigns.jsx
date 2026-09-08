@@ -153,8 +153,25 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       } catch (e) {}
     }
 
+    const periodMap = {
+      'Hoje': 'today',
+      'Ontem': 'yesterday',
+      'Últimos 7 dias': 'last_7d',
+      '7 dias': 'last_7d',
+      'Últimos 14 dias': 'last_14d',
+      '14 dias': 'last_14d',
+      'Últimos 30 dias': 'last_30d',
+      '30 dias': 'last_30d',
+      'Personalizado': 'maximum'
+    };
+    const datePreset = periodMap[customPreset] || 'today';
+
     try {
-      const statusRes = await fetch('/api/meta/status');
+      const [statusRes, crRes] = await Promise.all([
+        fetch('/api/meta/status'),
+        fetch(`/api/campaigns?datePreset=${datePreset}`)
+      ]);
+
       const data = await statusRes.json();
 
       if (data.connections && data.connections.length > 0) {
@@ -179,7 +196,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               name: a.name || 'Conta',
               id: accId,
               bm: a.businessName || 'BM Principal',
-              currency: a.currency === 'USD' ? 'USD' : (a.currency || 'BRL'),
+              currency: 'BRL',
               status: a.status === 'ACTIVE' ? 'Ativa' : 'Desativada',
               balance: a.balance || '0,00',
               amountSpent: a.amountSpent || '0,00',
@@ -189,6 +206,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           .filter(a => a.sync === true); // Apenas contas ativadas no perfil em integrações
 
         setAdAccountsList(mappedAccs);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('primetrack_ad_accounts', JSON.stringify(mappedAccs));
+        }
 
         if (accountFilter !== 'Todas' && !mappedAccs.some(a => a.id === accountFilter || a.name === accountFilter)) {
           setAccountFilter('Todas');
@@ -196,34 +216,16 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       } else {
         setAdAccountsList([]);
       }
-    } catch (err) {
-      console.log('Erro ao carregar status Meta:', err);
-    }
 
-    const periodMap = {
-      'Hoje': 'today',
-      'Ontem': 'yesterday',
-      'Últimos 7 dias': 'last_7d',
-      '7 dias': 'last_7d',
-      'Últimos 14 dias': 'last_14d',
-      '14 dias': 'last_14d',
-      'Últimos 30 dias': 'last_30d',
-      '30 dias': 'last_30d',
-      'Personalizado': 'maximum'
-    };
-    const datePreset = periodMap[customPreset] || 'today';
-
-    try {
-      const cr = await fetch(`/api/campaigns?datePreset=${datePreset}`);
-      const data = await cr.json();
-      if (Array.isArray(data)) {
-        setCampaignsList(data);
-        if (typeof window !== 'undefined' && data.length > 0) {
-          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(data));
+      const cData = await crRes.json();
+      if (Array.isArray(cData)) {
+        setCampaignsList(cData);
+        if (typeof window !== 'undefined' && cData.length > 0) {
+          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(cData));
         }
       }
     } catch (err) {
-      console.log('Erro ao carregar campanhas:', err);
+      console.log('Erro ao carregar dados:', err);
     }
   };
 
@@ -354,11 +356,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setSavingEdit(false);
   };
 
-  const isNoAccountActive = adAccountsList.length === 0;
+  const isNoAccountActive = adAccountsList.length === 0 && campaignsList.length === 0;
   const activeAdAccount = adAccountsList.length > 0 ? adAccountsList[0] : null;
 
-  // Filtragem
-  const filteredCampaigns = isNoAccountActive ? [] : campaignsList.filter(c => {
+  // Filtragem - se campaignsList já possui dados, exibe imediatamente
+  const filteredCampaigns = campaignsList.filter(c => {
     if (statusFilter === 'Ativo' && !c.status) return false;
     if (statusFilter === 'Pausado' && c.status) return false;
     const cAdId = String(c.adAccountId || '').replace('act_', '');
@@ -369,21 +371,18 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       }
       return c.accountName === accountFilter || cAdId === accountFilter;
     }
-    return adAccountsList.some(acc => cAdId === String(acc.id));
+    if (adAccountsList.length > 0) {
+      return adAccountsList.some(acc => cAdId === String(acc.id));
+    }
+    return true;
   });
 
-  // Totais calculados dinamicamente
-  const activeCurrency = filteredCampaigns[0]?.currency || activeAdAccount?.currency || 'BRL';
-  const isUsd = activeCurrency === 'USD' || String(activeCurrency).includes('USD');
-  const currencySymbol = isUsd ? '$' : 'R$';
-
+  // Totais calculados dinamicamente em Real Brasileiro (R$)
   const totalSpend = filteredCampaigns.reduce((acc, c) => acc + Number(c.spend || 0), 0);
-  const totalSpendBrl = filteredCampaigns.reduce((acc, c) => acc + Number(c.spendBrl || c.spend || 0), 0);
-  const totalRawSpendUsd = filteredCampaigns.reduce((acc, c) => acc + Number(c.rawSpendUsd || 0), 0);
   const totalSales = filteredCampaigns.reduce((acc, c) => acc + Number(c.sales || 0), 0);
   const totalRevenue = filteredCampaigns.reduce((acc, c) => acc + Number(c.revenue || 0), 0);
-  const totalProfit = totalRevenue - (isUsd ? totalSpendBrl : totalSpend);
-  const avgRoas = (isUsd ? totalSpendBrl : totalSpend) > 0 ? (totalRevenue / (isUsd ? totalSpendBrl : totalSpend)).toFixed(2) : '0.00';
+  const totalProfit = totalRevenue - totalSpend;
+  const avgRoas = totalSpend > 0 ? (totalRevenue / totalSpend).toFixed(2) : '0.00';
   const avgCpa = totalSales > 0 ? (totalSpend / totalSales).toFixed(2) : '0.00';
   const totalImpressions = filteredCampaigns.reduce((acc, c) => acc + Number(c.impressions || 0), 0);
   const totalClicks = filteredCampaigns.reduce((acc, c) => acc + Number(c.clicks || 0), 0);
@@ -611,13 +610,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                         {acc.bm || acc.businessName || 'BM Principal'}
                       </td>
                       <td className="py-3.5 px-4 text-white font-bold">
-                        {acc.currency?.includes('USD') ? '$' : 'R$'} {acc.amountSpent || '0,00'}
+                        R$ {acc.amountSpent || '0,00'}
                       </td>
                       <td className="py-3.5 px-4 text-emerald-400 font-bold font-mono">
-                        {acc.currency?.includes('USD') ? '$' : 'R$'} {acc.balance || '0,00'}
+                        R$ {acc.balance || '0,00'}
                       </td>
                       <td className="py-3.5 px-4 text-zinc-400">
-                        {acc.currency || 'BRL'}
+                        BRL
                       </td>
                       <td className="py-3.5 px-4">
                         <span className="text-emerald-400 font-bold flex items-center gap-1 text-[11px]">
@@ -739,23 +738,15 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                           title="Clique para alterar orçamento"
                         >
                           <div className="font-bold text-white font-mono flex items-center gap-1.5">
-                            <span>{camp.currency === 'USD' ? '$' : 'R$'} {camp.budget || '0.00'}</span>
+                            <span>R$ {camp.budget || '0.00'}</span>
                             <Edit3 className="w-2.5 h-2.5 text-zinc-500 group-hover:text-[#5C9BFF]" />
                           </div>
-                          {camp.currency === 'USD' && camp.budgetBrl && (
-                            <div className="text-[10px] text-zinc-400 font-mono">≈ R$ {camp.budgetBrl}</div>
-                          )}
                           <div className="text-[10px] text-zinc-400">{camp.budgetType || 'Diário'}</div>
                         </div>
                       </td>
 
                       <td className="py-4 px-4 text-white font-bold">
-                        <div>{camp.currency === 'USD' ? '$' : 'R$'} {camp.spend}</div>
-                        {camp.currency === 'USD' && camp.spendBrl && (
-                          <div className="text-[10px] text-zinc-400 font-normal font-mono">
-                            ≈ R$ {camp.spendBrl}
-                          </div>
-                        )}
+                        <div>R$ {camp.spend}</div>
                       </td>
                       <td className="py-4 px-4 text-white font-bold text-center">{camp.sales}</td>
                       <td className="py-4 px-4 text-white font-bold">R$ {camp.revenue}</td>
@@ -763,8 +754,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                         R$ {camp.profit}
                       </td>
                       <td className="py-4 px-4 font-extrabold text-[#5C9BFF]">{camp.roas}</td>
-                      <td className="py-4 px-4 font-bold text-[#5C9BFF]">{camp.currency === 'USD' ? '$' : 'R$'} {camp.cpa}</td>
-                      <td className="py-4 px-4 text-zinc-300">{camp.currency === 'USD' ? '$' : 'R$'} {camp.cpc}</td>
+                      <td className="py-4 px-4 font-bold text-[#5C9BFF]">R$ {camp.cpa}</td>
+                      <td className="py-4 px-4 text-zinc-300">R$ {camp.cpc}</td>
                       <td className="py-4 px-4 text-zinc-300">{Number(camp.impressions || 0).toLocaleString('pt-BR')}</td>
                       <td className="py-4 px-4 text-zinc-300">{Number(camp.clicks || 0).toLocaleString('pt-BR')}</td>
                     </tr>
@@ -781,12 +772,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     <td className="py-3 px-4"></td>
                     <td className="py-3 px-4"></td>
                     <td className="py-3 px-4 text-white">
-                      <div>{currencySymbol} {totalSpend.toFixed(2)}</div>
-                      {isUsd && totalSpendBrl > 0 && (
-                        <div className="text-[10px] text-zinc-400 font-normal font-mono">
-                          ≈ R$ {totalSpendBrl.toFixed(2)}
-                        </div>
-                      )}
+                      <div>R$ {totalSpend.toFixed(2)}</div>
                     </td>
                     <td className="py-3 px-4 text-white text-center">{totalSales}</td>
                     <td className="py-3 px-4 text-white">R$ {totalRevenue.toFixed(2)}</td>
@@ -794,7 +780,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       R$ {totalProfit.toFixed(2)}
                     </td>
                     <td className="py-3 px-4 text-[#5C9BFF]">{avgRoas}</td>
-                    <td className="py-3 px-4 text-[#5C9BFF]">{currencySymbol} {avgCpa}</td>
+                    <td className="py-3 px-4 text-[#5C9BFF]">R$ {avgCpa}</td>
                     <td className="py-3 px-4 text-zinc-300"></td>
                     <td className="py-3 px-4 text-zinc-300">{totalImpressions.toLocaleString('pt-BR')}</td>
                     <td className="py-3 px-4 text-zinc-300">{totalClicks.toLocaleString('pt-BR')}</td>
@@ -853,15 +839,15 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                         <div className="font-bold text-white text-xs">{camp.name} — Conjunto Aberto</div>
                         <div className="text-[10px] text-zinc-500 font-mono">Público Aberto 18-65</div>
                       </td>
-                      <td className="py-4 px-4 text-white">{camp.currency === 'USD' ? '$' : 'R$'} {camp.budget}</td>
-                      <td className="py-4 px-4 text-white font-bold">{camp.currency === 'USD' ? '$' : 'R$'} {camp.spend}</td>
+                      <td className="py-4 px-4 text-white">R$ {camp.budget}</td>
+                      <td className="py-4 px-4 text-white font-bold">R$ {camp.spend}</td>
                       <td className="py-4 px-4 text-white text-center font-bold">{camp.sales}</td>
                       <td className="py-4 px-4 text-white font-bold">R$ {camp.revenue}</td>
                       <td className={`py-4 px-4 font-extrabold ${Number(camp.profit) >= 0 ? 'text-[#5C9BFF]' : 'text-red-400'}`}>
                         R$ {camp.profit}
                       </td>
                       <td className="py-4 px-4 font-extrabold text-[#5C9BFF]">{camp.roas}</td>
-                      <td className="py-4 px-4 font-bold text-[#5C9BFF]">{camp.currency === 'USD' ? '$' : 'R$'} {camp.cpa}</td>
+                      <td className="py-4 px-4 font-bold text-[#5C9BFF]">R$ {camp.cpa}</td>
                       <td className="py-4 px-4 text-zinc-300">{Number(camp.impressions).toLocaleString('pt-BR')}</td>
                       <td className="py-4 px-4 text-zinc-300">{Number(camp.clicks).toLocaleString('pt-BR')}</td>
                     </tr>
@@ -938,14 +924,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                           <Eye className="w-3.5 h-3.5" />
                         </button>
                       </td>
-                      <td className="py-4 px-4 text-white font-bold">{camp.currency === 'USD' ? '$' : 'R$'} {camp.spend}</td>
+                      <td className="py-4 px-4 text-white font-bold">R$ {camp.spend}</td>
                       <td className="py-4 px-4 text-white font-bold text-center">{camp.sales}</td>
                       <td className="py-4 px-4 text-white font-bold">R$ {camp.revenue}</td>
                       <td className={`py-4 px-4 font-extrabold ${Number(camp.profit) >= 0 ? 'text-[#5C9BFF]' : 'text-red-400'}`}>
                         R$ {camp.profit}
                       </td>
                       <td className="py-4 px-4 font-extrabold text-[#5C9BFF]">{camp.roas}</td>
-                      <td className="py-4 px-4 font-bold text-[#5C9BFF]">{camp.currency === 'USD' ? '$' : 'R$'} {camp.cpa}</td>
+                      <td className="py-4 px-4 font-bold text-[#5C9BFF]">R$ {camp.cpa}</td>
                       <td className="py-4 px-4 text-zinc-300">{Number(camp.impressions).toLocaleString('pt-BR')}</td>
                       <td className="py-4 px-4 text-zinc-300">{Number(camp.clicks).toLocaleString('pt-BR')}</td>
                     </tr>
@@ -1005,11 +991,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-zinc-300 font-semibold mb-1.5">
-                    Orçamento Diário ({editingCampaign?.currency === 'USD' ? 'USD $' : 'R$'})
+                    Orçamento Diário (R$)
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-2 text-zinc-500 font-mono">
-                      {editingCampaign?.currency === 'USD' ? '$' : 'R$'}
+                      R$
                     </span>
                     <input 
                       type="text"

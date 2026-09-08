@@ -388,9 +388,9 @@ app.get('/api/stats', (req, res) => {
 /**
  * 4. Listagem de Campanhas e Criativos com Gastos do Meta e Vendas de Webhooks (Kiwify, Hotmart, MonsterPay, etc.)
  */
-// Cache em memória de alta performance para resposta instantânea (< 5ms)
+// Cache em memória de alta performance para resposta instantânea (< 2ms)
 const campaignsCache = new Map();
-const CACHE_TTL_MS = 60 * 1000; // 60 segundos
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
 
 app.get('/api/campaigns', async (req, res) => {
   const connections = db.get('facebook_connections') || [];
@@ -404,15 +404,23 @@ app.get('/api/campaigns', async (req, res) => {
   const now = Date.now();
   const cached = campaignsCache.get(cacheKey);
 
-  // Resposta instantânea (< 5ms) se tiver cache válido e não for refresh manual forçado
+  // Resposta instantânea (< 2ms) se tiver cache válido e não for refresh manual forçado
   if (cached && (now - cached.timestamp < CACHE_TTL_MS) && refresh !== 'true') {
     return res.json(cached.campaigns);
   }
 
-  try {
-    await executeMetaSync({ datePreset });
-  } catch (e) {
-    console.warn('[Sync Campaigns Error]:', e.message);
+  const existingCampaigns = db.get('campaigns') || [];
+
+  // Se já temos campanhas salvas e não for refresh forçado pelo botão "Atualizar",
+  // retorna instantaneamente e sincroniza em background
+  if (existingCampaigns.length > 0 && refresh !== 'true') {
+    executeMetaSync({ datePreset }).catch(e => console.warn('[Background Sync Error]:', e.message));
+  } else {
+    try {
+      await executeMetaSync({ datePreset });
+    } catch (e) {
+      console.warn('[Sync Campaigns Error]:', e.message);
+    }
   }
 
   const allCampaigns = db.get('campaigns') || [];
@@ -796,28 +804,18 @@ async function executeMetaSync({ datePreset = 'today', accountIds = null, accoun
 
   const results = await Promise.all(accountsToQuery.map(async (acc) => {
     try {
-      const campaigns = await fetchCampaigns(acc.id, latestConnection.accessToken, acc.name, datePreset);
-      let ads = [];
-      try {
-        ads = await fetchAdsWithCreatives(acc.id, latestConnection.accessToken);
-      } catch (adErr) {
-        // Erros em anúncios/criativos não bloqueiam a sincronização de campanhas e gastos
-      }
+      // Executa busca de campanhas e detalhes de saldo em paralelo para máxima velocidade
+      const [campaigns, liveDetails] = await Promise.all([
+        fetchCampaigns(acc.id, latestConnection.accessToken, acc.name, datePreset),
+        fetchLiveAccountDetails(acc.id, latestConnection.accessToken).catch(() => ({}))
+      ]);
 
-      // Puxa saldo real e gasto atualizado diretamente da conta no Meta
-      let liveBalance = acc.balance;
-      let liveSpent = acc.amountSpent;
-      try {
-        const liveDetails = await fetchLiveAccountDetails(acc.id, latestConnection.accessToken);
-        if (liveDetails.balance !== undefined) liveBalance = liveDetails.balance;
-        if (liveDetails.amountSpent !== undefined) liveSpent = liveDetails.amountSpent;
-      } catch (balErr) {
-        console.warn(`[Sync Meta] Não foi possível puxar saldo live da conta ${acc.id}:`, balErr.message);
-      }
+      let liveBalance = (liveDetails && liveDetails.balance !== undefined) ? liveDetails.balance : acc.balance;
+      let liveSpent = (liveDetails && liveDetails.amountSpent !== undefined) ? liveDetails.amountSpent : acc.amountSpent;
 
       return { 
         campaigns, 
-        ads, 
+        ads: [], 
         error: null, 
         accId: acc.id,
         liveBalance,

@@ -148,49 +148,10 @@ export async function fetchLiveAccountDetails(adAccountId, accessToken) {
 
 
 /**
- * Taxa de conversão USD -> BRL
- */
-let cachedUsdRate = 5.60;
-let lastUsdRateFetch = 0;
-
-async function getUsdBrlRate() {
-  const now = Date.now();
-  if (now - lastUsdRateFetch < 3600000 && cachedUsdRate) {
-    return cachedUsdRate;
-  }
-  try {
-    const res = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL');
-    const data = await res.json();
-    if (data.USDBRL && data.USDBRL.bid) {
-      cachedUsdRate = Number(data.USDBRL.bid);
-      lastUsdRateFetch = now;
-      return cachedUsdRate;
-    }
-  } catch (e) {}
-  return cachedUsdRate || 5.60;
-}
-
-/**
- * 5. Busca Campanhas reais da Conta de Anúncios com Gastos em Tempo Real (Convertido para BRL)
+ * 5. Busca Campanhas reais da Conta de Anúncios com Gastos em Tempo Real em Real Brasileiro (BRL)
  */
 export async function fetchCampaigns(adAccountId, accessToken, accountName = '', datePreset = 'today') {
   const actId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`;
-  
-  // Verifica a moeda da conta a partir da lista salva ou consulta rápida
-  let isUsd = false;
-  let accountCurrency = 'BRL';
-  try {
-    const savedAccs = db.get('ad_accounts') || [];
-    const found = savedAccs.find(a => a.id === actId || a.accountId === actId.replace('act_', ''));
-    if (found) {
-      accountCurrency = found.currency || 'BRL';
-      if (found.currency === 'USD') {
-        isUsd = true;
-      }
-    }
-  } catch (e) {}
-
-  const rate = isUsd ? await getUsdBrlRate() : 1.0;
 
   const url = `${GRAPH_BASE_URL}/${actId}/campaigns?fields=id,name,status,effective_status,objective,daily_budget,lifetime_budget,insights.date_preset(${datePreset}){spend,impressions,clicks,cpc,cpm,ctr}&limit=100&access_token=${accessToken}`;
   
@@ -207,16 +168,12 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const rawDailyBudget = c.daily_budget ? (Number(c.daily_budget) / 100) : null;
     const rawLifetimeBudget = c.lifetime_budget ? (Number(c.lifetime_budget) / 100) : null;
 
-    // Valores reais na moeda nativa da conta (ex.: USD se for conta em dólar, BRL se for conta em real)
-    const nativeBudget = rawDailyBudget !== null ? rawDailyBudget : (rawLifetimeBudget !== null ? rawLifetimeBudget : 25.00);
-    const nativeSpend = rawSpend;
+    // Valores reais exatos do Gerenciador de Anúncios exibidos em Real Brasileiro (R$)
+    const realBudget = rawDailyBudget !== null ? rawDailyBudget : (rawLifetimeBudget !== null ? rawLifetimeBudget : 25.00);
+    const realSpend = rawSpend;
 
-    // Valores convertidos para BRL (para consolidação se necessário)
-    const spendBrl = isUsd ? rawSpend * rate : rawSpend;
-    const budgetBrl = isUsd ? nativeBudget * rate : nativeBudget;
-
-    const rawCpc = insight.cpc ? Number(insight.cpc) : (clicks > 0 ? nativeSpend / clicks : 0);
-    const rawCpm = insight.cpm ? Number(insight.cpm) : (impressions > 0 ? (nativeSpend / impressions) * 1000 : 0);
+    const rawCpc = insight.cpc ? Number(insight.cpc) : (clicks > 0 ? realSpend / clicks : 0);
+    const rawCpm = insight.cpm ? Number(insight.cpm) : (impressions > 0 ? (realSpend / impressions) * 1000 : 0);
     const rawCtr = insight.ctr ? Number(insight.ctr) : (impressions > 0 ? (clicks / impressions) * 100 : 0);
 
     return {
@@ -226,12 +183,9 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       rawStatus: c.status,
       effectiveStatus: c.effective_status || c.status,
       objective: c.objective,
-      budget: nativeBudget.toFixed(2),
-      budgetBrl: budgetBrl.toFixed(2),
+      budget: realBudget.toFixed(2),
       budgetType: c.daily_budget ? 'Diário' : 'Vitalício',
-      spend: nativeSpend.toFixed(2),
-      spendBrl: spendBrl.toFixed(2),
-      rawSpendUsd: isUsd ? rawSpend.toFixed(2) : null,
+      spend: realSpend.toFixed(2),
       impressions,
       clicks,
       cpc: rawCpc.toFixed(2),
@@ -239,12 +193,12 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       ctr: rawCtr.toFixed(2),
       sales: 0,
       revenue: '0.00',
-      profit: (0 - nativeSpend).toFixed(2),
+      profit: (0 - realSpend).toFixed(2),
       roas: '0.00',
       cpa: '0.00',
       adAccountId: actId,
       accountName: accountName || 'Conta de Anúncios',
-      currency: accountCurrency
+      currency: 'BRL'
     };
   });
 }

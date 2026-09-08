@@ -68,6 +68,8 @@ export default function Dashboard({ onSimulateSale }) {
     'Personalizado': 'maximum'
   };
 
+  const isFirstMount = React.useRef(true);
+
   const loadDashboardData = async (customPeriod = period) => {
     const preset = periodToPreset[customPeriod] || 'today';
 
@@ -89,8 +91,12 @@ export default function Dashboard({ onSimulateSale }) {
     }
 
     try {
-      const r = await fetch('/api/meta/status');
-      const data = await r.json();
+      const [rRes, crRes] = await Promise.all([
+        fetch('/api/meta/status'),
+        fetch(`/api/campaigns?datePreset=${preset}`)
+      ]);
+
+      const data = await rRes.json();
       
       if (data.connections && data.connections.length > 0) {
         localStorage.removeItem('primetrack_meta_disconnected');
@@ -114,7 +120,7 @@ export default function Dashboard({ onSimulateSale }) {
               name: a.name || 'Conta',
               id: accId,
               bm: a.businessName || 'BM Principal',
-              currency: a.currency === 'USD' ? 'USD' : (a.currency || 'BRL'),
+              currency: 'BRL',
               status: a.status === 'ACTIVE' ? 'Ativa' : 'Desativada',
               balance: a.balance || '0,00',
               amountSpent: a.amountSpent || '0,00',
@@ -124,6 +130,9 @@ export default function Dashboard({ onSimulateSale }) {
           .filter(a => a.sync === true); // Apenas contas ativadas no perfil em integrações
         
         setAdAccountsList(mappedAccs);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('primetrack_ad_accounts', JSON.stringify(mappedAccs));
+        }
 
         if (accountFilter !== 'Todas' && !mappedAccs.some(a => a.id === accountFilter || a.name === accountFilter)) {
           setAccountFilter('Todas');
@@ -131,13 +140,8 @@ export default function Dashboard({ onSimulateSale }) {
       } else {
         setAdAccountsList([]);
       }
-    } catch (err) {
-      console.log('Erro ao carregar contas no dashboard:', err);
-    }
 
-    try {
-      const cr = await fetch(`/api/campaigns?datePreset=${preset}`);
-      const cData = await cr.json();
+      const cData = await crRes.json();
       if (Array.isArray(cData)) {
         setCampaigns(cData);
         if (typeof window !== 'undefined') {
@@ -145,7 +149,7 @@ export default function Dashboard({ onSimulateSale }) {
         }
       }
     } catch (err) {
-      console.log('Fetch campaigns error:', err);
+      console.log('Erro ao carregar dados no dashboard:', err);
     }
   };
 
@@ -180,6 +184,10 @@ export default function Dashboard({ onSimulateSale }) {
   }, []);
 
   useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
     loadDashboardData(period);
   }, [period]);
 
@@ -237,18 +245,12 @@ export default function Dashboard({ onSimulateSale }) {
     return true;
   });
 
-  const activeCurrency = filteredCampaigns[0]?.currency || activeAdAccount?.currency || 'BRL';
-  const isUsd = activeCurrency === 'USD' || String(activeCurrency).includes('USD');
-  const currencySymbol = isUsd ? '$' : 'R$';
-
-  // Agregação dos dados reais da conta e campanhas
+  // Agregação dos dados reais da conta e campanhas em Real Brasileiro (R$)
   const realSpend = filteredCampaigns.reduce((acc, c) => acc + Number(c.spend || 0), 0);
-  const realSpendBrl = filteredCampaigns.reduce((acc, c) => acc + Number(c.spendBrl || c.spend || 0), 0);
-  const realRawSpendUsd = filteredCampaigns.reduce((acc, c) => acc + Number(c.rawSpendUsd || 0), 0);
   const realSales = filteredCampaigns.reduce((acc, c) => acc + Number(c.sales || 0), 0);
   const realRevenue = filteredCampaigns.reduce((acc, c) => acc + Number(c.revenue || 0), 0);
-  const realProfit = realRevenue - (isUsd ? realSpendBrl : realSpend);
-  const realRoas = (isUsd ? realSpendBrl : realSpend) > 0 ? (realRevenue / (isUsd ? realSpendBrl : realSpend)).toFixed(2) : '0.00';
+  const realProfit = realRevenue - realSpend;
+  const realRoas = realSpend > 0 ? (realRevenue / realSpend).toFixed(2) : '0.00';
   const realCpa = realSales > 0 ? (realSpend / realSales).toFixed(2) : '0.00';
   const realArpu = realSales > 0 ? (realRevenue / realSales).toFixed(2) : '0.00';
   const realMargin = realRevenue > 0 ? `${((realProfit / realRevenue) * 100).toFixed(1)}%` : '0.0%';
@@ -260,10 +262,6 @@ export default function Dashboard({ onSimulateSale }) {
     ? emptyMetrics 
     : {
         spend: realSpend,
-        spendBrl: realSpendBrl,
-        currencySymbol,
-        isUsd,
-        rawSpendUsd: realRawSpendUsd,
         revenue: realRevenue,
         profit: realProfit,
         sales: realSales,
@@ -501,20 +499,15 @@ export default function Dashboard({ onSimulateSale }) {
         <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
           <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">GASTO EM ADS ({period})</div>
           <div className="text-xl sm:text-2xl font-extrabold text-white mt-1">
-            {currentMetrics.currencySymbol} {currentMetrics.spend.toFixed(2)}
+            R$ {currentMetrics.spend.toFixed(2)}
           </div>
-          {currentMetrics.isUsd && (
-            <div className="text-[11px] font-mono text-zinc-400 mt-0.5">
-              ≈ R$ {currentMetrics.spendBrl.toFixed(2)}
-            </div>
-          )}
         </div>
 
         {/* CPA */}
         <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
           <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">CPA</div>
           <div className="text-xl sm:text-2xl font-extrabold text-white mt-1">
-            {currentMetrics.currencySymbol} {currentMetrics.cpa}
+            R$ {currentMetrics.cpa}
           </div>
         </div>
 
