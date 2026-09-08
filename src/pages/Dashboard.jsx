@@ -615,6 +615,43 @@ export default function Dashboard() {
       .sort((a, b) => b.sales - a.sales);
   }, [approvedOrders]);
 
+  // Vendas agrupadas por fonte com quantidade e porcentagem (Estilo UTMify)
+  const sourcesMap = useMemo(() => {
+    const map = {};
+    const totalApproved = approvedOrders.length;
+
+    approvedOrders.forEach(o => {
+      const rawSrc = (o.attribution?.source || o.utm_source || o.source || '').toLowerCase();
+      let srcName = 'MetaAds';
+      if (rawSrc.includes('google') || rawSrc.includes('gads')) {
+        srcName = 'Google Ads';
+      } else if (rawSrc.includes('tiktok') || rawSrc.includes('tt')) {
+        srcName = 'TikTok Ads';
+      } else if (rawSrc.includes('org') || rawSrc.includes('direct') || rawSrc.includes('direto')) {
+        srcName = 'Orgânico';
+      } else {
+        srcName = 'MetaAds';
+      }
+
+      if (!map[srcName]) {
+        map[srcName] = { name: srcName, sales: 0, revenue: 0 };
+      }
+      map[srcName].sales += 1;
+      map[srcName].revenue += Number(o.amount || 0);
+    });
+
+    if (totalApproved > 0 && Object.keys(map).length === 0) {
+      map['MetaAds'] = { name: 'MetaAds', sales: totalApproved, revenue: realApprovedRevenue };
+    }
+
+    return Object.values(map)
+      .map(s => ({
+        ...s,
+        percentage: totalApproved > 0 ? (s.sales / totalApproved) * 100 : 0
+      }))
+      .sort((a, b) => b.sales - a.sales);
+  }, [approvedOrders, realApprovedRevenue]);
+
   // Métodos de pagamento
   const paymentBreakdown = useMemo(() => {
     let pix = 0, cc = 0, boleto = 0, outros = 0;
@@ -951,35 +988,73 @@ export default function Dashboard() {
           className={baseContainerClass}
         >
           {dropOverlay}
-          <div>
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2">
+          <div className="w-full">
+            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-3">
               <span className="text-white font-semibold">Vendas por Fonte</span>
               {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Origem de tráfego das vendas">ⓘ</span>}
             </div>
 
-            {realApprovedSales === 0 ? (
-              <div className="h-28 flex items-center justify-center text-zinc-500 text-xs font-sans">
+            {sourcesMap.length === 0 ? (
+              <div className="h-32 flex items-center justify-center text-zinc-500 text-xs font-sans">
                 Nenhuma venda por aqui
               </div>
             ) : (
-              <div className="space-y-2.5 py-3">
-                <div>
-                  <div className="flex justify-between text-xs text-zinc-300 mb-1">
-                    <span className="font-medium">Facebook Ads</span>
-                    <span className="font-bold text-white">{realApprovedSales} (100%)</span>
-                  </div>
-                  <div className="w-full bg-[#0D1424] h-2 rounded-full overflow-hidden border border-[#1E293B]/60">
-                    <div className="bg-[#0066FF] h-full rounded-full transition-all duration-500" style={{ width: '100%' }} />
-                  </div>
-                </div>
+              <div className="space-y-3 py-1 max-h-[185px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-[#1E293B]">
+                {sourcesMap.map((src, i) => {
+                  const validPct = Math.min(100, Math.max(0, src.percentage || 0));
+                  const circumference = 56.55; // 2 * pi * 9
+                  const strokeDashoffset = circumference - (validPct / 100) * circumference;
+
+                  return (
+                    <div key={i} className="flex items-center justify-between text-xs group">
+                      <div className="font-normal text-zinc-200 truncate pr-3 text-xs tracking-tight" title={src.name}>
+                        {src.name}
+                      </div>
+                      
+                      <div className="flex items-center gap-3 shrink-0">
+                        {/* Quantidade vendida */}
+                        <span className="text-zinc-300 font-mono text-xs w-4 text-right">
+                          {src.sales}
+                        </span>
+
+                        {/* Gauge Circular Mini */}
+                        <div className="w-4.5 h-4.5 sm:w-5 sm:h-5 relative flex items-center justify-center shrink-0">
+                          <svg className="w-full h-full -rotate-90" viewBox="0 0 24 24">
+                            <circle
+                              cx="12"
+                              cy="12"
+                              r="9"
+                              fill="none"
+                              stroke="#1E293B"
+                              strokeWidth="2.5"
+                            />
+                            {validPct > 0 && (
+                              <circle
+                                cx="12"
+                                cy="12"
+                                r="9"
+                                fill="none"
+                                stroke="#0066FF"
+                                strokeWidth="2.5"
+                                strokeDasharray={circumference}
+                                strokeDashoffset={strokeDashoffset}
+                                strokeLinecap="round"
+                                className="transition-all duration-500"
+                              />
+                            )}
+                          </svg>
+                        </div>
+
+                        {/* Porcentagem */}
+                        <span className="text-white font-bold font-mono text-xs w-12 text-right">
+                          {validPct.toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
-          </div>
-          <div className="text-[10px] text-zinc-500 pt-1.5 border-t border-[#1E293B]/40 flex items-center justify-between">
-            <span>Rastreamento CAPI & Pixel</span>
-            <span className="text-emerald-400 font-semibold flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Ativo
-            </span>
           </div>
         </div>
       );
