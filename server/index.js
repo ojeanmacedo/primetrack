@@ -338,28 +338,57 @@ app.all([
       createdAt: new Date().toISOString()
     };
 
-    db.append('orders', orderRecord);
+    const existingOrders = db.get('orders') || [];
+    const existingIdx = existingOrders.findIndex(o => o.orderCode === parsed.orderCode);
+    if (existingIdx >= 0) {
+      existingOrders[existingIdx] = {
+        ...existingOrders[existingIdx],
+        ...orderRecord,
+        status: parsed.status || 'approved'
+      };
+      db.set('orders', existingOrders);
+    } else {
+      db.append('orders', orderRecord);
+    }
     ordersMemoryCache = { data: null, timestamp: 0 };
 
     try {
-      await supabaseAdmin.from('orders').insert({
-        id: orderRecord.id,
-        user_id: 'usr_admin_digitaljm',
-        order_code: parsed.orderCode,
-        gateway: parsed.gateway || 'MonsterPay',
-        product_name: parsed.productName,
-        amount: parsed.amount,
-        status: parsed.status || 'approved',
-        payment_method: parsed.paymentMethod,
-        customer_name: parsed.customer?.name || null,
-        customer_email: parsed.customer?.email || null,
-        customer_phone: parsed.customer?.phone || null,
-        attribution: attribution || null,
-        emq_score: capiResult.emq.score || 9.7,
-        created_at: orderRecord.createdAt
-      });
+      const { data: existingSupa } = await supabaseAdmin
+        .from('orders')
+        .select('id, status')
+        .eq('order_code', parsed.orderCode)
+        .limit(1);
+
+      if (existingSupa && existingSupa.length > 0) {
+        await supabaseAdmin
+          .from('orders')
+          .update({
+            status: parsed.status || 'approved',
+            amount: parsed.amount,
+            attribution: attribution || undefined,
+            emq_score: capiResult.emq.score || 9.7
+          })
+          .eq('order_code', parsed.orderCode);
+      } else {
+        await supabaseAdmin.from('orders').insert({
+          id: orderRecord.id,
+          user_id: 'usr_admin_digitaljm',
+          order_code: parsed.orderCode,
+          gateway: parsed.gateway || 'MonsterPay',
+          product_name: parsed.productName,
+          amount: parsed.amount,
+          status: parsed.status || 'approved',
+          payment_method: parsed.paymentMethod,
+          customer_name: parsed.customer?.name || null,
+          customer_email: parsed.customer?.email || null,
+          customer_phone: parsed.customer?.phone || null,
+          attribution: attribution || null,
+          emq_score: capiResult.emq.score || 9.7,
+          created_at: orderRecord.createdAt
+        });
+      }
     } catch (supaErr) {
-      console.warn('Erro ao salvar pedido no Supabase:', supaErr.message);
+      console.warn('Erro ao salvar/atualizar pedido no Supabase:', supaErr.message);
     }
 
     console.log(`[Venda Registrada] R$ ${parsed.amount} via ${parsed.gateway} atribuída ao anúncio: ${attribution.ad}`);
@@ -494,8 +523,26 @@ async function getAllOrders(forceFresh = false) {
   }
 
   const filtered = orders.filter(o => !o.gateway || o.gateway.toLowerCase().includes('monster'));
-  ordersMemoryCache = { data: filtered, timestamp: now };
-  return filtered;
+
+  // Deduplica pedidos por orderCode para que cada venda apareça uma única vez
+  // com seu status real mais atualizado (priorizando approved)
+  const orderMap = new Map();
+  for (const o of filtered) {
+    const code = o.orderCode || o.id;
+    if (!orderMap.has(code)) {
+      orderMap.set(code, o);
+    } else {
+      const existing = orderMap.get(code);
+      if (['approved', 'paid', 'pago'].includes(o.status)) {
+        orderMap.set(code, o);
+      } else if (!['approved', 'paid', 'pago'].includes(existing.status)) {
+        orderMap.set(code, o);
+      }
+    }
+  }
+  const deduplicated = Array.from(orderMap.values());
+  ordersMemoryCache = { data: deduplicated, timestamp: now };
+  return deduplicated;
 }
 
 async function getApprovedOrders() {

@@ -31,7 +31,7 @@ export default function Sales() {
   });
   const [loading, setLoading] = useState(() => liveOrders.length === 0);
 
-  useEffect(() => {
+  const fetchSales = () => {
     fetch('/api/orders')
       .then(res => res.json())
       .then(data => {
@@ -44,9 +44,34 @@ export default function Sales() {
       })
       .catch(err => console.error('Erro ao carregar vendas:', err))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchSales();
+    const interval = setInterval(fetchSales, 8000);
+    return () => clearInterval(interval);
   }, []);
 
-  const formattedLiveOrders = liveOrders.map(o => {
+  // Deduplica pedidos por orderCode priorizando pedidos aprovados/pagos
+  const deduplicatedLiveOrders = React.useMemo(() => {
+    const orderMap = new Map();
+    for (const o of liveOrders) {
+      const code = o.orderCode || o.id;
+      if (!orderMap.has(code)) {
+        orderMap.set(code, o);
+      } else {
+        const existing = orderMap.get(code);
+        if (['approved', 'paid', 'pago'].includes(o.status)) {
+          orderMap.set(code, o);
+        } else if (!['approved', 'paid', 'pago'].includes(existing.status)) {
+          orderMap.set(code, o);
+        }
+      }
+    }
+    return Array.from(orderMap.values());
+  }, [liveOrders]);
+
+  const formattedLiveOrders = deduplicatedLiveOrders.map(o => {
     const cust = o.customer || {};
     const d = o.createdAt ? new Date(o.createdAt) : new Date();
     const formattedDate = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -64,6 +89,9 @@ export default function Sales() {
     let cleanSource = isOrganic ? 'ORG' : (o.attribution?.source ? o.attribution.source.toUpperCase().slice(0, 2) : 'FB');
     if (cleanSource.length > 3) cleanSource = cleanSource.slice(0, 2);
 
+    const isApproved = o.status === 'approved' || o.status === 'paid' || o.status === 'pago';
+    const isRefunded = o.status === 'refunded' || o.status === 'chargeback' || o.status === 'cancelado';
+
     return {
       id: o.id || o.orderCode,
       name: cust.name || 'Cliente MonsterPay',
@@ -75,9 +103,11 @@ export default function Sales() {
       source: cleanSource,
       isOrganic,
       campaign: cleanCampaign,
-      capi: o.status === 'approved' ? 'approved' : 'pending',
+      isApproved,
+      statusText: isApproved ? 'Paga' : (isRefunded ? 'Reembolsada' : 'Pendente'),
+      capi: isApproved ? 'approved' : 'pending',
       emq: o.emqScore || 9.7,
-      reason: o.status === 'approved' ? '—' : 'Pendente',
+      reason: isApproved ? 'Aprovado' : (isRefunded ? 'Reembolsado' : 'Pendente'),
       date: formattedDate,
       rawDate: d
     };
@@ -193,6 +223,7 @@ export default function Sales() {
                   <th className="py-3 px-4">CLIENTE</th>
                   <th className="py-3 px-4">PRODUTO</th>
                   <th className="py-3 px-4">VALOR</th>
+                  <th className="py-3 px-4 text-center">STATUS</th>
                   <th className="py-3 px-4">PLATAFORMA</th>
                   <th className="py-3 px-4">ORIGEM</th>
                   <th className="py-3 px-4">CAMPANHA</th>
@@ -225,6 +256,23 @@ export default function Sales() {
                   {/* Valor */}
                   <td className="py-3.5 px-4 font-mono font-bold text-white text-xs">
                     {sale.value}
+                  </td>
+
+                  {/* Status */}
+                  <td className="py-3.5 px-4 text-center">
+                    {sale.isApproved ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-mono text-[10px] font-bold">
+                        <span>● Paga</span>
+                      </span>
+                    ) : sale.statusText === 'Reembolsada' ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/30 font-mono text-[10px] font-bold">
+                        <span>✕ Reembolsada</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 font-mono text-[10px] font-bold">
+                        <span>⏳ Pendente</span>
+                      </span>
+                    )}
                   </td>
 
                   {/* Plataforma */}
@@ -265,7 +313,9 @@ export default function Sales() {
 
                   {/* Motivo */}
                   <td className="py-3.5 px-4 font-mono text-xs">
-                    {sale.reason === 'Pendente' ? (
+                    {sale.isApproved ? (
+                      <span className="text-emerald-400 font-medium text-[11px]">Aprovado</span>
+                    ) : sale.reason === 'Pendente' ? (
                       <span className="text-zinc-400 flex items-center gap-1">
                         <span>⏳</span> Pendente
                       </span>

@@ -65,7 +65,18 @@ export default function Dashboard({ onSimulateSale }) {
     return [];
   });
 
-  const [ordersList, setOrdersList] = useState([]);
+  const [ordersList, setOrdersList] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('primetrack_cached_orders');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      } catch (e) {}
+    }
+    return [];
+  });
   const [syncing, setSyncing] = useState(false);
 
   const periodToPreset = {
@@ -128,6 +139,9 @@ export default function Dashboard({ onSimulateSale }) {
         const oData = await ordRes.json();
         if (Array.isArray(oData)) {
           setOrdersList(oData);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('primetrack_cached_orders', JSON.stringify(oData));
+          }
         }
       } catch (oErr) {}
 
@@ -219,6 +233,9 @@ export default function Dashboard({ onSimulateSale }) {
       }
       if (Array.isArray(oData)) {
         setOrdersList(oData);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('primetrack_cached_orders', JSON.stringify(oData));
+        }
       }
     } catch (err) {
       console.error('Erro ao sincronizar dados com Meta:', err);
@@ -234,8 +251,26 @@ export default function Dashboard({ onSimulateSale }) {
       loadDashboardData(period, customRange);
     };
 
+    // Auto-polling das vendas em segundo plano a cada 10s para refletir vendas aprovadas imediatamente
+    const ordersPollInterval = setInterval(() => {
+      fetch('/api/orders')
+        .then(res => res.json())
+        .then(oData => {
+          if (Array.isArray(oData) && oData.length > 0) {
+            setOrdersList(oData);
+            try {
+              localStorage.setItem('primetrack_cached_orders', JSON.stringify(oData));
+            } catch (e) {}
+          }
+        })
+        .catch(() => {});
+    }, 10000);
+
     window.addEventListener('primetrack_profile_sync', handleProfileSync);
-    return () => window.removeEventListener('primetrack_profile_sync', handleProfileSync);
+    return () => {
+      clearInterval(ordersPollInterval);
+      window.removeEventListener('primetrack_profile_sync', handleProfileSync);
+    };
   }, []);
 
   useEffect(() => {
@@ -315,13 +350,35 @@ export default function Dashboard({ onSimulateSale }) {
   const realClicks = filteredCampaigns.reduce((acc, c) => acc + Number(c.clicks || 0), 0);
   const realVisits = filteredCampaigns.reduce((acc, c) => acc + Number(c.visits || c.clicks || 0), 0);
 
+  // Deduplica vendas por orderCode para que cada pedido apareça apenas 1 vez (priorizando approved)
+  const deduplicatedOrders = React.useMemo(() => {
+    const orderMap = new Map();
+    for (const o of ordersList) {
+      const code = o.orderCode || o.id;
+      if (!orderMap.has(code)) {
+        orderMap.set(code, o);
+      } else {
+        const existing = orderMap.get(code);
+        if (['approved', 'paid', 'pago'].includes(o.status)) {
+          orderMap.set(code, o);
+        } else if (!['approved', 'paid', 'pago'].includes(existing.status)) {
+          orderMap.set(code, o);
+        }
+      }
+    }
+    return Array.from(orderMap.values());
+  }, [ordersList]);
+
   // Filtra as vendas reais baseado no período selecionado
-  const filteredOrders = ordersList.filter(o => {
+  const filteredOrders = deduplicatedOrders.filter(o => {
     if (!o.createdAt) return true;
     const d = new Date(o.createdAt);
     const now = new Date();
     const diffHours = (now - d) / (1000 * 60 * 60);
-    if (period === 'Hoje') return diffHours <= 24;
+    if (period === 'Hoje') {
+      const isSameDay = d.toDateString() === now.toDateString();
+      return isSameDay || (diffHours >= -1 && diffHours <= 24);
+    }
     if (period === 'Ontem') return diffHours > 24 && diffHours <= 48;
     if (period === '7 dias') return diffHours <= 24 * 7;
     if (period === '15 dias') return diffHours <= 24 * 15;
