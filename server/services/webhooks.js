@@ -20,6 +20,8 @@ export function parseWebhook(gateway, body) {
       return parsePerfectPay(body);
     case 'braip':
       return parseBraip(body);
+    case 'monsterpay':
+      return parseMonsterPay(body);
     default:
       return parseGeneric(body);
   }
@@ -254,6 +256,56 @@ function parseBraip(body) {
       fbp: body.fbp,
       fbc: body.fbc,
       sessionId: body.sessionId
+    },
+    raw: body
+  };
+}
+
+function parseMonsterPay(body) {
+  const customer = body.customer || body.buyer || body.client || body.data?.customer || {};
+  const tracking = body.tracking || body.tracking_parameters || body.metadata || body.utm || body.data?.tracking || {};
+  const product = body.product || (Array.isArray(body.products) && body.products[0]) || body.data?.product || {};
+  const rawStatus = (body.status || body.event || body.order_status || body.data?.status || 'approved').toLowerCase();
+  
+  let status = 'approved';
+  if (['pending', 'waiting_payment', 'aguardando_pagamento', 'processando'].some(s => rawStatus.includes(s))) {
+    status = 'waiting_payment';
+  } else if (['refunded', 'chargeback', 'reembolsado', 'estornado', 'cancelado', 'canceled'].some(s => rawStatus.includes(s))) {
+    status = 'refunded';
+  }
+
+  const customerName = customer.name || customer.full_name || 
+    (customer.first_name ? `${customer.first_name} ${customer.last_name || ''}`.trim() : '') || 
+    body.name || 'Cliente MonsterPay';
+
+  const rawAmount = body.amount || body.total || body.price || body.value || body.data?.amount || 97.00;
+  const numAmount = Number(rawAmount);
+  const finalAmount = numAmount > 1000 && !String(rawAmount).includes('.') ? numAmount / 100 : numAmount;
+
+  return {
+    gateway: 'MonsterPay',
+    orderCode: body.order_id || body.transaction_id || body.id || body.code || body.data?.id || `MP-${Date.now().toString().slice(-7)}`,
+    status,
+    amount: finalAmount || 97.00,
+    paymentMethod: body.payment_method || body.paymentMethod || body.data?.payment_method || 'pix',
+    productName: product.name || body.product_name || body.productName || body.data?.product_name || 'Produto MonsterPay',
+    customer: {
+      name: customerName,
+      email: customer.email || body.email || body.data?.email || '',
+      phone: customer.phone || customer.mobile || customer.cellphone || body.phone || '',
+      city: customer.city || (customer.address && customer.address.city) || '',
+      state: customer.state || (customer.address && customer.address.state) || ''
+    },
+    tracking: {
+      utm_source: tracking.utm_source || body.utm_source || tracking.src || body.src,
+      utm_medium: tracking.utm_medium || body.utm_medium,
+      utm_campaign: tracking.utm_campaign || body.utm_campaign,
+      utm_content: tracking.utm_content || body.utm_content,
+      utm_term: tracking.utm_term || body.utm_term,
+      sck: tracking.sck || body.sck,
+      fbp: tracking.fbp || body.fbp,
+      fbc: tracking.fbc || body.fbc,
+      sessionId: tracking.sessionId || body.sessionId
     },
     raw: body
   };

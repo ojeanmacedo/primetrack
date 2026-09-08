@@ -131,11 +131,12 @@ app.post('/api/track/event', async (req, res) => {
  */
 app.post(['/api/webhook', '/api/webhooks/:gateway'], async (req, res) => {
   try {
-    const gateway = req.params.gateway || 'generic';
+    const gateway = req.params.gateway || req.query.gateway || req.query.platform || (req.body && req.body.gateway) || 'generic';
+    const token = req.query.token || req.headers['x-api-token'] || (req.headers.authorization ? req.headers.authorization.replace('Bearer ', '') : null);
     const body = req.body || {};
     const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
-    console.log(`[Webhook Recebido] Gateway: ${gateway}, Código:`, body.order_id || body.transaction || body.id);
+    console.log(`[Webhook Recebido] Gateway: ${gateway}, Token: ${token || 'não fornecido'}, Código:`, body.order_id || body.transaction || body.id || body.code);
 
     // 1. Normaliza payload do gateway
     const parsed = parseWebhook(gateway, body);

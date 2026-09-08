@@ -23,7 +23,8 @@ import {
   Lock, 
   X, 
   ShieldAlert,
-  AlertCircle
+  AlertCircle,
+  Search
 } from 'lucide-react';
 
 const INTEGRATION_TABS = [
@@ -106,8 +107,8 @@ export default function Integrations() {
     return [
       {
         id: 'tok_default',
-        name: 'mosterpay',
-        platform: 'lowify',
+        name: 'monsterpay',
+        platform: 'monsterpay',
         token: 'pt_0498ccaba8db58a695a9becacca8857591b1f24f8fbbb4f25',
         status: 'Ativo',
         lastUsed: '07/09 22:02',
@@ -115,6 +116,16 @@ export default function Integrations() {
       }
     ];
   });
+
+  // Modal Conectar Plataforma Flow States (Monsterpay)
+  const [showConnectPlatformModal, setShowConnectPlatformModal] = useState(false);
+  const [connectPlatformStep, setConnectPlatformStep] = useState(1); // 1 = select, 2 = alias, 3 = result
+  const [searchPlatform, setSearchPlatform] = useState('');
+  const [selectedPlatformName, setSelectedPlatformName] = useState('Monsterpay');
+  const [tokenAliasInput, setTokenAliasInput] = useState('monsterpay');
+  const [generatedPlatformToken, setGeneratedPlatformToken] = useState('');
+  const [copiedToken, setCopiedToken] = useState(false);
+  const [copiedWebhookUrl, setCopiedWebhookUrl] = useState(false);
 
   const [showNewTokenModal, setShowNewTokenModal] = useState(false);
   const [tokenInputName, setTokenInputName] = useState('');
@@ -280,6 +291,52 @@ export default function Integrations() {
     setRecentCreatedToken(fullToken);
     setShowNewTokenModal(false);
     setTokenInputName('');
+  };
+
+  const handleGenerateConnectToken = (e) => {
+    if (e) e.preventDefault();
+    const rawAlias = tokenAliasInput.trim() || selectedPlatformName.toLowerCase();
+    
+    // Gera token de 48 caracteres hexadecimais no padrão pt_
+    const chars = '0123456789abcdef';
+    let randomHex = '';
+    for (let i = 0; i < 48; i++) {
+      randomHex += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const fullToken = `pt_${randomHex}`;
+
+    const today = new Date();
+    const formattedDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+
+    const newTokenItem = {
+      id: `tok_${Date.now()}`,
+      name: rawAlias,
+      platform: selectedPlatformName.toLowerCase(),
+      token: fullToken,
+      status: 'Ativo',
+      lastUsed: '—',
+      createdAt: formattedDate
+    };
+
+    const updated = [newTokenItem, ...apiTokens];
+    setApiTokens(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('primetrack_webhook_tokens', JSON.stringify(updated));
+    }
+
+    setGeneratedPlatformToken(fullToken);
+    setConnectPlatformStep(3);
+  };
+
+  const copyPlatformField = (text, type) => {
+    navigator.clipboard?.writeText(text);
+    if (type === 'token') {
+      setCopiedToken(true);
+      setTimeout(() => setCopiedToken(false), 2000);
+    } else if (type === 'url') {
+      setCopiedWebhookUrl(true);
+      setTimeout(() => setCopiedWebhookUrl(false), 2000);
+    }
   };
 
   const handleDeleteToken = (tokenId) => {
@@ -1063,7 +1120,14 @@ export default function Integrations() {
 
               <div className="flex items-center gap-2">
                 <button 
-                  onClick={() => setShowNewTokenModal(true)}
+                  onClick={() => {
+                    setShowConnectPlatformModal(true);
+                    setConnectPlatformStep(1);
+                    setSearchPlatform('');
+                    setSelectedPlatformName('Monsterpay');
+                    setTokenAliasInput('monsterpay');
+                    setGeneratedPlatformToken('');
+                  }}
                   className="px-3 py-1.5 rounded-lg bg-[#070D1A] hover:bg-white/5 border border-white/10 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -1667,6 +1731,218 @@ export default function Integrations() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL CONECTAR PLATAFORMA (Screenshots 1, 2 e 3)                          */}
+      {/* ========================================================================= */}
+      {showConnectPlatformModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => setShowConnectPlatformModal(false)}
+        >
+          <div 
+            className="bg-[#0C172B] border border-[#1E3254] rounded-2xl max-w-xl w-full p-6 sm:p-7 shadow-2xl relative space-y-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header com Título e Botão Fechar */}
+            <div className="flex items-center justify-between pb-3 border-b border-[#1E3254]/60">
+              <h3 className="text-base sm:text-lg font-bold text-white tracking-tight font-sans">
+                Conectar Plataforma
+              </h3>
+              <button 
+                onClick={() => setShowConnectPlatformModal(false)} 
+                className="text-zinc-400 hover:text-white transition-colors cursor-pointer p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* PASSO 1: Seleção de Plataforma (Screenshot 1) - Deixa somente Monsterpay */}
+            {connectPlatformStep === 1 && (
+              <div className="space-y-4 animate-in fade-in duration-150">
+                <div className="relative">
+                  <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input 
+                    type="text"
+                    placeholder="Buscar plataforma..."
+                    value={searchPlatform}
+                    onChange={(e) => setSearchPlatform(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#060D1A] border border-[#1E3254] text-white text-xs placeholder:text-zinc-500 focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[320px] overflow-y-auto pr-1">
+                  {'monsterpay'.includes(searchPlatform.toLowerCase().trim()) ? (
+                    <div 
+                      onClick={() => {
+                        setSelectedPlatformName('Monsterpay');
+                        setTokenAliasInput('monsterpay');
+                        setConnectPlatformStep(2);
+                      }}
+                      className="bg-[#070D1A] hover:bg-[#0E1B33] border border-[#1E3254] hover:border-[#1A6DFF] rounded-xl p-4 transition-all cursor-pointer group flex flex-col justify-between h-24 shadow-sm"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-white text-sm">Monsterpay</span>
+                        <button 
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open('https://docs.primetrack.top', '_blank');
+                          }}
+                          className="px-2 py-0.5 rounded bg-[#10203D] hover:bg-[#1A3360] text-[#5C9BFF] text-[10px] font-semibold flex items-center gap-1 border border-[#1E3254] cursor-pointer"
+                        >
+                          <Play className="w-2.5 h-2.5 fill-current" />
+                          <span>Tutorial</span>
+                        </button>
+                      </div>
+                      <div className="text-xs text-[#5C9BFF] group-hover:text-white font-semibold flex items-center gap-1">
+                        <span>Conectar</span>
+                        <span>→</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="col-span-full py-8 text-center text-xs text-zinc-500 font-sans">
+                      Nenhuma plataforma encontrada com "{searchPlatform}".
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* PASSO 2: Apelido do Token (Screenshot 2) */}
+            {connectPlatformStep === 2 && (
+              <form onSubmit={handleGenerateConnectToken} className="space-y-5 animate-in fade-in duration-150">
+                <div className="text-xs text-zinc-400 font-sans">
+                  Plataforma: <strong className="text-[#5C9BFF] font-bold">{selectedPlatformName.toLowerCase()}</strong>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-2">
+                    APELIDO DO TOKEN
+                  </label>
+                  <input 
+                    type="text"
+                    autoFocus
+                    value={tokenAliasInput}
+                    onChange={(e) => setTokenAliasInput(e.target.value)}
+                    placeholder="monsterpay"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[#060D1A] border border-[#1E3254] text-white text-xs focus:outline-none focus:border-[#1A6DFF] transition-colors font-sans"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setConnectPlatformStep(1)}
+                    className="px-4 py-2 rounded-xl bg-[#070D1A] hover:bg-white/5 border border-white/10 text-xs font-semibold text-zinc-300 hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>←</span>
+                    <span>Voltar</span>
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+                  >
+                    Gerar Token
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* PASSO 3: Token Gerado e Configuração Webhook Monsterpay (Screenshot 3 + Instruções) */}
+            {connectPlatformStep === 3 && (
+              <div className="space-y-4 animate-in fade-in duration-150">
+                {/* Banner de Sucesso verde */}
+                <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2 font-medium">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>
+                    Pronto! Copie abaixo e cole no painel da <strong className="text-[#5C9BFF] font-bold">{selectedPlatformName.toLowerCase()}</strong>.
+                  </span>
+                </div>
+
+                {/* Campo do TOKEN */}
+                <div>
+                  <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
+                    TOKEN
+                  </label>
+                  <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#060D1A] border border-[#1E3254]">
+                    <span className="font-mono text-xs text-zinc-200 select-all truncate pl-1">
+                      {generatedPlatformToken}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => copyPlatformField(generatedPlatformToken, 'token')}
+                      className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-xs text-zinc-200 font-medium transition-colors shrink-0 cursor-pointer flex items-center gap-1"
+                    >
+                      {copiedToken ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="text-emerald-400">Copiado</span>
+                        </>
+                      ) : (
+                        <span>Copiar</span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Campo da URL DO WEBHOOK para Monsterpay */}
+                <div>
+                  <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
+                    URL DO WEBHOOK (MONSTERPAY)
+                  </label>
+                  <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#060D1A] border border-[#1E3254]">
+                    <span className="font-mono text-xs text-zinc-200 select-all truncate pl-1">
+                      {`https://app.primetrack.top/api/webhooks/monsterpay?token=${generatedPlatformToken}`}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => copyPlatformField(`https://app.primetrack.top/api/webhooks/monsterpay?token=${generatedPlatformToken}`, 'url')}
+                      className="px-3 py-1.5 rounded-lg bg-[#1A6DFF] hover:bg-blue-600 text-xs text-white font-medium transition-colors shrink-0 cursor-pointer flex items-center gap-1"
+                    >
+                      {copiedWebhookUrl ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-white" />
+                          <span>Copiado</span>
+                        </>
+                      ) : (
+                        <span>Copiar URL</span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Box de Instruções de Instalação na Monsterpay */}
+                <div className="bg-[#070D1A] border border-[#13233E] rounded-xl p-3.5 text-xs text-zinc-400 leading-relaxed space-y-1.5">
+                  <div className="font-bold text-white text-[11px] flex items-center gap-1.5">
+                    <span>⚡ Como receber as vendas da Monsterpay:</span>
+                  </div>
+                  <ol className="list-decimal pl-4 space-y-1 text-[11px] text-zinc-300">
+                    <li>No painel da <strong>Monsterpay</strong>, acesse o menu de <strong>Webhooks / Integrações</strong>.</li>
+                    <li>Clique em <strong>Novo Webhook</strong> e cole a <strong>URL do Webhook</strong> acima.</li>
+                    <li>Marque os eventos de <strong>Compra Aprovada</strong>, <strong>Gerada</strong> e <strong>Reembolso</strong>.</li>
+                    <li>Cole o seu <strong>Token</strong> no campo de Token / Secret e salve.</li>
+                  </ol>
+                  <p className="text-[10px] text-zinc-500 pt-1">
+                    Pronto! Todas as vendas realizadas na Monsterpay serão computadas instantaneamente na PrimeTrack com rastreamento e Meta CAPI.
+                  </p>
+                </div>
+
+                {/* Botão Concluir */}
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowConnectPlatformModal(false)}
+                    className="px-6 py-2 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-colors cursor-pointer"
+                  >
+                    Concluir
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
