@@ -110,7 +110,7 @@ export default function Dashboard() {
   const [layoutConfig, setLayoutConfig] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
-        const saved = localStorage.getItem('primetrack_dashboard_layout_config');
+        const saved = localStorage.getItem('primetrack_dashboard_layout_config_v3');
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed.analysisCards) && parsed.analysisCards.includes('funnel') && parsed.analysisCards[0] === 'products' && parsed.analysisCards[1] === 'sources' && parsed.analysisCards[2] === 'approval') {
@@ -128,7 +128,7 @@ export default function Dashboard() {
   const saveLayoutConfig = (newConfig) => {
     setLayoutConfig(newConfig);
     try {
-      localStorage.setItem('primetrack_dashboard_layout_config', JSON.stringify(newConfig));
+      localStorage.setItem('primetrack_dashboard_layout_config_v3', JSON.stringify(newConfig));
     } catch (e) {}
   };
 
@@ -686,31 +686,23 @@ export default function Dashboard() {
     return filteredCampaigns.reduce((acc, c) => acc + Number(c.clicks || 0), 0);
   }, [filteredCampaigns]);
 
-  const rawInic = filteredOrders.length;
-  const rawApr = realApprovedSales;
-  const rawIcs = Math.max(pixelStats.initiateCheckouts || 0, rawInic);
-  const rawVis = Math.max(pixelStats.pageViews || 0, rawIcs);
-
-  const funnelClicks = totalMetaClicks > 0 
-    ? totalMetaClicks 
-    : (rawVis > 0 ? rawVis : (rawInic > 0 ? rawInic : 0));
-
-  const funnelVis = rawVis;
-  const funnelIcs = rawIcs;
-  const funnelInic = rawInic;
-  const funnelApr = rawApr;
+  const funnelApr = realApprovedSales;
+  const funnelInic = Math.max(filteredOrders.length, funnelApr);
+  const funnelIcs = Math.max(pixelStats.initiateCheckouts || 0, funnelInic);
+  const funnelVis = Math.max(pixelStats.pageViews || 0, funnelIcs);
+  const funnelClicks = Math.max(totalMetaClicks, funnelVis);
 
   const pctClicks = funnelClicks > 0 ? 100 : 0;
   const pctVis = funnelClicks > 0 ? Math.min(100, (funnelVis / funnelClicks) * 100) : 0;
   const dropVis = funnelClicks > 0 && funnelVis > 0 ? ((funnelVis - funnelClicks) / funnelClicks) * 100 : null;
 
-  const pctIcs = funnelClicks > 0 ? Math.min(100, (funnelIcs / funnelClicks) * 100) : 0;
+  const pctIcs = funnelClicks > 0 ? Math.min(pctVis, (funnelIcs / funnelClicks) * 100) : 0;
   const dropIcs = funnelVis > 0 && funnelIcs > 0 ? ((funnelIcs - funnelVis) / funnelVis) * 100 : null;
 
-  const pctInic = funnelClicks > 0 ? Math.min(100, (funnelInic / funnelClicks) * 100) : 0;
+  const pctInic = funnelClicks > 0 ? Math.min(pctIcs, (funnelInic / funnelClicks) * 100) : 0;
   const dropInic = funnelIcs > 0 && funnelInic > 0 ? ((funnelInic - funnelIcs) / funnelIcs) * 100 : null;
 
-  const pctApr = funnelClicks > 0 ? Math.min(100, (funnelApr / funnelClicks) * 100) : 0;
+  const pctApr = funnelClicks > 0 ? Math.min(pctInic, (funnelApr / funnelClicks) * 100) : 0;
 
   const realPendingSales = pendingOrders.length;
 
@@ -1053,48 +1045,26 @@ export default function Dashboard() {
     }
 
     if (cardKey === 'funnel') {
-      const centerY = 65;
-      const halfH = (pct) => {
-        if (!pct || pct <= 0) return 2.5;
-        const norm = Math.min(100, Math.max(0, pct));
-        if (norm >= 99.5) return 46;
-        return Math.max(2.5, Math.min(46, 3 + Math.pow(norm / 100, 0.65) * 43));
-      };
-
-      const h0 = halfH(pctClicks);
-      const h1 = halfH(pctVis);
-      const h2 = halfH(pctIcs);
-      const h3 = halfH(pctInic);
-      const h4 = halfH(pctApr);
-
-      const t0 = centerY - h0, b0 = centerY + h0;
-      const t1 = centerY - h1, b1 = centerY + h1;
-      const t2 = centerY - h2, b2 = centerY + h2;
-      const t3 = centerY - h3, b3 = centerY + h3;
-      const t4 = centerY - h4, b4 = centerY + h4;
-
+      const centerY = 68;
+      // Curva harmônica estritamente decrescente do funil (Estilo UTMify)
       const pathD = `
-        M 0 ${t0.toFixed(1)}
-        L 70 ${t0.toFixed(1)}
-        C 150 ${t0.toFixed(1)}, 250 ${t1.toFixed(1)}, 300 ${t1.toFixed(1)}
-        L 310 ${t1.toFixed(1)}
-        C 370 ${t1.toFixed(1)}, 440 ${t2.toFixed(1)}, 500 ${t2.toFixed(1)}
-        L 510 ${t2.toFixed(1)}
-        C 570 ${t2.toFixed(1)}, 640 ${t3.toFixed(1)}, 700 ${t3.toFixed(1)}
-        L 710 ${t3.toFixed(1)}
-        C 770 ${t3.toFixed(1)}, 840 ${t4.toFixed(1)}, 900 ${t4.toFixed(1)}
-        L 920 ${t4.toFixed(1)}
-        C 950 ${t4.toFixed(1)}, 970 ${centerY}, 1000 ${centerY}
-        C 970 ${centerY}, 950 ${b4.toFixed(1)}, 920 ${b4.toFixed(1)}
-        L 900 ${b4.toFixed(1)}
-        C 840 ${b4.toFixed(1)}, 770 ${b3.toFixed(1)}, 710 ${b3.toFixed(1)}
-        L 700 ${b3.toFixed(1)}
-        C 640 ${b3.toFixed(1)}, 570 ${b2.toFixed(1)}, 510 ${b2.toFixed(1)}
-        L 500 ${b2.toFixed(1)}
-        C 440 ${b2.toFixed(1)}, 370 ${b1.toFixed(1)}, 310 ${b1.toFixed(1)}
-        L 300 ${b1.toFixed(1)}
-        C 250 ${b1.toFixed(1)}, 150 ${b0.toFixed(1)}, 70 ${b0.toFixed(1)}
-        L 0 ${b0.toFixed(1)}
+        M 16 18
+        L 120 18
+        C 180 18, 220 33, 280 33
+        L 320 33
+        C 380 33, 420 48, 480 48
+        L 520 48
+        C 580 48, 620 60, 680 60
+        L 710 60
+        C 745 60, 770 68, 785 68
+        C 770 68, 745 76, 710 76
+        L 680 76
+        C 620 76, 580 88, 520 88
+        L 480 88
+        C 420 88, 380 103, 320 103
+        L 280 103
+        C 220 103, 180 118, 120 118
+        L 16 118
         Z
       `;
 
@@ -1128,51 +1098,51 @@ export default function Dashboard() {
 
             {/* Onda Horizontal com Gradiente (SVG) */}
             <div className="relative w-full my-1 sm:my-1.5">
-              <svg className="w-full h-24 sm:h-26 overflow-visible" viewBox="0 0 1000 130">
+              <svg className="w-full h-24 sm:h-28 overflow-visible" viewBox="0 0 1000 136">
                 <defs>
                   <linearGradient id="streamFunnelGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#0066FF" />
+                    <stop offset="0%" stopColor="#0062FF" />
                     <stop offset="25%" stopColor="#2563EB" />
-                    <stop offset="52%" stopColor="#5B21B6" />
-                    <stop offset="75%" stopColor="#86198F" />
-                    <stop offset="92%" stopColor="#BE185D" />
-                    <stop offset="100%" stopColor="#E11D48" />
+                    <stop offset="50%" stopColor="#6366F1" />
+                    <stop offset="70%" stopColor="#8B5CF6" />
+                    <stop offset="85%" stopColor="#C026D3" />
+                    <stop offset="100%" stopColor="#F43F5E" />
                   </linearGradient>
                 </defs>
 
-                {/* Divisórias verticais sutis entre as 5 etapas */}
-                <line x1="200" y1="5" x2="200" y2="125" stroke="#223048" strokeWidth="1.5" />
-                <line x1="400" y1="5" x2="400" y2="125" stroke="#223048" strokeWidth="1.5" />
-                <line x1="600" y1="5" x2="600" y2="125" stroke="#223048" strokeWidth="1.5" />
-                <line x1="800" y1="5" x2="800" y2="125" stroke="#223048" strokeWidth="1.5" />
-
-                {/* Fluxo Orgânico do Funil com Curvas Suaves */}
+                {/* Fluxo Orgânico do Funil com Curvas Harmônicas Decrescentes */}
                 <path d={pathD} fill="url(#streamFunnelGrad)" />
 
-                {/* Linha magenta horizontal de saída no final */}
-                <line x1="920" y1={centerY} x2="1000" y2={centerY} stroke="#E11D48" strokeWidth="2.5" strokeLinecap="round" />
+                {/* Divisórias verticais sutis entre as 5 etapas cortando sobre a onda */}
+                <line x1="200" y1="4" x2="200" y2="132" stroke="#253248" strokeWidth="1.2" />
+                <line x1="400" y1="4" x2="400" y2="132" stroke="#253248" strokeWidth="1.2" />
+                <line x1="600" y1="4" x2="600" y2="132" stroke="#253248" strokeWidth="1.2" />
+                <line x1="800" y1="4" x2="800" y2="132" stroke="#253248" strokeWidth="1.2" />
 
-                {/* Porcentagens no Centro da Onda (todas alinhadas na mesma linha horizontal y=70) */}
-                <text x="100" y="70" textAnchor="middle" dominantBaseline="middle" fill="#FFFFFF" fontWeight="800" fontSize="22" fontFamily="sans-serif">
+                {/* Linha magenta horizontal de saída no final da onda */}
+                <line x1="785" y1="68" x2="984" y2="68" stroke="#F43F5E" strokeWidth="2.5" strokeLinecap="round" />
+
+                {/* Porcentagens no Centro da Onda (todas alinhadas na mesma linha horizontal y=68) */}
+                <text x="100" y="68" textAnchor="middle" dominantBaseline="middle" fill="#FFFFFF" fontWeight="800" fontSize="19" fontFamily="sans-serif">
                   {funnelClicks > 0 ? '100%' : '0%'}
                 </text>
-                <text x="300" y="70" textAnchor="middle" dominantBaseline="middle" fill="#FFFFFF" fontWeight="800" fontSize="21" fontFamily="sans-serif">
+                <text x="300" y="68" textAnchor="middle" dominantBaseline="middle" fill="#FFFFFF" fontWeight="800" fontSize="19" fontFamily="sans-serif">
                   {pctVis.toFixed(1)}%
                 </text>
-                <text x="500" y="70" textAnchor="middle" dominantBaseline="middle" fill="#FFFFFF" fontWeight="800" fontSize="20" fontFamily="sans-serif">
+                <text x="500" y="68" textAnchor="middle" dominantBaseline="middle" fill="#FFFFFF" fontWeight="800" fontSize="19" fontFamily="sans-serif">
                   {pctIcs.toFixed(1)}%
                 </text>
-                <text x="700" y="70" textAnchor="middle" dominantBaseline="middle" fill="#FFFFFF" fontWeight="800" fontSize="20" fontFamily="sans-serif">
+                <text x="700" y="68" textAnchor="middle" dominantBaseline="middle" fill="#FFFFFF" fontWeight="800" fontSize="19" fontFamily="sans-serif" paintOrder="stroke" stroke="#141C2E" strokeWidth="3">
                   {pctInic.toFixed(1)}%
                 </text>
-                <text x="900" y="70" textAnchor="middle" dominantBaseline="middle" fill="#FFFFFF" fontWeight="800" fontSize="20" fontFamily="sans-serif">
+                <text x="900" y="68" textAnchor="middle" dominantBaseline="middle" fill="#FFFFFF" fontWeight="800" fontSize="19" fontFamily="sans-serif" paintOrder="stroke" stroke="#141C2E" strokeWidth="4">
                   {pctApr.toFixed(1)}%
                 </text>
               </svg>
             </div>
 
             {/* Quantidades Numéricas Inferiores */}
-            <div className="flex items-center justify-between text-center text-xs sm:text-sm font-mono font-bold text-white tracking-tight">
+            <div className="flex items-center justify-between text-center text-xs sm:text-sm font-sans font-bold text-white tracking-tight">
               <span className="w-1/5">{funnelClicks.toLocaleString('pt-BR')}</span>
               <span className="w-1/5">{funnelVis.toLocaleString('pt-BR')}</span>
               <span className="w-1/5">{funnelIcs.toLocaleString('pt-BR')}</span>
