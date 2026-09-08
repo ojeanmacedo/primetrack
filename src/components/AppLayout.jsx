@@ -40,6 +40,30 @@ export default function AppLayout() {
     ? user.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
     : (user?.email ? user.email.slice(0, 2).toUpperCase() : 'JM');
 
+  const [isEditingLayout, setIsEditingLayout] = useState(false);
+
+  useEffect(() => {
+    const handleEditStatus = (e) => {
+      if (typeof e.detail?.isEditing === 'boolean') {
+        setIsEditingLayout(e.detail.isEditing);
+      }
+    };
+    window.addEventListener('primetrack_edit_layout_status', handleEditStatus);
+    return () => window.removeEventListener('primetrack_edit_layout_status', handleEditStatus);
+  }, []);
+
+  const handleToggleEdit = () => {
+    const next = !isEditingLayout;
+    setIsEditingLayout(next);
+    window.dispatchEvent(new CustomEvent('primetrack_toggle_edit_layout', { detail: { isEditing: next } }));
+  };
+
+  const handleToggleShowValues = () => {
+    const next = !showValues;
+    setShowValues(next);
+    window.dispatchEvent(new CustomEvent('primetrack_toggle_show_values', { detail: { showValues: next } }));
+  };
+
   return (
     <div className="h-screen w-screen overflow-hidden bg-[#0D1424] text-[#EDF2FF] flex font-sans">
       {/* Left Sidebar */}
@@ -55,24 +79,31 @@ export default function AppLayout() {
             <h1 className="text-sm sm:text-base font-bold text-white tracking-tight">
               Dashboard – Principal
             </h1>
-            <div className="flex items-center gap-1 text-zinc-400">
+            <div className="flex items-center gap-1.5 text-zinc-400">
               <button 
-                onClick={() => setShowValues(!showValues)}
-                className="p-1 hover:text-white transition-colors cursor-pointer" 
+                onClick={handleToggleShowValues}
+                className={`p-1.5 rounded-lg hover:text-white transition-colors cursor-pointer ${
+                  !showValues ? 'text-zinc-500 bg-white/5' : ''
+                }`} 
                 title={showValues ? "Ocultar valores" : "Mostrar valores"}
               >
                 <Eye className="w-3.5 h-3.5" />
               </button>
               <button 
                 onClick={() => window.dispatchEvent(new Event('primetrack_profile_sync'))}
-                className="p-1 hover:text-white transition-colors cursor-pointer" 
+                className="p-1.5 rounded-lg hover:text-white transition-colors cursor-pointer" 
                 title="Sincronizar dados"
               >
                 <RotateCw className="w-3.5 h-3.5" />
               </button>
               <button 
-                className="p-1 hover:text-white transition-colors cursor-pointer" 
-                title="Editar layout"
+                onClick={handleToggleEdit}
+                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                  isEditingLayout 
+                    ? 'bg-[#0066FF] text-white shadow-md shadow-blue-500/30' 
+                    : 'hover:text-white hover:bg-white/5 transition-colors'
+                }`} 
+                title={isEditingLayout ? "Concluir edição do layout" : "Editar layout da dashboard"}
               >
                 <Edit3 className="w-3.5 h-3.5" />
               </button>

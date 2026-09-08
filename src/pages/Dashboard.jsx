@@ -3,10 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { getCurrentUser, getTrialStatus } from '../utils/auth';
 import { 
   ChevronDown, 
+  ChevronLeft,
+  ChevronRight,
   HelpCircle, 
   RotateCw, 
+  RotateCcw,
   PieChart,
-  ArrowRight
+  ArrowRight,
+  Edit3,
+  Check
 } from 'lucide-react';
 import DateRangePicker from '../components/DateRangePicker';
 
@@ -85,6 +90,74 @@ export default function Dashboard() {
   const [selectedSource, setSelectedSource] = useState('Qualquer');
   const [selectedPlatform, setSelectedPlatform] = useState('Qualquer');
   const [selectedProduct, setSelectedProduct] = useState('Qualquer');
+
+  // Modo de Personalização de Layout (Acionado pela canetinha)
+  const [isEditingLayout, setIsEditingLayout] = useState(false);
+  const [showValues, setShowValues] = useState(true);
+
+  const DEFAULT_LAYOUT = {
+    // 6 KPIs em ordem harmônica
+    kpis: ['faturamento', 'gastos', 'lucro', 'pendentes', 'roi', 'margem'],
+    // 4 Cards Analíticos (posições 0, 1, 2, 3)
+    analysisCards: ['products', 'payments', 'sources', 'approval'],
+    // Posição do funil: 'middle' (acima de sources/approval e abaixo de products/payments), 'top', 'bottom'
+    funnelPosition: 'middle'
+  };
+
+  const [layoutConfig, setLayoutConfig] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('primetrack_dashboard_layout_config');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return {
+            kpis: Array.isArray(parsed.kpis) && parsed.kpis.length === 6 ? parsed.kpis : DEFAULT_LAYOUT.kpis,
+            analysisCards: Array.isArray(parsed.analysisCards) && parsed.analysisCards.length === 4 ? parsed.analysisCards : DEFAULT_LAYOUT.analysisCards,
+            funnelPosition: ['top', 'middle', 'bottom'].includes(parsed.funnelPosition) ? parsed.funnelPosition : 'middle'
+          };
+        }
+      } catch (e) {}
+    }
+    return DEFAULT_LAYOUT;
+  });
+
+  const saveLayoutConfig = (newConfig) => {
+    setLayoutConfig(newConfig);
+    try {
+      localStorage.setItem('primetrack_dashboard_layout_config', JSON.stringify(newConfig));
+    } catch (e) {}
+  };
+
+  const resetLayoutConfig = () => {
+    saveLayoutConfig(DEFAULT_LAYOUT);
+  };
+
+  const moveKpi = (index, dir) => {
+    const newIndex = index + dir;
+    if (newIndex < 0 || newIndex >= layoutConfig.kpis.length) return;
+    const newKpis = [...layoutConfig.kpis];
+    const [removed] = newKpis.splice(index, 1);
+    newKpis.splice(newIndex, 0, removed);
+    saveLayoutConfig({ ...layoutConfig, kpis: newKpis });
+  };
+
+  const swapAnalysisCards = (idx1, idx2) => {
+    if (idx1 < 0 || idx1 >= 4 || idx2 < 0 || idx2 >= 4 || idx1 === idx2) return;
+    const newCards = [...layoutConfig.analysisCards];
+    const temp = newCards[idx1];
+    newCards[idx1] = newCards[idx2];
+    newCards[idx2] = temp;
+    saveLayoutConfig({ ...layoutConfig, analysisCards: newCards });
+  };
+
+  const updateFunnelPosition = (pos) => {
+    saveLayoutConfig({ ...layoutConfig, funnelPosition: pos });
+  };
+
+  const handleToggleEdit = (status) => {
+    setIsEditingLayout(status);
+    window.dispatchEvent(new CustomEvent('primetrack_edit_layout_status', { detail: { isEditing: status } }));
+  };
 
   const [adAccountsList, setAdAccountsList] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -318,6 +391,32 @@ export default function Dashboard() {
     }
   }, [period]);
 
+  useEffect(() => {
+    const handleEditEvent = (e) => {
+      setIsEditingLayout(prev => {
+        const next = typeof e.detail?.isEditing === 'boolean' ? e.detail.isEditing : !prev;
+        window.dispatchEvent(new CustomEvent('primetrack_edit_layout_status', { detail: { isEditing: next } }));
+        return next;
+      });
+    };
+
+    const handleShowValues = (e) => {
+      if (typeof e.detail?.showValues === 'boolean') {
+        setShowValues(e.detail.showValues);
+      } else {
+        setShowValues(prev => !prev);
+      }
+    };
+
+    window.addEventListener('primetrack_toggle_edit_layout', handleEditEvent);
+    window.addEventListener('primetrack_toggle_show_values', handleShowValues);
+
+    return () => {
+      window.removeEventListener('primetrack_toggle_edit_layout', handleEditEvent);
+      window.removeEventListener('primetrack_toggle_show_values', handleShowValues);
+    };
+  }, []);
+
   // Mantém todas as vendas individuais válidas pelo ID do pedido
   const deduplicatedOrders = useMemo(() => {
     const orderMap = new Map();
@@ -488,6 +587,390 @@ export default function Dashboard() {
 
   const pctApr = funnelClicks > 0 ? Math.min(100, (funnelApr / funnelClicks) * 100) : 0;
 
+  const realPendingSales = pendingOrders.length;
+
+  const kpiDataMap = {
+    faturamento: {
+      id: 'faturamento',
+      label: 'Faturamento Líquido',
+      value: `R$ ${realApprovedRevenue.toFixed(2).replace('.', ',')}`,
+      subtitle: `${realApprovedSales} ${realApprovedSales === 1 ? 'venda aprovada' : 'vendas aprovadas'}`,
+      valueColor: 'text-white'
+    },
+    gastos: {
+      id: 'gastos',
+      label: 'Gastos com anúncios',
+      value: `R$ ${realSpend.toFixed(2).replace('.', ',')}`,
+      subtitle: 'Meta Ads API',
+      valueColor: 'text-white'
+    },
+    lucro: {
+      id: 'lucro',
+      label: 'Lucro',
+      value: `R$ ${realProfit.toFixed(2).replace('.', ',')}`,
+      subtitle: realProfit >= 0 ? 'Resultado positivo' : 'Abaixo da meta',
+      valueColor: realProfit < 0 ? 'text-[#EF4444]' : 'text-white'
+    },
+    pendentes: {
+      id: 'pendentes',
+      label: 'Vendas Pendentes',
+      value: `R$ ${realPendingValue.toFixed(2).replace('.', ',')}`,
+      subtitle: `${realPendingSales} ${realPendingSales === 1 ? 'venda pendente' : 'vendas pendentes'}`,
+      valueColor: 'text-white'
+    },
+    roi: {
+      id: 'roi',
+      label: 'ROI',
+      value: realRoi,
+      subtitle: 'Retorno sobre investimento',
+      valueColor: Number(realRoi) < 0 ? 'text-[#EF4444]' : 'text-white'
+    },
+    margem: {
+      id: 'margem',
+      label: 'Margem',
+      value: realMargin,
+      subtitle: 'Margem líquida operacional',
+      valueColor: 'text-white'
+    }
+  };
+
+  const renderAnalysisCard = (cardKey, slotIndex) => {
+    const editHeaderControls = isEditingLayout && (
+      <div className="flex items-center gap-1.5 bg-[#0F1728] border border-blue-500/40 rounded-lg px-2 py-1 select-none">
+        <span className="text-[10px] text-blue-400 font-mono font-bold">Slot #{slotIndex + 1}</span>
+        <button
+          onClick={() => swapAnalysisCards(slotIndex, slotIndex === 0 ? 1 : slotIndex === 1 ? 0 : slotIndex === 2 ? 3 : 2)}
+          className="px-1.5 py-0.5 bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 rounded text-[10px] font-semibold transition-colors flex items-center gap-0.5 cursor-pointer"
+          title="Inverter lado (horizontal)"
+        >
+          <span>⇄ Lado</span>
+        </button>
+        <button
+          onClick={() => swapAnalysisCards(slotIndex, (slotIndex + 2) % 4)}
+          className="px-1.5 py-0.5 bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 rounded text-[10px] font-semibold transition-colors flex items-center gap-0.5 cursor-pointer"
+          title="Inverter linha (vertical)"
+        >
+          <span>⇅ Linha</span>
+        </button>
+      </div>
+    );
+
+    const baseContainerClass = `bg-[#141C2E] border ${
+      isEditingLayout ? 'border-blue-500/50 ring-1 ring-blue-500/30' : 'border-[#1E293B]'
+    } rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md h-[340px] transition-all duration-200 relative`;
+
+    if (cardKey === 'products') {
+      return (
+        <div key="products" className={baseContainerClass}>
+          <div>
+            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-3">
+              <span className="text-white font-semibold">Vendas por Produto</span>
+              {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Vendas agrupadas por produto">ⓘ</span>}
+            </div>
+
+            {productsMap.length === 0 ? (
+              <div className="h-56 flex items-center justify-center text-zinc-500 text-xs font-sans">
+                Nenhuma venda por aqui
+              </div>
+            ) : (
+              <div className="space-y-2 py-1 max-h-56 overflow-y-auto pr-1">
+                {productsMap.map((prod, i) => (
+                  <div key={i} className="flex items-center justify-between py-2 border-b border-[#1E293B]/60 text-xs">
+                    <div>
+                      <div className="font-bold text-white">{prod.name}</div>
+                      <div className="text-[11px] text-zinc-400">{prod.sales} {prod.sales === 1 ? 'venda aprovada' : 'vendas aprovadas'}</div>
+                    </div>
+                    <div className="font-mono font-bold text-emerald-400">
+                      R$ {prod.revenue.toFixed(2).replace('.', ',')}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="text-[11px] text-zinc-500 pt-2 border-t border-[#1E293B]/40 flex items-center justify-between">
+            <span>Total de produtos ativos</span>
+            <span className="font-mono font-bold text-zinc-300">{productsMap.length}</span>
+          </div>
+        </div>
+      );
+    }
+
+    if (cardKey === 'payments') {
+      return (
+        <div key="payments" className={baseContainerClass}>
+          <div>
+            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2">
+              <span className="text-white font-semibold">Vendas por Pagamento</span>
+              {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Distribuição por método de pagamento">ⓘ</span>}
+            </div>
+
+            {/* Gráfico Donut com Total no centro */}
+            <div className="my-4 flex flex-col items-center justify-center relative">
+              <div className="w-32 h-32 relative flex items-center justify-center">
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                  <path
+                    className="text-[#0D1424]"
+                    strokeWidth="3.5"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  {realApprovedSales > 0 && (
+                    <path
+                      className="text-[#0066FF]"
+                      strokeDasharray="100, 100"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                      stroke="currentColor"
+                      fill="none"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                  )}
+                </svg>
+                <div className="absolute flex flex-col items-center text-center">
+                  <span className="text-[10px] text-zinc-400 font-medium">Total</span>
+                  <span className="text-xl font-extrabold text-white font-sans">{realApprovedSales}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Legenda com as pills idênticas ao print */}
+          <div className="flex items-center justify-center gap-4 text-xs pt-2 border-t border-[#1E293B]/40">
+            <div className="flex items-center gap-1.5 text-zinc-300">
+              <span className="w-2 h-2 rounded-full bg-[#0066FF]" />
+              <span>Pix</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-zinc-300">
+              <span className="w-2 h-2 rounded-full bg-[#38BDF8]" />
+              <span>Cartão</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-zinc-300">
+              <span className="w-2 h-2 rounded-full bg-[#FACC15]" />
+              <span>Boleto</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-zinc-300">
+              <span className="w-2 h-2 rounded-full bg-[#F43F5E]" />
+              <span>Outros</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (cardKey === 'sources') {
+      return (
+        <div key="sources" className={baseContainerClass}>
+          <div>
+            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-3">
+              <span className="text-white font-semibold">Vendas por Fonte</span>
+              {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Origem de tráfego das vendas">ⓘ</span>}
+            </div>
+
+            {realApprovedSales === 0 ? (
+              <div className="h-44 flex items-center justify-center text-zinc-500 text-xs font-sans">
+                Nenhuma venda por aqui
+              </div>
+            ) : (
+              <div className="space-y-4 my-auto py-6">
+                <div>
+                  <div className="flex justify-between text-xs text-zinc-300 mb-1.5">
+                    <span className="font-medium">Facebook Ads</span>
+                    <span className="font-bold text-white">{realApprovedSales} (100%)</span>
+                  </div>
+                  <div className="w-full bg-[#0D1424] h-2.5 rounded-full overflow-hidden border border-[#1E293B]/60">
+                    <div className="bg-[#0066FF] h-full rounded-full transition-all duration-500" style={{ width: '100%' }} />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="text-[11px] text-zinc-500 pt-2 border-t border-[#1E293B]/40 flex items-center justify-between">
+            <span>Rastreamento CAPI & Pixel</span>
+            <span className="text-emerald-400 font-semibold flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Ativo
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    if (cardKey === 'approval') {
+      return (
+        <div key="approval" className={baseContainerClass}>
+          <div>
+            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-4">
+              <span className="text-white font-semibold">Taxa de Aprovação</span>
+              {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Percentual de pedidos aprovados por meio">ⓘ</span>}
+            </div>
+
+            <div className="space-y-4 py-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-zinc-300 font-medium">Cartão</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full border border-zinc-700 flex items-center justify-center">
+                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
+                  </div>
+                  <span className="text-zinc-400 font-mono text-xs">N/A</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-zinc-300 font-medium">Pix</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full border border-[#0066FF] flex items-center justify-center">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#0066FF]" />
+                  </div>
+                  <span className="text-white font-mono font-bold text-xs">{pixRate}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-zinc-300 font-medium">Boleto</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full border border-zinc-700 flex items-center justify-center">
+                    <span className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
+                  </div>
+                  <span className="text-zinc-400 font-mono text-xs">N/A</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="text-[11px] text-zinc-500 pt-2 border-t border-[#1E293B]/40 flex items-center justify-between">
+            <span>Conversão Geral do Checkout</span>
+            <span className="font-mono font-bold text-white">{pixRate}</span>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  const renderFunnelSection = () => (
+    <div className={`bg-[#141C2E] border ${
+      isEditingLayout ? 'border-blue-500/50 ring-1 ring-blue-500/30' : 'border-[#1E293B]'
+    } rounded-xl p-5 sm:p-6 shadow-md transition-all duration-200 relative`}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+        <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">
+          Funil de Conversão (Meta Ads)
+        </h3>
+
+        {isEditingLayout && (
+          <div className="flex items-center gap-1.5 bg-[#0F1728] border border-blue-500/40 rounded-lg p-1 text-xs">
+            <span className="text-zinc-400 px-1 text-[11px]">Posição do Funil:</span>
+            <button
+              onClick={() => updateFunnelPosition('top')}
+              className={`px-2 py-0.5 rounded text-[11px] transition-all cursor-pointer ${
+                layoutConfig.funnelPosition === 'top'
+                  ? 'bg-[#0066FF] text-white font-bold'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              Acima
+            </button>
+            <button
+              onClick={() => updateFunnelPosition('middle')}
+              className={`px-2 py-0.5 rounded text-[11px] transition-all cursor-pointer ${
+                layoutConfig.funnelPosition === 'middle'
+                  ? 'bg-[#0066FF] text-white font-bold'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              No Meio (Padrão)
+            </button>
+            <button
+              onClick={() => updateFunnelPosition('bottom')}
+              className={`px-2 py-0.5 rounded text-[11px] transition-all cursor-pointer ${
+                layoutConfig.funnelPosition === 'bottom'
+                  ? 'bg-[#0066FF] text-white font-bold'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              Abaixo
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="border-b border-[#1E293B]/70 my-5" />
+
+      <div className="overflow-x-auto pb-2">
+        <div className="flex items-center justify-between min-w-[680px] px-2 py-2">
+          
+          {/* 1. CLIQUES */}
+          <div className="flex flex-col items-center text-center">
+            <FunnelGauge percentage={pctClicks} strokeColor="#0066FF" isFull={pctClicks === 100} />
+            <div className="text-lg sm:text-xl font-bold text-white mt-3 font-sans">
+              {funnelClicks.toLocaleString('pt-BR')}
+            </div>
+            <div className="text-[11px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
+              CLIQUES
+            </div>
+          </div>
+
+          {/* Conector 1 -> 2 */}
+          <FunnelConnector dropPct={dropVis} />
+
+          {/* 2. VIS. PÁGINA */}
+          <div className="flex flex-col items-center text-center">
+            <FunnelGauge percentage={pctVis} strokeColor="#0066FF" />
+            <div className="text-lg sm:text-xl font-bold text-white mt-3 font-sans">
+              {funnelVis.toLocaleString('pt-BR')}
+            </div>
+            <div className="text-[11px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
+              VIS. PÁGINA
+            </div>
+          </div>
+
+          {/* Conector 2 -> 3 */}
+          <FunnelConnector dropPct={dropIcs} />
+
+          {/* 3. ICS */}
+          <div className="flex flex-col items-center text-center">
+            <FunnelGauge percentage={pctIcs} strokeColor="#0066FF" />
+            <div className="text-lg sm:text-xl font-bold text-white mt-3 font-sans">
+              {funnelIcs.toLocaleString('pt-BR')}
+            </div>
+            <div className="text-[11px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
+              ICS
+            </div>
+          </div>
+
+          {/* Conector 3 -> 4 */}
+          <FunnelConnector dropPct={dropInic} />
+
+          {/* 4. VENDAS INIC. */}
+          <div className="flex flex-col items-center text-center">
+            <FunnelGauge percentage={pctInic} strokeColor="#A855F7" />
+            <div className="text-lg sm:text-xl font-bold text-white mt-3 font-sans">
+              {funnelInic.toLocaleString('pt-BR')}
+            </div>
+            <div className="text-[11px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
+              VENDAS INIC.
+            </div>
+          </div>
+
+          {/* Conector 4 -> 5 */}
+          <FunnelConnector />
+
+          {/* 5. VENDAS APR. */}
+          <div className="flex flex-col items-center text-center">
+            <FunnelGauge percentage={pctApr} strokeColor="#10B981" />
+            <div className="text-lg sm:text-xl font-bold text-white mt-3 font-sans">
+              {funnelApr.toLocaleString('pt-BR')}
+            </div>
+            <div className="text-[11px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
+              VENDAS APR.
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-4 pb-16 font-sans select-none">
 
@@ -504,6 +987,45 @@ export default function Dashboard() {
               className="underline text-red-400 hover:text-red-300 ml-2 font-semibold cursor-pointer"
             >
               Gerenciar assinatura
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Banner de Edição Ativa (Canetinha) */}
+      {isEditingLayout && (
+        <div className="bg-gradient-to-r from-[#0F1D38] via-[#142347] to-[#0F1D38] border border-blue-500/50 rounded-xl p-4 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-[#0066FF] text-white flex items-center justify-center shrink-0 shadow-md shadow-blue-600/30">
+              <Edit3 className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-white flex items-center gap-2">
+                <span>Personalização de Layout Ativa</span>
+                <span className="text-[10px] uppercase font-mono px-2 py-0.5 bg-blue-500/20 text-blue-300 rounded border border-blue-500/30 font-bold">
+                  Modo de Edição
+                </span>
+              </div>
+              <p className="text-xs text-zinc-300">
+                Use os botões nos blocos para alterar posições. O formato quadrado simétrico da dashboard é mantido sempre.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button 
+              onClick={resetLayoutConfig}
+              className="px-3 py-1.5 rounded-lg bg-[#1E293B] hover:bg-[#334155] text-zinc-300 hover:text-white text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Restaurar posições originais"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Restaurar Padrão</span>
+            </button>
+            <button 
+              onClick={() => handleToggleEdit(false)}
+              className="px-4 py-1.5 rounded-lg bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-bold transition-all shadow-md shadow-blue-600/30 flex items-center gap-1.5 cursor-pointer"
+            >
+              <Check className="w-3.5 h-3.5" />
+              <span>Salvar e Concluir</span>
             </button>
           </div>
         </div>
@@ -645,335 +1167,102 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Row 1: 3 Cards Principais */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        
-        {/* Faturamento Líquido */}
-        <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md">
-          <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
-            <span>Faturamento Líquido</span>
-            <span className="text-zinc-500 text-[11px]">ⓘ</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-bold text-white mt-3 tracking-tight font-sans">
-            R$ {realApprovedRevenue.toFixed(2).replace('.', ',')}
-          </div>
-        </div>
-
-        {/* Gastos com anúncios */}
-        <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md">
-          <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
-            <span>Gastos com anúncios</span>
-            <span className="text-zinc-500 text-[11px]">ⓘ</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-bold text-white mt-3 tracking-tight font-sans">
-            R$ {realSpend.toFixed(2).replace('.', ',')}
-          </div>
-        </div>
-
-        {/* Lucro */}
-        <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md">
-          <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
-            <span>Lucro</span>
-            <span className="text-zinc-500 text-[11px]">ⓘ</span>
-          </div>
-          <div className={`text-xl sm:text-2xl font-bold mt-3 tracking-tight font-sans ${
-            realProfit < 0 ? 'text-[#EF4444]' : 'text-white'
-          }`}>
-            R$ {realProfit.toFixed(2).replace('.', ',')}
-          </div>
-        </div>
-
-      </div>
-
-      {/* Row 2: Vendas por Produto + Mini Cards (Vendas Pendentes, ROI, Margem) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
-        
-        {/* Vendas por Produto (Lado Esquerdo - 5 colunas de 12) */}
-        <div className="lg:col-span-5 bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md">
-          <div>
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-4">
-              <span className="text-white font-semibold">Vendas por Produto</span>
-              <span className="text-zinc-500 text-[11px]">ⓘ</span>
-            </div>
-
-            {productsMap.length === 0 ? (
-              <div className="h-64 flex items-center justify-center text-zinc-500 text-xs font-sans">
-                Nenhuma venda por aqui
-              </div>
-            ) : (
-              <div className="space-y-3 py-2">
-                {productsMap.map((prod, i) => (
-                  <div key={i} className="flex items-center justify-between py-2 border-b border-[#1E293B]/60 text-xs">
-                    <div>
-                      <div className="font-bold text-white">{prod.name}</div>
-                      <div className="text-[11px] text-zinc-400">{prod.sales} {prod.sales === 1 ? 'venda aprovada' : 'vendas aprovadas'}</div>
+      {/* 6 Cards KPIs Principais em Grid 3x2 Perfeito e Harmônico */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+        {layoutConfig.kpis.map((kpiKey, index) => {
+          const card = kpiDataMap[kpiKey] || kpiDataMap.faturamento;
+          return (
+            <div 
+              key={card.id}
+              className={`bg-[#141C2E] border ${
+                isEditingLayout ? 'border-blue-500/50 ring-1 ring-blue-500/30' : 'border-[#1E293B]'
+              } rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md h-[116px] transition-all duration-200 relative group`}
+            >
+              <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
+                <span className="truncate">{card.label}</span>
+                <div className="flex items-center gap-1">
+                  {isEditingLayout ? (
+                    <div className="flex items-center gap-0.5 bg-[#0F1728] border border-blue-500/40 rounded px-1.5 py-0.5 select-none">
+                      <button 
+                        onClick={() => moveKpi(index, -1)}
+                        disabled={index === 0}
+                        className="p-0.5 hover:text-white disabled:opacity-20 text-blue-300 transition-colors cursor-pointer"
+                        title="Mover para a esquerda"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="text-[10px] text-blue-400 font-mono px-1 font-bold">#{index + 1}</span>
+                      <button 
+                        onClick={() => moveKpi(index, 1)}
+                        disabled={index === layoutConfig.kpis.length - 1}
+                        className="p-0.5 hover:text-white disabled:opacity-20 text-blue-300 transition-colors cursor-pointer"
+                        title="Mover para a direita"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
                     </div>
-                    <div className="font-mono font-bold text-emerald-400">
-                      R$ {prod.revenue.toFixed(2).replace('.', ',')}
-                    </div>
-                  </div>
-                ))}
+                  ) : (
+                    <span className="text-zinc-500 text-[11px] cursor-help" title={card.label}>ⓘ</span>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* Mini Cards (Lado Direito - 7 colunas de 12 em 3 colunas) */}
-        <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          
-          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
-            <div className="flex items-center justify-between text-xs text-zinc-400">
-              <span>Vendas Pendentes</span>
-              <span className="text-zinc-500 text-[11px]">ⓘ</span>
-            </div>
-            <div className="text-lg font-bold text-white mt-2">
-              R$ {realPendingValue.toFixed(2).replace('.', ',')}
-            </div>
-          </div>
-
-          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
-            <div className="flex items-center justify-between text-xs text-zinc-400">
-              <span>ROI</span>
-              <span className="text-zinc-500 text-[11px]">ⓘ</span>
-            </div>
-            <div className={`text-lg font-bold mt-2 ${
-              Number(realRoi) < 0 ? 'text-[#EF4444]' : 'text-white'
-            }`}>
-              {realRoi}
-            </div>
-          </div>
-
-          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
-            <div className="flex items-center justify-between text-xs text-zinc-400">
-              <span>Margem</span>
-              <span className="text-zinc-500 text-[11px]">ⓘ</span>
-            </div>
-            <div className="text-lg font-bold text-white mt-2">
-              {realMargin}
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-
-      {/* Funil de Conversão (Meta Ads) - Idêntico ao print da UTMify */}
-      <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-5 sm:p-6 shadow-md">
-        <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">
-          Funil de Conversão (Meta Ads)
-        </h3>
-
-        <div className="border-b border-[#1E293B]/70 my-5" />
-
-        <div className="overflow-x-auto pb-2">
-          <div className="flex items-center justify-between min-w-[680px] px-2 py-2">
-            
-            {/* 1. CLIQUES */}
-            <div className="flex flex-col items-center text-center">
-              <FunnelGauge percentage={pctClicks} strokeColor="#0066FF" isFull={pctClicks === 100} />
-              <div className="text-lg sm:text-xl font-bold text-white mt-3 font-sans">
-                {funnelClicks.toLocaleString('pt-BR')}
-              </div>
-              <div className="text-[11px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
-                CLIQUES
-              </div>
-            </div>
-
-            {/* Conector 1 -> 2 */}
-            <FunnelConnector dropPct={dropVis} />
-
-            {/* 2. VIS. PÁGINA */}
-            <div className="flex flex-col items-center text-center">
-              <FunnelGauge percentage={pctVis} strokeColor="#0066FF" />
-              <div className="text-lg sm:text-xl font-bold text-white mt-3 font-sans">
-                {funnelVis.toLocaleString('pt-BR')}
-              </div>
-              <div className="text-[11px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
-                VIS. PÁGINA
-              </div>
-            </div>
-
-            {/* Conector 2 -> 3 */}
-            <FunnelConnector dropPct={dropIcs} />
-
-            {/* 3. ICS */}
-            <div className="flex flex-col items-center text-center">
-              <FunnelGauge percentage={pctIcs} strokeColor="#0066FF" />
-              <div className="text-lg sm:text-xl font-bold text-white mt-3 font-sans">
-                {funnelIcs.toLocaleString('pt-BR')}
-              </div>
-              <div className="text-[11px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
-                ICS
-              </div>
-            </div>
-
-            {/* Conector 3 -> 4 */}
-            <FunnelConnector dropPct={dropInic} />
-
-            {/* 4. VENDAS INIC. */}
-            <div className="flex flex-col items-center text-center">
-              <FunnelGauge percentage={pctInic} strokeColor="#A855F7" />
-              <div className="text-lg sm:text-xl font-bold text-white mt-3 font-sans">
-                {funnelInic.toLocaleString('pt-BR')}
-              </div>
-              <div className="text-[11px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
-                VENDAS INIC.
-              </div>
-            </div>
-
-            {/* Conector 4 -> 5 */}
-            <FunnelConnector />
-
-            {/* 5. VENDAS APR. */}
-            <div className="flex flex-col items-center text-center">
-              <FunnelGauge percentage={pctApr} strokeColor="#10B981" />
-              <div className="text-lg sm:text-xl font-bold text-white mt-3 font-sans">
-                {funnelApr.toLocaleString('pt-BR')}
-              </div>
-              <div className="text-[11px] text-zinc-400 font-bold tracking-wider mt-0.5 uppercase">
-                VENDAS APR.
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </div>
-
-      {/* Row 3: Vendas por Pagamento + Vendas por Fonte + Taxa de Aprovação idêntico ao print */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
-        
-        {/* Vendas por Pagamento (4 cols de 12) */}
-        <div className="lg:col-span-4 bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md">
-          <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
-            <span>Vendas por Pagamento</span>
-            <span className="text-zinc-500 text-[11px]">ⓘ</span>
-          </div>
-
-          {/* Gráfico Donut com Total no centro */}
-          <div className="my-6 flex flex-col items-center justify-center relative">
-            <div className="w-36 h-36 relative flex items-center justify-center">
-              <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                {/* Background Ring */}
-                <path
-                  className="text-[#0D1424]"
-                  strokeWidth="3.5"
-                  stroke="currentColor"
-                  fill="none"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-                {/* Pix Slice */}
-                {realApprovedSales > 0 && (
-                  <path
-                    className="text-[#0066FF]"
-                    strokeDasharray="100, 100"
-                    strokeWidth="3.5"
-                    strokeLinecap="round"
-                    stroke="currentColor"
-                    fill="none"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                )}
-              </svg>
-              <div className="absolute flex flex-col items-center text-center">
-                <span className="text-[10px] text-zinc-400 font-medium">Total</span>
-                <span className="text-xl font-extrabold text-white font-sans">{realApprovedSales}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Legenda com as pills idênticas ao print */}
-          <div className="flex items-center justify-center gap-4 text-xs pt-2">
-            <div className="flex items-center gap-1.5 text-zinc-300">
-              <span className="w-2 h-2 rounded-full bg-[#0066FF]" />
-              <span>Pix</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-zinc-300">
-              <span className="w-2 h-2 rounded-full bg-[#38BDF8]" />
-              <span>Cartão</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-zinc-300">
-              <span className="w-2 h-2 rounded-full bg-[#FACC15]" />
-              <span>Boleto</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-zinc-300">
-              <span className="w-2 h-2 rounded-full bg-[#F43F5E]" />
-              <span>Outros</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Vendas por Fonte (4 cols de 12) */}
-        <div className="lg:col-span-4 bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md">
-          <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
-            <span>Vendas por Fonte</span>
-            <span className="text-zinc-500 text-[11px]">ⓘ</span>
-          </div>
-
-          {realApprovedSales === 0 ? (
-            <div className="h-44 flex items-center justify-center text-zinc-500 text-xs font-sans">
-              Nenhuma venda por aqui
-            </div>
-          ) : (
-            <div className="space-y-4 my-auto py-4">
               <div>
-                <div className="flex justify-between text-xs text-zinc-300 mb-1">
-                  <span>Facebook Ads</span>
-                  <span className="font-bold text-white">{realApprovedSales} (100%)</span>
+                <div className={`text-xl sm:text-2xl font-bold tracking-tight font-sans ${card.valueColor}`}>
+                  {showValues ? card.value : '••••••'}
                 </div>
-                <div className="w-full bg-[#0D1424] h-2 rounded-full overflow-hidden">
-                  <div className="bg-[#0066FF] h-full rounded-full" style={{ width: '100%' }} />
+                <div className="text-[11px] text-zinc-400 mt-1 truncate font-sans">
+                  {card.subtitle}
                 </div>
               </div>
             </div>
-          )}
-          <div className="h-4"></div>
-        </div>
-
-        {/* Taxa de Aprovação (4 cols de 12) */}
-        <div className="lg:col-span-4 bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md">
-          <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-4">
-            <span>Taxa de Aprovação</span>
-            <span className="text-zinc-500 text-[11px]">ⓘ</span>
-          </div>
-
-          <div className="space-y-4 my-auto">
-            {/* Cartão */}
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-zinc-300">Cartão</span>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full border border-zinc-700 flex items-center justify-center">
-                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
-                </div>
-                <span className="text-zinc-400 font-mono text-xs">N/A</span>
-              </div>
-            </div>
-
-            {/* Pix */}
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-zinc-300">Pix</span>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full border border-[#0066FF] flex items-center justify-center">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#0066FF]" />
-                </div>
-                <span className="text-white font-mono font-bold text-xs">{pixRate}</span>
-              </div>
-            </div>
-
-            {/* Boleto */}
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-zinc-300">Boleto</span>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full border border-zinc-700 flex items-center justify-center">
-                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
-                </div>
-                <span className="text-zinc-400 font-mono text-xs">N/A</span>
-              </div>
-            </div>
-          </div>
-          <div className="h-4"></div>
-        </div>
-
+          );
+        })}
       </div>
+
+      {/* Fluxo Dinâmico dos Blocos Analíticos e do Funil */}
+      {layoutConfig.funnelPosition === 'top' && (
+        <>
+          {renderFunnelSection()}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {renderAnalysisCard(layoutConfig.analysisCards[0], 0)}
+            {renderAnalysisCard(layoutConfig.analysisCards[1], 1)}
+            {renderAnalysisCard(layoutConfig.analysisCards[2], 2)}
+            {renderAnalysisCard(layoutConfig.analysisCards[3], 3)}
+          </div>
+        </>
+      )}
+
+      {layoutConfig.funnelPosition === 'middle' && (
+        <>
+          {/* Linha 1 Analítica (Acima do Funil): Cards 0 e 1 (ex: Vendas por Produto + Vendas por Pagamento) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {renderAnalysisCard(layoutConfig.analysisCards[0], 0)}
+            {renderAnalysisCard(layoutConfig.analysisCards[1], 1)}
+          </div>
+
+          {/* Funil de Conversão */}
+          {renderFunnelSection()}
+
+          {/* Linha 2 Analítica (Abaixo do Funil): Cards 2 e 3 (ex: Vendas por Fonte + Taxa de Aprovação) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {renderAnalysisCard(layoutConfig.analysisCards[2], 2)}
+            {renderAnalysisCard(layoutConfig.analysisCards[3], 3)}
+          </div>
+        </>
+      )}
+
+      {layoutConfig.funnelPosition === 'bottom' && (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {renderAnalysisCard(layoutConfig.analysisCards[0], 0)}
+            {renderAnalysisCard(layoutConfig.analysisCards[1], 1)}
+            {renderAnalysisCard(layoutConfig.analysisCards[2], 2)}
+            {renderAnalysisCard(layoutConfig.analysisCards[3], 3)}
+          </div>
+          {renderFunnelSection()}
+        </>
+      )}
 
     </div>
   );
