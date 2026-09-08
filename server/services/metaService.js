@@ -151,7 +151,7 @@ export async function fetchAdAccounts(accessToken) {
       id: acc.id, // ex: act_1092137896602979
       accountId: acc.account_id, // ex: 1092137896602979
       name: acc.name || `Conta ${acc.account_id}`,
-      currency: 'BRL',
+      currency: acc.currency || 'BRL',
       rawCurrency: acc.currency,
       amountSpent: convertedSpent,
       balance: realAvailableBalance,
@@ -190,7 +190,7 @@ export async function fetchLiveAccountDetails(adAccountId, accessToken) {
     id: data.id,
     accountId: data.account_id || data.id.replace('act_', ''),
     name: data.name,
-    currency: 'BRL',
+    currency: data.currency || 'BRL',
     rawCurrency: data.currency,
     amountSpent: convertedSpent,
     balance: realAvailableBalance,

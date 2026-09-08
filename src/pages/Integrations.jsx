@@ -172,9 +172,10 @@ export default function Integrations() {
             return parsed.map(acc => {
               const accId = String(acc.id || acc.accountId || '').replace('act_', '');
               const isRealPrepay = acc.isPrepay === true || accId === '1218349886840112';
+              const isUsd = acc.currency === 'USD' || acc.rawCurrency === 'USD' || ['1043285988469816', '1092137896602979', '1611243834049326', '28591581777115664'].includes(accId);
               return {
                 ...acc,
-                currency: 'BRL',
+                currency: isUsd ? 'USD' : (acc.currency || 'BRL'),
                 balance: isRealPrepay ? (acc.balance || '4,05') : '0,00'
               };
             });
@@ -183,7 +184,7 @@ export default function Integrations() {
       } catch (e) {}
     }
     return [
-      { name: 'CA01', id: '1892117896682979', bm: 'Marinhos Dog', currency: 'BRL', status: 'Ativa', sync: false },
+      { name: 'CA01', id: '1092137896602979', bm: 'Marinhos Dog', currency: 'USD', status: 'Ativa', sync: false },
       { name: 'Rafaelli Ribeiro', id: '988187735672553', bm: '—', currency: 'BRL', status: 'Ativa', sync: false },
       { name: 'CA03', id: '1095793299643643', bm: 'DIGITAL JM SOLUCOES LTDA', currency: 'BRL', status: 'Ativa', sync: false },
       { name: 'CA02 JEFFREY', id: '1101817232408751', bm: 'DIGITAL MEI', currency: 'BRL', status: 'Ativa', sync: false },
@@ -737,12 +738,15 @@ export default function Integrations() {
 
             const isRealPrepay = a.isPrepay === true || accId === '1218349886840112';
             const realBalance = isRealPrepay ? (a.balance || '4,05') : '0,00';
+            const realCurrency = a.currency === 'USD' || a.rawCurrency === 'USD' || ['1043285988469816', '1092137896602979', '1611243834049326', '28591581777115664'].includes(accId)
+              ? 'USD'
+              : (a.currency || a.rawCurrency || 'BRL');
 
             return {
               name: a.name || 'Conta',
               id: accId,
               bm: a.businessName || 'BM Principal',
-              currency: 'BRL',
+              currency: realCurrency,
               status: a.status === 'ACTIVE' ? 'Ativa' : 'Desativada',
               balance: realBalance,
               amountSpent: a.amountSpent || '0,00',
@@ -985,10 +989,10 @@ export default function Integrations() {
                         {acc.bm}
                       </td>
                       <td className="py-3.5 px-4 font-mono text-emerald-400 font-bold text-xs">
-                        R$ {acc.balance || '0,00'}
+                        {acc.currency === 'USD' ? '$' : 'R$'} {acc.balance || '0,00'}
                       </td>
                       <td className="py-3.5 px-4 font-mono text-zinc-400 text-[11px]">
-                        BRL
+                        {acc.currency || 'BRL'}
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         <span className={`px-2.5 py-0.5 rounded-full font-mono text-[10px] font-bold ${
