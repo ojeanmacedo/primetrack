@@ -297,8 +297,22 @@ export default function Dashboard({ onSimulateSale }) {
   const realClicks = filteredCampaigns.reduce((acc, c) => acc + Number(c.clicks || 0), 0);
   const realVisits = filteredCampaigns.reduce((acc, c) => acc + Number(c.visits || c.clicks || 0), 0);
 
+  // Filtra as vendas reais baseado no período selecionado
+  const filteredOrders = ordersList.filter(o => {
+    if (!o.createdAt) return true;
+    const d = new Date(o.createdAt);
+    const now = new Date();
+    const diffHours = (now - d) / (1000 * 60 * 60);
+    if (period === 'Hoje') return diffHours <= 24;
+    if (period === 'Ontem') return diffHours > 24 && diffHours <= 48;
+    if (period === '7 dias') return diffHours <= 24 * 7;
+    if (period === '15 dias') return diffHours <= 24 * 15;
+    if (period === '30 dias') return diffHours <= 24 * 30;
+    return true;
+  });
+
   // Vendas Pendentes (Aguardando Pagamento / Pix Gerado) reais da MonsterPay
-  const pendingOrders = ordersList.filter(o => 
+  const pendingOrders = filteredOrders.filter(o => 
     o.status === 'waiting_payment' || 
     o.status === 'pending' || 
     o.status === 'aguardando_pagamento'
@@ -306,10 +320,12 @@ export default function Dashboard({ onSimulateSale }) {
   const realPendingSales = pendingOrders.length;
   const realPendingValue = pendingOrders.reduce((acc, o) => acc + Number(o.amount || 0), 0);
 
-  // Vendas Aprovadas (Pagas) reais da MonsterPay
-  const approvedOrdersFromList = ordersList.filter(o => o.status === 'approved');
-  const realApprovedSales = approvedOrdersFromList.length > 0 ? approvedOrdersFromList.length : realSales;
-  const realApprovedRevenue = approvedOrdersFromList.length > 0 ? approvedOrdersFromList.reduce((acc, o) => acc + Number(o.amount || 0), 0) : realRevenue;
+  // Vendas Aprovadas (Pagas de verdade) reais da MonsterPay
+  const approvedOrdersFromList = filteredOrders.filter(o => 
+    o.status === 'approved' || o.status === 'paid' || o.status === 'pago'
+  );
+  const realApprovedSales = approvedOrdersFromList.length;
+  const realApprovedRevenue = approvedOrdersFromList.reduce((acc, o) => acc + Number(o.amount || 0), 0);
   const realTotalProfit = realApprovedRevenue - realSpend;
   const realRoasVal = realSpend > 0 ? (realApprovedRevenue / realSpend).toFixed(2) : '0.00';
   const realCpaVal = realApprovedSales > 0 ? (realSpend / realApprovedSales).toFixed(2) : '0.00';

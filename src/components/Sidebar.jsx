@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { getCurrentUser, getTrialStatus, logoutUser } from '../utils/auth';
 import { 
@@ -22,10 +22,25 @@ import {
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [dashboardsOpen, setDashboardsOpen] = useState(true);
+  const [totalFaturado, setTotalFaturado] = useState(0);
   const navigate = useNavigate();
   const location = useLocation();
   const user = getCurrentUser();
   const trialStatus = getTrialStatus(user);
+
+  useEffect(() => {
+    fetch('/api/orders')
+      .then(r => r.json())
+      .then(orders => {
+        if (Array.isArray(orders)) {
+          const approvedSum = orders
+            .filter(o => o.status === 'approved' || o.status === 'paid' || o.status === 'pago')
+            .reduce((acc, o) => acc + Number(o.amount || 0), 0);
+          setTotalFaturado(approvedSum);
+        }
+      })
+      .catch(() => {});
+  }, [location.pathname]);
 
   const isPainelActive = location.pathname === '/dashboard' || location.pathname === '/';
 
@@ -175,7 +190,7 @@ export default function Sidebar() {
             </div>
 
             <div className="text-xs text-zinc-300 font-mono mt-1 mb-3 flex items-center justify-between">
-              <span>{trialStatus.isTrial ? 'R$ 0,00' : 'R$ 481,41'} <span className="text-[10px] text-zinc-500">faturado</span></span>
+              <span>R$ {totalFaturado.toFixed(2).replace('.', ',')} <span className="text-[10px] text-zinc-500">faturado</span></span>
               {trialStatus.isTrial && (
                 <span className="text-[10px] font-mono font-semibold text-zinc-300" title="Dias restantes do teste gratuito">
                   {trialStatus.isExpired ? '0 de 7 dias' : `${trialStatus.daysLeft} de 7 dias`}

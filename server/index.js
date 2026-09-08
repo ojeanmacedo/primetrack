@@ -490,7 +490,7 @@ async function getAllOrders() {
 
 async function getApprovedOrders() {
   const all = await getAllOrders();
-  return all.filter(o => o.status === 'approved' || !o.status);
+  return all.filter(o => o.status === 'approved' || o.status === 'paid' || o.status === 'pago');
 }
 
 app.get('/api/campaigns', async (req, res) => {
