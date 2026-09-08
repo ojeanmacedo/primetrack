@@ -1792,31 +1792,25 @@ export default function Integrations() {
                   {'monsterpay'.includes(searchPlatform.toLowerCase().trim()) ? (
                     <div 
                       onClick={() => handleQuickConnectPlatform('Monsterpay')}
-                      className="bg-[#070D1A] hover:bg-[#0E1B33] border border-[#1E3254] hover:border-[#1A6DFF] rounded-xl p-4 transition-all cursor-pointer group flex flex-col justify-between h-24 shadow-sm"
+                      className="bg-[#070D1A] hover:bg-[#0E1B33] border border-[#1E3254] hover:border-[#1A6DFF] rounded-xl p-4 transition-all cursor-pointer group flex items-center justify-between shadow-sm"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-white text-sm">Monsterpay</span>
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono text-[9px] font-bold uppercase tracking-wider">
-                            Nativa
-                          </span>
-                        </div>
-                        <button 
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open('https://docs.primetrack.top', '_blank');
-                          }}
-                          className="px-2 py-0.5 rounded bg-[#10203D] hover:bg-[#1A3360] text-[#5C9BFF] text-[10px] font-semibold flex items-center gap-1 border border-[#1E3254] cursor-pointer"
-                        >
-                          <Play className="w-2.5 h-2.5 fill-current" />
-                          <span>Tutorial</span>
-                        </button>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-white text-sm">Monsterpay</span>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono text-[9px] font-bold uppercase tracking-wider">
+                          Nativa
+                        </span>
                       </div>
-                      <div className="text-xs text-[#5C9BFF] group-hover:text-white font-semibold flex items-center gap-1">
-                        <span>Gerar Token</span>
-                        <span>→</span>
-                      </div>
+                      <button 
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open('https://docs.primetrack.top', '_blank');
+                        }}
+                        className="px-2.5 py-1 rounded bg-[#10203D] hover:bg-[#1A3360] text-[#5C9BFF] text-[10px] font-semibold flex items-center gap-1 border border-[#1E3254] cursor-pointer"
+                      >
+                        <Play className="w-2.5 h-2.5 fill-current" />
+                        <span>Tutorial</span>
+                      </button>
                     </div>
                   ) : (
                     <div className="col-span-full py-8 text-center text-xs text-zinc-500 font-sans">
