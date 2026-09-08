@@ -75,12 +75,47 @@ app.get('/api/health', (req, res) => {
  * Endpoint de resolução automática de configuração do Pixel
  * Permite que o pixel.js descubra o metaPixelId e regras apenas pelo pixelId (igual ao LowTrack/Utmify)
  */
-app.get('/api/pixel/config', (req, res) => {
+app.get('/api/pixel/config', async (req, res) => {
   const id = req.query.id || req.query.pixelId;
   const pixels = db.get('pixels') || [];
   const settings = db.get('settings') || {};
 
   let foundPixel = pixels.find(p => p.pixelId === id || p.internalPixelId === id || p.id === id);
+
+  // Se não achou na memória, busca no Supabase
+  if (!foundPixel && id) {
+    try {
+      const { data } = await supabaseAdmin
+        .from('pixels')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (data) {
+        let metaPixelId = '';
+        let icRule = null;
+        let icType = 'css';
+
+        try {
+          const parsed = JSON.parse(data.domain);
+          metaPixelId = parsed.metaPixelId || '';
+          icRule = parsed.icValue || parsed.icRule || null;
+          icType = parsed.icType || 'css';
+        } catch (e) {
+          metaPixelId = data.domain || '';
+        }
+
+        foundPixel = {
+          pixelId: data.id,
+          metaPixelId,
+          icRule,
+          icType
+        };
+      }
+    } catch (err) {
+      console.warn('Erro ao consultar Supabase em /api/pixel/config:', err.message);
+    }
+  }
 
   res.json({
     pixelId: id,
@@ -90,14 +125,71 @@ app.get('/api/pixel/config', (req, res) => {
   });
 });
 
-app.get('/api/pixels', (req, res) => {
+app.get('/api/pixels', async (req, res) => {
+  try {
+    const { data } = await supabaseAdmin.from('pixels').select('*');
+    if (data && data.length > 0) {
+      const mapped = data.map(p => {
+        let extra = {};
+        try { extra = JSON.parse(p.domain); } catch(e){}
+        return {
+          id: p.id,
+          pixelId: p.id,
+          name: p.name,
+          domains: extra.domain || '*',
+          metaPixelId: extra.metaPixelId || '',
+          capiToken: extra.capiToken || '',
+          capiTokenRaw: extra.capiTokenRaw || extra.capiToken || '',
+          icType: extra.icType || 'css',
+          icValue: extra.icValue || '',
+          icRule: extra.icRule || '',
+          status: p.status === 'active' ? 'Ativo' : p.status,
+          createdAt: p.created_at
+        };
+      });
+      return res.json(mapped);
+    }
+  } catch (e) {}
+
   res.json(db.get('pixels') || []);
 });
 
-app.post('/api/pixels', (req, res) => {
+app.post('/api/pixels', async (req, res) => {
   const pixels = req.body.pixels || req.body;
   if (Array.isArray(pixels)) {
     db.set('pixels', pixels);
+
+    // Persiste no Supabase para sobreviver a reciclagens serverless do Vercel
+    try {
+      const { data: users } = await supabaseAdmin.from('users').select('id').limit(1);
+      const defaultUserId = (users && users[0] && users[0].id) ? users[0].id : 'usr_admin_digitaljm';
+
+      for (const px of pixels) {
+        const id = px.pixelId || px.internalPixelId || px.id;
+        const configJson = JSON.stringify({
+          domain: px.domains || '*',
+          metaPixelId: px.metaPixelId || '',
+          capiToken: px.capiToken || px.capiTokenRaw || '',
+          capiTokenRaw: px.capiTokenRaw || px.capiToken || '',
+          icType: px.icType || 'css',
+          icValue: px.icValue || '',
+          icRule: px.icRule || ''
+        });
+
+        await supabaseAdmin.from('pixels').upsert({
+          id,
+          user_id: defaultUserId,
+          name: px.name || 'Pixel',
+          domain: configJson,
+          status: (px.status === 'Ativo' || px.status === 'active') ? 'active' : 'inactive',
+          emq_score: 9.3,
+          events_count: 0
+        });
+      }
+    } catch (err) {
+      console.warn('Erro ao sincronizar pixels no Supabase:', err.message);
+    }
+
     return res.json({ success: true, pixels });
   }
   res.status(400).json({ success: false, error: 'Lista de pixels inválida' });
