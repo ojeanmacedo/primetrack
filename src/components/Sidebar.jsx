@@ -174,18 +174,13 @@ export default function Sidebar() {
               </span>
             </div>
 
-            <div className="text-xs text-zinc-300 font-mono mt-1 flex items-center justify-between">
+            <div className="text-xs text-zinc-300 font-mono mt-1 mb-3 flex items-center justify-between">
               <span>{trialStatus.isTrial ? 'R$ 0,00' : 'R$ 481,41'} <span className="text-[10px] text-zinc-500">faturado</span></span>
               {trialStatus.isTrial && (
                 <span className="text-[10px] font-mono font-semibold text-zinc-300" title="Dias restantes do teste gratuito">
                   {trialStatus.isExpired ? '0 de 7 dias' : `${trialStatus.daysLeft} de 7 dias`}
                 </span>
               )}
-            </div>
-
-            <div className="text-[11px] text-amber-400 flex items-center gap-1 mt-1 mb-3 cursor-pointer hover:underline" onClick={() => navigate('/planos')}>
-              <span>🏆</span>
-              <span>Ver placas</span>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
