@@ -19,7 +19,20 @@ function AuthListener() {
   const location = useLocation();
 
   useEffect(() => {
-    // Processa a sessão retornada pelo Google OAuth
+    // Se o usuário acabou de clicar em sair, respeita a saída
+    const isManualLogout = typeof window !== 'undefined' && sessionStorage.getItem('primetrack_manual_logout') === 'true';
+    const isOAuthCallback = typeof window !== 'undefined' && (
+      window.location.hash.includes('access_token') || 
+      window.location.search.includes('code=')
+    );
+
+    // Se veio de um redirecionamento de login do Google, limpa a flag de logout
+    if (isOAuthCallback) {
+      sessionStorage.removeItem('primetrack_manual_logout');
+    } else if (isManualLogout) {
+      return;
+    }
+
     const checkAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -32,7 +45,6 @@ function AuthListener() {
 
           await loginWithGoogle(gEmail, gName);
           
-          // Se estiver na landing page ou no login, direciona direto para /dashboard
           if (location.pathname === '/' || location.pathname === '/login') {
             navigate('/dashboard', { replace: true });
           }
@@ -45,6 +57,9 @@ function AuthListener() {
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (sessionStorage.getItem('primetrack_manual_logout') === 'true') {
+        return;
+      }
       if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user?.email) {
         const gEmail = session.user.email.toLowerCase();
         const gName = session.user.user_metadata?.full_name || 

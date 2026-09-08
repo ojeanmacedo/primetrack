@@ -225,9 +225,10 @@ export default function Sidebar() {
 
           {!collapsed && (
             <button 
-              onClick={() => {
-                logoutUser();
-                navigate('/login');
+              type="button"
+              onClick={async () => {
+                await logoutUser();
+                navigate('/login', { replace: true });
               }}
               title="Sair da conta"
               className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"

@@ -301,11 +301,15 @@ export async function loginWithGoogle(email, name = '') {
   return { success: true, user: clientUser, isNew };
 }
 
-export function logoutUser() {
+export async function logoutUser() {
   try {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem('primetrack_needs_password_setup');
-  } catch (e) {}
+    sessionStorage.setItem('primetrack_manual_logout', 'true');
+    await supabase.auth.signOut();
+  } catch (e) {
+    console.error('Erro ao deslogar:', e);
+  }
 }
 
 export function getTrialStatus(user) {

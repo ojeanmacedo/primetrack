@@ -94,6 +94,7 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setErrorMessage(null);
     setGoogleLoading(true);
+    sessionStorage.removeItem('primetrack_manual_logout');
 
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
