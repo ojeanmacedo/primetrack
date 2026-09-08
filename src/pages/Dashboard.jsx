@@ -99,7 +99,17 @@ export default function Dashboard({ onSimulateSale }) {
           parsed.forEach(p => {
             if (p.id) localSyncMap[p.id] = p.sync;
           });
-          const activeList = parsed.filter(a => a.sync === true);
+          const activeList = parsed
+            .map(acc => {
+              const accId = String(acc.id || acc.accountId || '').replace('act_', '');
+              const isRealPrepay = acc.isPrepay === true || accId === '1218349886840112';
+              return {
+                ...acc,
+                currency: 'BRL',
+                balance: isRealPrepay ? (acc.balance || '4,05') : '0,00'
+              };
+            })
+            .filter(a => a.sync === true);
           if (activeList.length > 0) {
             setAdAccountsList(activeList);
           }
@@ -141,13 +151,16 @@ export default function Dashboard({ onSimulateSale }) {
               ? a.syncActive === true
               : (localSyncMap[accId] !== undefined ? localSyncMap[accId] === true : false);
 
+            const isRealPrepay = a.isPrepay === true || accId === '1218349886840112';
+            const realBalance = isRealPrepay ? (a.balance || '4,05') : '0,00';
+
             return {
               name: a.name || 'Conta',
               id: accId,
               bm: a.businessName || 'BM Principal',
               currency: 'BRL',
               status: a.status === 'ACTIVE' ? 'Ativa' : 'Desativada',
-              balance: a.balance || '0,00',
+              balance: realBalance,
               amountSpent: a.amountSpent || '0,00',
               sync: isSyncActive
             };
