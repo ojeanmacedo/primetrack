@@ -1542,7 +1542,7 @@ app.post('/api/auth/update-password', async (req, res) => {
  */
 app.post('/api/pixel/verify', async (req, res) => {
   try {
-    const { url, pixelId } = req.body;
+    const { url, pixelId, metaPixelId, icType, icValue } = req.body;
     if (!url) {
       return res.status(400).json({ success: false, error: 'URL do site é obrigatória.' });
     }
@@ -1573,30 +1573,54 @@ app.post('/api/pixel/verify', async (req, res) => {
 
     const html = await response.text();
 
-    // Procura por evidências do script PrimeTrack / LowTrack ou pixel.js
-    const hasPixelJs = html.includes('pixel.js');
-    const hasPrimeTrack = html.toLowerCase().includes('primetrack') || html.toLowerCase().includes('lowtrack');
+    // 1. O script oficial do PrimeTrack DEVE estar presente no HTML
+    const hasPrimeTrackSnippet = html.includes('primetrack.top/pixel.js') || 
+      (html.toLowerCase().includes('primetrack') && html.includes('pixel.js'));
+
+    // 2. O pixelId específico deste pixel deve estar no código
     const hasPixelId = pixelId ? html.includes(pixelId) : false;
 
-    if (hasPixelJs || (hasPrimeTrack && (hasPixelId || html.includes('window.pixelId')))) {
+    // Se não tem o script do PrimeTrack nem o ID deste pixel criado, NÃO está instalado
+    if (!hasPrimeTrackSnippet && !hasPixelId) {
       return res.json({
         success: true,
-        found: true,
-        message: 'Pixel funcionando corretamente'
+        found: false,
+        message: 'Script do PrimeTrack não encontrado no HTML do site. Copie o código gerado e cole dentro da tag <head> da sua página de vendas.'
       });
+    }
+
+    // Se encontrou script do PrimeTrack mas com outro pixelId não correspondente
+    if (pixelId && !hasPixelId && hasPrimeTrackSnippet) {
+      return res.json({
+        success: true,
+        found: false,
+        message: `O script do PrimeTrack foi detectado, mas o ID deste pixel (${pixelId}) não foi encontrado no HTML. Atualize o snippet na sua página.`
+      });
+    }
+
+    // 3. Verificação do Seletor CSS do Botão de Checkout (caso configurado)
+    let buttonMsg = '';
+    if (icType === 'css' && icValue) {
+      const cleanSelector = icValue.trim().replace(/^[.#]/, '');
+      const hasSelector = html.includes(cleanSelector);
+      if (hasSelector) {
+        buttonMsg = ` e o seletor "${icValue}" do botão de checkout foi localizado no HTML!`;
+      } else {
+        buttonMsg = `, mas o seletor "${icValue}" do botão de checkout ainda não foi localizado no HTML da página.`;
+      }
     }
 
     return res.json({
       success: true,
-      found: false,
-      message: 'Script do PrimeTrack não encontrado no HTML do site. Verifique se o snippet do pixel está dentro da tag <head> e se o site foi publicado.'
+      found: true,
+      message: `Pixel funcionando corretamente${buttonMsg}`
     });
   } catch (err) {
     console.error('Erro em /api/pixel/verify:', err);
     return res.json({
       success: true,
       found: false,
-      message: 'Script do PrimeTrack não encontrado no HTML do site. Verifique se o snippet do pixel está dentro da tag <head> e se o site foi publicado.'
+      message: 'Não foi possível conectar ao site para verificar o script. Verifique se a URL está correta e acessível publicamente.'
     });
   }
 });

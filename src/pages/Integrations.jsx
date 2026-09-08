@@ -587,7 +587,10 @@ export default function Integrations() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           url: testSiteUrl.trim(),
-          pixelId: pixelToTest?.pixelId
+          pixelId: pixelToTest?.pixelId || pixelToTest?.internalPixelId,
+          metaPixelId: pixelToTest?.metaPixelId,
+          icType: pixelToTest?.icType,
+          icValue: pixelToTest?.icValue
         })
       });
       const data = await res.json();
@@ -598,7 +601,7 @@ export default function Integrations() {
     } catch (err) {
       setPixelVerificationResult({
         found: false,
-        message: 'Script do PrimeTrack não encontrado no HTML do site. Verifique se o snippet do pixel está dentro da tag <head> e se o site foi publicado.'
+        message: 'Não foi possível conectar ao site para verificar o script. Verifique se o site está online e publicado.'
       });
     } finally {
       setIsVerifyingPixel(false);
@@ -2743,7 +2746,7 @@ export default function Integrations() {
               {pixelVerificationResult && !pixelVerificationResult.found && (
                 <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 space-y-2 animate-in fade-in duration-200">
                   <div className="flex items-center gap-2 font-bold text-xs text-amber-400">
-                    <span>⚠️ Script não encontrado no HTML do site.</span>
+                    <span>⚠️ {pixelVerificationResult.message || 'Script não encontrado no HTML do site.'}</span>
                   </div>
                   <p className="text-[11px] text-amber-300/80 leading-relaxed">
                     Verifique se o snippet do pixel está dentro da tag <code className="bg-black/40 px-1 py-0.5 rounded font-mono text-white">&lt;head&gt;</code> e se o site foi publicado.
