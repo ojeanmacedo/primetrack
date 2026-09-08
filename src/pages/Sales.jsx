@@ -15,8 +15,21 @@ export default function Sales() {
   const isAdmin = isMasterAdmin(user);
   const trialStatus = getTrialStatus(user);
   const [period, setPeriod] = useState('Hoje');
-  const [liveOrders, setLiveOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [liveOrders, setLiveOrders] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('primetrack_cached_orders');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        }
+      } catch (e) {}
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => liveOrders.length === 0);
 
   useEffect(() => {
     fetch('/api/orders')
@@ -24,6 +37,9 @@ export default function Sales() {
       .then(data => {
         if (Array.isArray(data)) {
           setLiveOrders(data);
+          try {
+            localStorage.setItem('primetrack_cached_orders', JSON.stringify(data));
+          } catch (e) {}
         }
       })
       .catch(err => console.error('Erro ao carregar vendas:', err))

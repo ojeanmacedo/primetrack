@@ -339,6 +339,7 @@ app.all([
     };
 
     db.append('orders', orderRecord);
+    ordersMemoryCache = { data: null, timestamp: 0 };
 
     try {
       await supabaseAdmin.from('orders').insert({
@@ -447,7 +448,14 @@ function sanitizeAttribution(rawAttr) {
   return attr;
 }
 
-async function getAllOrders() {
+let ordersMemoryCache = { data: null, timestamp: 0 };
+
+async function getAllOrders(forceFresh = false) {
+  const now = Date.now();
+  if (!forceFresh && ordersMemoryCache.data && (now - ordersMemoryCache.timestamp < 5000)) {
+    return ordersMemoryCache.data;
+  }
+
   let orders = [];
   try {
     const { data } = await supabaseAdmin
@@ -485,7 +493,9 @@ async function getAllOrders() {
     }));
   }
 
-  return orders.filter(o => !o.gateway || o.gateway.toLowerCase().includes('monster'));
+  const filtered = orders.filter(o => !o.gateway || o.gateway.toLowerCase().includes('monster'));
+  ordersMemoryCache = { data: filtered, timestamp: now };
+  return filtered;
 }
 
 async function getApprovedOrders() {
