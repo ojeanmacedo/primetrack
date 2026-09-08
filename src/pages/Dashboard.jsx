@@ -645,8 +645,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Row 1: 4 Cards Principais idênticos ao print da UTMify */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* Row 1: 3 Cards Principais */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         
         {/* Faturamento Líquido */}
         <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md">
@@ -667,19 +667,6 @@ export default function Dashboard() {
           </div>
           <div className="text-xl sm:text-2xl font-bold text-white mt-3 tracking-tight font-sans">
             R$ {realSpend.toFixed(2).replace('.', ',')}
-          </div>
-        </div>
-
-        {/* ROAS */}
-        <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md">
-          <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
-            <span>ROAS</span>
-            <span className="text-zinc-500 text-[11px]">ⓘ</span>
-          </div>
-          <div className={`text-xl sm:text-2xl font-bold mt-3 tracking-tight font-sans ${
-            Number(realRoas) <= 0.00 ? 'text-[#EF4444]' : 'text-white'
-          }`}>
-            {realRoas}
           </div>
         </div>
 
@@ -813,8 +800,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Mini Cards (Lado Direito - 7 colunas de 12 em 2 colunas) */}
-        <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Mini Cards (Lado Direito - 7 colunas de 12 em 3 colunas) */}
+        <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-3">
           
           <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
             <div className="flex items-center justify-between text-xs text-zinc-400">
@@ -845,16 +832,6 @@ export default function Dashboard() {
             </div>
             <div className="text-lg font-bold text-white mt-2">
               {realMargin}
-            </div>
-          </div>
-
-          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
-            <div className="flex items-center justify-between text-xs text-zinc-400">
-              <span>Custos de Produto</span>
-              <span className="text-zinc-500 text-[11px]">ⓘ</span>
-            </div>
-            <div className="text-lg font-bold text-white mt-2">
-              R$ 0,00
             </div>
           </div>
 
