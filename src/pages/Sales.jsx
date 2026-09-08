@@ -52,19 +52,17 @@ export default function Sales() {
     return () => clearInterval(interval);
   }, []);
 
-  // Deduplica pedidos por orderCode priorizando pedidos aprovados/pagos
+  // Mantém todas as vendas individuais válidas pelo ID do pedido
   const deduplicatedLiveOrders = React.useMemo(() => {
     const orderMap = new Map();
     for (const o of liveOrders) {
-      const code = o.orderCode || o.id;
-      if (!orderMap.has(code)) {
-        orderMap.set(code, o);
+      const key = o.id || o.orderCode;
+      if (!orderMap.has(key)) {
+        orderMap.set(key, o);
       } else {
-        const existing = orderMap.get(code);
+        const existing = orderMap.get(key);
         if (['approved', 'paid', 'pago'].includes(o.status)) {
-          orderMap.set(code, o);
-        } else if (!['approved', 'paid', 'pago'].includes(existing.status)) {
-          orderMap.set(code, o);
+          orderMap.set(key, o);
         }
       }
     }

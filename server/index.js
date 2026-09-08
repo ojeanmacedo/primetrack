@@ -524,25 +524,22 @@ async function getAllOrders(forceFresh = false) {
 
   const filtered = orders.filter(o => !o.gateway || o.gateway.toLowerCase().includes('monster'));
 
-  // Deduplica pedidos por orderCode para que cada venda apareça uma única vez
-  // com seu status real mais atualizado (priorizando approved)
+  // Mantém todas as vendas individuais pelo ID único do pedido
   const orderMap = new Map();
   for (const o of filtered) {
-    const code = o.orderCode || o.id;
-    if (!orderMap.has(code)) {
-      orderMap.set(code, o);
+    const key = o.id || o.orderCode;
+    if (!orderMap.has(key)) {
+      orderMap.set(key, o);
     } else {
-      const existing = orderMap.get(code);
+      const existing = orderMap.get(key);
       if (['approved', 'paid', 'pago'].includes(o.status)) {
-        orderMap.set(code, o);
-      } else if (!['approved', 'paid', 'pago'].includes(existing.status)) {
-        orderMap.set(code, o);
+        orderMap.set(key, o);
       }
     }
   }
-  const deduplicated = Array.from(orderMap.values());
-  ordersMemoryCache = { data: deduplicated, timestamp: now };
-  return deduplicated;
+  const allOrders = Array.from(orderMap.values());
+  ordersMemoryCache = { data: allOrders, timestamp: now };
+  return allOrders;
 }
 
 async function getApprovedOrders() {

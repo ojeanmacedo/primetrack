@@ -209,19 +209,17 @@ export default function Dashboard() {
     }
   }, [period]);
 
-  // Deduplica pedidos por orderCode priorizando vendas aprovadas
+  // Mantém todas as vendas individuais válidas pelo ID do pedido
   const deduplicatedOrders = useMemo(() => {
     const orderMap = new Map();
     for (const o of ordersList) {
-      const code = o.orderCode || o.id;
-      if (!orderMap.has(code)) {
-        orderMap.set(code, o);
+      const key = o.id || o.orderCode;
+      if (!orderMap.has(key)) {
+        orderMap.set(key, o);
       } else {
-        const existing = orderMap.get(code);
+        const existing = orderMap.get(key);
         if (['approved', 'paid', 'pago'].includes(o.status)) {
-          orderMap.set(code, o);
-        } else if (!['approved', 'paid', 'pago'].includes(existing.status)) {
-          orderMap.set(code, o);
+          orderMap.set(key, o);
         }
       }
     }
