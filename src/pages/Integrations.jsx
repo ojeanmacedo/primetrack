@@ -74,7 +74,7 @@ export default function Integrations() {
 
   const [openFaq, setOpenFaq] = useState(null);
 
-  // Webhook API Tokens State
+  // Webhook API Tokens State (Inicia 100% Zerado para novos cadastros)
   const [apiTokens, setApiTokens] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('primetrack_webhook_tokens');
@@ -82,18 +82,27 @@ export default function Integrations() {
         try { return JSON.parse(saved); } catch (e) {}
       }
     }
-    return [
-      {
-        id: 'tok_default',
-        name: 'monsterpay',
-        platform: 'monsterpay',
-        token: 'pt_0498ccaba8db58a695a9becacca8857591b1f24f8fbbb4f25',
-        status: 'Ativo',
-        lastUsed: '07/09 22:02',
-        createdAt: '30/08/2026'
-      }
-    ];
+    return [];
   });
+
+  // Pixel de Rastreio State (Inicia 100% Zerado para novos cadastros)
+  const [trackingPixels, setTrackingPixels] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('primetrack_pixels');
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) {}
+      }
+    }
+    return [];
+  });
+
+  const [showNewPixelModal, setShowNewPixelModal] = useState(false);
+  const [newPixelName, setNewPixelName] = useState('');
+  const [newPixelMetaId, setNewPixelMetaId] = useState('');
+  const [newPixelCapiToken, setNewPixelCapiToken] = useState('');
+  const [pixelToDelete, setPixelToDelete] = useState(null);
+  const [pixelSuccessMsg, setPixelSuccessMsg] = useState(null);
+  const [accountSwitchToast, setAccountSwitchToast] = useState(null);
 
   // Modal Conectar Plataforma Flow States (Monsterpay)
   const [showConnectPlatformModal, setShowConnectPlatformModal] = useState(false);
@@ -141,13 +150,28 @@ export default function Integrations() {
     }
     const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          if (trialStatus.isTrial) {
+            let foundActive = false;
+            return parsed.map(acc => {
+              if (acc.sync && !foundActive) {
+                foundActive = true;
+                return acc;
+              }
+              return { ...acc, sync: false };
+            });
+          }
+          return parsed;
+        }
+      } catch (e) {}
     }
     return [
       { name: 'CA01', id: '1892117896682979', bm: 'Marinhos Dog', currency: 'USD (→ BRL @ 5,12)', status: 'Ativa', sync: true },
       { name: 'Rafaelli Ribeiro', id: '988187735672553', bm: '—', currency: 'BRL', status: 'Ativa', sync: false },
       { name: 'CA03', id: '1095793299643643', bm: 'DIGITAL JM SOLUCOES LTDA', currency: 'BRL', status: 'Ativa', sync: false },
-      { name: 'CA02 JEFFREY', id: '1101817232408751', bm: 'DIGITAL MEI', currency: 'USD (→ BRL @ 5,12)', status: 'Ativa', sync: true },
+      { name: 'CA02 JEFFREY', id: '1101817232408751', bm: 'DIGITAL MEI', currency: 'USD (→ BRL @ 5,12)', status: 'Ativa', sync: false },
       { name: 'Angel Kerry', id: '1387392810834788', bm: '—', currency: 'USD (→ BRL @ 5,12)', status: 'Ativa', sync: false },
       { name: 'CA01 JEFFREY', id: '1588922422538250', bm: 'DIGITAL MEI', currency: 'USD (→ BRL @ 5,12)', status: 'Ativa', sync: false },
       { name: 'CA03 JEFFREY', id: '2013649985959956', bm: 'DIGITAL MEI', currency: 'USD (→ BRL @ 5,12)', status: 'Ativa', sync: false },
@@ -369,20 +393,86 @@ export default function Integrations() {
     const target = adAccounts.find(a => a.id === accountId);
     if (!target) return;
 
-    // Se estiver tentando ativar e for cliente em Trial
-    if (!target.sync && trialStatus.isTrial) {
-      const activeCount = adAccounts.filter(a => a.sync).length;
-      if (activeCount >= 1) {
-        setTrialLimitModal({
-          title: 'Limite do Plano Free Atingido',
-          message: 'No período de teste de 7 dias gratuito você pode ativar no máximo 1 conta de anúncio. Faça o upgrade para o Plano Pro para conectar contas ilimitadas.',
-          ctaText: 'Ver Planos Pro'
-        });
-        return;
+    let updated;
+    // Se o usuário está desativando a conta
+    if (target.sync) {
+      updated = adAccounts.map(a => a.id === accountId ? { ...a, sync: false } : a);
+      setAccountSwitchToast(`Conta "${target.name}" desativada. Nenhuma conta ativa no momento.`);
+    } else {
+      // Se está ativando
+      if (trialStatus.isTrial) {
+        // No Plano Free de 7 dias, apenas 1 conta pode ficar ativa por vez!
+        // Desativa todas as outras e ativa esta
+        updated = adAccounts.map(a => ({
+          ...a,
+          sync: a.id === accountId
+        }));
+        setAccountSwitchToast(`Conta "${target.name}" ativada com sucesso! (No Plano Free de 7 dias, apenas 1 conta pode ficar ativa simultaneamente)`);
+      } else {
+        updated = adAccounts.map(a => a.id === accountId ? { ...a, sync: true } : a);
+        setAccountSwitchToast(`Conta "${target.name}" ativada com sucesso.`);
       }
     }
 
-    setAdAccounts(prev => prev.map(a => a.id === accountId ? { ...a, sync: !a.sync } : a));
+    setAdAccounts(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('primetrack_ad_accounts', JSON.stringify(updated));
+    }
+    window.dispatchEvent(new Event('primetrack_profile_sync'));
+    setTimeout(() => setAccountSwitchToast(null), 4500);
+  };
+
+  const handleSavePixel = (e) => {
+    e.preventDefault();
+    if (!newPixelName.trim() || !newPixelMetaId.trim()) return;
+
+    if (trialStatus.isTrial && trackingPixels.length >= 1) {
+      setTrialLimitModal({
+        title: 'Limite do Plano Free Atingido',
+        message: 'No período de teste de 7 dias gratuito você pode criar no máximo 1 pixel de rastreio. Faça o upgrade para o Plano Pro para criar múltiplos pixels ilimitados.',
+        ctaText: 'Ver Planos Pro'
+      });
+      return;
+    }
+
+    const newPx = {
+      id: `px_${Date.now()}`,
+      name: newPixelName.trim(),
+      pixelId: newPixelMetaId.trim(),
+      capiToken: newPixelCapiToken.trim() ? (newPixelCapiToken.slice(0, 6) + '••••' + newPixelCapiToken.slice(-4)) : '••••••9y2D2D',
+      icRule: 'css .btn-checkout',
+      status: 'Ativo',
+      createdAt: new Date().toLocaleDateString('pt-BR')
+    };
+
+    const updated = [newPx, ...trackingPixels];
+    setTrackingPixels(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('primetrack_pixels', JSON.stringify(updated));
+    }
+    setShowNewPixelModal(false);
+    setNewPixelName('');
+    setNewPixelMetaId('');
+    setNewPixelCapiToken('');
+    setPixelSuccessMsg(`Pixel "${newPx.name}" configurado com sucesso!`);
+    setTimeout(() => setPixelSuccessMsg(null), 3500);
+  };
+
+  const handleTogglePixelStatus = (pxId) => {
+    const updated = trackingPixels.map(px => px.id === pxId ? { ...px, status: px.status === 'Ativo' ? 'Inativo' : 'Ativo' } : px);
+    setTrackingPixels(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('primetrack_pixels', JSON.stringify(updated));
+    }
+  };
+
+  const handleDeletePixel = (pxId) => {
+    const updated = trackingPixels.filter(px => px.id !== pxId);
+    setTrackingPixels(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('primetrack_pixels', JSON.stringify(updated));
+    }
+    setPixelToDelete(null);
   };
 
   const [connectionSuccessMsg, setConnectionSuccessMsg] = useState(null);
@@ -565,7 +655,7 @@ export default function Integrations() {
           <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl p-5 shadow-xl">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
               <h3 className="font-bold text-white text-sm">
-                Perfil Conectados (2)
+                Perfil Conectados ({connectedProfiles.length})
               </h3>
 
               <div className="flex items-center gap-2">
@@ -589,6 +679,14 @@ export default function Integrations() {
                 </button>
               </div>
             </div>
+
+            {/* Toast de Alternância de Conta */}
+            {accountSwitchToast && (
+              <div className="mb-4 p-3.5 rounded-xl bg-blue-500/15 border border-blue-500/40 text-blue-300 font-bold text-xs flex items-center gap-2.5 animate-in fade-in duration-200">
+                <CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0" />
+                <span>{accountSwitchToast}</span>
+              </div>
+            )}
 
             {/* Toast de Desconexão */}
             {disconnectToast && (
@@ -690,7 +788,14 @@ export default function Integrations() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#13233E]/60 font-sans">
-                  {adAccounts.map((acc, idx) => (
+                  {adAccounts.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-zinc-500 font-sans text-xs">
+                        Nenhuma conta de anúncio conectada. Clique em "Adicionar Facebook" acima para conectar seu perfil.
+                      </td>
+                    </tr>
+                  ) : (
+                    adAccounts.map((acc, idx) => (
                     <tr key={idx} className="hover:bg-white/[0.02] transition-colors">
                       <td className="py-3.5 px-4 font-bold text-white">
                         {acc.name}
@@ -729,7 +834,7 @@ export default function Integrations() {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                  )))}
                 </tbody>
               </table>
             </div>
@@ -750,13 +855,26 @@ export default function Integrations() {
       {activeTab === 'Pixel de Rastreio' && (
         <div className="space-y-6">
           
-          {/* Pixels de Rastreio (1/1) Card */}
+          {/* Success toast if any */}
+          {pixelSuccessMsg && (
+            <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center gap-2.5 animate-in fade-in duration-200">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>{pixelSuccessMsg}</span>
+            </div>
+          )}
+
+          {/* Pixels de Rastreio Card */}
           <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl p-6 shadow-xl space-y-6">
             
             {/* Header row */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <h3 className="font-bold text-white text-sm">
-                Pixels de Rastreio (1/1)
+              <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                <span>Pixels de Rastreio ({trackingPixels.length}/{trialStatus.isTrial ? 1 : '∞'})</span>
+                {trialStatus.isTrial && (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/20 font-bold">
+                    Máx 1 no Trial
+                  </span>
+                )}
               </h3>
 
               <div className="flex items-center gap-2">
@@ -766,7 +884,7 @@ export default function Integrations() {
                 </button>
                 <button 
                   onClick={() => {
-                    if (trialStatus.isTrial) {
+                    if (trialStatus.isTrial && trackingPixels.length >= 1) {
                       setTrialLimitModal({
                         title: 'Limite do Plano Free Atingido',
                         message: 'No período de teste de 7 dias gratuito você pode criar no máximo 1 pixel de rastreio. Faça o upgrade para o Plano Pro para criar múltiplos pixels ilimitados.',
@@ -774,90 +892,122 @@ export default function Integrations() {
                       });
                       return;
                     }
-                    navigate('/planos');
+                    setShowNewPixelModal(true);
                   }}
-                  className="px-3 py-1.5 rounded-lg bg-[#070D1A] border border-white/10 hover:border-brand text-zinc-300 text-xs font-medium transition-colors cursor-pointer"
+                  className="px-3 py-1.5 rounded-lg bg-[#1A6DFF] hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-blue-500/20 transition-all cursor-pointer"
                 >
-                  Upgrade para mais
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Criar Pixel</span>
                 </button>
               </div>
             </div>
 
-            {/* Pixel Details Bar */}
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-[#13233E]">
-                <div className="flex items-center gap-3">
-                  <span className="px-2.5 py-0.5 rounded-full bg-[#1A6DFF] text-white font-mono text-[10px] font-bold">
-                    Ativo
-                  </span>
-                  <span className="font-bold text-white text-sm">hot</span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button className="px-3 py-1 rounded-lg bg-[#070D1A] hover:bg-[#12223D] border border-white/10 text-zinc-300 text-xs transition-colors">
-                    Testar
-                  </button>
-                  <button className="px-3 py-1 rounded-lg bg-[#070D1A] hover:bg-[#12223D] border border-white/10 text-zinc-300 text-xs transition-colors">
-                    Editar
-                  </button>
-                  <button className="px-3 py-1 rounded-lg bg-[#070D1A] hover:bg-[#12223D] border border-white/10 text-zinc-300 text-xs transition-colors">
-                    Desativar
-                  </button>
-                  <button className="px-3 py-1 rounded-lg bg-[#070D1A] hover:bg-red-950/30 border border-white/10 text-red-400 text-xs transition-colors">
-                    Excluir
-                  </button>
-                </div>
+            {/* If zero pixels: clean empty state */}
+            {trackingPixels.length === 0 ? (
+              <div className="p-10 text-center rounded-xl bg-[#070D1A] border border-dashed border-[#13233E] space-y-3">
+                <Radio className="w-8 h-8 text-zinc-600 mx-auto" />
+                <div className="font-bold text-white text-xs">Nenhum pixel de rastreio configurado ainda</div>
+                <p className="text-zinc-500 text-[11px] max-w-md mx-auto">
+                  Crie seu pixel da PrimeTrack para capturar 100% dos dados, driblar bloqueadores e atingir Nota de Match 9.1+ no CAPI da Meta.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowNewPixelModal(true)}
+                  className="mt-2 px-4 py-2 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 text-white font-bold text-xs inline-flex items-center gap-2 shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Criar Primeiro Pixel</span>
+                </button>
               </div>
+            ) : (
+              <div className="space-y-6">
+                {trackingPixels.map((px) => {
+                  const pxScript = `<script> window.pixelId = "${px.pixelId}"; var a = document.createElement("script"); a.setAttribute("async", ""); a.setAttribute("defer", ""); a.setAttribute("src", "https://primetrack.com.br/pixel.js"); document.head.appendChild(a); </script>`;
+                  return (
+                    <div key={px.id} className="space-y-4 pb-6 border-b border-[#13233E] last:border-b-0 last:pb-0">
+                      <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-[#13233E]/60">
+                        <div className="flex items-center gap-3">
+                          <span className={`px-2.5 py-0.5 rounded-full text-white font-mono text-[10px] font-bold ${px.status === 'Ativo' ? 'bg-[#1A6DFF]' : 'bg-zinc-700'}`}>
+                            {px.status}
+                          </span>
+                          <span className="font-bold text-white text-sm">{px.name}</span>
+                        </div>
 
-              {/* Grid 4 Colunas com infos */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-                <div>
-                  <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1">Pixel ID</div>
-                  <div className="font-mono text-zinc-300">1056786567239394</div>
-                </div>
+                        <div className="flex items-center gap-2">
+                          <button 
+                            type="button"
+                            onClick={() => alert(`Enviando evento de teste para o pixel ${px.pixelId}... OK!`)}
+                            className="px-3 py-1 rounded-lg bg-[#070D1A] hover:bg-[#12223D] border border-white/10 text-zinc-300 text-xs transition-colors cursor-pointer"
+                          >
+                            Testar
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={() => handleTogglePixelStatus(px.id)}
+                            className="px-3 py-1 rounded-lg bg-[#070D1A] hover:bg-[#12223D] border border-white/10 text-zinc-300 text-xs transition-colors cursor-pointer"
+                          >
+                            {px.status === 'Ativo' ? 'Desativar' : 'Ativar'}
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={() => setPixelToDelete(px)}
+                            className="px-3 py-1 rounded-lg bg-[#070D1A] hover:bg-red-950/30 border border-white/10 text-red-400 text-xs transition-colors cursor-pointer"
+                          >
+                            Excluir
+                          </button>
+                        </div>
+                      </div>
 
-                <div>
-                  <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1">Token CAPI</div>
-                  <div className="font-mono text-zinc-300">••••••9y2D2D</div>
-                </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                        <div>
+                          <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1">Pixel ID</div>
+                          <div className="font-mono text-zinc-300 truncate">{px.pixelId}</div>
+                        </div>
 
-                <div>
-                  <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1">Regra de IC</div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="px-1.5 py-0.5 rounded bg-[#1A6DFF] text-white font-mono text-[10px] font-bold">css</span>
-                    <span className="font-mono text-zinc-300">.btn-checkout</span>
-                  </div>
-                </div>
+                        <div>
+                          <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1">Token CAPI</div>
+                          <div className="font-mono text-zinc-300 truncate">{px.capiToken || '••••••9y2D2D'}</div>
+                        </div>
 
-                <div>
-                  <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1">Criado em</div>
-                  <div className="font-mono text-zinc-300">05/09/2026</div>
-                </div>
+                        <div>
+                          <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1">Regra de IC</div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="px-1.5 py-0.5 rounded bg-[#1A6DFF] text-white font-mono text-[10px] font-bold">css</span>
+                            <span className="font-mono text-zinc-300">{px.icRule || '.btn-checkout'}</span>
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1">Criado em</div>
+                          <div className="font-mono text-zinc-300">{px.createdAt}</div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5 pt-2">
+                        <div className="text-[11px] text-zinc-400 font-sans">
+                          Instale no &lt;head&gt; do seu site:
+                        </div>
+                        <div className="relative bg-[#070D1A] border border-[#13233E] rounded-xl p-3.5 font-mono text-[11px] text-zinc-300 pr-20 overflow-x-auto">
+                          <code>{pxScript}</code>
+                          <button
+                            onClick={() => copyToClipboard(pxScript, 'pixel')}
+                            className="absolute right-2.5 top-2.5 px-3 py-1 rounded-lg bg-[#0A1426] hover:bg-[#12223D] border border-white/10 text-white text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                          >
+                            {copiedPixel ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                            <span>{copiedPixel ? 'Copiado!' : 'Copiar'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
+            )}
 
-              {/* Instale no <head> Snippet */}
-              <div className="space-y-1.5 pt-2">
-                <div className="text-[11px] text-zinc-400 font-sans">
-                  Instale no &lt;head&gt; do seu site:
-                </div>
-                <div className="relative bg-[#070D1A] border border-[#13233E] rounded-xl p-3.5 font-mono text-[11px] text-zinc-300 pr-20 overflow-x-auto">
-                  <code>{pixelScript}</code>
-                  <button
-                    onClick={() => copyToClipboard(pixelScript, 'pixel')}
-                    className="absolute right-2.5 top-2.5 px-3 py-1 rounded-lg bg-[#0A1426] hover:bg-[#12223D] border border-white/10 text-white text-xs font-bold transition-colors flex items-center gap-1"
-                  >
-                    {copiedPixel ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                    <span>{copiedPixel ? 'Copiado!' : 'Copiar'}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Dica Box */}
-              <div className="bg-[#070D1A] border border-[#13233E] rounded-xl p-3 text-xs text-zinc-400">
-                <strong>Dica:</strong> nosso pixel já captura automaticamente os parâmetros da URL (UTMs, fbclid, etc.) e repassa para todos os links da página, inclusive o checkout. Não precisa de script extra.
-              </div>
+            {/* Dica Box */}
+            <div className="bg-[#070D1A] border border-[#13233E] rounded-xl p-3 text-xs text-zinc-400">
+              <strong>Dica:</strong> nosso pixel já captura automaticamente os parâmetros da URL (UTMs, fbclid, etc.) e repassa para todos os links da página, inclusive o checkout. Não precisa de script extra.
             </div>
-
           </div>
 
           {/* Big Blue Card: Nosso Pixel entrega 9.1/10 de Event Match Quality */}
@@ -1132,8 +1282,13 @@ export default function Integrations() {
           {/* Tokens de API Table */}
           <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl overflow-hidden shadow-xl">
             <div className="p-4 border-b border-[#13233E] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <h3 className="font-bold text-white text-sm">
-                Tokens de API ({apiTokens.length}/2)
+              <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                <span>Tokens de API ({apiTokens.length}/{trialStatus.isTrial ? 1 : 2})</span>
+                {trialStatus.isTrial && (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/20 font-bold">
+                    Máx 1 no Trial
+                  </span>
+                )}
               </h3>
 
               <div className="flex items-center gap-2">
@@ -1179,7 +1334,19 @@ export default function Integrations() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#13233E]/60 font-sans">
-                  {apiTokens.map((tok) => (
+                  {apiTokens.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-10 px-4 text-center">
+                        <div className="text-zinc-400 font-bold text-xs">
+                          Nenhum token de API criado ainda
+                        </div>
+                        <div className="text-[11px] text-zinc-500 mt-1">
+                          Clique em <span className="text-[#5C9BFF] font-semibold">"Conectar Plataforma"</span> ou <span className="text-[#5C9BFF] font-semibold">"Token Padrão"</span> acima para gerar seu primeiro token.
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    apiTokens.map((tok) => (
                     <tr key={tok.id} className="hover:bg-white/[0.02] transition-colors">
                       <td className="py-4 px-4 font-bold text-white">
                         <span className="px-2.5 py-0.5 rounded-full bg-[#1A6DFF] text-white font-mono text-[10px] font-bold">
@@ -1209,7 +1376,7 @@ export default function Integrations() {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                  )))}
                 </tbody>
               </table>
             </div>
@@ -1579,7 +1746,7 @@ export default function Integrations() {
 
                       const newAccs = [
                         { name: 'CA01', id: '1892117896682979', bm: 'DIGITAL JM SOLUCOES LTDA', currency: 'BRL', status: 'Ativa', sync: true },
-                        { name: 'CA02 JEFFREY', id: '1101817232408751', bm: 'DIGITAL JM SOLUCOES LTDA', currency: 'BRL', status: 'Ativa', sync: true }
+                        { name: 'CA02 JEFFREY', id: '1101817232408751', bm: 'DIGITAL JM SOLUCOES LTDA', currency: 'BRL', status: 'Ativa', sync: trialStatus.isTrial ? false : true }
                       ];
                       setAdAccounts(newAccs);
                       localStorage.setItem('primetrack_ad_accounts', JSON.stringify(newAccs));
@@ -1967,6 +2134,142 @@ export default function Integrations() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL CRIAR NOVO PIXEL DE RASTREIO                                        */}
+      {/* ========================================================================= */}
+      {showNewPixelModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => setShowNewPixelModal(false)}
+        >
+          <div 
+            className="bg-[#0C172B] border border-[#1E3254] rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-[#1E3254]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-[#1A6DFF]/15 border border-[#1A6DFF]/30 flex items-center justify-center text-[#5C9BFF]">
+                  <Radio className="w-4 h-4" />
+                </div>
+                <h3 className="text-sm font-bold text-white">
+                  Criar Pixel de Rastreio
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNewPixelModal(false)}
+                className="text-zinc-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSavePixel} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-zinc-400 font-medium mb-1.5">
+                  Nome do Pixel (Identificação interna)
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: Hotmart, Meu Checkout, Pixel Principal"
+                  value={newPixelName}
+                  onChange={(e) => setNewPixelName(e.target.value)}
+                  className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-zinc-400 font-medium mb-1.5">
+                  Pixel ID (Facebook / Meta Ads)
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ex: 1056786567239394"
+                  value={newPixelMetaId}
+                  onChange={(e) => setNewPixelMetaId(e.target.value)}
+                  className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-zinc-400 font-medium mb-1.5 flex items-center justify-between">
+                  <span>Token de Acesso CAPI</span>
+                  <span className="text-[10px] text-zinc-500 font-mono">Opcional</span>
+                </label>
+                <input
+                  type="password"
+                  placeholder="EAAB... (Token do Gerenciador de Eventos da Meta)"
+                  value={newPixelCapiToken}
+                  onChange={(e) => setNewPixelCapiToken(e.target.value)}
+                  className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowNewPixelModal(false)}
+                  className="px-4 py-2 rounded-xl bg-[#070D1A] hover:bg-white/5 border border-white/10 text-zinc-300 font-semibold text-xs transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+                >
+                  Criar Pixel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO DE PIXEL                                 */}
+      {/* ========================================================================= */}
+      {pixelToDelete && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => setPixelToDelete(null)}
+        >
+          <div 
+            className="bg-[#0C172B] border border-[#1E3254] rounded-2xl max-w-sm w-full p-6 shadow-2xl relative text-center space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-12 rounded-full bg-[#10203D] border border-[#1E3254] flex items-center justify-center mx-auto text-[#2B66E3]">
+              <AlertTriangle className="w-6 h-6 stroke-[2]" />
+            </div>
+
+            <h3 className="text-base font-bold text-white tracking-tight">
+              Excluir este pixel?
+            </h3>
+            <p className="text-xs text-zinc-400">
+              O pixel <strong className="text-white">"{pixelToDelete.name}"</strong> será removido e deixará de receber eventos do site.
+            </p>
+
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setPixelToDelete(null)}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-[#070D1A] hover:bg-white/5 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDeletePixel(pixelToDelete.id)}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 text-xs font-bold text-white shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+              >
+                Confirmar
+              </button>
+            </div>
           </div>
         </div>
       )}

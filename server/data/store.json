@@ -24,8 +24,8 @@
       "cpc": "0.00",
       "cpm": "0.00",
       "ctr": "0.00",
-      "sales": 0,
-      "revenue": "0.00",
+      "sales": 1,
+      "revenue": 97,
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
@@ -1626,7 +1626,47 @@
   ],
   "sessions": [],
   "events": [],
-  "orders": [],
+  "orders": [
+    {
+      "id": "ord_1788830382524",
+      "orderCode": "test_123",
+      "gateway": "Custom Webhook",
+      "productName": "Produto Digital",
+      "status": "approved",
+      "paymentMethod": "pix",
+      "amount": 97,
+      "customer": {
+        "name": "Cliente",
+        "email": "teste@email.com",
+        "phone": "",
+        "document": "",
+        "country": "br",
+        "city": "",
+        "state": "",
+        "zip": ""
+      },
+      "attribution": {
+        "campaign": "campanha_direta",
+        "adset": "conjunto_padrao",
+        "ad": "criativo_padrao",
+        "source": "facebook",
+        "term": "",
+        "matchType": "direct_click",
+        "fbp": "fb.1.1788830382517.378083",
+        "sessionId": null,
+        "recoveredFromBio": false
+      },
+      "emqScore": 5.6,
+      "capiSent": true,
+      "capiResponse": {
+        "events_received": 1,
+        "messages": [],
+        "fbtrace_id": "LT_4UFHDRCN07",
+        "test_run": true
+      },
+      "createdAt": "2026-09-08T01:19:42.524Z"
+    }
+  ],
   "rules": [],
   "facebook_connections": [
     {

@@ -33,7 +33,7 @@ export default function Dashboard({ onSimulateSale }) {
   ];
 
   const [adAccountsList, setAdAccountsList] = useState(() => {
-    if (!isAdmin || isDisconnected) return [];
+    if (isDisconnected) return [];
     const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
     if (saved) {
       try {
@@ -41,14 +41,15 @@ export default function Dashboard({ onSimulateSale }) {
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       } catch (e) {}
     }
-    return defaultAccountsData;
+    if (isAdmin) return defaultAccountsData;
+    return [];
   });
 
   const [accountFilter, setAccountFilter] = useState('Todas');
 
   const [campaigns, setCampaigns] = useState(() => {
-    // Apenas a conta proprietária do admin tem acesso aos dados demo de TESTE MI
-    if (!isAdmin || isDisconnected) return [];
+    if (isDisconnected) return [];
+    if (!isAdmin) return [];
     return [
       {
         id: "52604661655655",
@@ -62,9 +63,41 @@ export default function Dashboard({ onSimulateSale }) {
   });
 
   const loadDashboardData = () => {
-    if (!isAdmin || localStorage.getItem('primetrack_meta_disconnected') === 'true') {
+    if (localStorage.getItem('primetrack_meta_disconnected') === 'true') {
       setCampaigns([]);
       setAdAccountsList([]);
+      return;
+    }
+
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setAdAccountsList(parsed);
+          const active = parsed.find(a => a.sync);
+          if (!active) {
+            setCampaigns([]);
+          } else if (isAdmin) {
+            setCampaigns([
+              {
+                id: "52604661655655",
+                name: "TESTE MI",
+                status: true,
+                spend: "123.41",
+                sales: 15,
+                revenue: "139.67"
+              }
+            ]);
+          }
+        } else {
+          setAdAccountsList([]);
+          setCampaigns([]);
+        }
+      } catch (e) {}
+    } else if (!isAdmin) {
+      setAdAccountsList([]);
+      setCampaigns([]);
       return;
     }
 
@@ -72,8 +105,10 @@ export default function Dashboard({ onSimulateSale }) {
       .then(r => r.json())
       .then(data => {
         if (data.connections && data.connections.length === 0) {
-          setCampaigns([]);
-          setAdAccountsList([]);
+          if (!isAdmin) {
+            setCampaigns([]);
+            setAdAccountsList([]);
+          }
         } else if (data.adAccounts && data.adAccounts.length > 0) {
           setAdAccountsList(data.adAccounts);
         }
@@ -278,10 +313,14 @@ export default function Dashboard({ onSimulateSale }) {
     ]
   };
 
-  const isProfileDisconnected = (!isAdmin && campaigns.length === 0) || (typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true') || campaigns.length === 0;
+  const activeAdAccount = adAccountsList.find(a => a.sync);
+  const isNoAccountActive = adAccountsList.length > 0 && !activeAdAccount;
+  const isProfileDisconnected = (!isAdmin && adAccountsList.length === 0) || 
+                                (typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true') || 
+                                isNoAccountActive;
 
-  // Se a conta selecionada for uma conta vazia diferente de CA01, mostra dados zerados para ela
-  const isSelectedAccountEmpty = accountFilter !== 'Todas' && accountFilter !== 'CA01';
+  // Se o filtro selecionado for diferente da conta ativa ou inativo
+  const isSelectedAccountEmpty = accountFilter !== 'Todas' && (!activeAdAccount || accountFilter !== activeAdAccount.name);
 
   const currentMetrics = isProfileDisconnected || isSelectedAccountEmpty
     ? emptyMetrics 
@@ -289,6 +328,44 @@ export default function Dashboard({ onSimulateSale }) {
 
   return (
     <div className="space-y-5 pb-16">
+
+      {/* Alerta de Nenhuma Conta Ativa */}
+      {isNoAccountActive && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
+          <div className="flex items-center gap-2.5">
+            <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
+            <div>
+              <span className="font-bold text-white">Nenhuma conta de anúncio ativa no momento.</span>
+              <span className="text-zinc-400 ml-1.5">No Plano Free (7 dias), você pode ativar 1 conta de anúncio simultaneamente para carregar métricas e campanhas.</span>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/integracoes')}
+            className="px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-bold transition-colors cursor-pointer shrink-0 self-start sm:self-auto"
+          >
+            Ativar Conta em Integrações
+          </button>
+        </div>
+      )}
+
+      {/* Alerta de Perfil Desconectado para novos clientes */}
+      {!isAdmin && adAccountsList.length === 0 && (
+        <div className="p-4 rounded-2xl bg-[#1A6DFF]/10 border border-[#1A6DFF]/30 text-[#5C9BFF] text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
+          <div className="flex items-center gap-2.5">
+            <AlertCircle className="w-5 h-5 text-brand shrink-0" />
+            <div>
+              <span className="font-bold text-white">Nenhum perfil do Facebook conectado ainda.</span>
+              <span className="text-zinc-400 ml-1.5">Conecte seu perfil em Integrações para puxar suas contas e ativar sua conta gratuita.</span>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/integracoes')}
+            className="px-3.5 py-1.5 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 text-white font-bold transition-colors cursor-pointer shrink-0 self-start sm:self-auto shadow-md shadow-blue-500/20"
+          >
+            Conectar Facebook
+          </button>
+        </div>
+      )}
       
       {/* Top Controls Header */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -296,6 +373,12 @@ export default function Dashboard({ onSimulateSale }) {
           <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
             Dashboard Principal
           </h1>
+          {activeAdAccount && (
+            <span className="px-2.5 py-0.5 rounded-full bg-[#1A6DFF]/15 border border-[#1A6DFF]/30 text-[#5C9BFF] text-[11px] font-mono font-bold flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span>Conta Ativa: {activeAdAccount.name}</span>
+            </span>
+          )}
         </div>
 
         {/* Filters and Actions */}

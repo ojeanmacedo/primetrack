@@ -211,6 +211,10 @@ export async function loginWithGoogle(email, name = '') {
       localStorage.setItem('primetrack_meta_disconnected', 'true');
       localStorage.removeItem('primetrack_connected_profiles');
       localStorage.removeItem('primetrack_ad_accounts');
+      if (data.isNew) {
+        localStorage.removeItem('primetrack_webhook_tokens');
+        localStorage.removeItem('primetrack_pixels');
+      }
 
       localStorage.setItem(`primetrack_usr_${cleanEmail}`, JSON.stringify(clientUser));
       setCurrentUser(clientUser);
@@ -312,6 +316,10 @@ export async function loginWithGoogle(email, name = '') {
   localStorage.setItem('primetrack_meta_disconnected', 'true');
   localStorage.removeItem('primetrack_connected_profiles');
   localStorage.removeItem('primetrack_ad_accounts');
+  if (isNew) {
+    localStorage.removeItem('primetrack_webhook_tokens');
+    localStorage.removeItem('primetrack_pixels');
+  }
 
   localStorage.setItem(`primetrack_usr_${cleanEmail}`, JSON.stringify(clientUser));
   setCurrentUser(clientUser);

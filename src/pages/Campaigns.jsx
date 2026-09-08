@@ -99,8 +99,16 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   });
 
   const [adAccountsList, setAdAccountsList] = useState(() => {
-    if (!isAdmin || isDisconnected) return [];
-    return defaultAccountsData;
+    if (isDisconnected) return [];
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    if (isAdmin) return defaultAccountsData;
+    return [];
   });
   const [syncing, setSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState('Agora');
@@ -213,7 +221,31 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   }, [periodFilter]);
 
   const loadData = () => {
-    if (!isAdmin || localStorage.getItem('primetrack_meta_disconnected') === 'true') {
+    if (localStorage.getItem('primetrack_meta_disconnected') === 'true') {
+      setCampaignsList([]);
+      setAdAccountsList([]);
+      return;
+    }
+
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setAdAccountsList(parsed);
+          const active = parsed.find(a => a.sync);
+          if (!active) {
+            setCampaignsList([]);
+            return;
+          } else if (isAdmin) {
+            setCampaignsList(defaultCampaignData);
+          }
+        } else {
+          setAdAccountsList([]);
+          setCampaignsList([]);
+        }
+      } catch (e) {}
+    } else if (!isAdmin) {
       setCampaignsList([]);
       setAdAccountsList([]);
       return;
@@ -242,8 +274,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       .then(r => r.json())
       .then(data => {
         if (data.connections && data.connections.length === 0) {
-          setCampaignsList([]);
-          setAdAccountsList([]);
+          if (!isAdmin) {
+            setCampaignsList([]);
+            setAdAccountsList([]);
+          }
         } else if (data.adAccounts && data.adAccounts.length > 0) {
           setAdAccountsList(data.adAccounts);
         }
@@ -338,10 +372,16 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setSavingEdit(false);
   };
 
+  const activeAdAccount = adAccountsList.find(a => a.sync);
+  const isNoAccountActive = adAccountsList.length > 0 && !activeAdAccount;
+
   // Filtragem
-  const filteredCampaigns = campaignsList.filter(c => {
+  const filteredCampaigns = isNoAccountActive ? [] : campaignsList.filter(c => {
     if (statusFilter === 'Ativo' && !c.status) return false;
     if (statusFilter === 'Pausado' && c.status) return false;
+    if (activeAdAccount && c.accountName && c.accountName !== activeAdAccount.name && c.adAccountId !== activeAdAccount.id) {
+      return false;
+    }
     if (accountFilter !== 'Todas' && c.accountName !== accountFilter && c.adAccountId !== accountFilter) return false;
     return true;
   });
@@ -358,6 +398,25 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   return (
     <div className="space-y-5 pb-16">
+
+      {/* Alerta de Nenhuma Conta Ativa */}
+      {isNoAccountActive && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
+          <div className="flex items-center gap-2.5">
+            <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0" />
+            <div>
+              <span className="font-bold text-white">Nenhuma conta de anúncio ativa.</span>
+              <span className="text-zinc-400 ml-1.5">No Plano Free (7 dias), você pode manter 1 conta de anúncio ativa simultaneamente. Ative sua conta em Integrações.</span>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/integracoes')}
+            className="px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-bold transition-colors cursor-pointer shrink-0 self-start sm:self-auto"
+          >
+            Ativar Conta em Integrações
+          </button>
+        </div>
+      )}
       
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -365,8 +424,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
             Campanhas
           </h1>
+          {activeAdAccount && (
+            <span className="px-2.5 py-0.5 rounded-full bg-[#1A6DFF]/15 border border-[#1A6DFF]/30 text-[#5C9BFF] text-[11px] font-mono font-bold flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span>Conta: {activeAdAccount.name}</span>
+            </span>
+          )}
           <span className="px-2 py-0.5 rounded-full bg-[#1A6DFF]/20 border border-[#1A6DFF]/40 text-[#5C9BFF] font-mono text-[11px] font-bold">
-            {campaignsList.filter(c => c.status).length} Ativas
+            {filteredCampaigns.filter(c => c.status).length} Ativas
           </span>
           <button className="text-zinc-400 hover:text-white transition-colors ml-1">
             <Eye className="w-4 h-4" />
