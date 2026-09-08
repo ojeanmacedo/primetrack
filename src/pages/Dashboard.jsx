@@ -10,6 +10,7 @@ import {
   Palette, 
   ChevronDown, 
   AlertTriangle, 
+  AlertCircle,
   ArrowRight, 
   TrendingUp, 
   Percent, 
