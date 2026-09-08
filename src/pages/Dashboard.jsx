@@ -1152,27 +1152,27 @@ export default function Dashboard() {
                 {/* Linha magenta horizontal de saída no final */}
                 <line x1="920" y1={centerY} x2="1000" y2={centerY} stroke="#E11D48" strokeWidth="2.5" strokeLinecap="round" />
 
-                {/* Porcentagens no Centro da Onda */}
-                <text x="100" y="70" textAnchor="middle" fill="#FFFFFF" fontWeight="bold" fontSize="16" fontFamily="sans-serif">
+                {/* Porcentagens no Centro da Onda (todas alinhadas na mesma linha horizontal y=70) */}
+                <text x="100" y="70" textAnchor="middle" dominantBaseline="middle" fill="#FFFFFF" fontWeight="800" fontSize="22" fontFamily="sans-serif">
                   {funnelClicks > 0 ? '100%' : '0%'}
                 </text>
-                <text x="300" y="70" textAnchor="middle" fill="#FFFFFF" fontWeight="bold" fontSize="15" fontFamily="sans-serif">
+                <text x="300" y="70" textAnchor="middle" dominantBaseline="middle" fill="#FFFFFF" fontWeight="800" fontSize="21" fontFamily="sans-serif">
                   {pctVis.toFixed(1)}%
                 </text>
-                <text x="500" y="70" textAnchor="middle" fill="#FFFFFF" fontWeight="bold" fontSize="14" fontFamily="sans-serif">
+                <text x="500" y="70" textAnchor="middle" dominantBaseline="middle" fill="#FFFFFF" fontWeight="800" fontSize="20" fontFamily="sans-serif">
                   {pctIcs.toFixed(1)}%
                 </text>
-                <text x="700" y="70" textAnchor="middle" fill="#FFFFFF" fontWeight="bold" fontSize="13" fontFamily="sans-serif">
+                <text x="700" y="70" textAnchor="middle" dominantBaseline="middle" fill="#FFFFFF" fontWeight="800" fontSize="20" fontFamily="sans-serif">
                   {pctInic.toFixed(1)}%
                 </text>
-                <text x="900" y={h4 < 8 ? "57" : "70"} textAnchor="middle" fill="#FFFFFF" fontWeight="bold" fontSize="12" fontFamily="sans-serif">
+                <text x="900" y="70" textAnchor="middle" dominantBaseline="middle" fill="#FFFFFF" fontWeight="800" fontSize="20" fontFamily="sans-serif">
                   {pctApr.toFixed(1)}%
                 </text>
               </svg>
             </div>
 
             {/* Quantidades Numéricas Inferiores */}
-            <div className="flex items-center justify-between text-center text-[11px] sm:text-xs font-mono font-bold text-zinc-300">
+            <div className="flex items-center justify-between text-center text-xs sm:text-sm font-mono font-bold text-white tracking-tight">
               <span className="w-1/5">{funnelClicks.toLocaleString('pt-BR')}</span>
               <span className="w-1/5">{funnelVis.toLocaleString('pt-BR')}</span>
               <span className="w-1/5">{funnelIcs.toLocaleString('pt-BR')}</span>
