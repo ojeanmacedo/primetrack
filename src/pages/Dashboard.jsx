@@ -159,12 +159,15 @@ export default function Dashboard() {
 
   const initialLayoutSnapshot = useRef(null);
 
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('primetrack_edit_layout_status', { detail: { isEditing: isEditingLayout } }));
+  }, [isEditingLayout]);
+
   const handleToggleEdit = (status) => {
     if (status) {
       initialLayoutSnapshot.current = JSON.parse(JSON.stringify(layoutConfig));
     }
     setIsEditingLayout(status);
-    window.dispatchEvent(new CustomEvent('primetrack_edit_layout_status', { detail: { isEditing: status } }));
   };
 
   const handleCancelEdit = () => {
@@ -172,7 +175,6 @@ export default function Dashboard() {
       saveLayoutConfig(initialLayoutSnapshot.current);
     }
     setIsEditingLayout(false);
-    window.dispatchEvent(new CustomEvent('primetrack_edit_layout_status', { detail: { isEditing: false } }));
   };
 
   // Drag and Drop com Mouse para reposicionamento
@@ -470,7 +472,6 @@ export default function Dashboard() {
         if (next) {
           initialLayoutSnapshot.current = JSON.parse(JSON.stringify(layoutConfig));
         }
-        window.dispatchEvent(new CustomEvent('primetrack_edit_layout_status', { detail: { isEditing: next } }));
         return next;
       });
     };
