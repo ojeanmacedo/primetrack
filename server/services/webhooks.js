@@ -302,10 +302,11 @@ function parseMonsterPay(body) {
       utm_campaign: tracking.utm_campaign || body.utm_campaign,
       utm_content: tracking.utm_content || body.utm_content,
       utm_term: tracking.utm_term || body.utm_term,
+      fbclid: tracking.fbclid || body.fbclid,
       sck: tracking.sck || body.sck,
-      fbp: tracking.fbp || body.fbp,
-      fbc: tracking.fbc || body.fbc,
-      sessionId: tracking.sessionId || body.sessionId
+      fbp: tracking.fbp || tracking._fbp || body.fbp || body._fbp,
+      fbc: tracking.fbc || tracking._fbc || body.fbc || body._fbc,
+      sessionId: tracking.pt_sid || body.pt_sid || tracking.sessionId || body.sessionId
     },
     raw: body
   };

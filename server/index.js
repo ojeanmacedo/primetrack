@@ -181,29 +181,35 @@ app.post('/api/pixels', async (req, res) => {
  */
 app.post('/api/track/event', async (req, res) => {
   try {
-    const {
-      pixelId,
-      sessionId,
-      eventName,
-      eventId,
-      eventSourceUrl,
-      referrer,
-      fbp,
-      fbc,
-      utms = {},
-      customData = {}
-    } = req.body;
+    const pixelId = req.body.pixelId || req.body.pixel_id;
+    const sessionId = req.body.sessionId || req.body.click_id || req.body.pt_sid;
+    const eventName = req.body.eventName || req.body.event_name || 'PageView';
+    const eventId = req.body.eventId || req.body.event_id || `ev_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    const eventSourceUrl = req.body.eventSourceUrl || req.body.page || req.body.url;
+    const referrer = req.body.referrer || '';
+    const fbp = req.body.fbp;
+    const fbc = req.body.fbc;
+    const utms = req.body.utms || {
+      utm_source: req.body.utm_source || req.body.src,
+      utm_medium: req.body.utm_medium,
+      utm_campaign: req.body.utm_campaign,
+      utm_content: req.body.utm_content,
+      utm_term: req.body.utm_term,
+      fbclid: req.body.fbclid,
+      sck: req.body.sck
+    };
+    const customData = req.body.customData || req.body.custom_data || {};
 
     const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '189.40.122.45';
     const clientUserAgent = req.headers['user-agent'] || 'Mozilla/5.0';
 
     // Grava/Atualiza Sessão
     const sessions = db.get('sessions') || [];
-    let session = sessions.find(s => s.sessionId === sessionId);
+    let session = sessions.find(s => s.sessionId === sessionId || (sessionId && s.sessionId === sessionId));
 
-    if (!session) {
+    if (!session && sessionId) {
       session = {
-        sessionId: sessionId || `pt_sess_${Date.now()}`,
+        sessionId: sessionId,
         ip: clientIp,
         fbp,
         fbc,
@@ -215,10 +221,14 @@ app.post('/api/track/event', async (req, res) => {
         lastSeen: new Date().toISOString()
       };
       sessions.unshift(session);
-    } else {
+      if (sessions.length > 500) sessions.pop();
+    } else if (session) {
       session.lastSeen = new Date().toISOString();
       if (fbc && !session.fbc) session.fbc = fbc;
-      if (utms.utm_campaign && !session.utms.utm_campaign) session.utms = utms;
+      if (fbp && !session.fbp) session.fbp = fbp;
+      if (utms.utm_campaign && (!session.utms || !session.utms.utm_campaign)) {
+        session.utms = { ...session.utms, ...utms };
+      }
     }
     db.set('sessions', sessions);
 
@@ -652,13 +662,15 @@ function resolveDateRange(datePreset = 'today', since = null, until = null) {
     const cId = String(c.id || '');
 
     const matchingOrders = filteredOrders.filter(o => {
-      const oCamp = ((o.attribution && o.attribution.campaign) || o.campaign || '').toLowerCase();
-      return (oCamp && (oCamp === cName || oCamp === cUtm || oCamp === cId || cName.includes(oCamp) || oCamp.includes(cName)));
+      const oCamp = ((o.attribution && o.attribution.campaign) || o.campaign || '').toLowerCase().trim();
+      if (!oCamp || oCamp === 'orgânico' || oCamp === 'organico' || oCamp === 'histórico') return false;
+      return (oCamp === cName || oCamp === cUtm || oCamp === cId || cName.includes(oCamp) || oCamp.includes(cName));
     });
 
     const matchingPixelEvents = pixelPurchases.filter(e => {
-      const eCamp = ((e.attribution && e.attribution.campaign) || e.campaign || '').toLowerCase();
-      return (eCamp && (eCamp === cName || eCamp === cUtm || eCamp === cId || cName.includes(eCamp) || eCamp.includes(cName)));
+      const eCamp = ((e.attribution && e.attribution.campaign) || e.campaign || '').toLowerCase().trim();
+      if (!eCamp || eCamp === 'orgânico' || eCamp === 'organico' || eCamp === 'histórico') return false;
+      return (eCamp === cName || eCamp === cUtm || eCamp === cId || cName.includes(eCamp) || eCamp.includes(cName));
     });
 
     const webhookSales = matchingOrders.length;
@@ -1147,13 +1159,15 @@ app.post('/api/meta/sync', async (req, res) => {
       const cId = String(c.id || '');
 
       const matchingOrders = filteredOrders.filter(o => {
-        const oCamp = ((o.attribution && o.attribution.campaign) || o.campaign || '').toLowerCase();
-        return (oCamp && (oCamp === cName || oCamp === cUtm || oCamp === cId || cName.includes(oCamp) || oCamp.includes(cName)));
+        const oCamp = ((o.attribution && o.attribution.campaign) || o.campaign || '').toLowerCase().trim();
+        if (!oCamp || oCamp === 'orgânico' || oCamp === 'organico' || oCamp === 'histórico') return false;
+        return (oCamp === cName || oCamp === cUtm || oCamp === cId || cName.includes(oCamp) || oCamp.includes(cName));
       });
 
       const matchingPixelEvents = pixelPurchases.filter(e => {
-        const eCamp = ((e.attribution && e.attribution.campaign) || e.campaign || '').toLowerCase();
-        return (eCamp && (eCamp === cName || eCamp === cUtm || eCamp === cId || cName.includes(eCamp) || eCamp.includes(cName)));
+        const eCamp = ((e.attribution && e.attribution.campaign) || e.campaign || '').toLowerCase().trim();
+        if (!eCamp || eCamp === 'orgânico' || eCamp === 'organico' || eCamp === 'histórico') return false;
+        return (eCamp === cName || eCamp === cUtm || eCamp === cId || cName.includes(eCamp) || eCamp.includes(cName));
       });
 
       const webhookSales = matchingOrders.length;
