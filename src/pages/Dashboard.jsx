@@ -1,50 +1,42 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCurrentUser, getTrialStatus, isMasterAdmin } from '../utils/auth';
+import { getCurrentUser, getTrialStatus } from '../utils/auth';
 import { 
-  Flame, 
-  RotateCw, 
-  Download, 
-  Eye, 
-  Edit3, 
-  Palette, 
   ChevronDown, 
-  AlertTriangle, 
-  AlertCircle,
-  ArrowRight, 
-  TrendingUp, 
-  Percent, 
-  CheckCircle2, 
-  Clock,
-  Key
+  HelpCircle, 
+  RotateCw, 
+  PieChart 
 } from 'lucide-react';
 import DateRangePicker from '../components/DateRangePicker';
 
-export default function Dashboard({ onSimulateSale }) {
+export default function Dashboard() {
   const navigate = useNavigate();
   const user = getCurrentUser();
-  const isAdmin = isMasterAdmin(user);
   const trialStatus = getTrialStatus(user);
+
   const [period, setPeriod] = useState('Hoje');
   const [customRange, setCustomRange] = useState(null);
+  const [syncing, setSyncing] = useState(false);
+  const [minsAgo, setMinsAgo] = useState(0);
 
-  const isDisconnected = typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true';
+  // Filtros dropdowns
+  const [selectedAccount, setSelectedAccount] = useState('Todas');
+  const [selectedSource, setSelectedSource] = useState('Qualquer');
+  const [selectedPlatform, setSelectedPlatform] = useState('Qualquer');
+  const [selectedProduct, setSelectedProduct] = useState('Qualquer');
 
   const [adAccountsList, setAdAccountsList] = useState(() => {
-    if (isDisconnected) return [];
-    const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          return parsed.filter(a => a.sync === true);
-        }
-      } catch (e) {}
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('primetrack_ad_accounts');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) return parsed.filter(a => a.sync === true);
+        } catch (e) {}
+      }
     }
     return [];
   });
-
-  const [accountFilter, setAccountFilter] = useState('Todas');
 
   const [campaigns, setCampaigns] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -52,13 +44,7 @@ export default function Dashboard({ onSimulateSale }) {
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            if (parsed.some(c => String(c.spend) === '354.27')) {
-              localStorage.removeItem('primetrack_cached_campaigns');
-              return [];
-            }
-            return parsed;
-          }
+          if (Array.isArray(parsed)) return parsed;
         } catch (e) {}
       }
     }
@@ -77,20 +63,18 @@ export default function Dashboard({ onSimulateSale }) {
     }
     return [];
   });
-  const [syncing, setSyncing] = useState(false);
 
   const periodToPreset = {
     'Hoje': 'today',
     'Ontem': 'yesterday',
     '7 dias': 'last_7d',
     '14 dias': 'last_14d',
-    '15 dias': 'last_14d',
     '30 dias': 'last_30d',
     'Este mês': 'this_month',
     'Personalizado': 'maximum'
   };
 
-  const isFirstMount = React.useRef(true);
+  const isFirstMount = useRef(true);
 
   const loadDashboardData = async (customPeriod = period, rangeObj = customRange) => {
     let query = '';
@@ -99,33 +83,6 @@ export default function Dashboard({ onSimulateSale }) {
     } else {
       const preset = periodToPreset[customPeriod] || 'today';
       query = `datePreset=${preset}`;
-    }
-
-    const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
-    let localSyncMap = {};
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          parsed.forEach(p => {
-            if (p.id) localSyncMap[p.id] = p.sync;
-          });
-          const activeList = parsed
-            .map(acc => {
-              const accId = String(acc.id || acc.accountId || '').replace('act_', '');
-              const isRealPrepay = acc.isPrepay === true || accId === '1218349886840112';
-              return {
-                ...acc,
-                currency: 'BRL',
-                balance: isRealPrepay ? (acc.balance || '4,05') : '0,00'
-              };
-            })
-            .filter(a => a.sync === true);
-          if (activeList.length > 0) {
-            setAdAccountsList(activeList);
-          }
-        }
-      } catch (e) {}
     }
 
     try {
@@ -146,55 +103,17 @@ export default function Dashboard({ onSimulateSale }) {
       } catch (oErr) {}
 
       const data = await rRes.json();
-      
-      if (data.connections && data.connections.length > 0) {
-        localStorage.removeItem('primetrack_meta_disconnected');
-      } else if (data.connections && data.connections.length === 0) {
-        if (!isAdmin) {
-          setCampaigns([]);
-          setAdAccountsList([]);
-          return;
-        }
-      }
-
       if (data.adAccounts && data.adAccounts.length > 0) {
-        const allMappedAccs = data.adAccounts.map(a => {
-          const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
-          const isSyncActive = a.syncActive !== undefined
-            ? a.syncActive === true
-            : (localSyncMap[accId] !== undefined ? localSyncMap[accId] === true : false);
-
-          const isRealPrepay = a.isPrepay === true || accId === '1218349886840112';
-          const realBalance = isRealPrepay ? (a.balance || '4,05') : '0,00';
-          const realCurrency = a.currency === 'USD' || a.rawCurrency === 'USD' || ['1043285988469816', '1092137896602979', '1611243834049326', '28591581777115664'].includes(accId)
-            ? 'USD'
-            : (a.currency || a.rawCurrency || 'BRL');
-          const isAccountActive = a.status === 'ACTIVE' || a.status === 'Ativa' || a.account_status === 1;
-
-          return {
-            name: a.name || 'Conta',
-            id: accId,
-            bm: a.businessName || 'BM Principal',
-            currency: realCurrency,
-            status: isAccountActive ? 'Ativa' : 'Bloqueada',
-            balance: realBalance,
-            amountSpent: a.amountSpent || '0,00',
-            sync: isSyncActive
-          };
-        });
-
+        const allMappedAccs = data.adAccounts.map(a => ({
+          ...a,
+          id: a.accountId || (a.id ? a.id.replace('act_', '') : '0000'),
+          sync: a.syncActive !== undefined ? a.syncActive === true : (a.status === 'ACTIVE' || a.status === 'Ativa')
+        }));
         if (typeof window !== 'undefined') {
           localStorage.setItem('primetrack_ad_accounts', JSON.stringify(allMappedAccs));
         }
-
-        const activeSyncedAccs = allMappedAccs.filter(a => a.sync === true);
-        setAdAccountsList(activeSyncedAccs);
-
-        if (accountFilter !== 'Todas' && !activeSyncedAccs.some(a => a.id === accountFilter || a.name === accountFilter)) {
-          setAccountFilter('Todas');
-        }
-      } else {
-        setAdAccountsList([]);
+        const activeSynced = allMappedAccs.filter(a => a.sync);
+        setAdAccountsList(activeSynced);
       }
 
       const cData = await crRes.json();
@@ -204,22 +123,24 @@ export default function Dashboard({ onSimulateSale }) {
           localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(cData));
         }
       }
+
+      setMinsAgo(0);
     } catch (err) {
-      console.log('Erro ao carregar dados no dashboard:', err);
+      console.warn('Erro ao carregar dados do Dashboard:', err);
     }
   };
 
-  const handleRefresh = async (customPeriod = period, rangeObj = customRange) => {
+  const handleSync = async () => {
     setSyncing(true);
-    try {
-      let query = '';
-      if (customPeriod === 'Personalizado' && rangeObj?.since) {
-        query = `since=${rangeObj.since}&until=${rangeObj.until || rangeObj.since}&refresh=true`;
-      } else {
-        const preset = periodToPreset[customPeriod] || 'today';
-        query = `datePreset=${preset}&refresh=true`;
-      }
+    let query = '';
+    if (period === 'Personalizado' && customRange?.since) {
+      query = `since=${customRange.since}&until=${customRange.until || customRange.since}&refresh=true`;
+    } else {
+      const preset = periodToPreset[period] || 'today';
+      query = `datePreset=${preset}&refresh=true`;
+    }
 
+    try {
       const [cr, ord] = await Promise.all([
         fetch(`/api/campaigns?${query}`),
         fetch('/api/orders')
@@ -237,8 +158,9 @@ export default function Dashboard({ onSimulateSale }) {
           localStorage.setItem('primetrack_cached_orders', JSON.stringify(oData));
         }
       }
+      setMinsAgo(0);
     } catch (err) {
-      console.error('Erro ao sincronizar dados com Meta:', err);
+      console.error('Erro ao sincronizar:', err);
     } finally {
       setSyncing(false);
     }
@@ -251,7 +173,6 @@ export default function Dashboard({ onSimulateSale }) {
       loadDashboardData(period, customRange);
     };
 
-    // Auto-polling das vendas em segundo plano a cada 10s para refletir vendas aprovadas imediatamente
     const ordersPollInterval = setInterval(() => {
       fetch('/api/orders')
         .then(res => res.json())
@@ -266,9 +187,14 @@ export default function Dashboard({ onSimulateSale }) {
         .catch(() => {});
     }, 10000);
 
+    const minsInterval = setInterval(() => {
+      setMinsAgo(m => m + 1);
+    }, 60000);
+
     window.addEventListener('primetrack_profile_sync', handleProfileSync);
     return () => {
       clearInterval(ordersPollInterval);
+      clearInterval(minsInterval);
       window.removeEventListener('primetrack_profile_sync', handleProfileSync);
     };
   }, []);
@@ -283,75 +209,8 @@ export default function Dashboard({ onSimulateSale }) {
     }
   }, [period]);
 
-  const periods = ['Hoje', 'Ontem', '7 dias', '15 dias', '30 dias', 'Personalizado'];
-
-  const emptyHourly = [
-    { h: '00h', v: 0 }, { h: '01h', v: 0 }, { h: '02h', v: 0 }, { h: '03h', v: 0 },
-    { h: '04h', v: 0 }, { h: '05h', v: 0 }, { h: '06h', v: 0 }, { h: '07h', v: 0 },
-    { h: '08h', v: 0 }, { h: '09h', v: 0 }, { h: '10h', v: 0 }, { h: '11h', v: 0 },
-    { h: '12h', v: 0 }, { h: '13h', v: 0 }, { h: '14h', v: 0 }, { h: '15h', v: 0 },
-    { h: '16h', v: 0 }, { h: '17h', v: 0 }, { h: '18h', v: 0 }, { h: '19h', v: 0 },
-    { h: '20h', v: 0 }, { h: '21h', v: 0 }, { h: '22h', v: 0 }, { h: '23h', v: 0 }
-  ];
-
-  const emptyMetrics = {
-    spend: 0.00,
-    revenue: 0.00,
-    profit: 0.00,
-    sales: 0,
-    pendingSales: 0,
-    pendingValue: 0.00,
-    roas: '0.00',
-    cpa: '0.00',
-    arpu: '0.00',
-    margin: '0.0%',
-    clicks: 0,
-    visits: 0,
-    ics: 0,
-    initSales: 0,
-    approvedSales: 0,
-    pixApproval: '0.0%',
-    pixSales: 0,
-    sources: { fb: 0, ig: 0 },
-    hourly: emptyHourly
-  };
-
-  const activeAdAccount = adAccountsList.length > 0 ? adAccountsList[0] : null;
-  const isNoAccountActive = adAccountsList.length === 0 && campaigns.length === 0;
-  const isProfileDisconnected = (typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true' && adAccountsList.length === 0);
-
-  // Filtra as campanhas baseado na conta selecionada e se está ativa
-  const filteredCampaigns = campaigns.filter(c => {
-    const cAdId = String(c.adAccountId || '').replace('act_', '');
-    if (accountFilter !== 'Todas') {
-      const selectedAcc = adAccountsList.find(a => a.name === accountFilter || a.id === accountFilter);
-      if (selectedAcc) {
-        return cAdId === String(selectedAcc.id);
-      }
-      return c.accountName === accountFilter || cAdId === accountFilter;
-    }
-    // Se selecionou 'Todas', filtra pelas contas que estão com sincronização ativa em Integrações
-    if (adAccountsList.length > 0) {
-      return adAccountsList.some(acc => cAdId === String(acc.id));
-    }
-    return true;
-  });
-
-  // Agregação dos dados reais da conta e campanhas em Real Brasileiro (R$)
-  const realSpend = filteredCampaigns.reduce((acc, c) => acc + Number(c.spend || 0), 0);
-  const realSpendUsd = filteredCampaigns.reduce((acc, c) => acc + Number(c.rawSpendUsd || 0), 0);
-  const realSales = filteredCampaigns.reduce((acc, c) => acc + Number(c.sales || 0), 0);
-  const realRevenue = filteredCampaigns.reduce((acc, c) => acc + Number(c.revenue || 0), 0);
-  const realProfit = realRevenue - realSpend;
-  const realRoas = realSpend > 0 ? (realRevenue / realSpend).toFixed(2) : '0.00';
-  const realCpa = realSales > 0 ? (realSpend / realSales).toFixed(2) : '0.00';
-  const realArpu = realSales > 0 ? (realRevenue / realSales).toFixed(2) : '0.00';
-  const realMargin = realRevenue > 0 ? `${((realProfit / realRevenue) * 100).toFixed(1)}%` : '0.0%';
-  const realClicks = filteredCampaigns.reduce((acc, c) => acc + Number(c.clicks || 0), 0);
-  const realVisits = filteredCampaigns.reduce((acc, c) => acc + Number(c.visits || c.clicks || 0), 0);
-
-  // Deduplica vendas por orderCode para que cada pedido apareça apenas 1 vez (priorizando approved)
-  const deduplicatedOrders = React.useMemo(() => {
+  // Deduplica pedidos por orderCode priorizando vendas aprovadas
+  const deduplicatedOrders = useMemo(() => {
     const orderMap = new Map();
     for (const o of ordersList) {
       const code = o.orderCode || o.id;
@@ -369,694 +228,640 @@ export default function Dashboard({ onSimulateSale }) {
     return Array.from(orderMap.values());
   }, [ordersList]);
 
-  // Filtra as vendas reais baseado no período selecionado
-  const filteredOrders = deduplicatedOrders.filter(o => {
-    if (!o.createdAt) return true;
-    const d = new Date(o.createdAt);
-    const now = new Date();
-    const diffHours = (now - d) / (1000 * 60 * 60);
-    if (period === 'Hoje') {
-      const isSameDay = d.toDateString() === now.toDateString();
-      return isSameDay || (diffHours >= -1 && diffHours <= 24);
-    }
-    if (period === 'Ontem') return diffHours > 24 && diffHours <= 48;
-    if (period === '7 dias') return diffHours <= 24 * 7;
-    if (period === '15 dias') return diffHours <= 24 * 15;
-    if (period === '30 dias') return diffHours <= 24 * 30;
-    return true;
-  });
+  // Lista única de produtos para o dropdown de filtro
+  const uniqueProducts = useMemo(() => {
+    const set = new Set();
+    deduplicatedOrders.forEach(o => {
+      if (o.productName) set.add(o.productName);
+    });
+    return Array.from(set);
+  }, [deduplicatedOrders]);
 
-  // Vendas Pendentes (Aguardando Pagamento / Pix Gerado) reais da MonsterPay
+  // Filtra as campanhas baseado na conta selecionada
+  const filteredCampaigns = useMemo(() => {
+    return campaigns.filter(c => {
+      const cAdId = String(c.adAccountId || '').replace('act_', '');
+      if (selectedAccount !== 'Todas') {
+        const match = adAccountsList.find(a => a.name === selectedAccount || a.id === selectedAccount);
+        if (match) return cAdId === String(match.id);
+        return c.accountName === selectedAccount || cAdId === selectedAccount;
+      }
+      if (adAccountsList.length > 0) {
+        return adAccountsList.some(acc => cAdId === String(acc.id));
+      }
+      return true;
+    });
+  }, [campaigns, selectedAccount, adAccountsList]);
+
+  // Filtra as vendas baseado no período e filtros selecionados
+  const filteredOrders = useMemo(() => {
+    return deduplicatedOrders.filter(o => {
+      if (!o.createdAt) return true;
+      const d = new Date(o.createdAt);
+      const now = new Date();
+      const diffHours = (now - d) / (1000 * 60 * 60);
+
+      // Filtro de data
+      if (period === 'Hoje') {
+        const isSameDay = d.toDateString() === now.toDateString();
+        if (!isSameDay && !(diffHours >= -1 && diffHours <= 24)) return false;
+      } else if (period === 'Ontem') {
+        if (!(diffHours > 24 && diffHours <= 48)) return false;
+      } else if (period === '7 dias') {
+        if (diffHours > 24 * 7) return false;
+      } else if (period === '14 dias') {
+        if (diffHours > 24 * 14) return false;
+      } else if (period === '30 dias') {
+        if (diffHours > 24 * 30) return false;
+      }
+
+      // Filtro de fonte
+      if (selectedSource !== 'Qualquer') {
+        const src = (o.attribution?.source || '').toLowerCase();
+        if (selectedSource === 'Facebook' && !src.includes('fb') && !src.includes('meta')) return false;
+        if (selectedSource === 'Organico' && !src.includes('org')) return false;
+      }
+
+      // Filtro de produto
+      if (selectedProduct !== 'Qualquer') {
+        if (o.productName !== selectedProduct) return false;
+      }
+
+      return true;
+    });
+  }, [deduplicatedOrders, period, selectedSource, selectedProduct]);
+
+  // Vendas Pendentes reais da MonsterPay
   const pendingOrders = filteredOrders.filter(o => 
-    o.status === 'waiting_payment' || 
-    o.status === 'pending' || 
-    o.status === 'aguardando_pagamento'
+    o.status === 'waiting_payment' || o.status === 'pending' || o.status === 'aguardando_pagamento'
   );
-  const realPendingSales = pendingOrders.length;
   const realPendingValue = pendingOrders.reduce((acc, o) => acc + Number(o.amount || 0), 0);
 
-  // Vendas Aprovadas (Pagas de verdade) reais da MonsterPay
-  const approvedOrdersFromList = filteredOrders.filter(o => 
+  // Vendas Aprovadas (Pagas)
+  const approvedOrders = filteredOrders.filter(o => 
     o.status === 'approved' || o.status === 'paid' || o.status === 'pago'
   );
-  const realApprovedSales = approvedOrdersFromList.length;
-  const realApprovedRevenue = approvedOrdersFromList.reduce((acc, o) => acc + Number(o.amount || 0), 0);
-  const realTotalProfit = realApprovedRevenue - realSpend;
-  const realRoasVal = realSpend > 0 ? (realApprovedRevenue / realSpend).toFixed(2) : '0.00';
-  const realCpaVal = realApprovedSales > 0 ? (realSpend / realApprovedSales).toFixed(2) : '0.00';
-  const realArpuVal = realApprovedSales > 0 ? (realApprovedRevenue / realApprovedSales).toFixed(2) : '0.00';
-  const realMarginVal = realApprovedRevenue > 0 ? `${((realTotalProfit / realApprovedRevenue) * 100).toFixed(1)}%` : '0.0%';
+  const realApprovedSales = approvedOrders.length;
+  const realApprovedRevenue = approvedOrders.reduce((acc, o) => acc + Number(o.amount || 0), 0);
 
-  // Se houver dados reais de campanhas ativas, usa eles; senão faz fallback para a tabela de período
-  const currentMetrics = isProfileDisconnected
-    ? emptyMetrics 
-    : {
-        spend: realSpend,
-        spendUsd: realSpendUsd,
-        revenue: realApprovedRevenue,
-        profit: realTotalProfit,
-        sales: realApprovedSales,
-        pendingSales: realPendingSales,
-        pendingValue: realPendingValue,
-        roas: realRoasVal,
-        cpa: realCpaVal,
-        arpu: realArpuVal,
-        margin: realMarginVal,
-        clicks: realClicks,
-        visits: realVisits,
-        ics: Math.round(realVisits * 0.6),
-        initSales: realApprovedSales + realPendingSales,
-        approvedSales: realApprovedSales,
-        pixApproval: (realApprovedSales + realPendingSales) > 0 
-          ? `${((realApprovedSales / (realApprovedSales + realPendingSales)) * 100).toFixed(1)}%` 
-          : '0.0%',
-        pixSales: realApprovedSales + realPendingSales,
-        sources: { fb: realApprovedSales, ig: 0 },
-        hourly: emptyHourly
-      };
+  // Gastos com anúncios reais
+  const realSpend = filteredCampaigns.reduce((acc, c) => acc + Number(c.spend || 0), 0);
+  const realProfit = realApprovedRevenue - realSpend;
+  const realRoas = realSpend > 0 ? (realApprovedRevenue / realSpend).toFixed(2) : '0.00';
+  const realRoi = realSpend > 0 ? ((realApprovedRevenue - realSpend) / realSpend).toFixed(2) : (realApprovedRevenue > 0 ? '0.00' : '-0.12');
+  const realMargin = realApprovedRevenue > 0 ? `${(((realApprovedRevenue - realSpend) / realApprovedRevenue) * 100).toFixed(1)}%` : 'N/A';
+
+  // Impostos e despesas
+  const impostoMetaAds = realSpend > 0 ? (realSpend * 0.12).toFixed(2) : '0,00';
+  const impostoTotal = realSpend > 0 ? (realSpend * 0.12).toFixed(2) : '0,00';
+
+  // Vendas agrupadas por produto
+  const productsMap = useMemo(() => {
+    const map = {};
+    approvedOrders.forEach(o => {
+      const pName = o.productName || 'Produto MonsterPay';
+      if (!map[pName]) {
+        map[pName] = { name: pName, sales: 0, revenue: 0 };
+      }
+      map[pName].sales += 1;
+      map[pName].revenue += Number(o.amount || 0);
+    });
+    return Object.values(map);
+  }, [approvedOrders]);
+
+  // Métodos de pagamento
+  const paymentBreakdown = useMemo(() => {
+    let pix = 0, cc = 0, boleto = 0, outros = 0;
+    approvedOrders.forEach(o => {
+      const pm = (o.paymentMethod || '').toLowerCase();
+      if (pm.includes('pix')) pix++;
+      else if (pm.includes('card') || pm.includes('credit')) cc++;
+      else if (pm.includes('boleto')) boleto++;
+      else outros++;
+    });
+    return { pix, cc, boleto, outros, total: approvedOrders.length };
+  }, [approvedOrders]);
+
+  // Taxa de aprovação Pix
+  const pixRate = useMemo(() => {
+    const totalPixCreated = filteredOrders.filter(o => (o.paymentMethod || '').toLowerCase().includes('pix') || !o.paymentMethod).length;
+    const totalPixApproved = approvedOrders.filter(o => (o.paymentMethod || '').toLowerCase().includes('pix') || !o.paymentMethod).length;
+    if (totalPixCreated === 0) return 'N/A';
+    return `${Math.round((totalPixApproved / totalPixCreated) * 100)}%`;
+  }, [filteredOrders, approvedOrders]);
 
   return (
-    <div className="space-y-5 pb-16">
+    <div className="space-y-4 pb-16 font-sans select-none">
 
-      {/* Alerta de Nenhuma Conta Ativa */}
-      {isNoAccountActive && (
-        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
-          <div className="flex items-center gap-2.5">
-            <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
-            <div>
-              <span className="font-bold text-white">Nenhuma conta de anúncio ativa no momento.</span>
-              <span className="text-zinc-400 ml-1.5">No Plano Free (7 dias), você pode ativar 1 conta de anúncio simultaneamente para carregar métricas e campanhas.</span>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate('/integracoes')}
-            className="px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-bold transition-colors cursor-pointer shrink-0 self-start sm:self-auto"
-          >
-            Ativar Conta em Integrações
-          </button>
-        </div>
-      )}
-
-      {/* Alerta de Perfil Desconectado para novos clientes */}
-      {!isAdmin && adAccountsList.length === 0 && (
-        <div className="p-4 rounded-2xl bg-[#1A6DFF]/10 border border-[#1A6DFF]/30 text-[#5C9BFF] text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
-          <div className="flex items-center gap-2.5">
-            <AlertCircle className="w-5 h-5 text-brand shrink-0" />
-            <div>
-              <span className="font-bold text-white">Nenhum perfil do Facebook conectado ainda.</span>
-              <span className="text-zinc-400 ml-1.5">Conecte seu perfil em Integrações para puxar suas contas e ativar sua conta gratuita.</span>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate('/integracoes')}
-            className="px-3.5 py-1.5 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 text-white font-bold transition-colors cursor-pointer shrink-0 self-start sm:self-auto shadow-md shadow-blue-500/20"
-          >
-            Conectar Facebook
-          </button>
-        </div>
-      )}
-      
-      {/* Top Controls Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-            Dashboard Principal
-          </h1>
-          {activeAdAccount && (
-            <span className="px-2.5 py-0.5 rounded-full bg-[#1A6DFF]/15 border border-[#1A6DFF]/30 text-[#5C9BFF] text-[11px] font-mono font-bold flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span>Conta Ativa: {activeAdAccount.name}</span>
+      {/* Banner de Aviso no estilo exato da UTMify */}
+      {trialStatus.isTrial && (
+        <div className="bg-[#24131A] border border-red-900/40 rounded-xl px-4 py-2.5 text-xs text-red-400 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-sm">
+          <div>
+            <span className="font-bold text-red-400 mr-2">Conta teste ativo!</span>
+            <span className="text-red-300">
+              Seu período de avaliação gratuito está ativo ({trialStatus.daysLeft} dias restantes). Não interrompa seu crescimento agora.
             </span>
-          )}
+            <button 
+              onClick={() => navigate('/planos')}
+              className="underline text-red-400 hover:text-red-300 ml-2 font-semibold cursor-pointer"
+            >
+              Gerenciar assinatura
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Card "Resumo" com filtros idênticos ao print da UTMify */}
+      <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 sm:p-5 shadow-lg">
+        {/* Header do card Resumo */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <h2 className="text-base font-bold text-white tracking-tight">
+            Resumo
+          </h2>
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] text-zinc-400 font-sans">
+              Atualizado há {minsAgo === 0 ? 'alguns segundos' : `${minsAgo} minutos`}
+            </span>
+            <button 
+              onClick={handleSync}
+              disabled={syncing}
+              className="px-4 py-1.5 rounded-lg bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-bold transition-all shadow-md shadow-blue-600/25 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            >
+              <RotateCw className={`w-3 h-3 ${syncing ? 'animate-spin' : ''}`} />
+              <span>{syncing ? 'Atualizando...' : 'Atualizar'}</span>
+            </button>
+          </div>
         </div>
 
-        {/* Filters and Actions */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Period Filter Pills */}
-          <div className="flex items-center gap-1 bg-[#0A1426] border border-[#13233E] rounded-xl p-1 text-xs">
-            {['Hoje', 'Ontem', '7 dias', '15 dias', '30 dias'].map(p => (
-              <button
-                key={p}
-                onClick={() => {
-                  setPeriod(p);
-                  setCustomRange(null);
-                  loadDashboardData(p, null);
-                }}
-                className={`px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
-                  period === p && !customRange
-                    ? 'bg-[#12223D] text-[#5C9BFF] font-bold shadow-sm'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
+        {/* Linha dos 5 Filtros Dropdowns da UTMify */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+          
+          {/* 1. Período de Visualização */}
+          <div>
+            <label className="text-[11px] text-zinc-400 mb-1.5 flex items-center gap-1 font-medium">
+              <span>Período de Visualização</span>
+              <span className="text-zinc-500 text-[10px] cursor-help" title="Filtro de período de análise">ⓘ</span>
+            </label>
+            <div className="relative">
+              <select
+                value={period}
+                onChange={(e) => setPeriod(e.target.value)}
+                className="w-full appearance-none bg-[#0F1728] border border-[#1E293B] rounded-lg px-3 py-2 text-zinc-200 focus:outline-none focus:border-[#0066FF] text-xs cursor-pointer font-medium"
               >
-                {p}
-              </button>
-            ))}
-            <DateRangePicker
-              currentPeriod={period}
-              customRange={customRange}
-              onSelectPeriod={(p) => {
-                setPeriod(p);
-                setCustomRange(null);
-                loadDashboardData(p, null);
-              }}
-              onApplyCustomRange={(range) => {
-                setPeriod('Personalizado');
-                setCustomRange(range);
-                loadDashboardData('Personalizado', range);
-              }}
-            />
+                <option value="Hoje">Hoje</option>
+                <option value="Ontem">Ontem</option>
+                <option value="7 dias">7 dias</option>
+                <option value="14 dias">14 dias</option>
+                <option value="30 dias">30 dias</option>
+                <option value="Este mês">Este mês</option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
           </div>
 
-          {/* Account Dropdown igual ao de Campanhas */}
-          <div className="flex items-center gap-1.5 bg-[#0A1426] border border-[#13233E] px-3 py-1.5 rounded-xl text-zinc-300">
-            <span className="text-zinc-500 font-mono text-[10px] uppercase">Conta:</span>
-            <select
-              value={accountFilter}
-              onChange={e => setAccountFilter(e.target.value)}
-              className="bg-transparent text-white font-semibold text-xs focus:outline-none cursor-pointer max-w-[200px] truncate"
-            >
-              <option value="Todas" className="bg-[#0A1426] text-white">Todas as Contas ({adAccountsList.length})</option>
-              {adAccountsList.map(acc => (
-                <option key={acc.id} value={acc.id} className="bg-[#0A1426] text-white">
-                  {acc.name} ({acc.id.slice(-4)})
-                </option>
-              ))}
-            </select>
+          {/* 2. Conta de Anúncio */}
+          <div>
+            <label className="text-[11px] text-zinc-400 mb-1.5 block font-medium">
+              Conta de Anúncio
+            </label>
+            <div className="relative">
+              <select
+                value={selectedAccount}
+                onChange={(e) => setSelectedAccount(e.target.value)}
+                className="w-full appearance-none bg-[#0F1728] border border-[#1E293B] rounded-lg px-3 py-2 text-zinc-200 focus:outline-none focus:border-[#0066FF] text-xs cursor-pointer font-medium"
+              >
+                <option value="Todas">Qualquer</option>
+                {adAccountsList.map(acc => (
+                  <option key={acc.id} value={acc.id}>{acc.name} ({acc.id})</option>
+                ))}
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
           </div>
 
-          {/* Buttons */}
-          <button 
-            onClick={() => handleRefresh(period, customRange)}
-            disabled={syncing}
-            className={`px-3 py-1.5 rounded-xl bg-[#0A1426] hover:bg-[#12223D] border border-[#13233E] text-zinc-300 hover:text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
-              syncing ? 'opacity-70 cursor-wait' : ''
-            }`}
-            title="Sincronizar dados em tempo real com Facebook e Plataformas"
-          >
-            <RotateCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin text-[#5C9BFF]' : ''}`} />
-            <span>{syncing ? 'Sincronizando...' : 'Atualizar'}</span>
+          {/* 3. Fonte de Tráfego */}
+          <div>
+            <label className="text-[11px] text-zinc-400 mb-1.5 block font-medium">
+              Fonte de Tráfego
+            </label>
+            <div className="relative">
+              <select
+                value={selectedSource}
+                onChange={(e) => setSelectedSource(e.target.value)}
+                className="w-full appearance-none bg-[#0F1728] border border-[#1E293B] rounded-lg px-3 py-2 text-zinc-200 focus:outline-none focus:border-[#0066FF] text-xs cursor-pointer font-medium"
+              >
+                <option value="Qualquer">Qualquer</option>
+                <option value="Facebook">Facebook Ads</option>
+                <option value="Organico">Orgânico</option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* 4. Plataforma */}
+          <div>
+            <label className="text-[11px] text-zinc-400 mb-1.5 block font-medium">
+              Plataforma
+            </label>
+            <div className="relative">
+              <select
+                value={selectedPlatform}
+                onChange={(e) => setSelectedPlatform(e.target.value)}
+                className="w-full appearance-none bg-[#0F1728] border border-[#1E293B] rounded-lg px-3 py-2 text-zinc-200 focus:outline-none focus:border-[#0066FF] text-xs cursor-pointer font-medium"
+              >
+                <option value="Qualquer">Qualquer</option>
+                <option value="MonsterPay">MonsterPay</option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* 5. Produto */}
+          <div>
+            <label className="text-[11px] text-zinc-400 mb-1.5 block font-medium">
+              Produto
+            </label>
+            <div className="relative">
+              <select
+                value={selectedProduct}
+                onChange={(e) => setSelectedProduct(e.target.value)}
+                className="w-full appearance-none bg-[#0F1728] border border-[#1E293B] rounded-lg px-3 py-2 text-zinc-200 focus:outline-none focus:border-[#0066FF] text-xs cursor-pointer font-medium"
+              >
+                <option value="Qualquer">Qualquer</option>
+                {uniqueProducts.map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
+
+        </div>
+
+        {/* Link Mais filtros no canto inferior direito */}
+        <div className="flex justify-end mt-2.5">
+          <button className="text-[11px] text-zinc-400 hover:text-zinc-200 flex items-center gap-1 transition-colors cursor-pointer">
+            <span>Mais filtros</span>
+            <ChevronDown className="w-3 h-3 text-zinc-500" />
           </button>
-
-          <button 
-            onClick={() => window.print()}
-            className="px-3 py-1.5 rounded-xl bg-[#0A1426] hover:bg-[#12223D] border border-[#13233E] text-zinc-300 hover:text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="Exportar dados do Dashboard"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Exportar</span>
-          </button>
-
-          <div className="flex items-center gap-1 bg-[#0A1426] border border-[#13233E] p-1 rounded-xl text-zinc-400">
-            <button className="p-1 hover:text-white"><Eye className="w-3.5 h-3.5" /></button>
-            <button className="p-1 hover:text-white"><Edit3 className="w-3.5 h-3.5" /></button>
-            <button className="p-1 hover:text-white"><Palette className="w-3.5 h-3.5" /></button>
-          </div>
         </div>
       </div>
 
-      {/* Aviso de Primeiro Cadastro via Google: Cadastrar Senha */}
-      {typeof window !== 'undefined' && localStorage.getItem('primetrack_needs_password_setup') === 'true' && (
-        <div className="bg-gradient-to-r from-blue-950/80 via-[#0A1D3A] to-blue-900/40 border border-[#2558C7]/60 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
-          <div className="flex items-start gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-[#1A6DFF]/20 text-[#5C9BFF] flex items-center justify-center shrink-0 mt-0.5 border border-[#1A6DFF]/30">
-              <Key className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-white">
-                  Cadastre sua senha de acesso
-                </h3>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30">
-                  Importante
-                </span>
-              </div>
-              <p className="text-xs text-zinc-300 mt-1 leading-relaxed max-w-2xl">
-                Você se cadastrou com sua conta do Google ({user?.email}). Para conseguir fazer login em outros navegadores ou no app mobile digitando e-mail e senha, cadastre sua senha em <strong className="text-white">Integrações &gt; Baixe nosso App</strong>.
-              </p>
-            </div>
+      {/* Row 1: 4 Cards Principais idênticos ao print da UTMify */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        
+        {/* Faturamento Líquido */}
+        <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md">
+          <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
+            <span>Faturamento Líquido</span>
+            <span className="text-zinc-500 text-[11px]">ⓘ</span>
           </div>
-          <button
-            onClick={() => navigate('/integracoes?tab=app')}
-            className="px-4 py-2.5 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-bold text-xs shrink-0 flex items-center gap-2 shadow-lg shadow-brand/30 transition-all cursor-pointer whitespace-nowrap"
-          >
-            <span>Cadastrar Senha Agora</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
-      {/* Aviso de Perfil Desconectado */}
-      {isProfileDisconnected && (
-        <div className="bg-[#0A1426] border border-dashed border-[#13233E] rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#070D1A] border border-white/10 flex items-center justify-center text-amber-400 shrink-0">
-              <AlertTriangle className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-white font-bold text-xs sm:text-sm">Nenhum perfil de anúncios conectado</div>
-              <p className="text-zinc-400 text-xs mt-0.5">
-                O perfil do Facebook Ads foi desconectado e as campanhas foram desvinculadas. Conecte sua conta em Integrações para carregar suas métricas em tempo real.
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate('/integracoes')}
-            className="px-4 py-2 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white text-xs font-bold shrink-0 transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
-          >
-            <span>Conectar em Integrações</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
-
-      {/* Red Alert Banner - Somente exibido se o período de 7 dias grátis expirar */}
-      {trialStatus.showExpiredBanner && (
-        <div className="w-full bg-[#E52222] text-white px-4 py-3 rounded-2xl text-xs sm:text-sm font-semibold flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xl border border-red-400/30 animate-in fade-in">
-          <div className="flex items-center gap-2.5">
-            <AlertTriangle className="w-5 h-5 fill-current shrink-0 text-white" />
-            <span>
-              Seu plano expirou! Você tem <strong>2 dias</strong> para renovar antes dos serviços serem pausados.
-            </span>
-          </div>
-          <button 
-            type="button"
-            onClick={() => navigate('/planos')}
-            className="px-4 py-1.5 rounded-xl bg-white text-[#E52222] hover:bg-zinc-100 text-xs font-bold shrink-0 transition-all shadow-md self-start sm:self-auto cursor-pointer"
-          >
-            Renovar agora →
-          </button>
-        </div>
-      )}
-
-      {/* KPI Row 1: Faturamento, Lucro, Gasto, CPA, ARPU, ROAS */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {/* Faturamento */}
-        <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
-          <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">FATURAMENTO</div>
-          <div className="text-xl sm:text-2xl font-extrabold text-white mt-1">
-            R$ {currentMetrics.revenue.toFixed(2)}
+          <div className="text-xl sm:text-2xl font-bold text-white mt-3 tracking-tight font-sans">
+            R$ {realApprovedRevenue.toFixed(2).replace('.', ',')}
           </div>
         </div>
 
-        {/* Lucro */}
-        <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
-          <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">LUCRO</div>
-          <div className={`text-xl sm:text-2xl font-extrabold mt-1 ${currentMetrics.profit >= 0 ? 'text-[#5C9BFF]' : 'text-red-400'}`}>
-            R$ {currentMetrics.profit.toFixed(2)}
+        {/* Gastos com anúncios */}
+        <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md">
+          <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
+            <span>Gastos com anúncios</span>
+            <span className="text-zinc-500 text-[11px]">ⓘ</span>
           </div>
-          <div className="mt-1">
-            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-              currentMetrics.profit >= 0 
-                ? 'bg-emerald-500/10 text-emerald-400' 
-                : 'bg-red-500/10 text-red-400'
-            }`}>
-              {currentMetrics.profit >= 0 ? '↑ Positivo' : '↓ Negativo'}
-            </span>
-          </div>
-        </div>
-
-        {/* Gasto em Ads */}
-        <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
-          <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">GASTO EM ADS ({period})</div>
-          <div className="text-xl sm:text-2xl font-extrabold text-white mt-1">
-            R$ {currentMetrics.spend.toFixed(2)}
-          </div>
-          {currentMetrics.spendUsd > 0 && (
-            <div className="text-[10px] font-mono text-zinc-500 mt-0.5">
-              ($ {currentMetrics.spendUsd.toFixed(2)} USD)
-            </div>
-          )}
-        </div>
-
-        {/* CPA */}
-        <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
-          <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">CPA</div>
-          <div className="text-xl sm:text-2xl font-extrabold text-white mt-1">
-            R$ {currentMetrics.cpa}
-          </div>
-        </div>
-
-        {/* ARPU */}
-        <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
-          <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">ARPU</div>
-          <div className="text-xl sm:text-2xl font-extrabold text-white mt-1">
-            R$ {currentMetrics.arpu}
+          <div className="text-xl sm:text-2xl font-bold text-white mt-3 tracking-tight font-sans">
+            R$ {realSpend.toFixed(2).replace('.', ',')}
           </div>
         </div>
 
         {/* ROAS */}
-        <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
-          <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">ROAS</div>
-          <div className="text-xl sm:text-2xl font-extrabold text-[#5C9BFF] mt-1">
-            {currentMetrics.roas}x
+        <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md">
+          <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
+            <span>ROAS</span>
+            <span className="text-zinc-500 text-[11px]">ⓘ</span>
           </div>
-          <div className="mt-1">
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold">
-              ↑ Ok
-            </span>
+          <div className={`text-xl sm:text-2xl font-bold mt-3 tracking-tight font-sans ${
+            Number(realRoas) <= 0.00 ? 'text-[#EF4444]' : 'text-white'
+          }`}>
+            {realRoas}
           </div>
         </div>
+
+        {/* Lucro */}
+        <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md">
+          <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
+            <span>Lucro</span>
+            <span className="text-zinc-500 text-[11px]">ⓘ</span>
+          </div>
+          <div className={`text-xl sm:text-2xl font-bold mt-3 tracking-tight font-sans ${
+            realProfit < 0 ? 'text-[#EF4444]' : 'text-white'
+          }`}>
+            R$ {realProfit.toFixed(2).replace('.', ',')}
+          </div>
+        </div>
+
       </div>
 
-      {/* KPI Row 2: Vendas Aprovadas, Vendas Pendentes, Chargeback, Margem */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {/* Vendas Aprovadas */}
-        <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
-          <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">VENDAS APROVADAS</div>
-          <div className="text-2xl font-extrabold text-white mt-1">{currentMetrics.sales}</div>
-          <div className="text-[11px] font-mono text-zinc-400 mt-0.5">R$ {currentMetrics.revenue.toFixed(2)}</div>
-        </div>
-
-        {/* Vendas Pendentes */}
-        <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
-          <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">VENDAS PENDENTES</div>
-          <div className="text-2xl font-extrabold text-white mt-1">R$ {currentMetrics.pendingValue.toFixed(2)}</div>
-          <div className="text-[11px] font-mono text-zinc-400 mt-0.5">{currentMetrics.pendingSales} vendas</div>
-        </div>
-
-        {/* Chargeback */}
-        <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
-          <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">CHARGEBACK</div>
-          <div className="text-2xl font-extrabold text-white mt-1">0%</div>
-          <div className="text-[11px] font-mono text-zinc-400 mt-0.5">0 vendas</div>
-        </div>
-
-        {/* Margem */}
-        <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
-          <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">MARGEM</div>
-          <div className="text-2xl font-extrabold text-[#5C9BFF] mt-1">{currentMetrics.margin}</div>
-          <div className="mt-0.5">
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold">
-              ↑ Positivo
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Row 3: Saldo das Contas + Funil de Conversão Meta Ads */}
+      {/* Row 2: Vendas por Produto (Card Largo) + Grid com os 12 Mini Cards idêntico ao print */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         
-        {/* Saldo das Contas (4 cols) */}
-        <div className="lg:col-span-4 bg-[#0A1426] border border-[#13233E] p-5 rounded-2xl flex flex-col justify-between">
+        {/* Vendas por Produto (Lado Esquerdo - 5 colunas de 12) */}
+        <div className="lg:col-span-5 bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md">
           <div>
-            <div className="flex items-center gap-2 text-xs font-bold text-white mb-4">
-              <Flame className="w-4 h-4 text-orange-400" />
-              <span>Saldo das Contas</span>
+            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-4">
+              <span className="text-white font-semibold">Vendas por Produto</span>
+              <span className="text-zinc-500 text-[11px]">ⓘ</span>
             </div>
 
-            <div className="space-y-4 text-xs">
-              {adAccountsList.filter(a => a.sync).length === 0 ? (
-                <div className="py-6 text-center text-zinc-500 text-xs">
-                  Nenhuma conta ativa no momento.
-                </div>
-              ) : (
-                adAccountsList
-                  .filter(a => a.sync)
-                  .map((acc, idx, arr) => (
-                    <div 
-                      key={acc.id || idx} 
-                      className={`flex items-center justify-between ${idx !== arr.length - 1 ? 'pb-3 border-b border-[#13233E]' : ''}`}
-                    >
-                      <div>
-                        <div className="font-bold text-white">{acc.name}</div>
-                        <div className="text-[10px] font-mono text-zinc-500">{acc.id}</div>
-                      </div>
-                      <div className="font-mono font-bold text-emerald-400">
-                        R$ {acc.balance || '0,00'}
-                      </div>
+            {productsMap.length === 0 ? (
+              <div className="h-64 flex items-center justify-center text-zinc-500 text-xs font-sans">
+                Nenhuma venda por aqui
+              </div>
+            ) : (
+              <div className="space-y-3 py-2">
+                {productsMap.map((prod, i) => (
+                  <div key={i} className="flex items-center justify-between py-2 border-b border-[#1E293B]/60 text-xs">
+                    <div>
+                      <div className="font-bold text-white">{prod.name}</div>
+                      <div className="text-[11px] text-zinc-400">{prod.sales} {prod.sales === 1 ? 'venda aprovada' : 'vendas aprovadas'}</div>
                     </div>
-                  ))
-              )}
-            </div>
+                    <div className="font-mono font-bold text-emerald-400">
+                      R$ {prod.revenue.toFixed(2).replace('.', ',')}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Funil de Conversão (8 cols) */}
-        <div className="lg:col-span-8 bg-[#0A1426] border border-[#13233E] p-5 rounded-2xl">
-          <div className="text-xs font-bold text-white mb-6">
-            Funil de Conversão (Meta Ads) — {period}
+        {/* 12 Mini Cards da UTMify (Lado Direito - 7 colunas de 12 em 3 colunas) */}
+        <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          
+          {/* Linha 1 */}
+          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
+            <div className="flex items-center justify-between text-xs text-zinc-400">
+              <span>Vendas Pendentes</span>
+              <span className="text-zinc-500 text-[11px]">ⓘ</span>
+            </div>
+            <div className="text-lg font-bold text-white mt-2">
+              R$ {realPendingValue.toFixed(2).replace('.', ',')}
+            </div>
           </div>
 
-          <div className="grid grid-cols-5 gap-2 text-center relative items-center">
-            
-            {/* Stage 1: Cliques */}
-            <div className="flex flex-col items-center">
-              <div className="w-14 h-14 rounded-full border-2 border-[#1A6DFF] bg-[#12223D] flex items-center justify-center text-xs font-extrabold text-white">
-                100%
-              </div>
-              <div className="mt-2 text-sm font-bold text-white">{currentMetrics.clicks}</div>
-              <div className="text-[10px] font-mono text-zinc-400 uppercase">CLIQUES</div>
+          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
+            <div className="flex items-center justify-between text-xs text-zinc-400">
+              <span>ROI</span>
+              <span className="text-zinc-500 text-[11px]">ⓘ</span>
             </div>
-
-            {/* Stage 2: Vis. Página */}
-            <div className="flex flex-col items-center">
-              <div className="w-14 h-14 rounded-full border-2 border-[#1A6DFF] bg-[#12223D] flex items-center justify-center text-xs font-extrabold text-white relative">
-                {((currentMetrics.visits / currentMetrics.clicks) * 100).toFixed(1)}%
-                <span className="absolute -bottom-3 text-[9px] text-red-400 font-mono">
-                  -{(100 - (currentMetrics.visits / currentMetrics.clicks) * 100).toFixed(1)}%
-                </span>
-              </div>
-              <div className="mt-4 text-sm font-bold text-white">{currentMetrics.visits}</div>
-              <div className="text-[10px] font-mono text-zinc-400 uppercase">VIS. PÁGINA</div>
+            <div className={`text-lg font-bold mt-2 ${
+              Number(realRoi) < 0 ? 'text-[#EF4444]' : 'text-white'
+            }`}>
+              {realRoi}
             </div>
-
-            {/* Stage 3: ICS */}
-            <div className="flex flex-col items-center">
-              <div className="w-14 h-14 rounded-full border-2 border-[#1A6DFF] bg-[#12223D] flex items-center justify-center text-xs font-extrabold text-white relative">
-                {((currentMetrics.ics / currentMetrics.clicks) * 100).toFixed(1)}%
-                <span className="absolute -bottom-3 text-[9px] text-red-400 font-mono">
-                  -{(((currentMetrics.visits - currentMetrics.ics) / currentMetrics.visits) * 100).toFixed(1)}%
-                </span>
-              </div>
-              <div className="mt-4 text-sm font-bold text-white">{currentMetrics.ics}</div>
-              <div className="text-[10px] font-mono text-zinc-400 uppercase">ICS</div>
-            </div>
-
-            {/* Stage 4: Vendas Inic. */}
-            <div className="flex flex-col items-center">
-              <div className="w-14 h-14 rounded-full border-2 border-[#5C9BFF] bg-[#12223D] flex items-center justify-center text-xs font-extrabold text-white relative">
-                {((currentMetrics.initSales / currentMetrics.clicks) * 100).toFixed(1)}%
-                <span className="absolute -bottom-3 text-[9px] text-red-400 font-mono">
-                  -{(((currentMetrics.ics - currentMetrics.initSales) / currentMetrics.ics) * 100).toFixed(1)}%
-                </span>
-              </div>
-              <div className="mt-4 text-sm font-bold text-white">{currentMetrics.initSales}</div>
-              <div className="text-[10px] font-mono text-zinc-400 uppercase">VENDAS INIC.</div>
-            </div>
-
-            {/* Stage 5: Vendas Apr. */}
-            <div className="flex flex-col items-center">
-              <div className="w-14 h-14 rounded-full border-2 border-emerald-400 bg-[#12223D] flex items-center justify-center text-xs font-extrabold text-emerald-400">
-                {((currentMetrics.approvedSales / currentMetrics.clicks) * 100).toFixed(1)}%
-              </div>
-              <div className="mt-4 text-sm font-bold text-emerald-400">{currentMetrics.approvedSales}</div>
-              <div className="text-[10px] font-mono text-zinc-400 uppercase">VENDAS APR.</div>
-            </div>
-
           </div>
+
+          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
+            <div className="flex items-center justify-between text-xs text-zinc-400">
+              <span>Custos de Produto</span>
+              <span className="text-zinc-500 text-[11px]">ⓘ</span>
+            </div>
+            <div className="text-lg font-bold text-white mt-2">
+              R$ 0,00
+            </div>
+          </div>
+
+          {/* Linha 2 */}
+          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
+            <div className="flex items-center justify-between text-xs text-zinc-400">
+              <span>Vendas Reembolsadas</span>
+              <span className="text-zinc-500 text-[11px]">ⓘ</span>
+            </div>
+            <div className="text-lg font-bold text-white mt-2">
+              R$ 0,00
+            </div>
+          </div>
+
+          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
+            <div className="flex items-center justify-between text-xs text-zinc-400">
+              <span>Margem</span>
+              <span className="text-zinc-500 text-[11px]">ⓘ</span>
+            </div>
+            <div className="text-lg font-bold text-white mt-2">
+              {realMargin}
+            </div>
+          </div>
+
+          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
+            <div className="flex items-center justify-between text-xs text-zinc-400">
+              <span>Despesas adicionais</span>
+              <span className="text-zinc-500 text-[11px]">ⓘ</span>
+            </div>
+            <div className="text-lg font-bold text-white mt-2">
+              R$ 0,00
+            </div>
+          </div>
+
+          {/* Linha 3 */}
+          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
+            <div className="flex items-center justify-between text-xs text-zinc-400">
+              <span>Imposto sobre vendas</span>
+              <span className="text-zinc-500 text-[11px]">ⓘ</span>
+            </div>
+            <div className="text-lg font-bold text-white mt-2">
+              R$ 0,00
+            </div>
+          </div>
+
+          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
+            <div className="flex items-center justify-between text-xs text-zinc-400">
+              <span>Reembolso</span>
+              <span className="text-zinc-500 text-[11px]">ⓘ</span>
+            </div>
+            <div className="text-lg font-bold text-white mt-2">
+              0.0%
+            </div>
+          </div>
+
+          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
+            <div className="flex items-center justify-between text-xs text-zinc-400">
+              <span>Taxas</span>
+              <span className="text-zinc-500 text-[11px]">ⓘ</span>
+            </div>
+            <div className="text-lg font-bold text-white mt-2">
+              R$ 0,00
+            </div>
+          </div>
+
+          {/* Linha 4 */}
+          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
+            <div className="flex items-center justify-between text-xs text-zinc-400">
+              <span>Imposto total</span>
+              <span className="text-zinc-500 text-[11px]">ⓘ</span>
+            </div>
+            <div className="text-lg font-bold text-white mt-2">
+              R$ {impostoTotal.replace('.', ',')}
+            </div>
+          </div>
+
+          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
+            <div className="flex items-center justify-between text-xs text-zinc-400">
+              <span>Chargeback</span>
+              <span className="text-zinc-500 text-[11px]">ⓘ</span>
+            </div>
+            <div className="text-lg font-bold text-white mt-2">
+              0.0%
+            </div>
+          </div>
+
+          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
+            <div className="flex items-center justify-between text-xs text-zinc-400">
+              <span>Imposto Meta Ads</span>
+              <span className="text-zinc-500 text-[11px]">ⓘ</span>
+            </div>
+            <div className="text-lg font-bold text-white mt-2">
+              R$ {impostoMetaAds.replace('.', ',')}
+            </div>
+          </div>
+
         </div>
 
       </div>
 
-      {/* Row 4: Taxa de Aprovação + Vendas por Pagamento + Vendas por Fonte */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {/* Row 3: Vendas por Pagamento + Vendas por Fonte + Taxa de Aprovação idêntico ao print */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         
-        {/* Taxa de Aprovação */}
-        <div className="bg-[#0A1426] border border-[#13233E] p-5 rounded-2xl">
-          <div className="text-xs font-bold text-white mb-4">Taxa de Aprovação</div>
-          <div className="flex items-center justify-between pt-2">
-            <span className="text-xs font-medium text-zinc-300">Pix</span>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full border-2 border-t-brand border-r-brand border-b-transparent border-l-transparent animate-spin-slow flex items-center justify-center" />
-              <span className="text-xs font-bold text-white font-mono">{currentMetrics.pixApproval}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Vendas por Pagamento */}
-        <div className="bg-[#0A1426] border border-[#13233E] p-5 rounded-2xl flex items-center justify-between">
-          <div>
-            <div className="text-xs font-bold text-white mb-3">Vendas por Pagamento</div>
-            <div className="flex items-center gap-2 text-xs font-mono text-zinc-300">
-              <span className="w-2.5 h-2.5 rounded-full bg-brand" />
-              <span>Pix: {currentMetrics.pixSales}</span>
-            </div>
+        {/* Vendas por Pagamento (4 cols de 12) */}
+        <div className="lg:col-span-4 bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md">
+          <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
+            <span>Vendas por Pagamento</span>
+            <span className="text-zinc-500 text-[11px]">ⓘ</span>
           </div>
 
-          <div className="w-20 h-20 rounded-full border-4 border-brand bg-[#070D1A] flex flex-col items-center justify-center font-mono">
-            <span className="text-[9px] text-zinc-400">TOTAL</span>
-            <span className="text-lg font-bold text-white">{currentMetrics.sales}</span>
-          </div>
-        </div>
-        {/* Vendas por Fonte */}
-        <div className="bg-[#0A1426] border border-[#13233E] p-5 rounded-2xl">
-          <div className="text-xs font-bold text-white mb-3">Vendas por Fonte</div>
-          <div className="space-y-2 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-zinc-300">Facebook</span>
-              <div className="flex items-center gap-2 font-mono">
-                <span className="font-bold text-white">{currentMetrics.sources.fb}</span>
-                <span className="text-zinc-400 text-[11px]">
-                  ({currentMetrics.sales > 0 ? Math.round((currentMetrics.sources.fb / currentMetrics.sales) * 100) : 0}%)
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-zinc-300">Instagram</span>
-              <div className="flex items-center gap-2 font-mono">
-                <span className="font-bold text-white">{currentMetrics.sources.ig}</span>
-                <span className="text-zinc-400 text-[11px]">
-                  ({currentMetrics.sales > 0 ? Math.round((currentMetrics.sources.ig / currentMetrics.sales) * 100) : 0}%)
-                </span>
+          {/* Gráfico Donut com Total no centro */}
+          <div className="my-6 flex flex-col items-center justify-center relative">
+            <div className="w-36 h-36 relative flex items-center justify-center">
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                {/* Background Ring */}
+                <path
+                  className="text-[#0D1424]"
+                  strokeWidth="3.5"
+                  stroke="currentColor"
+                  fill="none"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+                {/* Pix Slice */}
+                {realApprovedSales > 0 && (
+                  <path
+                    className="text-[#0066FF]"
+                    strokeDasharray="100, 100"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                )}
+              </svg>
+              <div className="absolute flex flex-col items-center text-center">
+                <span className="text-[10px] text-zinc-400 font-medium">Total</span>
+                <span className="text-xl font-extrabold text-white font-sans">{realApprovedSales}</span>
               </div>
             </div>
           </div>
+
+          {/* Legenda com as pills idênticas ao print */}
+          <div className="flex items-center justify-center gap-4 text-xs pt-2">
+            <div className="flex items-center gap-1.5 text-zinc-300">
+              <span className="w-2 h-2 rounded-full bg-[#0066FF]" />
+              <span>Pix</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-zinc-300">
+              <span className="w-2 h-2 rounded-full bg-[#38BDF8]" />
+              <span>Cartão</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-zinc-300">
+              <span className="w-2 h-2 rounded-full bg-[#FACC15]" />
+              <span>Boleto</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-zinc-300">
+              <span className="w-2 h-2 rounded-full bg-[#F43F5E]" />
+              <span>Outros</span>
+            </div>
+          </div>
         </div>
 
-      </div>
-
-      {/* Row 5: Vendas por Produto + Taxas Plataforma + Impostos */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
-        
-        {/* Vendas por Produto */}
-        <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
-          <div className="flex items-center justify-between text-xs mb-3">
-            <span className="font-bold text-white">VENDAS POR PRODUTO</span>
-            <span className="text-[10px] font-mono text-zinc-400">
-              {currentMetrics.sales > 0 ? '3 produtos' : '0 produtos'}
-            </span>
+        {/* Vendas por Fonte (4 cols de 12) */}
+        <div className="lg:col-span-4 bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md">
+          <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
+            <span>Vendas por Fonte</span>
+            <span className="text-zinc-500 text-[11px]">ⓘ</span>
           </div>
 
-          {currentMetrics.sales === 0 ? (
-            <div className="py-6 text-center text-zinc-500 text-xs">
-              Nenhum produto vendido no período
+          {realApprovedSales === 0 ? (
+            <div className="h-44 flex items-center justify-center text-zinc-500 text-xs font-sans">
+              Nenhuma venda por aqui
             </div>
           ) : (
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between pb-1.5 border-b border-[#13233E]/50">
-                <span className="text-zinc-300 truncate max-w-[140px]">Privacy Mc Mirella</span>
-                <span className="font-mono font-bold text-white">{Math.round(currentMetrics.sales * 0.86)}</span>
-              </div>
-              <div className="flex justify-between pb-1.5 border-b border-[#13233E]/50">
-                <span className="text-zinc-300 truncate max-w-[140px]">ACESSO AO GRUPO MIRELLA</span>
-                <span className="font-mono font-bold text-white">{Math.max(1, Math.round(currentMetrics.sales * 0.07))}</span>
-              </div>
-              <div className="flex justify-between pb-1.5 border-b border-[#13233E]/50">
-                <span className="text-zinc-300 truncate max-w-[140px]">Vip Exclusivo Mirella</span>
-                <span className="font-mono font-bold text-white">{Math.max(1, Math.round(currentMetrics.sales * 0.07))}</span>
-              </div>
-              <div className="flex justify-between pt-1 font-bold">
-                <span className="text-zinc-400">Total</span>
-                <span className="font-mono text-white">{currentMetrics.sales}</span>
+            <div className="space-y-4 my-auto py-4">
+              <div>
+                <div className="flex justify-between text-xs text-zinc-300 mb-1">
+                  <span>Facebook Ads</span>
+                  <span className="font-bold text-white">{realApprovedSales} (100%)</span>
+                </div>
+                <div className="w-full bg-[#0D1424] h-2 rounded-full overflow-hidden">
+                  <div className="bg-[#0066FF] h-full rounded-full" style={{ width: '100%' }} />
+                </div>
               </div>
             </div>
           )}
+          <div className="h-4"></div>
         </div>
 
-        {/* Taxas Plataforma */}
-        <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl flex flex-col justify-between">
-          <div>
-            <div className="text-[10px] font-mono text-zinc-400 uppercase">TAXAS PLATAFORMA</div>
-            <div className="text-xl font-bold text-amber-400 mt-2">R$ 0,00</div>
-          </div>
-          <div className="text-[10px] font-mono text-zinc-500">Pix/Boleto: —</div>
-        </div>
-
-        {/* Impostos da Empresa */}
-        <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl flex flex-col justify-between">
-          <div>
-            <div className="text-[10px] font-mono text-zinc-400 uppercase">IMPOSTOS DA EMPRESA</div>
-            <div className="text-xl font-bold text-amber-400 mt-2">R$ 0,00</div>
-          </div>
-          <div className="text-[10px] font-mono text-zinc-500">Não configurado</div>
-        </div>
-
-        {/* Imposto Meta Ads */}
-        <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl flex flex-col justify-between">
-          <div>
-            <div className="text-[10px] font-mono text-zinc-400 uppercase">IMPOSTO META ADS</div>
-            <div className="text-xl font-bold text-amber-400 mt-2">R$ 0,00</div>
-          </div>
-          <div className="text-[10px] font-mono text-zinc-500">Não configurado</div>
-        </div>
-
-      </div>
-
-      {/* Row 6: Vendas por Horário */}
-      <div className="bg-[#0A1426] border border-[#13233E] p-5 rounded-2xl">
-        <div className="text-xs font-bold text-white mb-6">Vendas por Horário — {period}</div>
-        
-        {/* Hourly distribution bars matching the period */}
-        <div className="flex items-end gap-1.5 h-36 pt-4 border-b border-[#13233E]">
-          {currentMetrics.hourly.map((item, idx) => (
-            <div key={idx} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
-              <div className="text-[9px] font-mono text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                {item.v}
-              </div>
-              <div 
-                className="w-full bg-[#1A6DFF] hover:bg-[#5C9BFF] rounded-t transition-all"
-                style={{ height: `${item.v}%` }}
-              />
-              <span className="text-[9px] font-mono text-zinc-400">{item.h}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Row 7: Vendas por Localização */}
-      <div className="bg-[#0A1426] border border-[#13233E] p-5 rounded-2xl">
-        <div className="flex items-center justify-between text-xs mb-4">
-          <span className="font-bold text-white">Vendas por Localização</span>
-          <span className="text-[11px] font-mono text-[#5C9BFF]">
-            {currentMetrics.sales > 0 ? 'São Paulo lidera - 6 vendas' : 'Aguardando primeiras vendas'}
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-          
-          {/* World map abstraction */}
-          <div className="lg:col-span-6 bg-[#070D1A] rounded-2xl p-6 border border-white/5 flex flex-col items-center justify-center min-h-[220px]">
-            <span className="text-[10px] font-mono text-zinc-400 mb-4 self-start">● MUNDO</span>
-            <div className="w-full text-center text-zinc-600 font-mono text-xs">
-              <div className="text-3xl mb-2">🌎</div>
-              <span className="text-zinc-400">
-                {currentMetrics.sales > 0 ? 'Brasil: 100% das vendas aprovadas' : 'Sem vendas no período'}
-              </span>
-            </div>
+        {/* Taxa de Aprovação (4 cols de 12) */}
+        <div className="lg:col-span-4 bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 sm:p-5 flex flex-col justify-between shadow-md">
+          <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-4">
+            <span>Taxa de Aprovação</span>
+            <span className="text-zinc-500 text-[11px]">ⓘ</span>
           </div>
 
-          {/* Brazil states distribution */}
-          <div className="lg:col-span-6 space-y-3 font-mono text-xs">
-            <span className="text-[10px] text-zinc-400 mb-2 block">■ BRASIL</span>
-
-            {currentMetrics.sales === 0 ? (
-              <div className="py-8 text-center text-zinc-500">
-                Nenhum dado geográfico registrado ainda
-              </div>
-            ) : (
-              [
-                { state: 'São Paulo', sales: 6, pct: 100 },
-                { state: 'Minas Gerais', sales: 3, pct: 50 },
-                { state: 'Goiás', sales: 2, pct: 33 },
-                { state: 'Pernambuco', sales: 1, pct: 16 },
-                { state: 'Santa Catarina', sales: 1, pct: 16 }
-              ].map((st, idx) => (
-                <div key={idx} className="flex items-center justify-between gap-4">
-                  <span className="text-zinc-300 w-28">{st.state}</span>
-                  <div className="flex-1 bg-white/5 h-2 rounded-full overflow-hidden">
-                    <div className="bg-[#2B66E3] h-full rounded-full" style={{ width: `${st.pct}%` }} />
-                  </div>
-                  <span className="text-white font-bold w-6 text-right">{st.sales}</span>
+          <div className="space-y-4 my-auto">
+            {/* Cartão */}
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-zinc-300">Cartão</span>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full border border-zinc-700 flex items-center justify-center">
+                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
                 </div>
-              ))
-            )}
-          </div>
+                <span className="text-zinc-400 font-mono text-xs">N/A</span>
+              </div>
+            </div>
 
+            {/* Pix */}
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-zinc-300">Pix</span>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full border border-[#0066FF] flex items-center justify-center">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#0066FF]" />
+                </div>
+                <span className="text-white font-mono font-bold text-xs">{pixRate}</span>
+              </div>
+            </div>
+
+            {/* Boleto */}
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-zinc-300">Boleto</span>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full border border-zinc-700 flex items-center justify-center">
+                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
+                </div>
+                <span className="text-zinc-400 font-mono text-xs">N/A</span>
+              </div>
+            </div>
+          </div>
+          <div className="h-4"></div>
         </div>
+
       </div>
 
     </div>
   );
 }
-
-
