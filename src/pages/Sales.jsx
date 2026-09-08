@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getCurrentUser, isMasterAdmin, getTrialStatus } from '../utils/auth';
 import { 
   ChevronDown, 
@@ -15,6 +15,20 @@ export default function Sales() {
   const isAdmin = isMasterAdmin(user);
   const trialStatus = getTrialStatus(user);
   const [period, setPeriod] = useState('Hoje');
+  const [liveOrders, setLiveOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/orders')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setLiveOrders(data);
+        }
+      })
+      .catch(err => console.error('Erro ao carregar vendas:', err))
+      .finally(() => setLoading(false));
+  }, []);
 
   const salesData = [
     {
@@ -131,7 +145,41 @@ export default function Sales() {
     }
   ];
 
-  const displayedSales = isAdmin ? salesData : [];
+  const formattedLiveOrders = liveOrders.map(o => {
+    const cust = o.customer || {};
+    const d = o.createdAt ? new Date(o.createdAt) : new Date();
+    const formattedDate = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    const cityState = [cust.city, cust.state].filter(Boolean).join(', ') || 'Brasil';
+    
+    return {
+      id: o.id || o.orderCode,
+      name: cust.name || 'Cliente MonsterPay',
+      email: cust.email || '—',
+      city: cityState,
+      product: o.productName || 'Produto MonsterPay',
+      value: `R$ ${Number(o.amount || 0).toFixed(2).replace('.', ',')}`,
+      platform: o.gateway || 'MonsterPay',
+      source: (o.attribution?.source || 'FB').toUpperCase().slice(0, 2),
+      campaign: o.attribution?.campaign || o.campaign || 'TESTE MI',
+      capi: o.status === 'approved' ? 'approved' : 'pending',
+      emq: o.emqScore || 9.7,
+      reason: o.status === 'approved' ? '—' : 'Pendente',
+      date: formattedDate,
+      rawDate: d
+    };
+  });
+
+  const baseSales = formattedLiveOrders.length > 0 ? formattedLiveOrders : (isAdmin ? salesData : []);
+
+  const displayedSales = baseSales.filter(sale => {
+    if (!sale.rawDate) return true;
+    const now = new Date();
+    const diffHours = (now - sale.rawDate) / (1000 * 60 * 60);
+    if (period === 'Hoje') return diffHours <= 24;
+    if (period === 'Ontem') return diffHours > 24 && diffHours <= 48;
+    if (period === '7d') return diffHours <= 24 * 7;
+    return true;
+  });
 
   return (
     <div className="space-y-4 pb-16">
@@ -288,7 +336,7 @@ export default function Sales() {
                     {sale.capi === 'approved' ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#2B66E3] text-white font-mono text-[10px] font-bold">
                         <Check className="w-3 h-3 stroke-[3]" />
-                        <span>9.3</span>
+                        <span>{sale.emq || '9.7'}</span>
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-400 font-mono text-[10px]">

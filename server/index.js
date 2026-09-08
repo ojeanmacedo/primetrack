@@ -269,8 +269,8 @@ app.post('/api/track/event', async (req, res) => {
  */
 app.post(['/api/webhook', '/api/webhooks/:gateway'], async (req, res) => {
   try {
-    const gateway = req.params.gateway || req.query.gateway || req.query.platform || (req.body && req.body.gateway) || 'generic';
-    const token = req.query.token || req.headers['x-api-token'] || (req.headers.authorization ? req.headers.authorization.replace('Bearer ', '') : null);
+    const gateway = req.params.gateway || req.query.gateway || req.query.platform || (req.body && req.body.gateway) || (req.body && req.body.platform) || 'monsterpay';
+    const token = req.query.token || req.headers['x-api-token'] || (req.headers.authorization ? req.headers.authorization.replace('Bearer ', '') : null) || (req.body && req.body.token);
     const body = req.body || {};
     const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
 
@@ -436,7 +436,11 @@ app.get('/api/campaigns', async (req, res) => {
   });
 
   const orders = db.get('orders') || [];
-  const approvedOrders = orders.filter(o => o.status === 'approved' || !o.status);
+  // Restringe estritamente às vendas aprovadas da MonsterPay
+  const approvedOrders = orders.filter(o => 
+    (o.status === 'approved' || !o.status) && 
+    (!o.gateway || o.gateway.toLowerCase().includes('monster'))
+  );
 
 function resolveDateRange(datePreset = 'today', since = null, until = null) {
   if (since && until) {
@@ -526,7 +530,8 @@ function resolveDateRange(datePreset = 'today', since = null, until = null) {
  */
 app.get('/api/orders', (req, res) => {
   const orders = db.get('orders') || [];
-  res.json(orders.slice(0, 50));
+  const monsterOrders = orders.filter(o => !o.gateway || o.gateway.toLowerCase().includes('monster'));
+  res.json(monsterOrders);
 });
 
 /**
@@ -945,7 +950,11 @@ app.post('/api/meta/sync', async (req, res) => {
     });
 
     const orders = db.get('orders') || [];
-    const approvedOrders = orders.filter(o => o.status === 'approved' || !o.status);
+    // Restringe estritamente às vendas aprovadas da MonsterPay
+    const approvedOrders = orders.filter(o => 
+      (o.status === 'approved' || !o.status) && 
+      (!o.gateway || o.gateway.toLowerCase().includes('monster'))
+    );
 
     const { since: filterSince, until: filterUntil } = resolveDateRange(datePreset, since, until);
     const filteredOrders = approvedOrders.filter(o => {
