@@ -399,8 +399,9 @@ app.get('/api/campaigns', async (req, res) => {
     return res.json([]);
   }
 
-  const { datePreset = 'today', refresh } = req.query;
-  const cacheKey = datePreset;
+  const { datePreset = 'today', since, until, refresh } = req.query;
+  const timeRange = (since && until) ? { since, until } : null;
+  const cacheKey = timeRange ? `${since}_${until}` : datePreset;
   const now = Date.now();
   const cached = campaignsCache.get(cacheKey);
 
@@ -411,13 +412,13 @@ app.get('/api/campaigns', async (req, res) => {
 
   const existingCampaigns = db.get('campaigns') || [];
 
-  // Se já temos campanhas salvas e não for refresh forçado pelo botão "Atualizar",
+  // Se já temos campanhas salvas e não for refresh forçado pelo botão "Atualizar" ou range específico,
   // retorna instantaneamente e sincroniza em background
-  if (existingCampaigns.length > 0 && refresh !== 'true') {
-    executeMetaSync({ datePreset }).catch(e => console.warn('[Background Sync Error]:', e.message));
+  if (existingCampaigns.length > 0 && refresh !== 'true' && !timeRange) {
+    executeMetaSync({ datePreset, timeRange }).catch(e => console.warn('[Background Sync Error]:', e.message));
   } else {
     try {
-      await executeMetaSync({ datePreset });
+      await executeMetaSync({ datePreset, timeRange });
     } catch (e) {
       console.warn('[Sync Campaigns Error]:', e.message);
     }
@@ -441,28 +442,41 @@ app.get('/api/campaigns', async (req, res) => {
   const orders = db.get('orders') || [];
   const approvedOrders = orders.filter(o => o.status === 'approved' || !o.status);
 
-  // Calcula vendas e receita atribuídas via UTM para cada campanha real
+  // Se houver filtro de data (since / until), filtra também os pedidos webhook por data
+  const filteredOrders = approvedOrders.filter(o => {
+    if (since && until && o.createdAt) {
+      const oDate = o.createdAt.substring(0, 10);
+      return oDate >= since && oDate <= until;
+    }
+    return true;
+  });
+
+  // Calcula vendas e receita combinando Meta Pixel com Webhooks (se houver)
   const enrichedCampaigns = activeOnlyCampaigns.map(c => {
     const cName = (c.name || '').toLowerCase();
     const cUtm = (c.utm_campaign || '').toLowerCase();
     const cId = String(c.id || '');
 
-    const matchingOrders = approvedOrders.filter(o => {
+    const matchingOrders = filteredOrders.filter(o => {
       const oCamp = ((o.attribution && o.attribution.campaign) || o.campaign || '').toLowerCase();
       return (oCamp && (oCamp === cName || oCamp === cUtm || oCamp === cId || cName.includes(oCamp) || oCamp.includes(cName)));
     });
 
-    const salesCount = matchingOrders.length;
-    const revenueSum = matchingOrders.reduce((acc, o) => acc + Number(o.amount || 0), 0);
+    const webhookSales = matchingOrders.length;
+    const webhookRevenue = matchingOrders.reduce((acc, o) => acc + Number(o.amount || 0), 0);
+    
+    // Usa as vendas do Pixel da Meta ou soma com as atribuídas por Webhook
+    const totalSales = webhookSales > 0 ? webhookSales : Number(c.sales || 0);
+    const totalRevenue = webhookRevenue > 0 ? webhookRevenue : Number(c.revenue || 0);
     const spendNum = Number(c.spend || 0);
-    const profitNum = revenueSum - spendNum;
-    const roasNum = spendNum > 0 ? (revenueSum / spendNum).toFixed(2) : '0.00';
-    const cpaNum = salesCount > 0 ? (spendNum / salesCount).toFixed(2) : '0.00';
+    const profitNum = totalRevenue - spendNum;
+    const roasNum = spendNum > 0 ? (totalRevenue / spendNum).toFixed(2) : '0.00';
+    const cpaNum = totalSales > 0 ? (spendNum / totalSales).toFixed(2) : '0.00';
 
     return {
       ...c,
-      sales: salesCount,
-      revenue: revenueSum.toFixed(2),
+      sales: totalSales,
+      revenue: totalRevenue.toFixed(2),
       profit: profitNum.toFixed(2),
       roas: roasNum,
       cpa: cpaNum
@@ -756,7 +770,7 @@ app.get('/api/meta/status', (req, res) => {
 });
 
 // D. Função central para sincronizar campanhas e saldos reais das contas ativas em integrações
-async function executeMetaSync({ datePreset = 'today', accountIds = null, accountId = null } = {}) {
+async function executeMetaSync({ datePreset = 'today', timeRange = null, accountIds = null, accountId = null } = {}) {
   const connections = db.get('facebook_connections') || [];
   if (connections.length === 0) {
     return { success: false, error: 'Nenhum perfil do Facebook conectado ainda.', syncedCampaigns: 0 };
@@ -806,7 +820,7 @@ async function executeMetaSync({ datePreset = 'today', accountIds = null, accoun
     try {
       // Executa busca de campanhas e detalhes de saldo em paralelo para máxima velocidade
       const [campaigns, liveDetails] = await Promise.all([
-        fetchCampaigns(acc.id, latestConnection.accessToken, acc.name, datePreset),
+        fetchCampaigns(acc.id, latestConnection.accessToken, acc.name, datePreset, timeRange),
         fetchLiveAccountDetails(acc.id, latestConnection.accessToken).catch(() => ({}))
       ]);
 
@@ -884,8 +898,9 @@ async function executeMetaSync({ datePreset = 'today', accountIds = null, accoun
 // Endpoint de sincronização manual ou acionado pela dashboard/campanhas
 app.post('/api/meta/sync', async (req, res) => {
   try {
-    const { datePreset = 'today', accountId, accountIds } = req.body || {};
-    const result = await executeMetaSync({ datePreset, accountId, accountIds });
+    const { datePreset = 'today', since, until, accountId, accountIds } = req.body || {};
+    const timeRange = (since && until) ? { since, until } : null;
+    const result = await executeMetaSync({ datePreset, timeRange, accountId, accountIds });
 
     const adAccounts = db.get('ad_accounts') || [];
     const activeAccountIds = new Set(
@@ -902,34 +917,45 @@ app.post('/api/meta/sync', async (req, res) => {
     const orders = db.get('orders') || [];
     const approvedOrders = orders.filter(o => o.status === 'approved' || !o.status);
 
+    const filteredOrders = approvedOrders.filter(o => {
+      if (since && until && o.createdAt) {
+        const oDate = o.createdAt.substring(0, 10);
+        return oDate >= since && oDate <= until;
+      }
+      return true;
+    });
+
     const enrichedCampaigns = activeOnlyCampaigns.map(c => {
       const cName = (c.name || '').toLowerCase();
       const cUtm = (c.utm_campaign || '').toLowerCase();
       const cId = String(c.id || '');
 
-      const matchingOrders = approvedOrders.filter(o => {
+      const matchingOrders = filteredOrders.filter(o => {
         const oCamp = ((o.attribution && o.attribution.campaign) || o.campaign || '').toLowerCase();
         return (oCamp && (oCamp === cName || oCamp === cUtm || oCamp === cId || cName.includes(oCamp) || oCamp.includes(cName)));
       });
 
-      const salesCount = matchingOrders.length;
-      const revenueSum = matchingOrders.reduce((acc, o) => acc + Number(o.amount || 0), 0);
+      const webhookSales = matchingOrders.length;
+      const webhookRevenue = matchingOrders.reduce((acc, o) => acc + Number(o.amount || 0), 0);
+      const totalSales = webhookSales > 0 ? webhookSales : Number(c.sales || 0);
+      const totalRevenue = webhookRevenue > 0 ? webhookRevenue : Number(c.revenue || 0);
       const spendNum = Number(c.spend || 0);
-      const profitNum = revenueSum - spendNum;
-      const roasNum = spendNum > 0 ? (revenueSum / spendNum).toFixed(2) : '0.00';
-      const cpaNum = salesCount > 0 ? (spendNum / salesCount).toFixed(2) : '0.00';
+      const profitNum = totalRevenue - spendNum;
+      const roasNum = spendNum > 0 ? (totalRevenue / spendNum).toFixed(2) : '0.00';
+      const cpaNum = totalSales > 0 ? (spendNum / totalSales).toFixed(2) : '0.00';
 
       return {
         ...c,
-        sales: salesCount,
-        revenue: revenueSum.toFixed(2),
+        sales: totalSales,
+        revenue: totalRevenue.toFixed(2),
         profit: profitNum.toFixed(2),
         roas: roasNum,
         cpa: cpaNum
       };
     });
 
-    campaignsCache.set(datePreset, {
+    const cacheKey = timeRange ? `${since}_${until}` : datePreset;
+    campaignsCache.set(cacheKey, {
       timestamp: Date.now(),
       campaigns: enrichedCampaigns
     });

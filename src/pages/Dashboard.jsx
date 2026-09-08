@@ -18,6 +18,7 @@ import {
   Clock,
   Key
 } from 'lucide-react';
+import DateRangePicker from '../components/DateRangePicker';
 
 export default function Dashboard({ onSimulateSale }) {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ export default function Dashboard({ onSimulateSale }) {
   const isAdmin = isMasterAdmin(user);
   const trialStatus = getTrialStatus(user);
   const [period, setPeriod] = useState('Hoje');
+  const [customRange, setCustomRange] = useState(null);
 
   const isDisconnected = typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true';
 
@@ -70,8 +72,14 @@ export default function Dashboard({ onSimulateSale }) {
 
   const isFirstMount = React.useRef(true);
 
-  const loadDashboardData = async (customPeriod = period) => {
-    const preset = periodToPreset[customPeriod] || 'today';
+  const loadDashboardData = async (customPeriod = period, rangeObj = customRange) => {
+    let query = '';
+    if (customPeriod === 'Personalizado' && rangeObj?.since) {
+      query = `since=${rangeObj.since}&until=${rangeObj.until || rangeObj.since}`;
+    } else {
+      const preset = periodToPreset[customPeriod] || 'today';
+      query = `datePreset=${preset}`;
+    }
 
     const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
     let localSyncMap = {};
@@ -93,7 +101,7 @@ export default function Dashboard({ onSimulateSale }) {
     try {
       const [rRes, crRes] = await Promise.all([
         fetch('/api/meta/status'),
-        fetch(`/api/campaigns?datePreset=${preset}`)
+        fetch(`/api/campaigns?${query}`)
       ]);
 
       const data = await rRes.json();
@@ -153,11 +161,17 @@ export default function Dashboard({ onSimulateSale }) {
     }
   };
 
-  const handleRefresh = async (customPeriod = period) => {
+  const handleRefresh = async (customPeriod = period, rangeObj = customRange) => {
     setSyncing(true);
     try {
-      const preset = periodToPreset[customPeriod] || 'today';
-      const cr = await fetch(`/api/campaigns?datePreset=${preset}&refresh=true`);
+      let query = '';
+      if (customPeriod === 'Personalizado' && rangeObj?.since) {
+        query = `since=${rangeObj.since}&until=${rangeObj.until || rangeObj.since}&refresh=true`;
+      } else {
+        const preset = periodToPreset[customPeriod] || 'today';
+        query = `datePreset=${preset}&refresh=true`;
+      }
+      const cr = await fetch(`/api/campaigns?${query}`);
       const cData = await cr.json();
       if (Array.isArray(cData)) {
         setCampaigns(cData);
@@ -173,10 +187,10 @@ export default function Dashboard({ onSimulateSale }) {
   };
 
   useEffect(() => {
-    loadDashboardData(period);
+    loadDashboardData(period, customRange);
 
     const handleProfileSync = () => {
-      loadDashboardData(period);
+      loadDashboardData(period, customRange);
     };
 
     window.addEventListener('primetrack_profile_sync', handleProfileSync);
@@ -188,7 +202,9 @@ export default function Dashboard({ onSimulateSale }) {
       isFirstMount.current = false;
       return;
     }
-    loadDashboardData(period);
+    if (period !== 'Personalizado') {
+      loadDashboardData(period, null);
+    }
   }, [period]);
 
   const periods = ['Hoje', 'Ontem', '7 dias', '15 dias', '30 dias', 'Personalizado'];
@@ -340,13 +356,17 @@ export default function Dashboard({ onSimulateSale }) {
         {/* Filters and Actions */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Period Filter Pills */}
-          <div className="flex items-center bg-[#0A1426] border border-[#13233E] rounded-xl p-1 text-xs">
-            {periods.map(p => (
+          <div className="flex items-center gap-1 bg-[#0A1426] border border-[#13233E] rounded-xl p-1 text-xs">
+            {['Hoje', 'Ontem', '7 dias', '15 dias', '30 dias'].map(p => (
               <button
                 key={p}
-                onClick={() => setPeriod(p)}
+                onClick={() => {
+                  setPeriod(p);
+                  setCustomRange(null);
+                  loadDashboardData(p, null);
+                }}
                 className={`px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
-                  period === p
+                  period === p && !customRange
                     ? 'bg-[#12223D] text-[#5C9BFF] font-bold shadow-sm'
                     : 'text-zinc-400 hover:text-white'
                 }`}
@@ -354,6 +374,20 @@ export default function Dashboard({ onSimulateSale }) {
                 {p}
               </button>
             ))}
+            <DateRangePicker
+              currentPeriod={period}
+              customRange={customRange}
+              onSelectPeriod={(p) => {
+                setPeriod(p);
+                setCustomRange(null);
+                loadDashboardData(p, null);
+              }}
+              onApplyCustomRange={(range) => {
+                setPeriod('Personalizado');
+                setCustomRange(range);
+                loadDashboardData('Personalizado', range);
+              }}
+            />
           </div>
 
           {/* Account Dropdown igual ao de Campanhas */}
@@ -375,7 +409,7 @@ export default function Dashboard({ onSimulateSale }) {
 
           {/* Buttons */}
           <button 
-            onClick={handleRefresh}
+            onClick={() => handleRefresh(period, customRange)}
             disabled={syncing}
             className={`px-3 py-1.5 rounded-xl bg-[#0A1426] hover:bg-[#12223D] border border-[#13233E] text-zinc-300 hover:text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer ${
               syncing ? 'opacity-70 cursor-wait' : ''
@@ -384,6 +418,15 @@ export default function Dashboard({ onSimulateSale }) {
           >
             <RotateCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin text-[#5C9BFF]' : ''}`} />
             <span>{syncing ? 'Sincronizando...' : 'Atualizar'}</span>
+          </button>
+
+          <button 
+            onClick={() => window.print()}
+            className="px-3 py-1.5 rounded-xl bg-[#0A1426] hover:bg-[#12223D] border border-[#13233E] text-zinc-300 hover:text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Exportar dados do Dashboard"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Exportar</span>
           </button>
 
           <div className="flex items-center gap-1 bg-[#0A1426] border border-[#13233E] p-1 rounded-xl text-zinc-400">
@@ -597,7 +640,7 @@ export default function Dashboard({ onSimulateSale }) {
                         <div className="text-[10px] font-mono text-zinc-500">{acc.id}</div>
                       </div>
                       <div className="font-mono font-bold text-emerald-400">
-                        {acc.currency === 'USD' || (acc.currency && acc.currency.includes('USD')) ? '$' : 'R$'} {acc.balance || '0,00'}
+                        R$ {acc.balance || '0,00'}
                       </div>
                     </div>
                   ))

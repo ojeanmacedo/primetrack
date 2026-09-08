@@ -24,6 +24,7 @@ import {
   Sliders,
   ArrowRight
 } from 'lucide-react';
+import DateRangePicker from '../components/DateRangePicker';
 
 export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) {
   const navigate = useNavigate();
@@ -33,6 +34,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const [activeCreativePreview, setActiveCreativePreview] = useState(null);
   const [statusFilter, setStatusFilter] = useState('Qualquer');
   const [periodFilter, setPeriodFilter] = useState('Hoje');
+  const [customRange, setCustomRange] = useState(null);
   const [accountFilter, setAccountFilter] = useState('Todas');
   
   const isDisconnected = typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true';
@@ -127,15 +129,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const subTabs = ['Contas', 'Campanhas', 'Conjuntos', 'Anúncios'];
   const isFirstMount = React.useRef(true);
 
-  useEffect(() => {
-    if (isFirstMount.current) {
-      isFirstMount.current = false;
-      return;
-    }
-    loadData(periodFilter);
-  }, [periodFilter]);
-
-  const loadData = async () => {
+  const loadData = async (customPreset = periodFilter, customRangeObj = customRange) => {
     const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
     let localSyncMap = {};
     if (saved) {
@@ -153,23 +147,29 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       } catch (e) {}
     }
 
-    const periodMap = {
-      'Hoje': 'today',
-      'Ontem': 'yesterday',
-      'Últimos 7 dias': 'last_7d',
-      '7 dias': 'last_7d',
-      'Últimos 14 dias': 'last_14d',
-      '14 dias': 'last_14d',
-      'Últimos 30 dias': 'last_30d',
-      '30 dias': 'last_30d',
-      'Personalizado': 'maximum'
-    };
-    const datePreset = periodMap[customPreset] || 'today';
+    let query = '';
+    if (customPreset === 'Personalizado' && customRangeObj?.since) {
+      query = `since=${customRangeObj.since}&until=${customRangeObj.until || customRangeObj.since}`;
+    } else {
+      const periodMap = {
+        'Hoje': 'today',
+        'Ontem': 'yesterday',
+        'Últimos 7 dias': 'last_7d',
+        '7 dias': 'last_7d',
+        'Últimos 14 dias': 'last_14d',
+        '14 dias': 'last_14d',
+        'Últimos 30 dias': 'last_30d',
+        '30 dias': 'last_30d',
+        'Personalizado': 'maximum'
+      };
+      const datePreset = periodMap[customPreset] || 'today';
+      query = `datePreset=${datePreset}`;
+    }
 
     try {
       const [statusRes, crRes] = await Promise.all([
         fetch('/api/meta/status'),
-        fetch(`/api/campaigns?datePreset=${datePreset}`)
+        fetch(`/api/campaigns?${query}`)
       ]);
 
       const data = await statusRes.json();
@@ -230,17 +230,27 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   };
 
   useEffect(() => {
-    loadData(periodFilter);
+    loadData(periodFilter, customRange);
 
     const handleProfileSync = () => {
-      loadData(periodFilter);
+      loadData(periodFilter, customRange);
     };
 
     window.addEventListener('primetrack_profile_sync', handleProfileSync);
     return () => window.removeEventListener('primetrack_profile_sync', handleProfileSync);
   }, []);
 
-  const handleSyncNow = async (preset = periodFilter) => {
+  useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+    if (periodFilter !== 'Personalizado') {
+      loadData(periodFilter, null);
+    }
+  }, [periodFilter]);
+
+  const handleSyncNow = async (preset = periodFilter, customRangeObj = customRange) => {
     setSyncing(true);
     try {
       const selectedPreset = typeof preset === 'string' ? preset : periodFilter;
@@ -268,13 +278,21 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         } catch (e) {}
       }
 
+      const syncPayload = {
+        accountIds: activeAccountIds.length > 0 ? activeAccountIds : undefined
+      };
+
+      if (selectedPreset === 'Personalizado' && customRangeObj?.since) {
+        syncPayload.since = customRangeObj.since;
+        syncPayload.until = customRangeObj.until || customRangeObj.since;
+      } else {
+        syncPayload.datePreset = datePreset;
+      }
+
       const syncRes = await fetch('/api/meta/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          datePreset,
-          accountIds: activeAccountIds.length > 0 ? activeAccountIds : undefined
-        })
+        body: JSON.stringify(syncPayload)
       });
       const syncData = await syncRes.json();
       if (syncData && Array.isArray(syncData.campaigns) && syncData.campaigns.length > 0) {
@@ -284,7 +302,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         }
       }
 
-      await loadData(selectedPreset);
+      await loadData(selectedPreset, customRangeObj);
       const now = new Date();
       setLastSyncTime(`${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`);
     } catch (e) {
@@ -435,7 +453,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             <span>Sincronizado: {lastSyncTime}</span>
           </span>
           <button 
-            onClick={handleSyncNow}
+            onClick={() => handleSyncNow(periodFilter, customRange)}
             disabled={syncing}
             className="px-4 py-2 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-brand/30 transition-all cursor-pointer disabled:opacity-60"
           >
@@ -493,19 +511,40 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             </select>
           </div>
 
-          {/* Period Dropdown */}
-          <div className="flex items-center gap-1.5 bg-[#0A1426] border border-[#13233E] px-3 py-1.5 rounded-xl text-zinc-300">
-            <span className="text-zinc-500 font-mono text-[10px] uppercase">Período:</span>
-            <select
-              value={periodFilter}
-              onChange={e => setPeriodFilter(e.target.value)}
-              className="bg-transparent text-white font-semibold text-xs focus:outline-none cursor-pointer"
-            >
-              <option value="Hoje" className="bg-[#0A1426] text-white">Hoje</option>
-              <option value="Ontem" className="bg-[#0A1426] text-white">Ontem</option>
-              <option value="7 dias" className="bg-[#0A1426] text-white">Últimos 7 dias</option>
-              <option value="30 dias" className="bg-[#0A1426] text-white">Últimos 30 dias</option>
-            </select>
+          {/* Period Filter with DateRangePicker */}
+          <div className="flex items-center gap-1 bg-[#0A1426] border border-[#13233E] rounded-xl p-1 text-xs">
+            {['Hoje', 'Ontem', '7 dias', '30 dias'].map(p => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => {
+                  setPeriodFilter(p);
+                  setCustomRange(null);
+                  loadData(p, null);
+                }}
+                className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+                  periodFilter === p && !customRange
+                    ? 'bg-[#12223D] text-[#5C9BFF] font-bold shadow-sm'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+            <DateRangePicker
+              currentPeriod={periodFilter}
+              customRange={customRange}
+              onSelectPeriod={(p) => {
+                setPeriodFilter(p);
+                setCustomRange(null);
+                loadData(p, null);
+              }}
+              onApplyCustomRange={(range) => {
+                setPeriodFilter('Personalizado');
+                setCustomRange(range);
+                loadData('Personalizado', range);
+              }}
+            />
           </div>
 
           {/* Account Dropdown */}

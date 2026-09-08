@@ -106,22 +106,31 @@ export async function fetchUserProfile(accessToken) {
  * 4. Busca todas as Contas de Anúncios vinculadas a esse perfil
  */
 export async function fetchAdAccounts(accessToken) {
-  const url = `${GRAPH_BASE_URL}/me/adaccounts?fields=id,name,account_id,account_status,currency,amount_spent,balance,business_name,business&limit=100&access_token=${accessToken}`;
+  const url = `${GRAPH_BASE_URL}/me/adaccounts?fields=id,name,account_id,account_status,currency,amount_spent,balance,is_prepay_account,funding_source_details,business_name,business&limit=100&access_token=${accessToken}`;
   const res = await fetch(url);
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
   
-  return (data.data || []).map(acc => ({
-    id: acc.id, // ex: act_1092137896602979
-    accountId: acc.account_id, // ex: 1092137896602979
-    name: acc.name || `Conta ${acc.account_id}`,
-    currency: acc.currency || 'BRL',
-    amountSpent: (Number(acc.amount_spent || 0) / 100).toFixed(2),
-    balance: (Number(acc.balance || 0) / 100).toFixed(2),
-    status: acc.account_status === 1 ? 'ACTIVE' : 'DISABLED',
-    businessName: acc.business_name || acc.business?.name || 'BM Principal',
-    syncActive: false
-  }));
+  return (data.data || []).map(acc => {
+    const isPrepay = acc.is_prepay_account === true;
+    const isCreditCard = acc.funding_source_details?.type === 1 || !isPrepay;
+    // Se for conta pós-paga / cartão de crédito, o saldo disponível é 0.00 (zerado)
+    const realAvailableBalance = isCreditCard ? '0.00' : (Number(acc.balance || 0) / 100).toFixed(2);
+
+    return {
+      id: acc.id, // ex: act_1092137896602979
+      accountId: acc.account_id, // ex: 1092137896602979
+      name: acc.name || `Conta ${acc.account_id}`,
+      currency: 'BRL',
+      amountSpent: (Number(acc.amount_spent || 0) / 100).toFixed(2),
+      balance: realAvailableBalance,
+      isPrepay,
+      cardInfo: acc.funding_source_details?.display_string || null,
+      status: acc.account_status === 1 ? 'ACTIVE' : 'DISABLED',
+      businessName: acc.business_name || acc.business?.name || 'BM Principal',
+      syncActive: false
+    };
+  });
 }
 
 /**
@@ -129,31 +138,41 @@ export async function fetchAdAccounts(accessToken) {
  */
 export async function fetchLiveAccountDetails(adAccountId, accessToken) {
   const actId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`;
-  const url = `${GRAPH_BASE_URL}/${actId}?fields=id,name,account_status,currency,amount_spent,balance,business_name&access_token=${accessToken}`;
+  const url = `${GRAPH_BASE_URL}/${actId}?fields=id,name,account_status,currency,amount_spent,balance,is_prepay_account,funding_source_details,business_name&access_token=${accessToken}`;
   const res = await fetch(url);
   const data = await res.json();
   if (data.error) throw new Error(data.error.message);
-  
+
+  const isPrepay = data.is_prepay_account === true;
+  const isCreditCard = data.funding_source_details?.type === 1 || !isPrepay;
+  const realAvailableBalance = isCreditCard ? '0.00' : (Number(data.balance || 0) / 100).toFixed(2);
+
   return {
     id: data.id,
     accountId: data.account_id || data.id.replace('act_', ''),
     name: data.name,
-    currency: data.currency || 'BRL',
+    currency: 'BRL',
     amountSpent: (Number(data.amount_spent || 0) / 100).toFixed(2),
-    balance: (Number(data.balance || 0) / 100).toFixed(2),
+    balance: realAvailableBalance,
+    isPrepay,
+    cardInfo: data.funding_source_details?.display_string || null,
     status: data.account_status === 1 ? 'ACTIVE' : 'DISABLED',
     businessName: data.business_name || 'BM Principal'
   };
 }
 
-
 /**
- * 5. Busca Campanhas reais da Conta de Anúncios com Gastos em Tempo Real em Real Brasileiro (BRL)
+ * 5. Busca Campanhas reais da Conta de Anúncios com Gastos, Vendas e Receita em Tempo Real (BRL)
  */
-export async function fetchCampaigns(adAccountId, accessToken, accountName = '', datePreset = 'today') {
+export async function fetchCampaigns(adAccountId, accessToken, accountName = '', datePreset = 'today', timeRange = null) {
   const actId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`;
 
-  const url = `${GRAPH_BASE_URL}/${actId}/campaigns?fields=id,name,status,effective_status,objective,daily_budget,lifetime_budget,insights.date_preset(${datePreset}){spend,impressions,clicks,cpc,cpm,ctr}&limit=100&access_token=${accessToken}`;
+  let insightField = `insights.date_preset(${datePreset}){spend,impressions,clicks,cpc,cpm,ctr,actions,action_values}`;
+  if (timeRange && timeRange.since && timeRange.until) {
+    insightField = `insights.time_range({'since':'${timeRange.since}','until':'${timeRange.until}'}){spend,impressions,clicks,cpc,cpm,ctr,actions,action_values}`;
+  }
+
+  const url = `${GRAPH_BASE_URL}/${actId}/campaigns?fields=id,name,status,effective_status,objective,daily_budget,lifetime_budget,${insightField}&limit=100&access_token=${accessToken}`;
   
   const res = await fetch(url);
   const data = await res.json();
@@ -176,6 +195,22 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const rawCpm = insight.cpm ? Number(insight.cpm) : (impressions > 0 ? (realSpend / impressions) * 1000 : 0);
     const rawCtr = insight.ctr ? Number(insight.ctr) : (impressions > 0 ? (clicks / impressions) * 100 : 0);
 
+    // Extrai compras reais e receita reportadas pelo Pixel da Meta
+    const actions = insight.actions || [];
+    const actionValues = insight.action_values || [];
+
+    const purchaseAction = actions.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase' || a.action_type === 'offsite_conversion.fb_pixel_purchase');
+    const purchaseVal = actionValues.find(a => a.action_type === 'purchase' || a.action_type === 'omni_purchase' || a.action_type === 'offsite_conversion.fb_pixel_purchase');
+    const initCheckoutAction = actions.find(a => a.action_type === 'initiate_checkout' || a.action_type === 'omni_initiated_checkout');
+
+    const pixelSales = purchaseAction ? Number(purchaseAction.value) : 0;
+    const pixelRevenue = purchaseVal ? Number(purchaseVal.value) : 0;
+    const initCheckouts = initCheckoutAction ? Number(initCheckoutAction.value) : 0;
+
+    const profit = pixelRevenue - realSpend;
+    const roas = realSpend > 0 ? (pixelRevenue / realSpend).toFixed(2) : '0.00';
+    const cpa = pixelSales > 0 ? (realSpend / pixelSales).toFixed(2) : '0.00';
+
     return {
       id: c.id,
       name: c.name,
@@ -191,11 +226,12 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       cpc: rawCpc.toFixed(2),
       cpm: rawCpm.toFixed(2),
       ctr: rawCtr.toFixed(2),
-      sales: 0,
-      revenue: '0.00',
-      profit: (0 - realSpend).toFixed(2),
-      roas: '0.00',
-      cpa: '0.00',
+      sales: pixelSales,
+      revenue: pixelRevenue.toFixed(2),
+      profit: profit.toFixed(2),
+      roas,
+      cpa,
+      initCheckouts,
       adAccountId: actId,
       accountName: accountName || 'Conta de Anúncios',
       currency: 'BRL'
