@@ -87,10 +87,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     }
   ];
 
-  const [campaignsList, setCampaignsList] = useState(() => {
-    if (!isAdmin || isDisconnected) return [];
-    return defaultCampaignData;
-  });
+  const [campaignsList, setCampaignsList] = useState([]);
 
   const [adAccountsList, setAdAccountsList] = useState(() => {
     if (isDisconnected) return [];
@@ -118,104 +115,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   const subTabs = ['Contas', 'Campanhas', 'Conjuntos', 'Anúncios'];
 
-  const periodCampaignMap = {
-    'Hoje': {
-      spend: '0.00',
-      revenue: '0.00',
-      profit: '0.00',
-      roas: '0.00',
-      cpa: '0.00',
-      sales: 0,
-      pendingSales: 0,
-      impressions: 0,
-      clicks: 0,
-      visits: 0,
-      cpc: '0.00'
-    },
-    'Ontem': {
-      spend: '123.41',
-      revenue: '139.67',
-      profit: '16.26',
-      roas: '1.13',
-      cpa: '8.23',
-      sales: 15,
-      pendingSales: 11,
-      impressions: 4168,
-      clicks: 421,
-      visits: 317,
-      cpc: '0.29'
-    },
-    '7 dias': {
-      spend: '890.20',
-      revenue: '1113.92',
-      profit: '223.72',
-      roas: '1.25',
-      cpa: '7.54',
-      sales: 118,
-      pendingSales: 78,
-      impressions: 31400,
-      clicks: 3120,
-      visits: 2410,
-      cpc: '0.28'
-    },
-    '15 dias': {
-      spend: '1840.00',
-      revenue: '2392.00',
-      profit: '552.00',
-      roas: '1.30',
-      cpa: '7.60',
-      sales: 242,
-      pendingSales: 160,
-      impressions: 64200,
-      clicks: 6510,
-      visits: 5020,
-      cpc: '0.28'
-    },
-    '30 dias': {
-      spend: '3820.00',
-      revenue: '4622.20',
-      profit: '802.20',
-      roas: '1.21',
-      cpa: '7.76',
-      sales: 492,
-      pendingSales: 320,
-      impressions: 134200,
-      clicks: 13420,
-      visits: 10390,
-      cpc: '0.28'
-    },
-    'Personalizado': {
-      spend: '123.41',
-      revenue: '139.67',
-      profit: '16.26',
-      roas: '1.13',
-      cpa: '8.23',
-      sales: 15,
-      pendingSales: 11,
-      impressions: 4168,
-      clicks: 421,
-      visits: 317,
-      cpc: '0.29'
-    }
-  };
-
   useEffect(() => {
-    if (localStorage.getItem('primetrack_meta_disconnected') === 'true') {
-      return;
-    }
-    const pData = periodCampaignMap[periodFilter] || periodCampaignMap['Hoje'];
-    setCampaignsList(prev => prev.map(c => {
-      if (c.name === 'TESTE MI' || c.id === '52604661655655') {
-        return {
-          ...c,
-          ...pData
-        };
-      }
-      return c;
-    }));
+    // Sincroniza dinamicamente ao trocar de período com a Meta API
+    handleSyncNow(periodFilter);
   }, [periodFilter]);
 
-  const loadData = () => {
+  const loadData = async () => {
     if (localStorage.getItem('primetrack_meta_disconnected') === 'true') {
       setCampaignsList([]);
       setAdAccountsList([]);
@@ -233,79 +138,67 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           });
           const activeList = parsed.filter(a => a.sync === true);
           setAdAccountsList(activeList);
-          if (activeList.length === 0) {
-            setCampaignsList([]);
-            return;
-          }
         }
       } catch (e) {}
-    } else if (!isAdmin) {
-      setCampaignsList([]);
-      setAdAccountsList([]);
-      return;
     }
 
-    fetch('/api/campaigns')
-      .then(r => r.json())
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          const activeAccountsSaved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
-          let activeAccountIds = new Set();
-          if (activeAccountsSaved) {
-            try {
-              const p = JSON.parse(activeAccountsSaved);
-              if (Array.isArray(p)) {
-                p.filter(a => a.sync === true).forEach(a => {
-                  activeAccountIds.add(String(a.id));
-                  activeAccountIds.add(`act_${a.id}`);
-                  if (a.name) activeAccountIds.add(a.name);
-                });
-              }
-            } catch (e) {}
-          }
-
-          const filteredByActiveAccs = data.filter(c => {
-            if (activeAccountIds.size === 0) return false;
-            return activeAccountIds.has(String(c.adAccountId)) || 
-                   activeAccountIds.has(String(c.accountName)) ||
-                   (c.name === 'TESTE MI' && isAdmin);
-          });
-
-          setCampaignsList(filteredByActiveAccs);
-        } else if (Array.isArray(data) && data.length === 0) {
-          setCampaignsList([]);
+    try {
+      const cr = await fetch('/api/campaigns');
+      const data = await cr.json();
+      if (Array.isArray(data)) {
+        const activeAccountsSaved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
+        let activeAccountIds = new Set();
+        if (activeAccountsSaved) {
+          try {
+            const p = JSON.parse(activeAccountsSaved);
+            if (Array.isArray(p)) {
+              p.filter(a => a.sync === true).forEach(a => {
+                activeAccountIds.add(String(a.id));
+                activeAccountIds.add(`act_${a.id}`);
+                if (a.name) activeAccountIds.add(a.name);
+              });
+            }
+          } catch (e) {}
         }
-      })
-      .catch(err => console.log('Erro ao carregar campanhas:', err));
 
-    fetch('/api/meta/status')
-      .then(r => r.json())
-      .then(data => {
-        if (data.connections && data.connections.length === 0) {
-          if (!isAdmin) {
-            setCampaignsList([]);
-            setAdAccountsList([]);
-          }
-        } else if (data.adAccounts && data.adAccounts.length > 0) {
-          const mappedAccs = data.adAccounts
-            .map(a => {
-              const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
-              return {
-                name: a.name || 'Conta',
-                id: accId,
-                bm: a.businessName || 'BM Principal',
-                currency: a.currency === 'USD' ? 'USD (→ BRL @ 5,12)' : 'BRL',
-                status: a.status === 'ACTIVE' ? 'Ativa' : 'Desativada',
-                balance: a.balance || '0,00',
-                amountSpent: a.amountSpent || '0,00',
-                sync: localSyncMap[accId] === true
-              };
-            })
-            .filter(a => a.sync === true);
-          setAdAccountsList(mappedAccs);
-        }
-      })
-      .catch(err => console.log('Erro ao carregar contas:', err));
+        const filteredByActiveAccs = data.filter(c => {
+          if (activeAccountIds.size === 0) return true;
+          const cAdId = String(c.adAccountId || '').replace('act_', '');
+          return activeAccountIds.has(cAdId) || 
+                 activeAccountIds.has(`act_${cAdId}`) || 
+                 activeAccountIds.has(String(c.adAccountId));
+        });
+
+        setCampaignsList(filteredByActiveAccs);
+      }
+    } catch (err) {
+      console.log('Erro ao carregar campanhas:', err);
+    }
+
+    try {
+      const statusRes = await fetch('/api/meta/status');
+      const data = await statusRes.json();
+      if (data.adAccounts && data.adAccounts.length > 0) {
+        const mappedAccs = data.adAccounts
+          .map(a => {
+            const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
+            return {
+              name: a.name || 'Conta',
+              id: accId,
+              bm: a.businessName || 'BM Principal',
+              currency: a.currency === 'USD' ? 'USD (→ BRL @ 5,12)' : 'BRL',
+              status: a.status === 'ACTIVE' ? 'Ativa' : 'Desativada',
+              balance: a.balance || '0,00',
+              amountSpent: a.amountSpent || '0,00',
+              sync: localSyncMap[accId] === true
+            };
+          })
+          .filter(a => a.sync === true);
+        setAdAccountsList(mappedAccs);
+      }
+    } catch (err) {
+      console.log('Erro ao carregar contas:', err);
+    }
   };
 
   useEffect(() => {
@@ -319,10 +212,42 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     return () => window.removeEventListener('primetrack_profile_sync', handleProfileSync);
   }, []);
 
-  const handleSyncNow = async () => {
+  const handleSyncNow = async (preset = periodFilter) => {
     setSyncing(true);
     try {
-      await fetch('/api/meta/sync', { method: 'POST' });
+      const selectedPreset = typeof preset === 'string' ? preset : periodFilter;
+      const periodMap = {
+        'Hoje': 'today',
+        'Ontem': 'yesterday',
+        'Últimos 7 dias': 'last_7d',
+        '7 dias': 'last_7d',
+        'Últimos 14 dias': 'last_14d',
+        '14 dias': 'last_14d',
+        'Últimos 30 dias': 'last_30d',
+        '30 dias': 'last_30d',
+        'Personalizado': 'maximum'
+      };
+      const datePreset = periodMap[selectedPreset] || selectedPreset || 'today';
+      
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
+      let activeAccountIds = [];
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            activeAccountIds = parsed.filter(a => a.sync === true).map(a => a.id);
+          }
+        } catch (e) {}
+      }
+
+      await fetch('/api/meta/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          datePreset,
+          accountIds: activeAccountIds.length > 0 ? activeAccountIds : undefined
+        })
+      });
       await loadData();
       const now = new Date();
       setLastSyncTime(`${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`);
@@ -554,8 +479,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             >
               <option value="Todas" className="bg-[#0A1426] text-white">Todas as Contas ({adAccountsList.length})</option>
               {adAccountsList.map(acc => (
-                <option key={acc.id} value={acc.name} className="bg-[#0A1426] text-white">
-                  {acc.name}
+                <option key={acc.id} value={acc.id} className="bg-[#0A1426] text-white">
+                  {acc.name} ({acc.id.slice(-4)})
                 </option>
               ))}
             </select>
@@ -808,7 +733,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     <td className="py-3 px-4 text-white">R$ {totalSpend.toFixed(2)}</td>
                     <td className="py-3 px-4 text-white text-center">{totalSales}</td>
                     <td className="py-3 px-4 text-white">R$ {totalRevenue.toFixed(2)}</td>
-                    <td className="py-3 px-4 text-[#5C9BFF]">R$ {totalProfit.toFixed(2)}</td>
+                    <td className={`py-3 px-4 font-extrabold ${totalProfit >= 0 ? 'text-[#5C9BFF]' : 'text-red-400'}`}>
+                      R$ {totalProfit.toFixed(2)}
+                    </td>
                     <td className="py-3 px-4 text-[#5C9BFF]">{avgRoas}</td>
                     <td className="py-3 px-4 text-[#5C9BFF]">R$ {avgCpa}</td>
                     <td className="py-3 px-4 text-zinc-300"></td>
@@ -873,7 +800,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       <td className="py-4 px-4 text-white font-bold">R$ {camp.spend}</td>
                       <td className="py-4 px-4 text-white text-center font-bold">{camp.sales}</td>
                       <td className="py-4 px-4 text-white font-bold">R$ {camp.revenue}</td>
-                      <td className="py-4 px-4 font-extrabold text-[#5C9BFF]">R$ {camp.profit}</td>
+                      <td className={`py-4 px-4 font-extrabold ${Number(camp.profit) >= 0 ? 'text-[#5C9BFF]' : 'text-red-400'}`}>
+                        R$ {camp.profit}
+                      </td>
                       <td className="py-4 px-4 font-extrabold text-[#5C9BFF]">{camp.roas}</td>
                       <td className="py-4 px-4 font-bold text-[#5C9BFF]">R$ {camp.cpa}</td>
                       <td className="py-4 px-4 text-zinc-300">{Number(camp.impressions).toLocaleString('pt-BR')}</td>
@@ -955,7 +884,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       <td className="py-4 px-4 text-white font-bold">R$ {camp.spend}</td>
                       <td className="py-4 px-4 text-white font-bold text-center">{camp.sales}</td>
                       <td className="py-4 px-4 text-white font-bold">R$ {camp.revenue}</td>
-                      <td className="py-4 px-4 font-extrabold text-[#5C9BFF]">R$ {camp.profit}</td>
+                      <td className={`py-4 px-4 font-extrabold ${Number(camp.profit) >= 0 ? 'text-[#5C9BFF]' : 'text-red-400'}`}>
+                        R$ {camp.profit}
+                      </td>
                       <td className="py-4 px-4 font-extrabold text-[#5C9BFF]">{camp.roas}</td>
                       <td className="py-4 px-4 font-bold text-[#5C9BFF]">R$ {camp.cpa}</td>
                       <td className="py-4 px-4 text-zinc-300">{Number(camp.impressions).toLocaleString('pt-BR')}</td>

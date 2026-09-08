@@ -19,18 +19,20 @@
       "budget": "25.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
       "cpm": "0.00",
       "ctr": "0.00",
-      "sales": 1,
-      "revenue": 97,
+      "sales": 0,
+      "revenue": "0.00",
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_2336963880170480",
-      "accountName": "2336963880170480"
+      "accountName": "2336963880170480",
+      "currency": "BRL"
     },
     {
       "id": "52527465034574",
@@ -42,6 +44,7 @@
       "budget": "25.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -53,7 +56,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_2336963880170480",
-      "accountName": "2336963880170480"
+      "accountName": "2336963880170480",
+      "currency": "BRL"
     },
     {
       "id": "52527455521374",
@@ -65,6 +69,7 @@
       "budget": "25.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -76,7 +81,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_2336963880170480",
-      "accountName": "2336963880170480"
+      "accountName": "2336963880170480",
+      "currency": "BRL"
     },
     {
       "id": "52526983075974",
@@ -87,19 +93,21 @@
       "objective": "OUTCOME_SALES",
       "budget": "6.00",
       "budgetType": "Diário",
-      "spend": "4.13",
-      "impressions": 97,
-      "clicks": 3,
-      "cpc": "1.38",
-      "cpm": "42.58",
-      "ctr": "3.09",
+      "spend": "0.00",
+      "rawSpendUsd": null,
+      "impressions": 0,
+      "clicks": 0,
+      "cpc": "0.00",
+      "cpm": "0.00",
+      "ctr": "0.00",
       "sales": 0,
-      "revenue": "7.64",
-      "profit": "3.51",
-      "roas": "1.85",
+      "revenue": "0.00",
+      "profit": "0.00",
+      "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_2336963880170480",
-      "accountName": "2336963880170480"
+      "accountName": "2336963880170480",
+      "currency": "BRL"
     },
     {
       "id": "52526798721174",
@@ -110,19 +118,21 @@
       "objective": "OUTCOME_SALES",
       "budget": "6.00",
       "budgetType": "Diário",
-      "spend": "11.13",
-      "impressions": 129,
-      "clicks": 11,
-      "cpc": "1.01",
-      "cpm": "86.28",
-      "ctr": "8.53",
-      "sales": 1,
-      "revenue": "97.00",
-      "profit": "85.87",
-      "roas": "8.72",
-      "cpa": "11.13",
+      "spend": "0.00",
+      "rawSpendUsd": null,
+      "impressions": 0,
+      "clicks": 0,
+      "cpc": "0.00",
+      "cpm": "0.00",
+      "ctr": "0.00",
+      "sales": 0,
+      "revenue": "0.00",
+      "profit": "0.00",
+      "roas": "0.00",
+      "cpa": "0.00",
       "adAccountId": "act_2336963880170480",
-      "accountName": "2336963880170480"
+      "accountName": "2336963880170480",
+      "currency": "BRL"
     },
     {
       "id": "52526733070974",
@@ -133,19 +143,21 @@
       "objective": "OUTCOME_SALES",
       "budget": "6.00",
       "budgetType": "Diário",
-      "spend": "12.29",
-      "impressions": 126,
-      "clicks": 8,
-      "cpc": "1.54",
-      "cpm": "97.54",
-      "ctr": "6.35",
-      "sales": 1,
-      "revenue": "97.00",
-      "profit": "84.71",
-      "roas": "7.89",
-      "cpa": "12.29",
+      "spend": "0.00",
+      "rawSpendUsd": null,
+      "impressions": 0,
+      "clicks": 0,
+      "cpc": "0.00",
+      "cpm": "0.00",
+      "ctr": "0.00",
+      "sales": 0,
+      "revenue": "0.00",
+      "profit": "0.00",
+      "roas": "0.00",
+      "cpa": "0.00",
       "adAccountId": "act_2336963880170480",
-      "accountName": "2336963880170480"
+      "accountName": "2336963880170480",
+      "currency": "BRL"
     },
     {
       "id": "52523982161917",
@@ -156,19 +168,21 @@
       "objective": "OUTCOME_SALES",
       "budget": "52.10",
       "budgetType": "Diário",
-      "spend": "206.77",
-      "impressions": 6566,
-      "clicks": 328,
-      "cpc": "0.63",
-      "cpm": "31.49",
-      "ctr": "5.00",
-      "sales": 7,
-      "revenue": "679.00",
-      "profit": "472.23",
-      "roas": "3.28",
-      "cpa": "29.54",
+      "spend": "0.00",
+      "rawSpendUsd": null,
+      "impressions": 0,
+      "clicks": 0,
+      "cpc": "0.00",
+      "cpm": "0.00",
+      "ctr": "0.00",
+      "sales": 0,
+      "revenue": "0.00",
+      "profit": "0.00",
+      "roas": "0.00",
+      "cpa": "0.00",
       "adAccountId": "act_1095793299643643",
-      "accountName": "CA03"
+      "accountName": "CA03",
+      "currency": "BRL"
     },
     {
       "id": "120250184790690459",
@@ -179,19 +193,21 @@
       "objective": "OUTCOME_SALES",
       "budget": "10.00",
       "budgetType": "Diário",
-      "spend": "25.26",
-      "impressions": 485,
-      "clicks": 152,
-      "cpc": "0.17",
-      "cpm": "52.08",
-      "ctr": "31.34",
-      "sales": 2,
-      "revenue": "194.00",
-      "profit": "168.74",
-      "roas": "7.68",
-      "cpa": "12.63",
+      "spend": "0.00",
+      "rawSpendUsd": null,
+      "impressions": 0,
+      "clicks": 0,
+      "cpc": "0.00",
+      "cpm": "0.00",
+      "ctr": "0.00",
+      "sales": 0,
+      "revenue": "0.00",
+      "profit": "0.00",
+      "roas": "0.00",
+      "cpa": "0.00",
       "adAccountId": "act_719933136445425",
-      "accountName": "CA01"
+      "accountName": "CA01",
+      "currency": "BRL"
     },
     {
       "id": "120250184790680459",
@@ -202,19 +218,21 @@
       "objective": "OUTCOME_SALES",
       "budget": "10.00",
       "budgetType": "Diário",
-      "spend": "3.50",
-      "impressions": 111,
-      "clicks": 37,
-      "cpc": "0.09",
-      "cpm": "31.53",
-      "ctr": "33.33",
+      "spend": "0.00",
+      "rawSpendUsd": null,
+      "impressions": 0,
+      "clicks": 0,
+      "cpc": "0.00",
+      "cpm": "0.00",
+      "ctr": "0.00",
       "sales": 0,
-      "revenue": "6.48",
-      "profit": "2.98",
-      "roas": "1.85",
+      "revenue": "0.00",
+      "profit": "0.00",
+      "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_719933136445425",
-      "accountName": "CA01"
+      "accountName": "CA01",
+      "currency": "BRL"
     },
     {
       "id": "120250184683820459",
@@ -225,19 +243,21 @@
       "objective": "OUTCOME_SALES",
       "budget": "10.00",
       "budgetType": "Diário",
-      "spend": "27.38",
-      "impressions": 740,
-      "clicks": 197,
-      "cpc": "0.14",
-      "cpm": "37.00",
-      "ctr": "26.62",
-      "sales": 2,
-      "revenue": "194.00",
-      "profit": "166.62",
-      "roas": "7.09",
-      "cpa": "13.69",
+      "spend": "0.00",
+      "rawSpendUsd": null,
+      "impressions": 0,
+      "clicks": 0,
+      "cpc": "0.00",
+      "cpm": "0.00",
+      "ctr": "0.00",
+      "sales": 0,
+      "revenue": "0.00",
+      "profit": "0.00",
+      "roas": "0.00",
+      "cpa": "0.00",
       "adAccountId": "act_719933136445425",
-      "accountName": "CA01"
+      "accountName": "CA01",
+      "currency": "BRL"
     },
     {
       "id": "120239114961590109",
@@ -249,6 +269,7 @@
       "budget": "25.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -260,7 +281,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_853877350942504",
-      "accountName": "DJS02 CA03"
+      "accountName": "DJS02 CA03",
+      "currency": "BRL"
     },
     {
       "id": "120239114851560109",
@@ -272,6 +294,7 @@
       "budget": "25.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -283,7 +306,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_853877350942504",
-      "accountName": "DJS02 CA03"
+      "accountName": "DJS02 CA03",
+      "currency": "BRL"
     },
     {
       "id": "120250944241620561",
@@ -295,7 +319,8 @@
       "budget": "50.00",
       "budgetType": "Diário",
       "spend": "0.00",
-      "impressions": 2,
+      "rawSpendUsd": null,
+      "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
       "cpm": "0.00",
@@ -306,7 +331,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1394391128741416",
-      "accountName": "DJS02 CA02"
+      "accountName": "DJS02 CA02",
+      "currency": "BRL"
     },
     {
       "id": "120251688909260560",
@@ -318,6 +344,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -329,7 +356,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218349886840112",
-      "accountName": "DJS01 CA01"
+      "accountName": "DJS01 CA01",
+      "currency": "BRL"
     },
     {
       "id": "120251688909230560",
@@ -341,6 +369,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -352,7 +381,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218349886840112",
-      "accountName": "DJS01 CA01"
+      "accountName": "DJS01 CA01",
+      "currency": "BRL"
     },
     {
       "id": "120251688909200560",
@@ -364,6 +394,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -375,7 +406,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218349886840112",
-      "accountName": "DJS01 CA01"
+      "accountName": "DJS01 CA01",
+      "currency": "BRL"
     },
     {
       "id": "120251688909180560",
@@ -387,6 +419,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -398,7 +431,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218349886840112",
-      "accountName": "DJS01 CA01"
+      "accountName": "DJS01 CA01",
+      "currency": "BRL"
     },
     {
       "id": "120251688909160560",
@@ -410,6 +444,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -421,7 +456,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218349886840112",
-      "accountName": "DJS01 CA01"
+      "accountName": "DJS01 CA01",
+      "currency": "BRL"
     },
     {
       "id": "120251688909140560",
@@ -433,6 +469,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -444,7 +481,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218349886840112",
-      "accountName": "DJS01 CA01"
+      "accountName": "DJS01 CA01",
+      "currency": "BRL"
     },
     {
       "id": "120251688909120560",
@@ -456,6 +494,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -467,7 +506,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218349886840112",
-      "accountName": "DJS01 CA01"
+      "accountName": "DJS01 CA01",
+      "currency": "BRL"
     },
     {
       "id": "120251688909100560",
@@ -479,6 +519,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -490,7 +531,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218349886840112",
-      "accountName": "DJS01 CA01"
+      "accountName": "DJS01 CA01",
+      "currency": "BRL"
     },
     {
       "id": "120251688909080560",
@@ -502,6 +544,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -513,7 +556,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218349886840112",
-      "accountName": "DJS01 CA01"
+      "accountName": "DJS01 CA01",
+      "currency": "BRL"
     },
     {
       "id": "120251688909060560",
@@ -525,6 +569,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -536,7 +581,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218349886840112",
-      "accountName": "DJS01 CA01"
+      "accountName": "DJS01 CA01",
+      "currency": "BRL"
     },
     {
       "id": "120251688909040560",
@@ -548,6 +594,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -559,7 +606,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218349886840112",
-      "accountName": "DJS01 CA01"
+      "accountName": "DJS01 CA01",
+      "currency": "BRL"
     },
     {
       "id": "120251688909020560",
@@ -571,6 +619,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -582,7 +631,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218349886840112",
-      "accountName": "DJS01 CA01"
+      "accountName": "DJS01 CA01",
+      "currency": "BRL"
     },
     {
       "id": "120251688909000560",
@@ -594,6 +644,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -605,7 +656,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218349886840112",
-      "accountName": "DJS01 CA01"
+      "accountName": "DJS01 CA01",
+      "currency": "BRL"
     },
     {
       "id": "120251688908980560",
@@ -617,6 +669,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -628,7 +681,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218349886840112",
-      "accountName": "DJS01 CA01"
+      "accountName": "DJS01 CA01",
+      "currency": "BRL"
     },
     {
       "id": "120251688908960560",
@@ -640,6 +694,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -651,7 +706,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218349886840112",
-      "accountName": "DJS01 CA01"
+      "accountName": "DJS01 CA01",
+      "currency": "BRL"
     },
     {
       "id": "120251688908940560",
@@ -663,6 +719,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -674,7 +731,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218349886840112",
-      "accountName": "DJS01 CA01"
+      "accountName": "DJS01 CA01",
+      "currency": "BRL"
     },
     {
       "id": "120251688908920560",
@@ -686,6 +744,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -697,7 +756,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218349886840112",
-      "accountName": "DJS01 CA01"
+      "accountName": "DJS01 CA01",
+      "currency": "BRL"
     },
     {
       "id": "120251688908900560",
@@ -709,6 +769,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -720,7 +781,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218349886840112",
-      "accountName": "DJS01 CA01"
+      "accountName": "DJS01 CA01",
+      "currency": "BRL"
     },
     {
       "id": "120251688908880560",
@@ -732,6 +794,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -743,7 +806,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218349886840112",
-      "accountName": "DJS01 CA01"
+      "accountName": "DJS01 CA01",
+      "currency": "BRL"
     },
     {
       "id": "120251688908860560",
@@ -755,6 +819,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -766,7 +831,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218349886840112",
-      "accountName": "DJS01 CA01"
+      "accountName": "DJS01 CA01",
+      "currency": "BRL"
     },
     {
       "id": "120251688908840560",
@@ -778,6 +844,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -789,7 +856,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218349886840112",
-      "accountName": "DJS01 CA01"
+      "accountName": "DJS01 CA01",
+      "currency": "BRL"
     },
     {
       "id": "120251688908820560",
@@ -801,6 +869,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -812,7 +881,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218349886840112",
-      "accountName": "DJS01 CA01"
+      "accountName": "DJS01 CA01",
+      "currency": "BRL"
     },
     {
       "id": "120251688908800560",
@@ -824,6 +894,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -835,7 +906,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218349886840112",
-      "accountName": "DJS01 CA01"
+      "accountName": "DJS01 CA01",
+      "currency": "BRL"
     },
     {
       "id": "120251688908780560",
@@ -847,6 +919,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -858,7 +931,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218349886840112",
-      "accountName": "DJS01 CA01"
+      "accountName": "DJS01 CA01",
+      "currency": "BRL"
     },
     {
       "id": "120251688908760560",
@@ -870,6 +944,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -881,7 +956,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218349886840112",
-      "accountName": "DJS01 CA01"
+      "accountName": "DJS01 CA01",
+      "currency": "BRL"
     },
     {
       "id": "120253632622400166",
@@ -893,6 +969,7 @@
       "budget": "25.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -904,7 +981,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218328933564373",
-      "accountName": "DJS01 CA05"
+      "accountName": "DJS01 CA05",
+      "currency": "BRL"
     },
     {
       "id": "120253632622390166",
@@ -916,6 +994,7 @@
       "budget": "25.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -927,7 +1006,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218328933564373",
-      "accountName": "DJS01 CA05"
+      "accountName": "DJS01 CA05",
+      "currency": "BRL"
     },
     {
       "id": "120253632622340166",
@@ -939,6 +1019,7 @@
       "budget": "25.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -950,7 +1031,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218328933564373",
-      "accountName": "DJS01 CA05"
+      "accountName": "DJS01 CA05",
+      "currency": "BRL"
     },
     {
       "id": "120253632512070166",
@@ -962,6 +1044,7 @@
       "budget": "25.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -973,7 +1056,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218328933564373",
-      "accountName": "DJS01 CA05"
+      "accountName": "DJS01 CA05",
+      "currency": "BRL"
     },
     {
       "id": "120253622023680166",
@@ -985,6 +1069,7 @@
       "budget": "25.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -996,7 +1081,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218328933564373",
-      "accountName": "DJS01 CA05"
+      "accountName": "DJS01 CA05",
+      "currency": "BRL"
     },
     {
       "id": "120253622023630166",
@@ -1008,6 +1094,7 @@
       "budget": "25.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -1019,7 +1106,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218328933564373",
-      "accountName": "DJS01 CA05"
+      "accountName": "DJS01 CA05",
+      "currency": "BRL"
     },
     {
       "id": "120253622023570166",
@@ -1031,6 +1119,7 @@
       "budget": "25.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -1042,7 +1131,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218328933564373",
-      "accountName": "DJS01 CA05"
+      "accountName": "DJS01 CA05",
+      "currency": "BRL"
     },
     {
       "id": "120253614513540166",
@@ -1054,6 +1144,7 @@
       "budget": "25.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -1065,7 +1156,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218328933564373",
-      "accountName": "DJS01 CA05"
+      "accountName": "DJS01 CA05",
+      "currency": "BRL"
     },
     {
       "id": "120253614354650166",
@@ -1077,6 +1169,7 @@
       "budget": "15.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -1088,7 +1181,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_1218328933564373",
-      "accountName": "DJS01 CA05"
+      "accountName": "DJS01 CA05",
+      "currency": "BRL"
     },
     {
       "id": "120242509243770432",
@@ -1100,6 +1194,7 @@
       "budget": "25.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -1111,7 +1206,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_892092096617273",
-      "accountName": "DJS01 CA04"
+      "accountName": "DJS01 CA04",
+      "currency": "BRL"
     },
     {
       "id": "120247167229570405",
@@ -1123,6 +1219,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -1134,7 +1231,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_4088067061443375",
-      "accountName": "CA04"
+      "accountName": "CA04",
+      "currency": "BRL"
     },
     {
       "id": "120247167229560405",
@@ -1146,6 +1244,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -1157,7 +1256,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_4088067061443375",
-      "accountName": "CA04"
+      "accountName": "CA04",
+      "currency": "BRL"
     },
     {
       "id": "120247167229550405",
@@ -1169,6 +1269,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -1180,7 +1281,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_4088067061443375",
-      "accountName": "CA04"
+      "accountName": "CA04",
+      "currency": "BRL"
     },
     {
       "id": "120247167229530405",
@@ -1192,6 +1294,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -1203,7 +1306,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_4088067061443375",
-      "accountName": "CA04"
+      "accountName": "CA04",
+      "currency": "BRL"
     },
     {
       "id": "120247167229480405",
@@ -1215,6 +1319,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -1226,7 +1331,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_4088067061443375",
-      "accountName": "CA04"
+      "accountName": "CA04",
+      "currency": "BRL"
     },
     {
       "id": "120247167229370405",
@@ -1238,6 +1344,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -1249,7 +1356,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_4088067061443375",
-      "accountName": "CA04"
+      "accountName": "CA04",
+      "currency": "BRL"
     },
     {
       "id": "120247167229360405",
@@ -1261,6 +1369,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -1272,7 +1381,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_4088067061443375",
-      "accountName": "CA04"
+      "accountName": "CA04",
+      "currency": "BRL"
     },
     {
       "id": "120247167229350405",
@@ -1284,6 +1394,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -1295,7 +1406,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_4088067061443375",
-      "accountName": "CA04"
+      "accountName": "CA04",
+      "currency": "BRL"
     },
     {
       "id": "120247167218250405",
@@ -1307,6 +1419,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -1318,7 +1431,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_4088067061443375",
-      "accountName": "CA04"
+      "accountName": "CA04",
+      "currency": "BRL"
     },
     {
       "id": "120247167131730405",
@@ -1330,6 +1444,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -1341,7 +1456,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_4088067061443375",
-      "accountName": "CA04"
+      "accountName": "CA04",
+      "currency": "BRL"
     },
     {
       "id": "120247129540790405",
@@ -1353,6 +1469,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -1364,7 +1481,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_4088067061443375",
-      "accountName": "CA04"
+      "accountName": "CA04",
+      "currency": "BRL"
     },
     {
       "id": "120247129533730405",
@@ -1376,6 +1494,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -1387,7 +1506,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_4088067061443375",
-      "accountName": "CA04"
+      "accountName": "CA04",
+      "currency": "BRL"
     },
     {
       "id": "120247129530370405",
@@ -1399,6 +1519,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -1410,7 +1531,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_4088067061443375",
-      "accountName": "CA04"
+      "accountName": "CA04",
+      "currency": "BRL"
     },
     {
       "id": "120247129524460405",
@@ -1422,6 +1544,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -1433,7 +1556,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_4088067061443375",
-      "accountName": "CA04"
+      "accountName": "CA04",
+      "currency": "BRL"
     },
     {
       "id": "120247129521520405",
@@ -1445,6 +1569,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -1456,7 +1581,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_4088067061443375",
-      "accountName": "CA04"
+      "accountName": "CA04",
+      "currency": "BRL"
     },
     {
       "id": "120247129517170405",
@@ -1468,6 +1594,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -1479,7 +1606,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_4088067061443375",
-      "accountName": "CA04"
+      "accountName": "CA04",
+      "currency": "BRL"
     },
     {
       "id": "120247129513640405",
@@ -1491,6 +1619,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -1502,7 +1631,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_4088067061443375",
-      "accountName": "CA04"
+      "accountName": "CA04",
+      "currency": "BRL"
     },
     {
       "id": "120247129508780405",
@@ -1514,6 +1644,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -1525,7 +1656,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_4088067061443375",
-      "accountName": "CA04"
+      "accountName": "CA04",
+      "currency": "BRL"
     },
     {
       "id": "120247129412930405",
@@ -1537,6 +1669,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -1548,7 +1681,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_4088067061443375",
-      "accountName": "CA04"
+      "accountName": "CA04",
+      "currency": "BRL"
     },
     {
       "id": "120246845337860405",
@@ -1560,6 +1694,7 @@
       "budget": "50.00",
       "budgetType": "Diário",
       "spend": "0.00",
+      "rawSpendUsd": null,
       "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
@@ -1571,7 +1706,8 @@
       "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_4088067061443375",
-      "accountName": "CA04"
+      "accountName": "CA04",
+      "currency": "BRL"
     },
     {
       "id": "120251236747830023",
@@ -1580,21 +1716,48 @@
       "rawStatus": "PAUSED",
       "effectiveStatus": "PAUSED",
       "objective": "OUTCOME_SALES",
-      "budget": "9.00",
+      "budget": "46.13",
       "budgetType": "Diário",
-      "spend": "4.80",
-      "impressions": 730,
-      "clicks": 16,
-      "cpc": "0.30",
-      "cpm": "6.58",
-      "ctr": "2.19",
+      "spend": "0.00",
+      "rawSpendUsd": "0.00",
+      "impressions": 0,
+      "clicks": 0,
+      "cpc": "0.00",
+      "cpm": "0.00",
+      "ctr": "0.00",
       "sales": 0,
-      "revenue": "8.88",
-      "profit": "4.08",
-      "roas": "1.85",
+      "revenue": "0.00",
+      "profit": "0.00",
+      "roas": "0.00",
       "cpa": "0.00",
       "adAccountId": "act_28591581777115664",
-      "accountName": "CA01"
+      "accountName": "CA01",
+      "currency": "BRL"
+    },
+    {
+      "id": "52604661655655",
+      "name": "TESTE MI",
+      "status": true,
+      "rawStatus": "ACTIVE",
+      "effectiveStatus": "ACTIVE",
+      "objective": "OUTCOME_SALES",
+      "budget": "510.08",
+      "budgetType": "Diário",
+      "spend": "64.74",
+      "rawSpendUsd": "12.63",
+      "impressions": 2419,
+      "clicks": 268,
+      "cpc": "0.24",
+      "cpm": "26.76",
+      "ctr": "11.08",
+      "sales": 0,
+      "revenue": "0.00",
+      "profit": "-64.74",
+      "roas": "0.00",
+      "cpa": "0.00",
+      "adAccountId": "act_1092137896602979",
+      "accountName": "CA01",
+      "currency": "BRL"
     }
   ],
   "sessions": [],
@@ -1900,185 +2063,6 @@
   ],
   "meta_ads": [
     {
-      "id": "52527455521774",
-      "name": "AD01",
-      "status": true,
-      "campaignId": "52527455521374",
-      "adsetId": "52527455521574",
-      "creativeId": "1570081007995387",
-      "creativeName": "🟢Assistir Live de Nicole (há 1 minuto) 2026-08-19-7c6449c907e3b13f52adc874f5f15d46",
-      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/18073765317392476899?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQLhXG5KoBn1Amn8s8IjKFKbeikm9Ge5DmnltfRzDIMvFUDIC8L8dUFWZbjPnA7C0vSH9dyGZycQ3PYNHYIInNj89cRrhWti_VxqprUJ7nKGggklAtQFV9p8_ztW4W2DtkMQ0GHWjlrNU-21BBnhBSUD&fb_obo=1&utld=facebook.com&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&edm=AOgd6ZUEAAAA&_nc_gid=SmN8thMxA_lsS3pU6LeNPQ&_nc_oc=AdreIdcQwgcvulLB-3SOzO4Lf4b7BE_3_gJ17na7Tw1AtZEcmLQB2QiUYjtpBuVsoED6ebB8Y1SSm-_R04jrb2C1&ccb=13-1&oh=06_Q3_DAaFYvla6YcOAsL9TAaCuCI3wQghByzSvYOd3-W8M45ER&oe=6AA0F441&_nc_sid=58080a",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "52527468340974",
-      "name": "AD03",
-      "status": true,
-      "campaignId": "52527468340774",
-      "adsetId": "52527468341174",
-      "creativeId": "4398638713692550",
-      "creativeName": "🟢Assistir Live de Nicole (há 1 minuto) 2026-08-20-b32e208fa19f7fb2a8e2c34f7512507a",
-      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/12806636139652377604?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQICyc68lJoO0Cg96mriH9QyN_NApcEhoS7pyjTZRyG0KZJ-pDk3aSUs4d4mdaOeYPe6VDmDFqAvF85EuLcxxX8Nc8NiwNcDecRiYXvkduYuhbyyTgAaiSHy0-863rOqwdoz0KYouTs-8cjhW-6HP6Fv&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=SmN8thMxA_lsS3pU6LeNPQ&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQKZtEFYduGctab-BRVvnTZpe57JygvNiIddpWnSJ_63BEx0Eb68ApuKMrqgIOl0qNuMQXxXX0iJyg&oh=06_Q3_DAT5Tf3QWdrv2w28Lg4NwD2udgbM4dP_dbVm_dtnwTMwd&oe=6AA10AA1",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "52527465034974",
-      "name": "AD02",
-      "status": true,
-      "campaignId": "52527465034574",
-      "adsetId": "52527465034774",
-      "creativeId": "2191595435091284",
-      "creativeName": "🟢Assistir Live de Nicole (há 1 minuto) 2026-08-19-ad8a58798b3ec443eeb2b0d4de8a426c",
-      "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t15.5256-10/777447377_4442432709345851_5397101117490057642_n.jpg?_nc_cat=100&ccb=1-7&_nc_ohc=6zJJHyGOpqEQ7kNvwGbAiDQ&_nc_oc=AdrDv71dPtUmqlk3DW3CZK-XYPLv1mXrmfH9uaWGTPxPrEs6lZRioQU8ZlXyVrtZAxyKCkiKRFv8f5gT4hYpVvB2&_nc_zt=23&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=SmN8thMxA_lsS3pU6LeNPQ&_nc_tpa=Q5bMBQIyb0LzcUeAnLAxQkkrFNXVoczSzr5d9hjxwjnwAPcSQitcCEZuIg2vjL_GohY46rXbpd49V5CztQ&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJsB6o5TmhejUw_4Gxy7ImhLOAOy9y8U_B6KHB4EPabLQ&oe=6AA4DCFF",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "52526983076374",
-      "name": "AD01",
-      "status": true,
-      "campaignId": "52526983075974",
-      "adsetId": "52526983076174",
-      "creativeId": "1547541156837911",
-      "creativeName": "O tema pode mudar. O seu método não. 2026-08-18-7940a240f4d9f4c2a665f489163473c1",
-      "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/780482089_2128580807729078_7532917063981251789_n.jpg?_nc_cat=107&ccb=1-7&_nc_ohc=u0xXLrwc3vkQ7kNvwH5OS8V&_nc_oc=AdpRs9vOPr-EU54LPDmEcpajlRkiSWavwu8ltVLyx2gCZ2tkNRb1qk7ztsQNqFU4a962F1Ss3u-pD-UFvnOVU9Hn&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=SmN8thMxA_lsS3pU6LeNPQ&_nc_tpa=Q5bMBQK1t1sKi7w475E6K2qxzI8Ds02Qn4zugdIsM5cX5ALDhsdl-vITb11uTAIqEI8ZO0K0kx7t5-SnAg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLghletv3mdBKLtSr81VagD32_OGJL4SrPPQkXZMjBa0w&oe=6AA50BB6",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "52526798721374",
-      "name": "AD02",
-      "status": true,
-      "campaignId": "52526798721174",
-      "adsetId": "52526798721574",
-      "creativeId": "1373163461010704",
-      "creativeName": "✨ Juntos Podemos Fazer a Diferença 2026-08-18-f1dc05edf4b0b5b7c8806a04a2c9f854",
-      "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/779290832_1038787845730606_6257183123529409110_n.jpg?_nc_cat=111&ccb=1-7&_nc_ohc=d7cVzn26vssQ7kNvwEoLaF7&_nc_oc=AdpniejykPAY4FXi1xAxhtuxOTxstKRTz4dlQk_l5jcCLF2r6Tctk4AtydlHW0nmp1RX7s-CRpDmyDQ7CQWAG6hY&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=SmN8thMxA_lsS3pU6LeNPQ&_nc_tpa=Q5bMBQLTgkweUmtAkFUyaqkbIEDzIYZBi_ER0PZGjxl_QxsdrYbz5KSBLQW6nOpvo2ILmBRi4jweYjN8LA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJhpYwprqQcdqnaAxl-oSN0u4J7vo_8ztmhR2VdzskSlw&oe=6AA4DBF0",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "52526733070574",
-      "name": "AD01",
-      "status": true,
-      "campaignId": "52526733070974",
-      "adsetId": "52526733070774",
-      "creativeId": "931716325966514",
-      "creativeName": "✨ Juntos Podemos Fazer a Diferença 2026-08-17-110fc5cb60ae2c63ab06eea1608f5c13",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "52523982258517",
-      "name": "AD07",
-      "status": true,
-      "campaignId": "52523982161917",
-      "adsetId": "52523982261517",
-      "creativeId": "4575168996051734",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-27-9def6f4efff7191671defb432b7754d9",
-      "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/785280622_930787090096094_5143641286056729627_n.jpg?_nc_cat=105&ccb=1-7&_nc_ohc=micJRVkqREAQ7kNvwHd4hkl&_nc_oc=AdpapFCJVSvrsiUk2RacBj212MJ9Nx2ZsRH6QWu2syGh3zEV0I_Erd0mUqs-kq9gmIgC0CzLVClz9lSZqPftFpKA&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=fsNFGYWFXtPTW49kAxyWwQ&_nc_tpa=Q5bMBQK-IhzoTuwn6piVYwUELeG86QlKKLaS8oRQdSwcalpeZ_JAI2uM1ZjsUvlmFCo1vJgP_x9pBnwcIA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJ78yjV3yq_jye-ZPV97wKW4wMqv2kH5ns8QU1RcD-DVA&oe=6AA50606",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "52523982259317",
-      "name": "AD04",
-      "status": true,
-      "campaignId": "52523982161917",
-      "adsetId": "52523982258917",
-      "creativeId": "1087525730454206",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-27-264764150727bad3ac7d1c94ab5bbca8",
-      "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/785885927_1547857089921024_7045443303337131476_n.jpg?_nc_cat=105&ccb=1-7&_nc_ohc=QJeyFgIdxmYQ7kNvwEEdD2H&_nc_oc=AdohqRhVFkZM4aFQcE7DHM7EqyY0hQNfNvZMuHtmlccbJwJzoexPgH0EBcN3UxuiLhX4TIb2yh9WA0yr2LnzuHYk&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=fsNFGYWFXtPTW49kAxyWwQ&_nc_tpa=Q5bMBQJtA_UUopOqLj0KN1qA6EmtsLehUhPrrpp8l0CejZ0T7iyQzEASshdpyaVFIgKSUuqrq3QmpNKUVw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKTLirChPbUkit8CfMtkKD-0399ZVNynNSta03ReEgLBQ&oe=6AA4E437",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "52523982260317",
-      "name": "AD03",
-      "status": true,
-      "campaignId": "52523982161917",
-      "adsetId": "52523982261117",
-      "creativeId": "1080670481115137",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-27-ecbab7832d786d112d1b8f7be700b339",
-      "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/786069627_1791391462063431_5907518117443658283_n.jpg?_nc_cat=109&ccb=1-7&_nc_ohc=6Cx7f42M5GIQ7kNvwHH4wls&_nc_oc=AdqFpW8Kc5a6kuLe4v5CGQTDu_Ynrz1fJCo_lX5rnfIkCHDpPNqXwbAq7zqjiKPc--ltCZr2DMO0lpNLx6RgDc5Q&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=fsNFGYWFXtPTW49kAxyWwQ&_nc_tpa=Q5bMBQL7p8dPAhzxmkLWqM2dD_IsHKWANfXXHT_eQlxoo38kScrcW24fb_Qp322TtShFLw4nCWpGaVfTeQ&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKtOFgsbYiGG562VD-6wZ7nWLuyG8y0FouOTZ93hCXDpw&oe=6AA4E4AF",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "52523982161517",
-      "name": "AD01",
-      "status": true,
-      "campaignId": "52523982161917",
-      "adsetId": "52523982161717",
-      "creativeId": "1404477511858825",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-27-ed221549de55c3b2d84545eb0f5883d7",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/786628774_4593126220910817_1094384544484661922_n.jpg?_nc_cat=104&ccb=1-7&_nc_ohc=Y7esfJqtPHQQ7kNvwH6825J&_nc_oc=Adrm8_J-htVd__MYG3Hi3abRldKkfpcre3_dIHbpUvka8LN3YuWbkYneQxhKkoZjKn1iwbPz6v5Pt-JTKDU_dKIg&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=fsNFGYWFXtPTW49kAxyWwQ&_nc_tpa=Q5bMBQLV9K7OVQY7WSE9jqNz1EO-FKIs5iEzZUyDVFZqOfyvuMQ4NDkOTD6IspX3nUz72AcFblV6fAPtBw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJorIwSsQjSV63dFEssrj3skIkelX4TMm6KLO6cHq_ahw&oe=6AA50BE0",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "52523982260717",
-      "name": "AD02",
-      "status": true,
-      "campaignId": "52523982161917",
-      "adsetId": "52523982258717",
-      "creativeId": "1034854899549933",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-27-2ac7bbb9c7ec638bf17e23778529ae4f",
-      "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/784874548_893860200158701_4547977339209580767_n.jpg?_nc_cat=107&ccb=1-7&_nc_ohc=NbzsFomCCoYQ7kNvwE4FwVi&_nc_oc=AdqWKBTz3CTvi2Cqnlhiw8n0DTfRD0K9d_6JMlmtxhTJcHWCtdMtxj6hUz1HUgQZquRgZYCPDu3g9X0-S4mVwJma&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=fsNFGYWFXtPTW49kAxyWwQ&_nc_tpa=Q5bMBQLh5vZeSx5Oks7WtwWQe6ucVOw9PtqQPQh-dyZSFjAvymOpFKK7KcH3uJ1RRZvK6P7DuOv4APjdUg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLaLCVfbtZa1n7w79Am7ScPFuuXSwuOPXjsj9MvQcHddQ&oe=6AA508AB",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "52523982260917",
-      "name": "AD10",
-      "status": true,
-      "campaignId": "52523982161917",
-      "adsetId": "52523982259517",
-      "creativeId": "2594436450972628",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-27-f77b2965bfc9f1e7ae504bc9d36a45d7",
-      "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t15.5256-10/786287756_1332158965795574_4314457026575600604_n.jpg?_nc_cat=110&ccb=1-7&_nc_ohc=llwvQIaSesoQ7kNvwGvravW&_nc_oc=AdpKDIqEmdB59Qgj-BaJtrW7diXZZNCFdvYn4oJ1QkPE9CAfz-f8IKGsj2SZDVrln5ihfEqwX04y-orpopIN-YM0&_nc_zt=23&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=fsNFGYWFXtPTW49kAxyWwQ&_nc_tpa=Q5bMBQK5MwyVOTwJOXRrYf8MNNaXL6iBixN6SEQF4vMueFyb1Rz8OAtBWAO6Pkzt-gpjRIVfiS9drcg-mA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLYbMhwEdfdkwAzfBEEHpLBrn1T9ojQDYiboC1l-1n7Vw&oe=6AA4E6F2",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "52523982261917",
-      "name": "AD05",
-      "status": true,
-      "campaignId": "52523982161917",
-      "adsetId": "52523982260117",
-      "creativeId": "1781585169933926",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-27-3551d38ece71f73a5856fd17c8458a65",
-      "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t15.5256-10/786914198_894209090130582_4386587376373825488_n.jpg?_nc_cat=110&ccb=1-7&_nc_ohc=b35Nl2jLAnIQ7kNvwFhv22G&_nc_oc=AdojxGr8hVjM3gyI2z191-f1idQDGrc-u6VRcdOrq-HH7cLfOVR2cxalEaZmsFQWV5VQAPRAMgRElQNFxHK64hKh&_nc_zt=23&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=fsNFGYWFXtPTW49kAxyWwQ&_nc_tpa=Q5bMBQLlX_3VR5lxprvKhqO0PxLinhC15WZ6JsvHv6lu3uo7G5uqHP5idPn6yQLT_DiP3FPLNzFhNU7ojw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJU0gUlBFGGuWk0GpcVxMgXEjYQqizHAHEg_B4Np71xgw&oe=6AA4E6E1",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "52523982260517",
-      "name": "AD08",
-      "status": true,
-      "campaignId": "52523982161917",
-      "adsetId": "52523982261717",
-      "creativeId": "1049879821363303",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-27-e0ba2083d2f40aa25e2ebf99fb4b4919",
-      "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/786313340_1675197367950180_3598237331742847963_n.jpg?_nc_cat=105&ccb=1-7&_nc_ohc=GCZi7-nmgFAQ7kNvwGnQlzh&_nc_oc=AdoUa9zp64BEnlv_XCP5ywGU4LL44zkuxGr8BlyfpK8Whvvdm2SxIkiM0GFrYexBzDY92EwoJKMql_jHryhJsKa_&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=fsNFGYWFXtPTW49kAxyWwQ&_nc_tpa=Q5bMBQJoJIueVfR9DFJtOHfqySAY3kAKyfdNtOoUQI2TiiFxuee4uPOftRXmK6u_8Vk9HjsdyEOV9-BzMw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQItGoub0V9MoS99PjTepsRmWD6uHXsQggF4Y6v00xoQZg&oe=6AA4E5C4",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "52523982259917",
-      "name": "AD09",
-      "status": true,
-      "campaignId": "52523982161917",
-      "adsetId": "52523982259117",
-      "creativeId": "1342819181169459",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-27-b41d2bcec12fc6a692acef3b0aa37a54",
-      "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/786467756_891952740384177_2267792664272683355_n.jpg?_nc_cat=102&ccb=1-7&_nc_ohc=aGUpIG05m3cQ7kNvwFW7TBC&_nc_oc=Adqn-FfL5lh3MMHSlNBJE7QWHFtrEaK1tJHLDiHB147VbasBfG3FjBIoy7dyY79QtCRQoKfvQGfLmTFi0T3rBqOt&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=fsNFGYWFXtPTW49kAxyWwQ&_nc_tpa=Q5bMBQIqwiG6SRwJwPNxdUfkTpzTFQybzkttR8IWB82JxiMeYffSurqZcjaQd5YMktWzuF5kXSJlcipAHg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQI9MbGoThbjiRReH7nX7wQx0TKIaV--PU0Tj4N3YGgjJA&oe=6AA4E62C",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
       "id": "52604662342655",
       "name": "AD02",
       "status": true,
@@ -2086,7 +2070,7 @@
       "adsetId": "52604661655855",
       "creativeId": "2295801641241674",
       "creativeName": "Acesse Agora! 2026-09-03-7f6a2959b49a60dad9f9e4c4206b8c32",
-      "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/795429172_890163353977589_7209124321176425872_n.jpg?_nc_cat=105&ccb=1-7&_nc_ohc=CdXz7BZfNa4Q7kNvwHrSHRT&_nc_oc=AdqWVclAgQHAvDCQ5BdJsVz3y8MKkcRT9PT4lJZ0JO2MRB_mB813EpyWXSJqrCSv-lYZpnLR0PSZ-6JEdOaJbt1x&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=47TkdygPr4RpK50jLhgRfA&_nc_tpa=Q5bMBQJQ6oJXAVnXYHf90gOauWK504HdbidAa11PbV3Fs_aWIGsYVmN_TnVix1cIQ7IGMLcj1jZBznPDwQ&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKUEqlwZ9FT_rc5RdmVIC_CvCUHI9ORj11r3grlQ33kgw&oe=6AA4E3C3",
+      "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/795429172_890163353977589_7209124321176425872_n.jpg?_nc_cat=105&ccb=1-7&_nc_ohc=CdXz7BZfNa4Q7kNvwHrSHRT&_nc_oc=AdqWVclAgQHAvDCQ5BdJsVz3y8MKkcRT9PT4lJZ0JO2MRB_mB813EpyWXSJqrCSv-lYZpnLR0PSZ-6JEdOaJbt1x&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=GmfdD-7az8fvW4KJXAy32A&_nc_tpa=Q5bMBQLO1y0Dr3NKZDuj8_0ubdPUNRm758Cltzy_sUCaG5PfVLzdhUFEE6JlGgq1MeUB9T5z3clOiuDFUg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQL0YmSmU1hzXp3Kj3JlBtGAyCyseuf8TgYbsYzQRzpVlg&oe=6AA58C83",
       "videoUrl": null,
       "type": "image"
     },
@@ -2098,7 +2082,7 @@
       "adsetId": "52604661655855",
       "creativeId": "1717122176247581",
       "creativeName": "Acesse Agora! 2026-09-03-5e6cea83dfe3b74b2aeb2028be21e195",
-      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/9281361664164745158?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQJaWfeHfDez1Wr_IvruF-CHkTrXTMAFGDWhnK3Hhnwps1eDkcA95JnwMuOPidtb6JwtaUu3qRgp5Ey9aiWkh3xmfjqHBxDlvLZqEd_2eMJ6zn_dbd4DqImTt1CNOeenb1odCQZgWPodVWF4DuewOE4u&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=47TkdygPr4RpK50jLhgRfA&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQLNGqpavqTpFXlwkjZ3jOI9dIpvSzb_hLvYq0HQYJH8Nzm-rYe4-mxPZQaJ7fmU4wn19CHVP4nDWw&oh=06_Q3_DARBJYN1iCSBVPrHjzmUCpH_XM1_7YcEoaOQ_x4PVzQyi&oe=6AA10BFC",
+      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/9281361664164745158?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQJaWfeHfDez1Wr_IvruF-CHkTrXTMAFGDWhnK3Hhnwps1eDkcA95JnwMuOPidtb6JwtaUu3qRgp5Ey9aiWkh3xmfjqHBxDlvLZqEd_2eMJ6zn_dbd4DqImTt1CNOeenb1odCQZgWPodVWF4DuewOE4u&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=GmfdD-7az8fvW4KJXAy32A&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQJ4qJO3XVcYpjVPxvGNOj3msY5ag3CAGT0Go45f0a0ehB27YBB5U_rNY5wdX9onXPCpLYYu0WZdkQ&oh=06_Q3_DAYJl5jLwcx-oK2wHuF_2AARoSWfQT900_EumPV9Cz8Lw&oe=6AA1B4BC",
       "videoUrl": null,
       "type": "image"
     },
@@ -2110,1252 +2094,7 @@
       "adsetId": "52604661655855",
       "creativeId": "1541459718006724",
       "creativeName": "Acesse Agora! 2026-09-03-02c5494d9ea61e1b15f413c074ac92c0",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/794957738_1369673165381045_4708530476406585398_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=KkhQ2XoTDRIQ7kNvwGyug_a&_nc_oc=Adq670ZiQVv-4TtEA5FP19_9pi3AU2OTlvZBhVsrW9FUXw09B-7Z-MrzhKlVLf5oTxtmgJhIm4beBS_099KHyqly&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=47TkdygPr4RpK50jLhgRfA&_nc_tpa=Q5bMBQJld2B-2Y0DQuEjiNKzQQG5s4GBdSLoQxz4NRckIe4qE03aH1D7JnKYalUK9oFTcf2K0S2IwLRWCQ&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIWEzQ-yHxvxxCDVdlsh93TXUQ9tsnq-6Kimt1e9DY6Ew&oe=6AA50EB2",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120250184790810459",
-      "name": "AD04",
-      "status": false,
-      "campaignId": "120250184790690459",
-      "adsetId": "120250184790830459",
-      "creativeId": "1349000753659441",
-      "creativeName": "Tô online agora 2026-08-27-9a17b5e712dc32229ff63f75174807a7",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/787830800_2210268809821657_8956118940889240210_n.jpg?_nc_cat=104&ccb=1-7&_nc_ohc=LfdnVvErwHwQ7kNvwGTLaew&_nc_oc=AdpcYkHnUu-4a7EVolxvARID2l80x3Lo8pYuQq0br-HdCg1qRuu0LL-tItwcBlQZ7-JVaBjKBYhJH6qtWoEP0FjF&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=SA4u6kabU0wdd8KUi-m1sQ&_nc_tpa=Q5bMBQJ2MTy5qvrYIMfLI-h3MiNZBH5kHyk3FlytABDk02vBEYgGX_65uVKvNftRI8ZZOl2uPazUssiGtg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLHtoQXG5a7Fq_bC2wx0BfjcUakRgbe9Y39mNZ8hs0h8Q&oe=6AA5121A",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120250184683840459",
-      "name": "AD01",
-      "status": false,
-      "campaignId": "120250184683820459",
-      "adsetId": "120250184683830459",
-      "creativeId": "1930790984257612",
-      "creativeName": "Tô online agora 2026-08-27-dab88be7f2080f0a80de4cbb80bce65d",
-      "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t45.1600-4/786423488_122139081015202796_3480327526304805234_n.png?_nc_cat=110&ccb=1-7&_nc_ohc=HAq3Y9bFzOYQ7kNvwHccJLg&_nc_oc=AdpEouVjRiQ3nIjRmpycoAx5Fb3xM_yijtqyFfEoAvCOu2XJYGY_nepTPb25FEyLNxgNmSpSPS5fv-WFDzQhKqMB&_nc_zt=1&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=SA4u6kabU0wdd8KUi-m1sQ&_nc_tpa=Q5bMBQJa0mPlw18YWwQArPbgubBQDYY9Z5-pziVEv9153ZsOFi8eiebdqM1yFd94Wsj6OUR5TK-7ueNpXg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=52f3c4&_nc_sid=58080a&oh=00_AQLv-lbNQ8_VVevVg0xvVvMBXsILq_eRV3tQw6ALrWDYkg&oe=6AA50BD5",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120250184790790459",
-      "name": "AD03",
-      "status": false,
-      "campaignId": "120250184790680459",
-      "adsetId": "120250184790840459",
-      "creativeId": "950891734707338",
-      "creativeName": "Tô online agora 2026-08-26-b3401040c8fb1a83f9e38a475dcb18a2",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120239114851540109",
-      "name": "ADS01",
-      "status": false,
-      "campaignId": "120239114851560109",
-      "adsetId": "120239114851550109",
-      "creativeId": "1144783554237949",
-      "creativeName": "Anúncio de um post da Página 2026-01-14-0ca23694a7ee22b31d534236defd7c82",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120239114961610109",
-      "name": "ADS05",
-      "status": false,
-      "campaignId": "120239114961590109",
-      "adsetId": "120239114961600109",
-      "creativeId": "1970321923886363",
-      "creativeName": "Anúncio de um post da Página 2026-01-14-940c4159120ec6fbf152b270bd19f03d",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120250944383160561",
-      "name": "AD19",
-      "status": true,
-      "campaignId": "120250944241620561",
-      "adsetId": "120250944383080561",
-      "creativeId": "1077761381858853",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-26-c0791c66e14ac2e62f08986852a7da38",
-      "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/785145969_1984088072303526_2397222501491942622_n.jpg?_nc_cat=109&ccb=1-7&_nc_ohc=E6tlNThr-JIQ7kNvwGzYMvy&_nc_oc=Adp7nXxmU4vAWvtC-KEYB8k94RSx0c4bhOKGYqzd8aF5gk6bDUGMokGS0d0fkXf5xMZRLjMdtw_3QF_N35wjO3Zf&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=CEygvX8WtPSpYFZ_73Gm2w&_nc_tpa=Q5bMBQIbmyWT_M7pJ-Reok_15DqHBEU9Ok1qR9nV47OsHy5DEwllI-a5uXl-oab9up_jlXYf8USKKmNcOQ&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLGQY7kxBYo4gKBE4fH4-CFcdIWl5qHs3csMbgbJmS3xA&oe=6AA4F1E4",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120250944383180561",
-      "name": "AD18",
-      "status": true,
-      "campaignId": "120250944241620561",
-      "adsetId": "120250944383070561",
-      "creativeId": "1573209024499104",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-26-4dc70abfe7644d4b95e8cca57c7b31d2",
-      "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t15.5256-10/785925429_2288577901981036_8905559099071320090_n.jpg?_nc_cat=103&ccb=1-7&_nc_ohc=Bd8-mAk42OIQ7kNvwEiRWav&_nc_oc=AdqC7tmqvM9B90QEHWtC4QEFQnH3y7tZTCulyvodcZlhnlEdcgyKg3ibkTTK8RAdlIvrF-HGvUVNJMLxlp0cn0rV&_nc_zt=23&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=CEygvX8WtPSpYFZ_73Gm2w&_nc_tpa=Q5bMBQLfi4vUw3VzO54zJHC-x0nTuMYKD1M0mF3RSM__nPMjcDpCHKSG-mmi-LJOIceU7BSLtDZWMw00OA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQK9KaZY4w1VCPpAiMRDYIh3k9vh2jehZEdMVHrN0VckJw&oe=6AA4FB28",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120250944383170561",
-      "name": "AD20",
-      "status": true,
-      "campaignId": "120250944241620561",
-      "adsetId": "120250944383090561",
-      "creativeId": "1069868498859231",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-26-82e56593ae4f9d64ea2b7ac41c3c15e7",
-      "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/786529022_1447739920743663_8551927409077281920_n.jpg?_nc_cat=111&ccb=1-7&_nc_ohc=1w3UViUI9o4Q7kNvwF2H5hB&_nc_oc=AdozoQERRi-xNC9dBVD1EConkZWB2-kJB5xN3YDQ6pcbbHoO2AWJNINFironkNLhWyJPHs6Cy59EQt1j_HjZmFdJ&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=CEygvX8WtPSpYFZ_73Gm2w&_nc_tpa=Q5bMBQKcNuCs4PT6Zo_AcIeK_lmfwOSwi9is1h_430w0UwBO02eq8xpPDQaqPBwRjtHVbZ2bwHIzMZGRtA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQI7L9sq8S5wjyafG-NQUpBVozY7tCEIkPpTHxHQjmboAQ&oe=6AA4EEA7",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120250944383110561",
-      "name": "AD13",
-      "status": true,
-      "campaignId": "120250944241620561",
-      "adsetId": "120250944383020561",
-      "creativeId": "1048618807771368",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-26-5dc2fbabe63fb7486e96a9a19ab434f3",
-      "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/786374333_957567137358095_2463278170740164278_n.jpg?_nc_cat=106&ccb=1-7&_nc_ohc=9zAt-VFE_S8Q7kNvwEqd8nc&_nc_oc=Ado9_V9OyzOhQa8XPfstcutM3xX6DXVQlnqj3qIKo1Ld9V3ZxyRGXYo0pYRvtapPSb-l3yv_OaYkennER61EedPg&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=CEygvX8WtPSpYFZ_73Gm2w&_nc_tpa=Q5bMBQKrRsTwazwcjDhdfjySgOz8B9-RhZh1J3pOb_8CpN-a_ODShBgYR-zHOYVUvk9_SNaVyoLFU-6B2w&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLfsyVjcGc8rNpFTxpQTZ_CZOGSAemgqvrzJ_XcNy2V6Q&oe=6AA4DC49",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120250944383120561",
-      "name": "AD14",
-      "status": true,
-      "campaignId": "120250944241620561",
-      "adsetId": "120250944383030561",
-      "creativeId": "27869420039346844",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-26-f06fbc2cf7ce7cc9c3c306aac8fba323",
-      "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/786166597_2567631810409043_480467383396856076_n.jpg?_nc_cat=109&ccb=1-7&_nc_ohc=59qCJrNnVpcQ7kNvwF0HqG1&_nc_oc=AdpQuISmMd2MmEA3FYz1GDQcYq5VIp5HCf4kNR6o2PDS2C6F40vwGt9mtoXtuE3bS03gA0ArFVXI3yMLQNLGMVzZ&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=CEygvX8WtPSpYFZ_73Gm2w&_nc_tpa=Q5bMBQJprt2esW-7yUyDcEf61WQkVD_wsUIbuX_FE7HzYPYAo7I6Nwro17Q1lRAW_KP0IoYl-tOXx3g3jg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKpe1oT-t7Vbhk2O0rLoZ4mKvuQu5bC0NmlSzdBHNvNdw&oe=6AA4F09B",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120250944383190561",
-      "name": "AD12",
-      "status": true,
-      "campaignId": "120250944241620561",
-      "adsetId": "120250944383100561",
-      "creativeId": "28310746961895825",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-26-e5ce33122f4081aeaca9969eb93509e4",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/786452947_1418780307107343_7015768215095269922_n.jpg?_nc_cat=104&ccb=1-7&_nc_ohc=_dM-_QWbPM8Q7kNvwHIytH2&_nc_oc=AdqXeLw-lFHGBpNAvrJLDHuAeoSYhdp5MNg6hXZV0Pk7Mdk2wPeKtQqnupij43yNq3YTVG6HP2dqy28G36L2S64d&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=CEygvX8WtPSpYFZ_73Gm2w&_nc_tpa=Q5bMBQJCoyl6jrf-X5PHubVg0f_XD8CDedRUFMsKUJRw_u0vzA7NpuKGK9UpGuvAggdSiGiG71-KpoZlEQ&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIQ9z0FHwnH9w-Boqc6K19ALRhEE3iRehpp6XY1oaZLzA&oe=6AA4F73E",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120250944241600561",
-      "name": "AD11",
-      "status": true,
-      "campaignId": "120250944241620561",
-      "adsetId": "120250944241610561",
-      "creativeId": "2320721898666384",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-26-68872cdfc2e09390358c381a35cdb444",
-      "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/785560922_1593228145684868_5526280715585237006_n.jpg?_nc_cat=111&ccb=1-7&_nc_ohc=-ZL1ff3yF4gQ7kNvwGp6Xfz&_nc_oc=AdqOexYqW7uROl6_lbsLUehMrL8d3J1E29464uzE6kBRNOOz57FaHmZ2y_eHeTnhvGcDG-RvnodIJrICQyUmZOWS&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=CEygvX8WtPSpYFZ_73Gm2w&_nc_tpa=Q5bMBQI3ABD7BDx9OS80lNiuK2TInn-_ZmqlEqxdK5Yq6WbWht0uM3SGuyDj8s-J71h--SzWxqyh4XsgAg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKoTzHh0DAH9DtK5Fa7RrYeczTuKZ0PEmr57jycM8VJ-Q&oe=6AA501AD",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120250944383150561",
-      "name": "AD16",
-      "status": true,
-      "campaignId": "120250944241620561",
-      "adsetId": "120250944383050561",
-      "creativeId": "1620154096293847",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-26-36fb1572154a9d52d1b473972aa51a17",
-      "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t15.5256-10/785721875_1573747010958500_6829539563447113876_n.jpg?_nc_cat=103&ccb=1-7&_nc_ohc=KADg1gc_wr0Q7kNvwEB-oIW&_nc_oc=Adra2ngbGYl3em1Q5o9XDGC_rRV2_r9hJtpp-tqRDwiDKNh44pAprVxV7nM5MFwUzRO9LxZFzgyfHaU-bA0QB5sn&_nc_zt=23&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=CEygvX8WtPSpYFZ_73Gm2w&_nc_tpa=Q5bMBQJyDuxtwl5jxjNEnrtgtH7NFVu-uvLQ3E3XVxEUynwhdQeDUn9dVhf8LRdygFBwgDAwN2uXV1YIMQ&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKuVGbv_n4BH3KvzS284xBPbiQlp1eTf_YdDTY5SJ35Fw&oe=6AA50DEB",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120250944383140561",
-      "name": "AD15",
-      "status": true,
-      "campaignId": "120250944241620561",
-      "adsetId": "120250944383040561",
-      "creativeId": "1675851344105392",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-26-c3550273ee4b3d607282cf9778ff2e1e",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/786287824_1630822961738193_6599341736330892259_n.jpg?_nc_cat=104&ccb=1-7&_nc_ohc=H93MNhqhx0EQ7kNvwHxmEZs&_nc_oc=AdpbCsscavEiSsq2DWXuQ_OoSRxFuAX0U0gUXDNRajw8yZWnCp-0Sg63trMxInoocdpGhlsaHAfdgC4E-ly8blM7&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=CEygvX8WtPSpYFZ_73Gm2w&_nc_tpa=Q5bMBQIIM1gPQMd8RLOLKjmUPQMK5eWxSxZPGC937QCPTFic9WwwPBVkBWNghCeKF6sLOMr4Jq_tMq9wgw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKg6XugbpTclN8GS-nfVmHq92tQHZIGxhabpt_DWHlv4A&oe=6AA4DEE2",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120250944383130561",
-      "name": "AD17",
-      "status": true,
-      "campaignId": "120250944241620561",
-      "adsetId": "120250944383060561",
-      "creativeId": "2156594711908777",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-26-88f7018430dc106559172b894b5abc18",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/784816386_2699685163761742_5500841713740007958_n.jpg?_nc_cat=104&ccb=1-7&_nc_ohc=rsZ9AFtJSLoQ7kNvwHlVScd&_nc_oc=Adp3bCRNzpjA78c0BuOYg-i_LkdL-8eiMJuyvY8I3c3IUEilejlqDFoHiXWepMc0S36DfHsdTkpCCUFISNfCrh6C&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=CEygvX8WtPSpYFZ_73Gm2w&_nc_tpa=Q5bMBQKEgWXc3yQGLY1bRRCYFsPy4M_63gyqLOY3MTPQvl_Ztko8TpPo6MhGa4HZ3fDWIyOILHe8nqS_eA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLnhKXj9uHj19HRn6Azt3_bfdoL5PbcOtbg1lyBJTrWHw&oe=6AA50E12",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251688909750560",
-      "name": "AD11",
-      "status": true,
-      "campaignId": "120251688908640560",
-      "adsetId": "120251688910350560",
-      "creativeId": "1936921476974414",
-      "creativeName": "Eu Achei Que Era Mentira... 2026-08-10-53b1c2714a5119d97699d77fe1bebb61",
-      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/4127591276898215978?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQIf4_PzTsXO40a-2O5yVEZv-A8Bds7cDZzI8_AnHApFNQg_20VkVstneqFKfdf8TrGIOTH2MkUdWCdEZN2PVdMSfcEwAgW4IDACGqk2CDUZLVOEOjm3iOXZlPMGsRZXNigkV_3u68N6KMKIeNqRF5_l&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=_ff5PsaBGPyzTHjda5Hw9A&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQIsTMzEcEXu-p8_5Og8p1ucMviiKT1x0x1hjmIjjC0fzKJjiB0lL5Mo9eK7MvXLZbPnQKwjKe1WaA&oh=06_Q3_DAbshWNdfOUi7zxv5cmFNC-ZuReCuAkWrws8gKtxKKUf0&oe=6AA115E8",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251688909910560",
-      "name": "AD11",
-      "status": true,
-      "campaignId": "120251688907830560",
-      "adsetId": "120251688909820560",
-      "creativeId": "1936921476974414",
-      "creativeName": "Eu Achei Que Era Mentira... 2026-08-10-53b1c2714a5119d97699d77fe1bebb61",
-      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/4127591276898215978?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQIf4_PzTsXO40a-2O5yVEZv-A8Bds7cDZzI8_AnHApFNQg_20VkVstneqFKfdf8TrGIOTH2MkUdWCdEZN2PVdMSfcEwAgW4IDACGqk2CDUZLVOEOjm3iOXZlPMGsRZXNigkV_3u68N6KMKIeNqRF5_l&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=_ff5PsaBGPyzTHjda5Hw9A&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQIsTMzEcEXu-p8_5Og8p1ucMviiKT1x0x1hjmIjjC0fzKJjiB0lL5Mo9eK7MvXLZbPnQKwjKe1WaA&oh=06_Q3_DAbshWNdfOUi7zxv5cmFNC-ZuReCuAkWrws8gKtxKKUf0&oe=6AA115E8",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251688910380560",
-      "name": "AD11",
-      "status": true,
-      "campaignId": "120251688908530560",
-      "adsetId": "120251688910320560",
-      "creativeId": "1936921476974414",
-      "creativeName": "Eu Achei Que Era Mentira... 2026-08-10-53b1c2714a5119d97699d77fe1bebb61",
-      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/4127591276898215978?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQIf4_PzTsXO40a-2O5yVEZv-A8Bds7cDZzI8_AnHApFNQg_20VkVstneqFKfdf8TrGIOTH2MkUdWCdEZN2PVdMSfcEwAgW4IDACGqk2CDUZLVOEOjm3iOXZlPMGsRZXNigkV_3u68N6KMKIeNqRF5_l&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=_ff5PsaBGPyzTHjda5Hw9A&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQIsTMzEcEXu-p8_5Og8p1ucMviiKT1x0x1hjmIjjC0fzKJjiB0lL5Mo9eK7MvXLZbPnQKwjKe1WaA&oh=06_Q3_DAbshWNdfOUi7zxv5cmFNC-ZuReCuAkWrws8gKtxKKUf0&oe=6AA115E8",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251688910200560",
-      "name": "AD11",
-      "status": true,
-      "campaignId": "120251688907770560",
-      "adsetId": "120251688909900560",
-      "creativeId": "1936921476974414",
-      "creativeName": "Eu Achei Que Era Mentira... 2026-08-10-53b1c2714a5119d97699d77fe1bebb61",
-      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/4127591276898215978?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQIf4_PzTsXO40a-2O5yVEZv-A8Bds7cDZzI8_AnHApFNQg_20VkVstneqFKfdf8TrGIOTH2MkUdWCdEZN2PVdMSfcEwAgW4IDACGqk2CDUZLVOEOjm3iOXZlPMGsRZXNigkV_3u68N6KMKIeNqRF5_l&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=_ff5PsaBGPyzTHjda5Hw9A&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQIsTMzEcEXu-p8_5Og8p1ucMviiKT1x0x1hjmIjjC0fzKJjiB0lL5Mo9eK7MvXLZbPnQKwjKe1WaA&oh=06_Q3_DAbshWNdfOUi7zxv5cmFNC-ZuReCuAkWrws8gKtxKKUf0&oe=6AA115E8",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251688909570560",
-      "name": "AD11",
-      "status": true,
-      "campaignId": "120251688908730560",
-      "adsetId": "120251688910340560",
-      "creativeId": "1936921476974414",
-      "creativeName": "Eu Achei Que Era Mentira... 2026-08-10-53b1c2714a5119d97699d77fe1bebb61",
-      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/4127591276898215978?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQIf4_PzTsXO40a-2O5yVEZv-A8Bds7cDZzI8_AnHApFNQg_20VkVstneqFKfdf8TrGIOTH2MkUdWCdEZN2PVdMSfcEwAgW4IDACGqk2CDUZLVOEOjm3iOXZlPMGsRZXNigkV_3u68N6KMKIeNqRF5_l&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=_ff5PsaBGPyzTHjda5Hw9A&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQIsTMzEcEXu-p8_5Og8p1ucMviiKT1x0x1hjmIjjC0fzKJjiB0lL5Mo9eK7MvXLZbPnQKwjKe1WaA&oh=06_Q3_DAbshWNdfOUi7zxv5cmFNC-ZuReCuAkWrws8gKtxKKUf0&oe=6AA115E8",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251688910540560",
-      "name": "AD11",
-      "status": true,
-      "campaignId": "120251688908820560",
-      "adsetId": "120251688910510560",
-      "creativeId": "1936921476974414",
-      "creativeName": "Eu Achei Que Era Mentira... 2026-08-10-53b1c2714a5119d97699d77fe1bebb61",
-      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/4127591276898215978?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQIf4_PzTsXO40a-2O5yVEZv-A8Bds7cDZzI8_AnHApFNQg_20VkVstneqFKfdf8TrGIOTH2MkUdWCdEZN2PVdMSfcEwAgW4IDACGqk2CDUZLVOEOjm3iOXZlPMGsRZXNigkV_3u68N6KMKIeNqRF5_l&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=_ff5PsaBGPyzTHjda5Hw9A&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQIsTMzEcEXu-p8_5Og8p1ucMviiKT1x0x1hjmIjjC0fzKJjiB0lL5Mo9eK7MvXLZbPnQKwjKe1WaA&oh=06_Q3_DAbshWNdfOUi7zxv5cmFNC-ZuReCuAkWrws8gKtxKKUf0&oe=6AA115E8",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251688910250560",
-      "name": "AD11",
-      "status": true,
-      "campaignId": "120251688908490560",
-      "adsetId": "120251688909970560",
-      "creativeId": "1936921476974414",
-      "creativeName": "Eu Achei Que Era Mentira... 2026-08-10-53b1c2714a5119d97699d77fe1bebb61",
-      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/4127591276898215978?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQIf4_PzTsXO40a-2O5yVEZv-A8Bds7cDZzI8_AnHApFNQg_20VkVstneqFKfdf8TrGIOTH2MkUdWCdEZN2PVdMSfcEwAgW4IDACGqk2CDUZLVOEOjm3iOXZlPMGsRZXNigkV_3u68N6KMKIeNqRF5_l&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=_ff5PsaBGPyzTHjda5Hw9A&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQIsTMzEcEXu-p8_5Og8p1ucMviiKT1x0x1hjmIjjC0fzKJjiB0lL5Mo9eK7MvXLZbPnQKwjKe1WaA&oh=06_Q3_DAbshWNdfOUi7zxv5cmFNC-ZuReCuAkWrws8gKtxKKUf0&oe=6AA115E8",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251688910400560",
-      "name": "AD11",
-      "status": true,
-      "campaignId": "120251688908560560",
-      "adsetId": "120251688910280560",
-      "creativeId": "1936921476974414",
-      "creativeName": "Eu Achei Que Era Mentira... 2026-08-10-53b1c2714a5119d97699d77fe1bebb61",
-      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/4127591276898215978?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQIf4_PzTsXO40a-2O5yVEZv-A8Bds7cDZzI8_AnHApFNQg_20VkVstneqFKfdf8TrGIOTH2MkUdWCdEZN2PVdMSfcEwAgW4IDACGqk2CDUZLVOEOjm3iOXZlPMGsRZXNigkV_3u68N6KMKIeNqRF5_l&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=_ff5PsaBGPyzTHjda5Hw9A&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQIsTMzEcEXu-p8_5Og8p1ucMviiKT1x0x1hjmIjjC0fzKJjiB0lL5Mo9eK7MvXLZbPnQKwjKe1WaA&oh=06_Q3_DAbshWNdfOUi7zxv5cmFNC-ZuReCuAkWrws8gKtxKKUf0&oe=6AA115E8",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251688908930560",
-      "name": "AD11",
-      "status": true,
-      "campaignId": "120251688908420560",
-      "adsetId": "120251688908870560",
-      "creativeId": "1936921476974414",
-      "creativeName": "Eu Achei Que Era Mentira... 2026-08-10-53b1c2714a5119d97699d77fe1bebb61",
-      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/4127591276898215978?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQIf4_PzTsXO40a-2O5yVEZv-A8Bds7cDZzI8_AnHApFNQg_20VkVstneqFKfdf8TrGIOTH2MkUdWCdEZN2PVdMSfcEwAgW4IDACGqk2CDUZLVOEOjm3iOXZlPMGsRZXNigkV_3u68N6KMKIeNqRF5_l&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=_ff5PsaBGPyzTHjda5Hw9A&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQIsTMzEcEXu-p8_5Og8p1ucMviiKT1x0x1hjmIjjC0fzKJjiB0lL5Mo9eK7MvXLZbPnQKwjKe1WaA&oh=06_Q3_DAbshWNdfOUi7zxv5cmFNC-ZuReCuAkWrws8gKtxKKUf0&oe=6AA115E8",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251688910550560",
-      "name": "AD11",
-      "status": true,
-      "campaignId": "120251688908900560",
-      "adsetId": "120251688910500560",
-      "creativeId": "1936921476974414",
-      "creativeName": "Eu Achei Que Era Mentira... 2026-08-10-53b1c2714a5119d97699d77fe1bebb61",
-      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/4127591276898215978?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQIf4_PzTsXO40a-2O5yVEZv-A8Bds7cDZzI8_AnHApFNQg_20VkVstneqFKfdf8TrGIOTH2MkUdWCdEZN2PVdMSfcEwAgW4IDACGqk2CDUZLVOEOjm3iOXZlPMGsRZXNigkV_3u68N6KMKIeNqRF5_l&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=_ff5PsaBGPyzTHjda5Hw9A&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQIsTMzEcEXu-p8_5Og8p1ucMviiKT1x0x1hjmIjjC0fzKJjiB0lL5Mo9eK7MvXLZbPnQKwjKe1WaA&oh=06_Q3_DAbshWNdfOUi7zxv5cmFNC-ZuReCuAkWrws8gKtxKKUf0&oe=6AA115E8",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251688909930560",
-      "name": "AD11",
-      "status": true,
-      "campaignId": "120251688907810560",
-      "adsetId": "120251688909860560",
-      "creativeId": "1936921476974414",
-      "creativeName": "Eu Achei Que Era Mentira... 2026-08-10-53b1c2714a5119d97699d77fe1bebb61",
-      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/4127591276898215978?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQIf4_PzTsXO40a-2O5yVEZv-A8Bds7cDZzI8_AnHApFNQg_20VkVstneqFKfdf8TrGIOTH2MkUdWCdEZN2PVdMSfcEwAgW4IDACGqk2CDUZLVOEOjm3iOXZlPMGsRZXNigkV_3u68N6KMKIeNqRF5_l&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=_ff5PsaBGPyzTHjda5Hw9A&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQIsTMzEcEXu-p8_5Og8p1ucMviiKT1x0x1hjmIjjC0fzKJjiB0lL5Mo9eK7MvXLZbPnQKwjKe1WaA&oh=06_Q3_DAbshWNdfOUi7zxv5cmFNC-ZuReCuAkWrws8gKtxKKUf0&oe=6AA115E8",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251688910300560",
-      "name": "AD11",
-      "status": true,
-      "campaignId": "120251688908350560",
-      "adsetId": "120251688910190560",
-      "creativeId": "1936921476974414",
-      "creativeName": "Eu Achei Que Era Mentira... 2026-08-10-53b1c2714a5119d97699d77fe1bebb61",
-      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/4127591276898215978?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQIf4_PzTsXO40a-2O5yVEZv-A8Bds7cDZzI8_AnHApFNQg_20VkVstneqFKfdf8TrGIOTH2MkUdWCdEZN2PVdMSfcEwAgW4IDACGqk2CDUZLVOEOjm3iOXZlPMGsRZXNigkV_3u68N6KMKIeNqRF5_l&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=_ff5PsaBGPyzTHjda5Hw9A&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQIsTMzEcEXu-p8_5Og8p1ucMviiKT1x0x1hjmIjjC0fzKJjiB0lL5Mo9eK7MvXLZbPnQKwjKe1WaA&oh=06_Q3_DAbshWNdfOUi7zxv5cmFNC-ZuReCuAkWrws8gKtxKKUf0&oe=6AA115E8",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251688910640560",
-      "name": "AD07",
-      "status": true,
-      "campaignId": "120251688907940560",
-      "adsetId": "120251688910610560",
-      "creativeId": "27895568780103040",
-      "creativeName": "Eu Achei Que Era Mentira... 2026-08-10-c2c98cb63b5f88e8e2c3fd8151f46cbe",
-      "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t15.5256-10/764986553_1290595657466346_4527609462189647015_n.jpg?_nc_cat=103&ccb=1-7&_nc_ohc=vMfp7pigCeUQ7kNvwHOnZ_X&_nc_oc=AdqUcUSqvqtnYq6jr0gJxARnb2CvTJncxB3x1WWQjNFZv_ZLash7JaE-mUnvifSiAseIuwW8HyxwnoHRNhJuoe7C&_nc_zt=23&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=_ff5PsaBGPyzTHjda5Hw9A&_nc_tpa=Q5bMBQLoHgu9wpJJD3rWMRgpv4exVDQswM-3Lkzlp6HTvajGl5PC-Fyw_Tp9gOwE7rAcCaPSQG_aQA8CwQ&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIc1DB1hsUwPiCZtE03VtAfPHbMyPN_vi86phQk3Nvzew&oe=6AA50F05",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251688910660560",
-      "name": "AD07",
-      "status": true,
-      "campaignId": "120251688907960560",
-      "adsetId": "120251688910000560",
-      "creativeId": "27895568780103040",
-      "creativeName": "Eu Achei Que Era Mentira... 2026-08-10-c2c98cb63b5f88e8e2c3fd8151f46cbe",
-      "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t15.5256-10/764986553_1290595657466346_4527609462189647015_n.jpg?_nc_cat=103&ccb=1-7&_nc_ohc=vMfp7pigCeUQ7kNvwHOnZ_X&_nc_oc=AdqUcUSqvqtnYq6jr0gJxARnb2CvTJncxB3x1WWQjNFZv_ZLash7JaE-mUnvifSiAseIuwW8HyxwnoHRNhJuoe7C&_nc_zt=23&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=_ff5PsaBGPyzTHjda5Hw9A&_nc_tpa=Q5bMBQLoHgu9wpJJD3rWMRgpv4exVDQswM-3Lkzlp6HTvajGl5PC-Fyw_Tp9gOwE7rAcCaPSQG_aQA8CwQ&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIc1DB1hsUwPiCZtE03VtAfPHbMyPN_vi86phQk3Nvzew&oe=6AA50F05",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251688910270560",
-      "name": "AD11",
-      "status": true,
-      "campaignId": "120251688908600560",
-      "adsetId": "120251688910240560",
-      "creativeId": "1936921476974414",
-      "creativeName": "Eu Achei Que Era Mentira... 2026-08-10-53b1c2714a5119d97699d77fe1bebb61",
-      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/4127591276898215978?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQIf4_PzTsXO40a-2O5yVEZv-A8Bds7cDZzI8_AnHApFNQg_20VkVstneqFKfdf8TrGIOTH2MkUdWCdEZN2PVdMSfcEwAgW4IDACGqk2CDUZLVOEOjm3iOXZlPMGsRZXNigkV_3u68N6KMKIeNqRF5_l&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=_ff5PsaBGPyzTHjda5Hw9A&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQIsTMzEcEXu-p8_5Og8p1ucMviiKT1x0x1hjmIjjC0fzKJjiB0lL5Mo9eK7MvXLZbPnQKwjKe1WaA&oh=06_Q3_DAbshWNdfOUi7zxv5cmFNC-ZuReCuAkWrws8gKtxKKUf0&oe=6AA115E8",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251688910790560",
-      "name": "AD09",
-      "status": true,
-      "campaignId": "120251688908020560",
-      "adsetId": "120251688910740560",
-      "creativeId": "1721447502401108",
-      "creativeName": "Eu Achei Que Era Mentira... 2026-08-10-f9b17ccba7364cfdc7c0d2edfb696250",
-      "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/768258144_3977165359110254_6340225845995667605_n.jpg?_nc_cat=109&ccb=1-7&_nc_ohc=XQ8U9ea_HhwQ7kNvwEa33-q&_nc_oc=AdrLmWsJ2VwzGef9tYkLvsSTsH2CYtYZVMSTtNCzOM1WHVGjBDT8mtAVI6jxNzfTNsP1hTfurgEcifv47uqX0w_4&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=_ff5PsaBGPyzTHjda5Hw9A&_nc_tpa=Q5bMBQKqgjeYzI9AWbgADE94l5B-ZnHR18cGPol8ghBotn1uOPJRdazfo1Bs3P2SpGRXNfSjVN7wYppLuA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIzyHadzKn6_rewDD1wuSMl51KUkApAKo21OFieXnbPNA&oe=6AA500BE",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251688909980560",
-      "name": "AD11",
-      "status": true,
-      "campaignId": "120251688908440560",
-      "adsetId": "120251688908890560",
-      "creativeId": "1936921476974414",
-      "creativeName": "Eu Achei Que Era Mentira... 2026-08-10-53b1c2714a5119d97699d77fe1bebb61",
-      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/4127591276898215978?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQIf4_PzTsXO40a-2O5yVEZv-A8Bds7cDZzI8_AnHApFNQg_20VkVstneqFKfdf8TrGIOTH2MkUdWCdEZN2PVdMSfcEwAgW4IDACGqk2CDUZLVOEOjm3iOXZlPMGsRZXNigkV_3u68N6KMKIeNqRF5_l&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=_ff5PsaBGPyzTHjda5Hw9A&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQIsTMzEcEXu-p8_5Og8p1ucMviiKT1x0x1hjmIjjC0fzKJjiB0lL5Mo9eK7MvXLZbPnQKwjKe1WaA&oh=06_Q3_DAbshWNdfOUi7zxv5cmFNC-ZuReCuAkWrws8gKtxKKUf0&oe=6AA115E8",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251688910530560",
-      "name": "AD11",
-      "status": true,
-      "campaignId": "120251688908840560",
-      "adsetId": "120251688910290560",
-      "creativeId": "1936921476974414",
-      "creativeName": "Eu Achei Que Era Mentira... 2026-08-10-53b1c2714a5119d97699d77fe1bebb61",
-      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/4127591276898215978?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQIf4_PzTsXO40a-2O5yVEZv-A8Bds7cDZzI8_AnHApFNQg_20VkVstneqFKfdf8TrGIOTH2MkUdWCdEZN2PVdMSfcEwAgW4IDACGqk2CDUZLVOEOjm3iOXZlPMGsRZXNigkV_3u68N6KMKIeNqRF5_l&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=_ff5PsaBGPyzTHjda5Hw9A&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQIsTMzEcEXu-p8_5Og8p1ucMviiKT1x0x1hjmIjjC0fzKJjiB0lL5Mo9eK7MvXLZbPnQKwjKe1WaA&oh=06_Q3_DAbshWNdfOUi7zxv5cmFNC-ZuReCuAkWrws8gKtxKKUf0&oe=6AA115E8",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251688909320560",
-      "name": "AD16",
-      "status": true,
-      "campaignId": "120251688909080560",
-      "adsetId": "120251688909250560",
-      "creativeId": "1738048260812184",
-      "creativeName": "Eu Achei Que Era Mentira... 2026-08-10-6dcdfcf5490a1690b3ddd9b0b42075db",
-      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/17105305815476072923?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQL4bohj8S3BCF46P5DrA-h8HMZGXcMNdtFsY9pERqtSSn8d8IHuNXTXRlXN0sB0hixaFSItec0-aH9s1KH7nTWCcVCev4HykSM3FZH4MLHoL0qjdFqR3DUHcfIAcp-GOn_fJlO3npiLgYhDHNkERSPS&fb_obo=1&utld=facebook.com&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&edm=AOgd6ZUEAAAA&_nc_gid=_ff5PsaBGPyzTHjda5Hw9A&_nc_oc=Adpj4FENKKl1qfZd0aWGurZIrz8d-Rlkwx6A0s7sRdrZkevBK4OWB_hNXICavzJA0KFAdmB2RiO292XIn3BSTR2N&ccb=13-1&oh=06_Q3_DAVxosuZ5igOp9fSehflkcFQGiMN_W6mi1nQsmNi8q_Zf&oe=6AA0F6AE&_nc_sid=58080a",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251688909220560",
-      "name": "AD11",
-      "status": true,
-      "campaignId": "120251688908370560",
-      "adsetId": "120251688908850560",
-      "creativeId": "1936921476974414",
-      "creativeName": "Eu Achei Que Era Mentira... 2026-08-10-53b1c2714a5119d97699d77fe1bebb61",
-      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/4127591276898215978?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQIf4_PzTsXO40a-2O5yVEZv-A8Bds7cDZzI8_AnHApFNQg_20VkVstneqFKfdf8TrGIOTH2MkUdWCdEZN2PVdMSfcEwAgW4IDACGqk2CDUZLVOEOjm3iOXZlPMGsRZXNigkV_3u68N6KMKIeNqRF5_l&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=_ff5PsaBGPyzTHjda5Hw9A&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQIsTMzEcEXu-p8_5Og8p1ucMviiKT1x0x1hjmIjjC0fzKJjiB0lL5Mo9eK7MvXLZbPnQKwjKe1WaA&oh=06_Q3_DAbshWNdfOUi7zxv5cmFNC-ZuReCuAkWrws8gKtxKKUf0&oe=6AA115E8",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251688910560560",
-      "name": "AD11",
-      "status": true,
-      "campaignId": "120251688908880560",
-      "adsetId": "120251688910520560",
-      "creativeId": "1936921476974414",
-      "creativeName": "Eu Achei Que Era Mentira... 2026-08-10-53b1c2714a5119d97699d77fe1bebb61",
-      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/4127591276898215978?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQIf4_PzTsXO40a-2O5yVEZv-A8Bds7cDZzI8_AnHApFNQg_20VkVstneqFKfdf8TrGIOTH2MkUdWCdEZN2PVdMSfcEwAgW4IDACGqk2CDUZLVOEOjm3iOXZlPMGsRZXNigkV_3u68N6KMKIeNqRF5_l&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=_ff5PsaBGPyzTHjda5Hw9A&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQIsTMzEcEXu-p8_5Og8p1ucMviiKT1x0x1hjmIjjC0fzKJjiB0lL5Mo9eK7MvXLZbPnQKwjKe1WaA&oh=06_Q3_DAbshWNdfOUi7zxv5cmFNC-ZuReCuAkWrws8gKtxKKUf0&oe=6AA115E8",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251688910010560",
-      "name": "AD11",
-      "status": true,
-      "campaignId": "120251688908430560",
-      "adsetId": "120251688908910560",
-      "creativeId": "1936921476974414",
-      "creativeName": "Eu Achei Que Era Mentira... 2026-08-10-53b1c2714a5119d97699d77fe1bebb61",
-      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/4127591276898215978?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQIf4_PzTsXO40a-2O5yVEZv-A8Bds7cDZzI8_AnHApFNQg_20VkVstneqFKfdf8TrGIOTH2MkUdWCdEZN2PVdMSfcEwAgW4IDACGqk2CDUZLVOEOjm3iOXZlPMGsRZXNigkV_3u68N6KMKIeNqRF5_l&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=_ff5PsaBGPyzTHjda5Hw9A&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQIsTMzEcEXu-p8_5Og8p1ucMviiKT1x0x1hjmIjjC0fzKJjiB0lL5Mo9eK7MvXLZbPnQKwjKe1WaA&oh=06_Q3_DAbshWNdfOUi7zxv5cmFNC-ZuReCuAkWrws8gKtxKKUf0&oe=6AA115E8",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251688910220560",
-      "name": "AD11",
-      "status": true,
-      "campaignId": "120251688908580560",
-      "adsetId": "120251688910120560",
-      "creativeId": "1936921476974414",
-      "creativeName": "Eu Achei Que Era Mentira... 2026-08-10-53b1c2714a5119d97699d77fe1bebb61",
-      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/4127591276898215978?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQIf4_PzTsXO40a-2O5yVEZv-A8Bds7cDZzI8_AnHApFNQg_20VkVstneqFKfdf8TrGIOTH2MkUdWCdEZN2PVdMSfcEwAgW4IDACGqk2CDUZLVOEOjm3iOXZlPMGsRZXNigkV_3u68N6KMKIeNqRF5_l&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=_ff5PsaBGPyzTHjda5Hw9A&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQIsTMzEcEXu-p8_5Og8p1ucMviiKT1x0x1hjmIjjC0fzKJjiB0lL5Mo9eK7MvXLZbPnQKwjKe1WaA&oh=06_Q3_DAbshWNdfOUi7zxv5cmFNC-ZuReCuAkWrws8gKtxKKUf0&oe=6AA115E8",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251688909950560",
-      "name": "AD11",
-      "status": true,
-      "campaignId": "120251688907790560",
-      "adsetId": "120251688909880560",
-      "creativeId": "1936921476974414",
-      "creativeName": "Eu Achei Que Era Mentira... 2026-08-10-53b1c2714a5119d97699d77fe1bebb61",
-      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/4127591276898215978?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQIf4_PzTsXO40a-2O5yVEZv-A8Bds7cDZzI8_AnHApFNQg_20VkVstneqFKfdf8TrGIOTH2MkUdWCdEZN2PVdMSfcEwAgW4IDACGqk2CDUZLVOEOjm3iOXZlPMGsRZXNigkV_3u68N6KMKIeNqRF5_l&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=_ff5PsaBGPyzTHjda5Hw9A&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQIsTMzEcEXu-p8_5Og8p1ucMviiKT1x0x1hjmIjjC0fzKJjiB0lL5Mo9eK7MvXLZbPnQKwjKe1WaA&oh=06_Q3_DAbshWNdfOUi7zxv5cmFNC-ZuReCuAkWrws8gKtxKKUf0&oe=6AA115E8",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251688910390560",
-      "name": "AD10",
-      "status": true,
-      "campaignId": "120251688908080560",
-      "adsetId": "120251688910310560",
-      "creativeId": "1542020697661598",
-      "creativeName": "Eu Achei Que Era Mentira... 2026-08-10-976e11b415b2c05a70a3d180e1f1ce76",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/773066330_1361718925475792_3961443677004863754_n.jpg?_nc_cat=104&ccb=1-7&_nc_ohc=MbKUKdmQzNwQ7kNvwHNPOal&_nc_oc=AdpTNgNPGOhtzs_mFCqPnebBVM1v_zGauaJ7NJeI6ycTuWe_8y0GkACSbKDRseXNdjNl55tzO5WfP6KbSqvBdKpO&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=_ff5PsaBGPyzTHjda5Hw9A&_nc_tpa=Q5bMBQK1d7oDw_48rdIc6GjiZIP6QaNaEJ8ulZG7QAEkcUiV2Zu1q7Bx6_eWiTo2c2MSjkiHu30bV-uocQ&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLmmjrGTXSCyHVorxMrE-Tl5Y0-UwUoPtGlR-b9fnGPDA&oe=6AA504EF",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120253622023770166",
-      "name": "AD02",
-      "status": true,
-      "campaignId": "120253622023630166",
-      "adsetId": "120253622023600166",
-      "creativeId": "2140220964042089",
-      "creativeName": "Anúncio de um post da Página 2026-07-28-d3748b0883931ba0faa8309513796a55",
-      "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t15.5256-10/754724948_906569381924103_2385570210135898791_n.jpg?_nc_cat=110&ccb=1-7&_nc_ohc=oDVjivtP1oYQ7kNvwEjh7Hd&_nc_oc=Adrg5TRoADRFeun8AQLevkVSoMX3tX2aHbyTWpwbfX-SEax9qWSBd9Kuy1SfkfJT6NrflVuE2Zx9GZTGlsKUGDq1&_nc_zt=23&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=62JwZe-IxTQDrp0Eisngog&_nc_tpa=Q5bMBQKPejlDx5zO2oBSg35hS6qtdVudKuMDDfkQCakrxTv26w0KYJolRiijNuL_bk4dG-gu51noYmJQQQ&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJL6pBp-FcAFNLmQ3H06T77HSb0cav-FnNAvvwK2hHvAA&oe=6AA4EFAA",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120253632622480166",
-      "name": "AD03",
-      "status": true,
-      "campaignId": "120253632622340166",
-      "adsetId": "120253632622530166",
-      "creativeId": "1425501642968210",
-      "creativeName": "Anúncio de um post da Página 2026-07-29-0c7319a14e41fb094605f7e96b1f22e4",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/756223719_918898973881481_8966261915546825195_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=1IXrviQsOlEQ7kNvwEJPz3m&_nc_oc=Adqlh9TVFePr8T8ywpA6eQgXn8XSvOEZaFMEsI8GrHNuwiY9Er5yXdk4Z481hLDqZ_RCPbRNfaJ0nv3-GAGaCTG-&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=62JwZe-IxTQDrp0Eisngog&_nc_tpa=Q5bMBQJ2LEh5axPLZOg5_LpJgL9we4O5N1Mq5JL3J3aYQyEdVEulBRRT8EPkAbN87hvpoBcelmiVbYz-Pg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJ8aVsYvTEQaA8Jn4pD-2UJDAov477uZ9scL4e9DDOCwA&oe=6AA4FF7A",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120253632622450166",
-      "name": "AD01",
-      "status": true,
-      "campaignId": "120253632622340166",
-      "adsetId": "120253632622510166",
-      "creativeId": "1982000682451596",
-      "creativeName": "Anúncio de um post da Página 2026-07-29-164c8e28641e9e00c860fa965ea9a520",
-      "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/756833015_1068031188892998_4876110181401140125_n.jpg?_nc_cat=109&ccb=1-7&_nc_ohc=nxfYYVo-1ncQ7kNvwFyx2uT&_nc_oc=AdpADT2aJ1sm7iOFp4SKF6xzznES0fNd4dQTyB5JfSd7FCq_tTKpaugTzde2NKNGdNnhdK5i5w_eS9xDP9Tqrgyi&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=62JwZe-IxTQDrp0Eisngog&_nc_tpa=Q5bMBQJ57WqP-Rl-RTPJe1fiBqxJxqfKdHS_VIeLv7efR8IRIaiOgQPa5TEWDnmXXJ7zbE7dxTdp40v9Sw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJP0ra8DuOzewH7v7KGRi_nnsCZ29sJZQcktzCkc1opEA&oe=6AA512B0",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120253632512090166",
-      "name": "AD02",
-      "status": true,
-      "campaignId": "120253632512070166",
-      "adsetId": "120253632512110166",
-      "creativeId": "1062878092828576",
-      "creativeName": "Anúncio de um post da Página 2026-07-29-8a7ac64e04f3f1f7b0a3a08cca4f7de1",
-      "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t15.5256-10/754724948_906569381924103_2385570210135898791_n.jpg?_nc_cat=110&ccb=1-7&_nc_ohc=oDVjivtP1oYQ7kNvwEjh7Hd&_nc_oc=Adrg5TRoADRFeun8AQLevkVSoMX3tX2aHbyTWpwbfX-SEax9qWSBd9Kuy1SfkfJT6NrflVuE2Zx9GZTGlsKUGDq1&_nc_zt=23&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=62JwZe-IxTQDrp0Eisngog&_nc_tpa=Q5bMBQKNvYJsfPGyS7xbotfyyCig2Snho4qgIHY-YF-pduRi_D_mXAgkI1KfvD0g2MtWIJYyNagK6cbenA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLRomB_FTRMx-o-HqBEwUbzqbj2Il6EdlCCYYcwW_eIFA&oe=6AA4EFAA",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120253632622490166",
-      "name": "AD03",
-      "status": true,
-      "campaignId": "120253632622400166",
-      "adsetId": "120253632622350166",
-      "creativeId": "1690177538938878",
-      "creativeName": "Anúncio de um post da Página 2026-07-29-866f53ec474e3ce6793617c396ddc6fc",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/756223719_918898973881481_8966261915546825195_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=1IXrviQsOlEQ7kNvwEJPz3m&_nc_oc=Adqlh9TVFePr8T8ywpA6eQgXn8XSvOEZaFMEsI8GrHNuwiY9Er5yXdk4Z481hLDqZ_RCPbRNfaJ0nv3-GAGaCTG-&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=62JwZe-IxTQDrp0Eisngog&_nc_tpa=Q5bMBQI-XT5Xazl0B6mB8QX4V0OtEhUcN5Rh-Zh_pkJ4_9Kuk9D9wimst99JFH521jIdz1iPyoT7geFFLw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQI7P2-yspRGkJqi98TkAKZm9BRtMXIlPmqeN8hKNgLzTA&oe=6AA4FF7A",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120253632622460166",
-      "name": "AD02",
-      "status": true,
-      "campaignId": "120253632622400166",
-      "adsetId": "120253632622430166",
-      "creativeId": "2517433408734337",
-      "creativeName": "Anúncio de um post da Página 2026-07-29-b6787dff68244dfebffcf4f6932bd0c1",
-      "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t15.5256-10/754724948_906569381924103_2385570210135898791_n.jpg?_nc_cat=110&ccb=1-7&_nc_ohc=oDVjivtP1oYQ7kNvwEjh7Hd&_nc_oc=Adrg5TRoADRFeun8AQLevkVSoMX3tX2aHbyTWpwbfX-SEax9qWSBd9Kuy1SfkfJT6NrflVuE2Zx9GZTGlsKUGDq1&_nc_zt=23&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=62JwZe-IxTQDrp0Eisngog&_nc_tpa=Q5bMBQJmPWHtJ0z7g_B81kmhOVQwC-3gvl3wJ3DnEks6Wkw_Ce5mCMoHI5ftGVMfcgf0aqR_GnSy9jZ1fw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJMRtfs7jSz1PGqJ8hskFIAtHwyoNhpneT1uIZ9IzIINQ&oe=6AA4EFAA",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120253622023750166",
-      "name": "AD01",
-      "status": true,
-      "campaignId": "120253622023630166",
-      "adsetId": "120253622023660166",
-      "creativeId": "1340252324859605",
-      "creativeName": "Anúncio de um post da Página 2026-07-28-0e31c643ca6c1b2b234aa408558edab9",
-      "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/756833015_1068031188892998_4876110181401140125_n.jpg?_nc_cat=109&ccb=1-7&_nc_ohc=nxfYYVo-1ncQ7kNvwFyx2uT&_nc_oc=AdpADT2aJ1sm7iOFp4SKF6xzznES0fNd4dQTyB5JfSd7FCq_tTKpaugTzde2NKNGdNnhdK5i5w_eS9xDP9Tqrgyi&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=62JwZe-IxTQDrp0Eisngog&_nc_tpa=Q5bMBQIf7OPLWRVyGXKZwsydfsOeimAWszJUdXIt6mRHpi2Xxqgj-A1Q8EKPWh7foGVOL_BilU3t37dVoQ&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIn4k0NAhKBq5PQC_IkLVDUkF_wlw3GiP4neJ09ieF7Fw&oe=6AA512B0",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120253632622410166",
-      "name": "AD01",
-      "status": true,
-      "campaignId": "120253632622390166",
-      "adsetId": "120253632622370166",
-      "creativeId": "1979846382651435",
-      "creativeName": "Anúncio de um post da Página 2026-07-29-92a42f223c2f71178fb16414aef0083c",
-      "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/756833015_1068031188892998_4876110181401140125_n.jpg?_nc_cat=109&ccb=1-7&_nc_ohc=nxfYYVo-1ncQ7kNvwFyx2uT&_nc_oc=AdpADT2aJ1sm7iOFp4SKF6xzznES0fNd4dQTyB5JfSd7FCq_tTKpaugTzde2NKNGdNnhdK5i5w_eS9xDP9Tqrgyi&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=62JwZe-IxTQDrp0Eisngog&_nc_tpa=Q5bMBQIkEj9IM6VhRtNDilJ-T0UZ5j0ys-81uOYsuxkpNF-bEE1yTGa1S-k2JjWF5cGJgDKlMfKudRLs2g&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQK9bLfL6Su1519TD0qMaSzjDmfZnd49FdCp15psJquvlQ&oe=6AA512B0",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120253632622420166",
-      "name": "AD01",
-      "status": true,
-      "campaignId": "120253632622400166",
-      "adsetId": "120253632622380166",
-      "creativeId": "1610796507081843",
-      "creativeName": "Anúncio de um post da Página 2026-07-29-594d9fcd76748c23223d5364aeb5950b",
-      "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/756833015_1068031188892998_4876110181401140125_n.jpg?_nc_cat=109&ccb=1-7&_nc_ohc=nxfYYVo-1ncQ7kNvwFyx2uT&_nc_oc=AdpADT2aJ1sm7iOFp4SKF6xzznES0fNd4dQTyB5JfSd7FCq_tTKpaugTzde2NKNGdNnhdK5i5w_eS9xDP9Tqrgyi&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=62JwZe-IxTQDrp0Eisngog&_nc_tpa=Q5bMBQItQZzq6H8Plv5YjxSVdiYV5C-arnzpP9qbBnX4xF8VucBehVDYoAYs1s5zyWkK39vNnYKdy4T9ow&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLuCjnR0GkHRcf8AvWXxJ54PD8keuO-47JABvw8xpo2_A&oe=6AA512B0",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120253632512100166",
-      "name": "AD01",
-      "status": true,
-      "campaignId": "120253632512070166",
-      "adsetId": "120253632512060166",
-      "creativeId": "2357986138272033",
-      "creativeName": "Anúncio de um post da Página 2026-07-29-f69fd92bad64c6e94afce271428085ea",
-      "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/756833015_1068031188892998_4876110181401140125_n.jpg?_nc_cat=109&ccb=1-7&_nc_ohc=nxfYYVo-1ncQ7kNvwFyx2uT&_nc_oc=AdpADT2aJ1sm7iOFp4SKF6xzznES0fNd4dQTyB5JfSd7FCq_tTKpaugTzde2NKNGdNnhdK5i5w_eS9xDP9Tqrgyi&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=62JwZe-IxTQDrp0Eisngog&_nc_tpa=Q5bMBQIg_DNf2gnK_ZeOCZL3oeYx_q8ioMM0fOQsda5xSuGiWvNcSbET-JkhKI52M2TfADMCUXXItLvtNw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIoAVZ277ONw6-lDwnZb9tPSzi0mcJPw263aMGbOqpx0g&oe=6AA512B0",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120253632512080166",
-      "name": "AD03",
-      "status": true,
-      "campaignId": "120253632512070166",
-      "adsetId": "120253632512120166",
-      "creativeId": "27371834945821785",
-      "creativeName": "Anúncio de um post da Página 2026-07-29-5f66d3a8347291ae8c58b957d1bc8c85",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/756223719_918898973881481_8966261915546825195_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=1IXrviQsOlEQ7kNvwEJPz3m&_nc_oc=Adqlh9TVFePr8T8ywpA6eQgXn8XSvOEZaFMEsI8GrHNuwiY9Er5yXdk4Z481hLDqZ_RCPbRNfaJ0nv3-GAGaCTG-&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=62JwZe-IxTQDrp0Eisngog&_nc_tpa=Q5bMBQL_mFHWFH-SoOZMACEh1xcWH8xZj1IPZcrPFmHwuaEytPFdDl1TKoq-drmPJhR8Lg59_JmetT0j_Q&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJcXBpIXaxv6tHxsd4vQWwYLmCNADBF1qSOvKhwoGu_WQ&oe=6AA4FF7A",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120253632622440166",
-      "name": "AD02",
-      "status": true,
-      "campaignId": "120253632622390166",
-      "adsetId": "120253632622520166",
-      "creativeId": "1594215038806341",
-      "creativeName": "Anúncio de um post da Página 2026-07-29-47bb9ba3e3499aeeb17f9ab1d4bd1263",
-      "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t15.5256-10/754724948_906569381924103_2385570210135898791_n.jpg?_nc_cat=110&ccb=1-7&_nc_ohc=oDVjivtP1oYQ7kNvwEjh7Hd&_nc_oc=Adrg5TRoADRFeun8AQLevkVSoMX3tX2aHbyTWpwbfX-SEax9qWSBd9Kuy1SfkfJT6NrflVuE2Zx9GZTGlsKUGDq1&_nc_zt=23&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=62JwZe-IxTQDrp0Eisngog&_nc_tpa=Q5bMBQLu4s3L0ruoh3aFWvwF9oLZZds_kYosGTfacRc6NCmRSQrbuiL685uc1kF-QSNOQV085MP2BaT55g&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIZLCkVxV_J9pnzprp2FkVlJ-Oc0WpSGEVdNjBMyAymzg&oe=6AA4EFAA",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120253632622470166",
-      "name": "AD03",
-      "status": true,
-      "campaignId": "120253632622390166",
-      "adsetId": "120253632622540166",
-      "creativeId": "932615736520308",
-      "creativeName": "Anúncio de um post da Página 2026-07-29-4a362c0594660bba4bfa6d6a925e5adc",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/756223719_918898973881481_8966261915546825195_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=1IXrviQsOlEQ7kNvwEJPz3m&_nc_oc=Adqlh9TVFePr8T8ywpA6eQgXn8XSvOEZaFMEsI8GrHNuwiY9Er5yXdk4Z481hLDqZ_RCPbRNfaJ0nv3-GAGaCTG-&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=62JwZe-IxTQDrp0Eisngog&_nc_tpa=Q5bMBQLxftpuXuGMqAtod2SN5DkojxFT064LSfCBYglk2aai2AIhAjQlJl1gQDfY5A20SnqczrEozDuM6w&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLS2rLQBUt04Bhwg4bz0LH87BxEEcSh89ARhOJltXhZBA&oe=6AA4FF7A",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120253632622360166",
-      "name": "AD02",
-      "status": true,
-      "campaignId": "120253632622340166",
-      "adsetId": "120253632622500166",
-      "creativeId": "1715975982992145",
-      "creativeName": "Anúncio de um post da Página 2026-07-29-a8738f561fefa3fded7ef39ab592066e",
-      "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t15.5256-10/754724948_906569381924103_2385570210135898791_n.jpg?_nc_cat=110&ccb=1-7&_nc_ohc=oDVjivtP1oYQ7kNvwEjh7Hd&_nc_oc=Adrg5TRoADRFeun8AQLevkVSoMX3tX2aHbyTWpwbfX-SEax9qWSBd9Kuy1SfkfJT6NrflVuE2Zx9GZTGlsKUGDq1&_nc_zt=23&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=62JwZe-IxTQDrp0Eisngog&_nc_tpa=Q5bMBQJc4r1_hWEFVQD9UF51xnqAH98y7mnvA_sSCA3IkvX2RCuReZlweWP2tr7VItpKRtVPMofPXzto1Q&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKBQC3XSMcEJs1WSq1tBFPs8wkTOeRnHT-dAmMfDhWolg&oe=6AA4EFAA",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120253622023620166",
-      "name": "AD03",
-      "status": true,
-      "campaignId": "120253622023630166",
-      "adsetId": "120253622023670166",
-      "creativeId": "1554162529512176",
-      "creativeName": "Anúncio de um post da Página 2026-07-28-e1f80341a6b433a4a5825dbab9dd1c02",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/756223719_918898973881481_8966261915546825195_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=1IXrviQsOlEQ7kNvwEJPz3m&_nc_oc=Adqlh9TVFePr8T8ywpA6eQgXn8XSvOEZaFMEsI8GrHNuwiY9Er5yXdk4Z481hLDqZ_RCPbRNfaJ0nv3-GAGaCTG-&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=62JwZe-IxTQDrp0Eisngog&_nc_tpa=Q5bMBQLVrdRq_9q1nkHRzi1qnM-stfoe0oUUvqXu4x1ZHKRxrE3HjQuL5q7_QUF4A4GwsNIdj_4kaGKyqA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKVzLgFJdkpXJpHsm1-eENLlrTKxUHQB9OeBB38vlNVgw&oe=6AA4FF7A",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120253622023730166",
-      "name": "AD01",
-      "status": true,
-      "campaignId": "120253622023570166",
-      "adsetId": "120253622023650166",
-      "creativeId": "1340252324859605",
-      "creativeName": "Anúncio de um post da Página 2026-07-28-0e31c643ca6c1b2b234aa408558edab9",
-      "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/756833015_1068031188892998_4876110181401140125_n.jpg?_nc_cat=109&ccb=1-7&_nc_ohc=nxfYYVo-1ncQ7kNvwFyx2uT&_nc_oc=AdpADT2aJ1sm7iOFp4SKF6xzznES0fNd4dQTyB5JfSd7FCq_tTKpaugTzde2NKNGdNnhdK5i5w_eS9xDP9Tqrgyi&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=62JwZe-IxTQDrp0Eisngog&_nc_tpa=Q5bMBQIf7OPLWRVyGXKZwsydfsOeimAWszJUdXIt6mRHpi2Xxqgj-A1Q8EKPWh7foGVOL_BilU3t37dVoQ&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIn4k0NAhKBq5PQC_IkLVDUkF_wlw3GiP4neJ09ieF7Fw&oe=6AA512B0",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120253622023740166",
-      "name": "AD03",
-      "status": true,
-      "campaignId": "120253622023570166",
-      "adsetId": "120253622023590166",
-      "creativeId": "1554162529512176",
-      "creativeName": "Anúncio de um post da Página 2026-07-28-e1f80341a6b433a4a5825dbab9dd1c02",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/756223719_918898973881481_8966261915546825195_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=1IXrviQsOlEQ7kNvwEJPz3m&_nc_oc=Adqlh9TVFePr8T8ywpA6eQgXn8XSvOEZaFMEsI8GrHNuwiY9Er5yXdk4Z481hLDqZ_RCPbRNfaJ0nv3-GAGaCTG-&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=62JwZe-IxTQDrp0Eisngog&_nc_tpa=Q5bMBQLVrdRq_9q1nkHRzi1qnM-stfoe0oUUvqXu4x1ZHKRxrE3HjQuL5q7_QUF4A4GwsNIdj_4kaGKyqA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKVzLgFJdkpXJpHsm1-eENLlrTKxUHQB9OeBB38vlNVgw&oe=6AA4FF7A",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120253622023720166",
-      "name": "AD03",
-      "status": true,
-      "campaignId": "120253622023680166",
-      "adsetId": "120253622023690166",
-      "creativeId": "1554162529512176",
-      "creativeName": "Anúncio de um post da Página 2026-07-28-e1f80341a6b433a4a5825dbab9dd1c02",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/756223719_918898973881481_8966261915546825195_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=1IXrviQsOlEQ7kNvwEJPz3m&_nc_oc=Adqlh9TVFePr8T8ywpA6eQgXn8XSvOEZaFMEsI8GrHNuwiY9Er5yXdk4Z481hLDqZ_RCPbRNfaJ0nv3-GAGaCTG-&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=62JwZe-IxTQDrp0Eisngog&_nc_tpa=Q5bMBQLVrdRq_9q1nkHRzi1qnM-stfoe0oUUvqXu4x1ZHKRxrE3HjQuL5q7_QUF4A4GwsNIdj_4kaGKyqA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKVzLgFJdkpXJpHsm1-eENLlrTKxUHQB9OeBB38vlNVgw&oe=6AA4FF7A",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120253622023610166",
-      "name": "AD02",
-      "status": true,
-      "campaignId": "120253622023680166",
-      "adsetId": "120253622023700166",
-      "creativeId": "2140220964042089",
-      "creativeName": "Anúncio de um post da Página 2026-07-28-d3748b0883931ba0faa8309513796a55",
-      "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t15.5256-10/754724948_906569381924103_2385570210135898791_n.jpg?_nc_cat=110&ccb=1-7&_nc_ohc=oDVjivtP1oYQ7kNvwEjh7Hd&_nc_oc=Adrg5TRoADRFeun8AQLevkVSoMX3tX2aHbyTWpwbfX-SEax9qWSBd9Kuy1SfkfJT6NrflVuE2Zx9GZTGlsKUGDq1&_nc_zt=23&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=62JwZe-IxTQDrp0Eisngog&_nc_tpa=Q5bMBQKPejlDx5zO2oBSg35hS6qtdVudKuMDDfkQCakrxTv26w0KYJolRiijNuL_bk4dG-gu51noYmJQQQ&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJL6pBp-FcAFNLmQ3H06T77HSb0cav-FnNAvvwK2hHvAA&oe=6AA4EFAA",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120253622023760166",
-      "name": "AD02",
-      "status": true,
-      "campaignId": "120253622023570166",
-      "adsetId": "120253622023580166",
-      "creativeId": "2140220964042089",
-      "creativeName": "Anúncio de um post da Página 2026-07-28-d3748b0883931ba0faa8309513796a55",
-      "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t15.5256-10/754724948_906569381924103_2385570210135898791_n.jpg?_nc_cat=110&ccb=1-7&_nc_ohc=oDVjivtP1oYQ7kNvwEjh7Hd&_nc_oc=Adrg5TRoADRFeun8AQLevkVSoMX3tX2aHbyTWpwbfX-SEax9qWSBd9Kuy1SfkfJT6NrflVuE2Zx9GZTGlsKUGDq1&_nc_zt=23&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=62JwZe-IxTQDrp0Eisngog&_nc_tpa=Q5bMBQKPejlDx5zO2oBSg35hS6qtdVudKuMDDfkQCakrxTv26w0KYJolRiijNuL_bk4dG-gu51noYmJQQQ&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJL6pBp-FcAFNLmQ3H06T77HSb0cav-FnNAvvwK2hHvAA&oe=6AA4EFAA",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120253622023710166",
-      "name": "AD01",
-      "status": true,
-      "campaignId": "120253622023680166",
-      "adsetId": "120253622023640166",
-      "creativeId": "1340252324859605",
-      "creativeName": "Anúncio de um post da Página 2026-07-28-0e31c643ca6c1b2b234aa408558edab9",
-      "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/756833015_1068031188892998_4876110181401140125_n.jpg?_nc_cat=109&ccb=1-7&_nc_ohc=nxfYYVo-1ncQ7kNvwFyx2uT&_nc_oc=AdpADT2aJ1sm7iOFp4SKF6xzznES0fNd4dQTyB5JfSd7FCq_tTKpaugTzde2NKNGdNnhdK5i5w_eS9xDP9Tqrgyi&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=62JwZe-IxTQDrp0Eisngog&_nc_tpa=Q5bMBQIf7OPLWRVyGXKZwsydfsOeimAWszJUdXIt6mRHpi2Xxqgj-A1Q8EKPWh7foGVOL_BilU3t37dVoQ&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIn4k0NAhKBq5PQC_IkLVDUkF_wlw3GiP4neJ09ieF7Fw&oe=6AA512B0",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120253614590800166",
-      "name": "AD02",
-      "status": true,
-      "campaignId": "120253614513540166",
-      "adsetId": "120253614590740166",
-      "creativeId": "2140220964042089",
-      "creativeName": "Anúncio de um post da Página 2026-07-28-d3748b0883931ba0faa8309513796a55",
-      "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t15.5256-10/754724948_906569381924103_2385570210135898791_n.jpg?_nc_cat=110&ccb=1-7&_nc_ohc=oDVjivtP1oYQ7kNvwEjh7Hd&_nc_oc=Adrg5TRoADRFeun8AQLevkVSoMX3tX2aHbyTWpwbfX-SEax9qWSBd9Kuy1SfkfJT6NrflVuE2Zx9GZTGlsKUGDq1&_nc_zt=23&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=62JwZe-IxTQDrp0Eisngog&_nc_tpa=Q5bMBQKPejlDx5zO2oBSg35hS6qtdVudKuMDDfkQCakrxTv26w0KYJolRiijNuL_bk4dG-gu51noYmJQQQ&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJL6pBp-FcAFNLmQ3H06T77HSb0cav-FnNAvvwK2hHvAA&oe=6AA4EFAA",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120253614590810166",
-      "name": "AD03",
-      "status": true,
-      "campaignId": "120253614513540166",
-      "adsetId": "120253614590750166",
-      "creativeId": "1554162529512176",
-      "creativeName": "Anúncio de um post da Página 2026-07-28-e1f80341a6b433a4a5825dbab9dd1c02",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/756223719_918898973881481_8966261915546825195_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=1IXrviQsOlEQ7kNvwEJPz3m&_nc_oc=Adqlh9TVFePr8T8ywpA6eQgXn8XSvOEZaFMEsI8GrHNuwiY9Er5yXdk4Z481hLDqZ_RCPbRNfaJ0nv3-GAGaCTG-&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=62JwZe-IxTQDrp0Eisngog&_nc_tpa=Q5bMBQLVrdRq_9q1nkHRzi1qnM-stfoe0oUUvqXu4x1ZHKRxrE3HjQuL5q7_QUF4A4GwsNIdj_4kaGKyqA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKVzLgFJdkpXJpHsm1-eENLlrTKxUHQB9OeBB38vlNVgw&oe=6AA4FF7A",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120253614354640166",
-      "name": "AD01",
-      "status": true,
-      "campaignId": "120253614354650166",
-      "adsetId": "120253614354660166",
-      "creativeId": "1393518759608414",
-      "creativeName": "Anúncio de um post da Página 2026-07-28-32cf91f34bdc23c2d7b6e824f82cbae5",
-      "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/759308270_881510147981173_1061853147171196911_n.jpg?_nc_cat=109&ccb=1-7&_nc_ohc=_H7Cp3VNDwMQ7kNvwES9_xb&_nc_oc=AdqVzhK8bKCHm_XELmfxyyVOR6jQOwUaaKyZiSRvCVg9lrhSrNGbChNaGyLspxBdEWyvlDKx26oLpS76-eyh50Yy&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=62JwZe-IxTQDrp0Eisngog&_nc_tpa=Q5bMBQKIcngZIlz625BCLjCLULeK-o-dS2QfGkRQB7GB5DVOo_5aV-oPgkB-jUmxmS5YLuOWLSo9DTIy8w&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=a3ac17&_nc_sid=58080a&oh=00_AQL699GtPJfO-wQIOIq1x1nMa7zXWFXiMYrg2gk32eGrsw&oe=6AA50FAD",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120253614513530166",
-      "name": "AD01",
-      "status": true,
-      "campaignId": "120253614513540166",
-      "adsetId": "120253614513550166",
-      "creativeId": "1340252324859605",
-      "creativeName": "Anúncio de um post da Página 2026-07-28-0e31c643ca6c1b2b234aa408558edab9",
-      "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/756833015_1068031188892998_4876110181401140125_n.jpg?_nc_cat=109&ccb=1-7&_nc_ohc=nxfYYVo-1ncQ7kNvwFyx2uT&_nc_oc=AdpADT2aJ1sm7iOFp4SKF6xzznES0fNd4dQTyB5JfSd7FCq_tTKpaugTzde2NKNGdNnhdK5i5w_eS9xDP9Tqrgyi&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=62JwZe-IxTQDrp0Eisngog&_nc_tpa=Q5bMBQIf7OPLWRVyGXKZwsydfsOeimAWszJUdXIt6mRHpi2Xxqgj-A1Q8EKPWh7foGVOL_BilU3t37dVoQ&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIn4k0NAhKBq5PQC_IkLVDUkF_wlw3GiP4neJ09ieF7Fw&oe=6AA512B0",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120242674339160432",
-      "name": "AD06",
-      "status": true,
-      "campaignId": "120242509243770432",
-      "adsetId": "120242509311280432",
-      "creativeId": "2326968031163933",
-      "creativeName": "{{product.name}} 2026-02-11-8dc441f113423749204d9e6123d25a14",
-      "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t45.1600-4/632130967_122162600450701442_2337759340509261897_n.png?_nc_cat=107&ccb=1-7&_nc_ohc=_0KDfYQOsscQ7kNvwEg2UZi&_nc_oc=AdrCK28RbtKBUE4mYKaiwqPIjbOvLJyAaIibNqYpCK0jRAT8fI2b24gj3fNcDM30fCUdc8wNed8uaJ_TezE6kA2l&_nc_zt=1&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=L1K_1uemFzImsDRz-tQFAw&_nc_tpa=Q5bMBQJSYBCmomSu164VIQ4EbYtzJ74oIiAUC4Y1oNKeFNBVkCg9mejsL0t1KuWiVuQGq4EWcjSGJ8-CRA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=52f3c4&_nc_sid=58080a&oh=00_AQIgRWExcNBN27xtJeiF2j0qOkCyyqO7zS2Bd43hyiUA3g&oe=6AA4FB0F",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120242539096440432",
-      "name": "AD05",
-      "status": true,
-      "campaignId": "120242509243770432",
-      "adsetId": "120242539096450432",
-      "creativeId": "1163543789188562",
-      "creativeName": "Clique em saiba mais 2026-02-07-a4054a3641cf727f63e74d42670f29c1",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/629814331_1484973146679270_3759769019596126228_n.jpg?_nc_cat=104&ccb=1-7&_nc_ohc=S8pza7nezGgQ7kNvwHtNS6S&_nc_oc=AdoJw2Fp71EmFKHJD9N3lHVN4qHXqTQE-L1FX1icPLAWkLmavFtSzFEODcu1QMZgVf5iP2qHmWPftAr_cqK1eB5N&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=L1K_1uemFzImsDRz-tQFAw&_nc_tpa=Q5bMBQKYrQGqBgqpOwbaqfoz-WMl8yR1L4QCLlb-WBFD0AT7RN05iK4aq7pQ4Kqdr_BUVWecJaBK2gj7Iw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLGRLGTnn9gJrlAxvC9vUpoK5C9rgQ3UAQnh4m_ZYBdlA&oe=6AA51125",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120242509243780432",
-      "name": "AD01",
-      "status": true,
-      "campaignId": "120242509243770432",
-      "adsetId": "120242509243760432",
-      "creativeId": "1394969692426402",
-      "creativeName": "Clique em saiba mais 2026-02-06-c1a97d7865c8f7974bffd5e6714e0f02",
-      "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/4077906512961292638?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQJ2AFQVtcpapuzBKG-O1SeOHUz6eGZMO5JPQPucFPNlH84SEcRmLn_EImYEFEVXVKLh-3aG9Ml-4rsHYQC7exaWC_hF4_J0N8n0cG0BVIegs0petCa3jvRfjOhosbREEurPy-8Ncnlq8Mr5bNpCWevw&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=L1K_1uemFzImsDRz-tQFAw&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQLR0FCBFVdVyArEGDLCiT-cPdSEJH_YESYMeSFIkhxFGFBSv36T0KBYOiET1Te03M7Od9RLRboJjA&oh=06_Q3_DAUAuXtjCuIQb2SP8uv1USH4CI4CCB0MLchwf-BRbcZNZ&oe=6AA11C7E",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120247167131750405",
-      "name": "AD01",
-      "status": true,
-      "campaignId": "120247167131730405",
-      "adsetId": "120247167131740405",
-      "creativeId": "919800273782984",
-      "creativeName": "Você é minha última esperança 2026-02-26-7f6cbfe0e77f25fde27ce1c2edfb5dc3",
-      "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/640849002_1464816238693376_5305837507073539537_n.jpg?_nc_cat=106&ccb=1-7&_nc_ohc=rkWTDH91ZXgQ7kNvwHefbL5&_nc_oc=AdoDVm--EETZf1FtA6JQ_bHyCzFUWOomPauBjxbYj7L5-5eyM_QbkNSDc-Uth-vDRArVjcVy2m01hFkniEKYCtwL&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=8O-76laLh2ERxlC-Db8R6A&_nc_tpa=Q5bMBQI-A28xOkuP5fTHOyqYBp9JTgnYdtj5zh7IldP9V7lc9ZmOZlYmHvCxVqaJbfKBV6a8BiNAzPljqA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJkFPkBM1LBATgxQSgijDzfEvW5Ba0dHLGkI2co2XMWkw&oe=6AA4FE3C",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120247167229520405",
-      "name": "AD01",
-      "status": true,
-      "campaignId": "120247167229350405",
-      "adsetId": "120247167229380405",
-      "creativeId": "811025492038612",
-      "creativeName": "Você é minha última esperança 2026-02-26-d29a239fdbea6d4381d6cfe6bc707fa0",
-      "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/640849002_1464816238693376_5305837507073539537_n.jpg?_nc_cat=106&ccb=1-7&_nc_ohc=rkWTDH91ZXgQ7kNvwHefbL5&_nc_oc=AdoDVm--EETZf1FtA6JQ_bHyCzFUWOomPauBjxbYj7L5-5eyM_QbkNSDc-Uth-vDRArVjcVy2m01hFkniEKYCtwL&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=8O-76laLh2ERxlC-Db8R6A&_nc_tpa=Q5bMBQKqsl9D8POWyxSvZ9VthaHdaeOnpGi71341jYy5eNLOWql1xFlhS67qr6zshU5EQM14xhZSI3k7KA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQI0uchduJUZ3yN03jAogdFupAo1tgNPGUxKr7fy3j-0hg&oe=6AA4FE3C",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120247167229450405",
-      "name": "AD02",
-      "status": true,
-      "campaignId": "120247167229550405",
-      "adsetId": "120247167229340405",
-      "creativeId": "1630747408258016",
-      "creativeName": "Você é minha última esperança 2026-02-26-ccbe202bd96f14ac656a66290b83c1a4",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/629032914_1458405239020525_2643062418914346827_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=fJ_xTU3fNMMQ7kNvwGWgcDr&_nc_oc=AdoeipTU0iBUzVzfmdwvT7rDvxwDsbufLQutE7B17DzgaJBA5MXdzQreZmwu0Tk2MQ44r1F5xin096ThfUmWDbmS&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=8O-76laLh2ERxlC-Db8R6A&_nc_tpa=Q5bMBQINHJ9bSn5-C8zOUcjfjl2mXmi9ENmt4pZVkrexHlv403gV5g43VzsNhRxbbPZVw1zs5w1cqTN-5w&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJb2eR0wB3tP3ftqpv8keRqugV_LwcR0Fm1cR0APbLNZg&oe=6AA4E9C4",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120247167229490405",
-      "name": "AD02",
-      "status": true,
-      "campaignId": "120247167229560405",
-      "adsetId": "120247167229420405",
-      "creativeId": "3165592876935285",
-      "creativeName": "Você é minha última esperança 2026-02-26-45df2b66cd4d599f20292a5325a30636",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/629032914_1458405239020525_2643062418914346827_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=fJ_xTU3fNMMQ7kNvwGWgcDr&_nc_oc=AdoeipTU0iBUzVzfmdwvT7rDvxwDsbufLQutE7B17DzgaJBA5MXdzQreZmwu0Tk2MQ44r1F5xin096ThfUmWDbmS&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=8O-76laLh2ERxlC-Db8R6A&_nc_tpa=Q5bMBQLkr1aMIxM21IN5AdQAk-D0eJ1R8c7i7E1oP4nmodCctJwHjcD5D_22ho1ml8IFlcu782koPLSE4w&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIovBZUHmNUY6Ib4H2STOnMU7nBvd3rb8XxVV2UPOxAXQ&oe=6AA4E9C4",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120247167229390405",
-      "name": "AD02",
-      "status": true,
-      "campaignId": "120247167229530405",
-      "adsetId": "120247167229410405",
-      "creativeId": "1251755722976011",
-      "creativeName": "Você é minha última esperança 2026-02-26-b888e6ef5c0bf1aeb97e9b89a6631512",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/629032914_1458405239020525_2643062418914346827_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=fJ_xTU3fNMMQ7kNvwGWgcDr&_nc_oc=AdoeipTU0iBUzVzfmdwvT7rDvxwDsbufLQutE7B17DzgaJBA5MXdzQreZmwu0Tk2MQ44r1F5xin096ThfUmWDbmS&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=8O-76laLh2ERxlC-Db8R6A&_nc_tpa=Q5bMBQLBDM6M-eFhCSr12sdS43P1hWCsv-w810ek1J2xWnig_LjE86fTefkepagKGq8OmEIjtoDUdf_8aA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKq4I3V3SMRBAPRlBS2c3ErOZvcdcK_iU8ZDbDUCSwbsw&oe=6AA4E9C4",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120247167218260405",
-      "name": "AD02",
-      "status": true,
-      "campaignId": "120247167218250405",
-      "adsetId": "120247167218240405",
-      "creativeId": "1249312847264456",
-      "creativeName": "Você é minha última esperança 2026-02-26-c2a48daa58ca200face740c976bb5d64",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/629032914_1458405239020525_2643062418914346827_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=fJ_xTU3fNMMQ7kNvwGWgcDr&_nc_oc=AdoeipTU0iBUzVzfmdwvT7rDvxwDsbufLQutE7B17DzgaJBA5MXdzQreZmwu0Tk2MQ44r1F5xin096ThfUmWDbmS&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=8O-76laLh2ERxlC-Db8R6A&_nc_tpa=Q5bMBQJzkCLQfuBbksHn1JdWrmK2GbFqsNerjv0v2RniK5zQjXLzcj1tXUxcnr1EMZKP0ukihpPUoDRNcA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJ0TkfMwqVMLda_-CiLEdMe16q2_0o5zIapkK76Nbe2wg&oe=6AA4E9C4",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120247167229500405",
-      "name": "AD01",
-      "status": true,
-      "campaignId": "120247167229480405",
-      "adsetId": "120247167229430405",
-      "creativeId": "1501372098040240",
-      "creativeName": "Você é minha última esperança 2026-02-26-3c7ce67b9af2092da3dd7750649e6323",
-      "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/640849002_1464816238693376_5305837507073539537_n.jpg?_nc_cat=106&ccb=1-7&_nc_ohc=rkWTDH91ZXgQ7kNvwHefbL5&_nc_oc=AdoDVm--EETZf1FtA6JQ_bHyCzFUWOomPauBjxbYj7L5-5eyM_QbkNSDc-Uth-vDRArVjcVy2m01hFkniEKYCtwL&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=8O-76laLh2ERxlC-Db8R6A&_nc_tpa=Q5bMBQLtVm2eF9rTLKwdGfknsbgaSmHCnFCSWGg1_cx4c-91dDy-6RjgyTJcD28Cenz2XVFGO5oZmrHVlA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQI90UrHTe_6JBjINFKymrvfE8OsjEmU_dSNvwzesQWfHw&oe=6AA4FE3C",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120247167229440405",
-      "name": "AD02",
-      "status": true,
-      "campaignId": "120247167229570405",
-      "adsetId": "120247167229400405",
-      "creativeId": "3036250949904112",
-      "creativeName": "Você é minha última esperança 2026-02-26-214ea4e3bf7401044f119ab74d9e7444",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/629032914_1458405239020525_2643062418914346827_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=fJ_xTU3fNMMQ7kNvwGWgcDr&_nc_oc=AdoeipTU0iBUzVzfmdwvT7rDvxwDsbufLQutE7B17DzgaJBA5MXdzQreZmwu0Tk2MQ44r1F5xin096ThfUmWDbmS&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=8O-76laLh2ERxlC-Db8R6A&_nc_tpa=Q5bMBQLj72dX_IsvLZ8PqNCSHXU3_3mALdzi8y6PgfXSnYglRoeUW5a0k4y-W9LZvJ27EBRfc3rHv-3TiA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQL7tya-njdg-B9kiHAJ_H6jSsmgxEuMiJfIev_XWwKeHg&oe=6AA4E9C4",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120247167229510405",
-      "name": "AD01",
-      "status": true,
-      "campaignId": "120247167229370405",
-      "adsetId": "120247167229460405",
-      "creativeId": "901859139127975",
-      "creativeName": "Você é minha última esperança 2026-02-26-ef97328c64cb4eafda9b22de792e6046",
-      "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/640849002_1464816238693376_5305837507073539537_n.jpg?_nc_cat=106&ccb=1-7&_nc_ohc=rkWTDH91ZXgQ7kNvwHefbL5&_nc_oc=AdoDVm--EETZf1FtA6JQ_bHyCzFUWOomPauBjxbYj7L5-5eyM_QbkNSDc-Uth-vDRArVjcVy2m01hFkniEKYCtwL&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=8O-76laLh2ERxlC-Db8R6A&_nc_tpa=Q5bMBQLW9rk9gm_Z3-S1tw84VjJDsA77zdCinjKYaLtxh1Wuf5_ebuueHK9vk8x2LKGTS9MOkN4lelo-Ag&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQL624O6yx_Mrj1Qv1Ojd6U5jSW82UDLvdt4SjoJJHa4xw&oe=6AA4FE3C",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120247167229540405",
-      "name": "AD01",
-      "status": true,
-      "campaignId": "120247167229360405",
-      "adsetId": "120247167229470405",
-      "creativeId": "1245849556995068",
-      "creativeName": "Você é minha última esperança 2026-02-26-6cbf5b3b353ecc5e87a8cd81e08f0089",
-      "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/640849002_1464816238693376_5305837507073539537_n.jpg?_nc_cat=106&ccb=1-7&_nc_ohc=rkWTDH91ZXgQ7kNvwHefbL5&_nc_oc=AdoDVm--EETZf1FtA6JQ_bHyCzFUWOomPauBjxbYj7L5-5eyM_QbkNSDc-Uth-vDRArVjcVy2m01hFkniEKYCtwL&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=8O-76laLh2ERxlC-Db8R6A&_nc_tpa=Q5bMBQKIm0_XJuSW1REHxlQnpWkScHnCziwJpIkSU1SoQx1u5hl6Fs88_CcJA-YNlcp7NM7f4rURd1T14g&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKy19wvVShnoeQWuDeKzZ--V2XDBjMXbVhIlLrdPajQAg&oe=6AA4FE3C",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120247129412920405",
-      "name": "AD01",
-      "status": true,
-      "campaignId": "120247129412930405",
-      "adsetId": "120247129412940405",
-      "creativeId": "2428821860883742",
-      "creativeName": "Ajude hoje e doe 2026-02-25-0f8ec0c958e34d1d04cced8a9f67629b",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/643302638_1630804067952331_1505555994057585735_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=1uJaBRuWnOIQ7kNvwGxbkhH&_nc_oc=AdrLTZRSNpML1QyxIGAYmPPu4ptc-81CFpeWyEZ5E8vKC61URweQ_gJ72LL6vwOXc6dR24w0rm39nyFc2zBi5rfo&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=8O-76laLh2ERxlC-Db8R6A&_nc_tpa=Q5bMBQKmoodeiL2HMpdFBMQVM3ekPcqIqDFXHXsEimDavN9Do8HUq2ylGH25ZQeI06fdxLb6-ATcKwBA4g&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLsEzQs4of5QECJO-XmuvSdDK4L7H5B5UEW7LT8BuW6jg&oe=6AA4E9F9",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120247129517180405",
-      "name": "AD04",
-      "status": true,
-      "campaignId": "120247129517170405",
-      "adsetId": "120247129517190405",
-      "creativeId": "922545876818292",
-      "creativeName": "Ajude hoje e doe 2026-02-25-fff04a2ee19965bcf3cd1764ad05f524",
-      "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/643744998_932434909298700_2573073058453100247_n.jpg?_nc_cat=111&ccb=1-7&_nc_ohc=CASHXPdZ6PkQ7kNvwH0vli-&_nc_oc=Adp4X3vH9u3YneES9TGpimGTVMLA6qsxl7iUmvMFkY84ROU-zwem0CCxv4KWJqV7xLIFFdgvM137Qvzr31_RFUsR&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=8O-76laLh2ERxlC-Db8R6A&_nc_tpa=Q5bMBQJFfDAlpq3It2VmwIY9RDqZqinZ-ijHdV56Ubl6ZP2yomtfh5JRohTGdFoBoQnvAWfaOhs1Qb9Mfw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLWN4RBHQet0pwgJ5YEicO4Y8-gehHE2lLE-2GHdL7-7Q&oe=6AA50534",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120247129540800405",
-      "name": "AD09",
-      "status": true,
-      "campaignId": "120247129540790405",
-      "adsetId": "120247129540780405",
-      "creativeId": "894492023410264",
-      "creativeName": "Ajude hoje e doe 2026-02-25-21f31da80d0f3c541b5e3ec20ebc7e3d",
-      "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/643584364_1640772266935857_6612969222418350383_n.jpg?_nc_cat=102&ccb=1-7&_nc_ohc=XF9ebijrjKEQ7kNvwEEbTMf&_nc_oc=AdqMrwCCre64QzRZPbeeuktfUxqlMlfOB0xcxicJp96oQ3EyNc4vtLNj16US9y0jkN6tGapgWFPbUAGurSXGmhpa&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=8O-76laLh2ERxlC-Db8R6A&_nc_tpa=Q5bMBQLFw61OBVA5l0kgVqIPQNgrZO3m99Yq3KJlWL5LmcgB8FXvRfwB9kBOo3j9zxn0amLLhCbLDbNv2A&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLIhiaa5f0B43zWEQ625js43jm0z20YxV4CtuqFq2JOPA&oe=6AA50D0A",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120247129530380405",
-      "name": "AD07",
-      "status": true,
-      "campaignId": "120247129530370405",
-      "adsetId": "120247129530390405",
-      "creativeId": "1731664701145194",
-      "creativeName": "Ajude hoje e doe 2026-02-25-3abbf0651f022404819ec5f7d851b1c2",
-      "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t15.5256-10/643591046_2941578192699300_2708739814957902585_n.jpg?_nc_cat=108&ccb=1-7&_nc_ohc=Z7pOvCgH9GwQ7kNvwFEPo66&_nc_oc=AdrPgZyBLP_fOGm0wZZRmWBcwPr9BTQlK4DOXiQviGuK_okv4oOGkKBh_S1cDEz-qMs3Gx8hXCsJfgPbdsy1cm2X&_nc_zt=23&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=8O-76laLh2ERxlC-Db8R6A&_nc_tpa=Q5bMBQJJAeSkqnHJ39YshAGQgBbSSFw_2g1q3m_JcgChdDKO09SfnNz9aNp0NbeYcKPFgPYne3hxr6R_iw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLisVP80p8ZM0flFslFC27ttaAvRFLSyrU6wO8f9xwZ_g&oe=6AA50CF7",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120247129508770405",
-      "name": "AD02",
-      "status": true,
-      "campaignId": "120247129508780405",
-      "adsetId": "120247129508790405",
-      "creativeId": "4354176278161195",
-      "creativeName": "Ajude hoje e doe 2026-02-25-b9a8a407f5c6eba1ef7c950e13597083",
-      "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/637787762_801962606280034_6601176668220226905_n.jpg?_nc_cat=107&ccb=1-7&_nc_ohc=-kKBBPBW1-4Q7kNvwF-SnRt&_nc_oc=Adqjh9D_JU7JhOTkkRufKRFPMjpNN5TfrOxKlp6OlL2vu0rcEyXIEHd-1KDuVf7Dt-RK8OknPqoQyjransaqQhlb&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=8O-76laLh2ERxlC-Db8R6A&_nc_tpa=Q5bMBQJu5OOdHZKmdU6BM-Ua7x6d0hB-1l2fjmDhF5IitYC6K3slj6Pf4ENCXWtp11Pt93nTWqPR6hyXLg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKubaaWXCU4VkNgyINLjl742kFG2l0U5bifwtei_p1oZQ&oe=6AA4FBA1",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120247129533740405",
-      "name": "AD08",
-      "status": true,
-      "campaignId": "120247129533730405",
-      "adsetId": "120247129533720405",
-      "creativeId": "1660010731688304",
-      "creativeName": "Ajude hoje e doe 2026-02-25-8cac2af19bf6e3a940e7a64ab6bbc690",
-      "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t15.5256-10/639557266_1439123210925208_1674062784294013493_n.jpg?_nc_cat=110&ccb=1-7&_nc_ohc=0OiKUwHmw8IQ7kNvwHbSdrh&_nc_oc=AdqrkLHN-Zl3YIPsERF0jAAF6_7zQEild83GemW7qivAdkxpMrdYiQeqfSlXl3FpHQOAklZU6LRh6inx_jL-c3NP&_nc_zt=23&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=8O-76laLh2ERxlC-Db8R6A&_nc_tpa=Q5bMBQLpOsGt4sx5_knG_QHi4HKZjYl1ojIFEnKL5ZfPnw1-Ymx6WL4CALagXmnmu_3fSMn9hQpqG77pkw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJ8a4G05x33rMRkd_E8fRHdv8lP18PdyLHzDm1SNiqdcQ&oe=6AA500C6",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120247129524480405",
-      "name": "AD06",
-      "status": true,
-      "campaignId": "120247129524460405",
-      "adsetId": "120247129524470405",
-      "creativeId": "26620090357599061",
-      "creativeName": "Ajude hoje e doe 2026-02-25-afb6ab37cdfbf0e2a46ebe1638bf7fb0",
-      "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/643933118_1812601012751952_6489003514094960560_n.jpg?_nc_cat=102&ccb=1-7&_nc_ohc=D_37DGGeRIYQ7kNvwFqw6_F&_nc_oc=AdoWqIMZ8ZGTa5TcB4CDrcK57Q44eBN0eLaaMOo1OTjVw5Ld32JSv43MnwXtwo-vs-kHxj_g8PNvUPIBnfaGEkpL&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=8O-76laLh2ERxlC-Db8R6A&_nc_tpa=Q5bMBQKC0pLnaFmq7o9H35d9o0TECPT8KxZf2xT832LC71O3PAbt5UeUFyUiJnkkPiaBCSqCVqukRTF-lw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJ68Qc-Qkwc2jKwd0inZ3u_m8xSKHK-mvVR77jSnuwO3g&oe=6AA50F38",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120247129521530405",
-      "name": "AD05",
-      "status": true,
-      "campaignId": "120247129521520405",
-      "adsetId": "120247129521540405",
-      "creativeId": "1849563405755465",
-      "creativeName": "Ajude hoje e doe 2026-02-25-d3859b2f2057170c0e430ebe7a4beb73",
-      "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/643302633_1410313726789688_6767086905390668336_n.jpg?_nc_cat=109&ccb=1-7&_nc_ohc=ixDc6vG_Z6cQ7kNvwFP417J&_nc_oc=AdooF2z1WIQAsKtimv0vqPoNi-Be60LYwDltwOyQlNsrM1qDPne1G3B0SGc3zf1Kn3Xi7FJTHtFptzyGFM47jLFf&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=8O-76laLh2ERxlC-Db8R6A&_nc_tpa=Q5bMBQJ4gP8cIY6GtG1U198PUe2tVMzmN7TlvQPLHaMjf6xV9tOowmCmjXzQLd1N9c3sOPN8wecKjxdedA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQL_r6762fETsjWQSjX0WBWcvgqtPACMARgmJsJOIQr-Fg&oe=6AA4FCE2",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120247129513650405",
-      "name": "AD03",
-      "status": true,
-      "campaignId": "120247129513640405",
-      "adsetId": "120247129513660405",
-      "creativeId": "995177842832069",
-      "creativeName": "Ajude hoje e doe 2026-02-25-d29c891b2cda509effe1e78d25abdb16",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/638890125_961768892846961_4346613668147625802_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=QsUYLPPURHEQ7kNvwG09-hn&_nc_oc=AdoxqQsUFEPoPCtp0DAnhj7dsy7luGer4JeCeXiffxnLriEnIqyf5YzKBJAGITJozjgK8hxMet_Wg0QFvH3FlE54&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=8O-76laLh2ERxlC-Db8R6A&_nc_tpa=Q5bMBQL0lyHH4VJivBNOpwZR-J3uTPrUiSwFOOvm_zDFSQc-J_QSDg8KuOyPIyjptv16YIgUU-TrdOc3Rg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKQXeNLRf_bRdB9TlSkmREehFmUkhNrmESoKKl_DJkIbw&oe=6AA4EE10",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120246845980560405",
-      "name": "AD03",
-      "status": true,
-      "campaignId": "120246845337860405",
-      "adsetId": "120246845337870405",
-      "creativeId": "954267100504261",
-      "creativeName": "Adquira clique em saiba mais 2026-02-19-6047d289bac162bdb845f18a72a82356",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/638002086_2037725943467285_2993704887622994254_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=5dJzOcxFdscQ7kNvwELPCBY&_nc_oc=Adpn3OwfzIaIKPqe5VUBDaXE2b56YAgOMFVLbtTGog5AhWRiG-fqywdOTpszfcPwbRSs7ZeReZ-nrzcT7j-60rsi&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=8O-76laLh2ERxlC-Db8R6A&_nc_tpa=Q5bMBQKUBBeR-M8yc8OZ0sBiGVv7FkEpr6F3xvoYAzsPr_rMKVYxAAeRYkcZ3Mfrl3ZeTGGbnto5NyNkcg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIgPwXjwx2Ngs1vv3bDr3vDk2mG5vSG1JGSORTvVyQcig&oe=6AA50493",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120246846052980405",
-      "name": "AD04",
-      "status": true,
-      "campaignId": "120246845337860405",
-      "adsetId": "120246846052970405",
-      "creativeId": "2689274368134530",
-      "creativeName": "Adquira clique em saiba mais 2026-02-19-ad195d404ac38decabc05ac967633528",
-      "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/634205273_1432933035031939_803432514148854718_n.jpg?_nc_cat=102&ccb=1-7&_nc_ohc=e059E-wvb9cQ7kNvwFMVFeW&_nc_oc=Adpxb_jCt1tHEIZSZszPhfOmGftTuQv1LwYmWBK1oxLG9z6j6zlEjcr55BLgelqtaX7988_X_R40xl9B_TOUXcwk&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=8O-76laLh2ERxlC-Db8R6A&_nc_tpa=Q5bMBQKR6l3CIyd0_BRsH38slvTN7ZgIpGHPrYzXeM7tgAzJpcV04sZKX0Afiuf63NeMHYDkxsilW4Otpg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQL2AsV_og4_RG9Js-eqlFUPh9kueGggFp_j5IIuw5C-_A&oe=6AA4F389",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120246846052950405",
-      "name": "AD05",
-      "status": true,
-      "campaignId": "120246845337860405",
-      "adsetId": "120246846052970405",
-      "creativeId": "2381920142286983",
-      "creativeName": "Adquira clique em saiba mais 2026-02-19-086dc2ccd6ab1f80198b19a990a7d58f",
-      "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/634118680_920014600681709_4404048459442648706_n.jpg?_nc_cat=105&ccb=1-7&_nc_ohc=9T9qs6AAWR4Q7kNvwFVaUIC&_nc_oc=AdqD8PawGX_XdHzp1L7Huw3LL76R4CVvmNtCCQ_0vHHTeAT8SJlYZEoSvRPE5KFcr_QylTVF1vKBZJbzHFkenBDw&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=8O-76laLh2ERxlC-Db8R6A&_nc_tpa=Q5bMBQKmKBzDNHa-7r-JV-SoiaHFK5jt-BMfA2Ogwr-80sXblnT_W--aPQ360BZaGGIV_gomu5_XXXknkA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJJlfXLmQRZIFKRhjz-7yu82lxc_G1XMNFsBKeCK631OA&oe=6AA4F1D4",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120246845337850405",
-      "name": "AD01",
-      "status": true,
-      "campaignId": "120246845337860405",
-      "adsetId": "120246845337870405",
-      "creativeId": "1468452028180594",
-      "creativeName": "Adquira clique em saiba mais 2026-02-19-292696edbf5b5fbb6b837ed1ecbe2fc8",
-      "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/628878142_1246069916856994_8255116161915854575_n.jpg?_nc_cat=102&ccb=1-7&_nc_ohc=7d_RhNoreWcQ7kNvwGZxoSG&_nc_oc=Adp5RKvNHpscHwXdCXKNnKMs8bzcOx14gc8b2gsNuAUzAkx0vzo1CMX0g2bvi5TkHZl5xn0mTb-EzMN58Ve8AamK&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=8O-76laLh2ERxlC-Db8R6A&_nc_tpa=Q5bMBQKcvn2nFBXmMm8OWytgsK8ssu4G0Qp-A95qBXY3DJxPCPKC2Lpk6uInfkSMn2f5MHnSyUF8EELymw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLthWHSDdtqb5Hbaj5AwktdfM7zAkQMumtJXCaU5pjSqg&oe=6AA4FC98",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120246845941580405",
-      "name": "AD02",
-      "status": true,
-      "campaignId": "120246845337860405",
-      "adsetId": "120246845337870405",
-      "creativeId": "2722225164778689",
-      "creativeName": "Adquira clique em saiba mais 2026-02-19-0b76af9638e37dc8f97b7f465e205a5d",
-      "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t15.5256-10/637100756_2630808550628052_4031631024798327832_n.jpg?_nc_cat=110&ccb=1-7&_nc_ohc=maCvHCMIWs0Q7kNvwHYt2-P&_nc_oc=AdoeuBRllO2aciiSeNg05a7dSBt__iI8uvCDkg9MN5bot9OsDYieRT0xLtBltZpLsDiNGdtuVqeXFMUicSD8j5Ag&_nc_zt=23&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=8O-76laLh2ERxlC-Db8R6A&_nc_tpa=Q5bMBQJ4ohoklR7gOdKOVAggoiRhrJZHw543R8Xb5HWw1kd_XPeq9S_RfpVnLw9rTOL0d5o3um_sK3Bn5A&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLkligpeb1lL8gUrrqFJwOMEKcNC68whx-R5Q4BSYuA6Q&oe=6AA50CFF",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251237116490023",
-      "name": "AD22",
-      "status": true,
-      "campaignId": "120251236747830023",
-      "adsetId": "120251237116540023",
-      "creativeId": "1829189138459688",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-27-5f66a44d3427c0c7bf2dde7ca649433d",
-      "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/786390803_1404521335076790_1763425263894416608_n.jpg?_nc_cat=105&ccb=1-7&_nc_ohc=7uXTmrv5pqcQ7kNvwFiKv5l&_nc_oc=AdrwwkUBItDGWzOvSLls0R4L18KJXo8YVV0XZ6LZea2aZ2BchYG2YlsRD-KdPgWjTH0fCPrYGXpWsURaXq3GHoKo&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=B4SZI89HhWrNSai47YaQNA&_nc_tpa=Q5bMBQIHFp-zPmoaNyBrMmHa2j3XhLyP-Elck5w3O2eYkJ3CXAidKggH8Ho4s62wveRQlJbQNBfG02LLMA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIm7JbFlNE9kmV4x9faUuAltotPZJBsujghlnBV0Zm8RA&oe=6AA5112D",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251237116600023",
-      "name": "AD17",
-      "status": true,
-      "campaignId": "120251236747830023",
-      "adsetId": "120251237116410023",
-      "creativeId": "1045058171461885",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-27-05d2ea1573c0f3b91f752a3981af4b7a",
-      "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/787021291_1098458049375317_3763342426759380113_n.jpg?_nc_cat=106&ccb=1-7&_nc_ohc=K60yeg74ZlMQ7kNvwHBZL4_&_nc_oc=AdpY1pItS8lwzi3XjvzZ6-m5tRU0ftlTP0efpi_Feney83K6GQYi9LSiG6TWEd6vH9nYDKMHbLjkCgfMypR-_NPZ&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=B4SZI89HhWrNSai47YaQNA&_nc_tpa=Q5bMBQKbk-sbaWAS_13VmN8_0hEoofXvHNJutBq5TLg-s3aZDOXqJ0nSETUDUxwu2_s6JhlQ8h015zor6g&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJKpx7j-coptdQu129_PrMhTbjBKCwmie062nDg1SOquw&oe=6AA4DD34",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251237116480023",
-      "name": "AD16",
-      "status": true,
-      "campaignId": "120251236747830023",
-      "adsetId": "120251237116510023",
-      "creativeId": "1631349092039612",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-27-c663ac7969d7f39a45ea53171499c842",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/785362352_1062711539476634_8125164175436641242_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=H7vK648ffh8Q7kNvwHBI6gs&_nc_oc=AdoJ1t1NbsbFuxXeMi2NJ_GQytFxuf3x6k3ccmX5X4Xa1rs-YQvXWjzZR1m7Xndfzp_uD9Sul7VbYwC_jLXC_YfU&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=B4SZI89HhWrNSai47YaQNA&_nc_tpa=Q5bMBQKwv378T3fWx3gpHwWPuScZ5VTu67lx3wX_RkOeQgu-CN3yVG67vzqyegGM24dZTZ8uzG-_vuQWJQ&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQK8CA1JXWrHY6uyx66k3yq2CsCs9DoELZmnvwwW9k-a6g&oe=6AA4E3BC",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251236747820023",
-      "name": "AD11",
-      "status": true,
-      "campaignId": "120251236747830023",
-      "adsetId": "120251236747810023",
-      "creativeId": "928658043035024",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-27-84234d73416cbb4d5ded363f6e6ac50b",
-      "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t15.5256-10/787204828_1399927585423737_6153826687034759261_n.jpg?_nc_cat=103&ccb=1-7&_nc_ohc=7t8Oex49HzYQ7kNvwEc-B4k&_nc_oc=AdpiKR0_zdvvRRKiaMfiL9yv1jbZ84NkL5m4jkk28sW59i6yzLNolc0Qg05W0CdoijpPyqZzVhZrls4BupPlWs6A&_nc_zt=23&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=B4SZI89HhWrNSai47YaQNA&_nc_tpa=Q5bMBQJ8guS8eRPkpOwix1DlHkvpwe6_oQti0XwKLpLMpghAmjwehItIPHXBPZJ9QP7rOzvL7MLw_GZrrQ&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJd6qXkvTuA1rOo5rQ-lu6CGszBgLM76tMHNCmnjCpRxA&oe=6AA4EE65",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251237116610023",
-      "name": "AD12",
-      "status": true,
-      "campaignId": "120251236747830023",
-      "adsetId": "120251237116440023",
-      "creativeId": "1569854824938175",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-27-4a0b8fba4240dcf18fb710a67a180b3b",
-      "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/787459529_2619252981861374_1217484344223021308_n.jpg?_nc_cat=106&ccb=1-7&_nc_ohc=M6Ok-ffIwh8Q7kNvwFaLCw-&_nc_oc=AdoEMlDdiZwvjFw73XJuDUakDk6ma7hCWdqcAnIALF1pXW4NWjWlp3LLIz1YA4V9dxIs1WubIuBbAzgtl6tLNzv5&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=B4SZI89HhWrNSai47YaQNA&_nc_tpa=Q5bMBQIR98HziURa9ihjzcV8lC0S31Bn-Ie415uHLd4tzMI13fRycuPEL18li8g07iYrIa8QBM0zbcaL2Q&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIg0n4VMeco8MzwEfAAm-z2zzqLZ2T-jyHJ-6gDFsfJtg&oe=6AA4EE7A",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251237116580023",
-      "name": "AD18",
-      "status": true,
-      "campaignId": "120251236747830023",
-      "adsetId": "120251237116520023",
-      "creativeId": "1638676841115244",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-27-c952a109e2618e5867588a79ecb83057",
-      "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/788924195_925000873462107_5077494089159279095_n.jpg?_nc_cat=107&ccb=1-7&_nc_ohc=c6j-rhS6EuoQ7kNvwF_BXKf&_nc_oc=AdoN_wMAzk-09hp4OX4jNt1RlEydis_rcL76iY7q55m1skJ-11DRk_q-bFu3bxw2TJnQREPJa80Y19R3yHQlmM-i&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=B4SZI89HhWrNSai47YaQNA&_nc_tpa=Q5bMBQLqAyDEUeek8AqgczJ7T46zpGQf7reGixXb9O941AW-UNRR426ZFZJ0001IXBW11G_p3q6iyuAHKw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIRI1i3DSGOyndmZYFJ4a2BECxYfPhcs9NjzaaXT-i87w&oe=6AA4DC30",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251237116560023",
-      "name": "AD15",
-      "status": true,
-      "campaignId": "120251236747830023",
-      "adsetId": "120251237116570023",
-      "creativeId": "1791485048705219",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-27-c9b13ede634a45a095c64977850c661a",
-      "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t15.5256-10/785919228_1633576098194464_3112727578405761086_n.jpg?_nc_cat=108&ccb=1-7&_nc_ohc=XNBi6ZpMalYQ7kNvwHqS9mX&_nc_oc=AdrLxaAiWb6d3kIsyfWvV1LowK_PPY9XhWg8wc37utldlgxjgde49Um0M6u1hqAJTjVZSbDe8o5YA64hwv1pZM2w&_nc_zt=23&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=B4SZI89HhWrNSai47YaQNA&_nc_tpa=Q5bMBQK4saO_aV51qusrqVmuPvNdVGsrLsL1keS32wq5e9q3tUIRNLRFpmXMUpM_7G5xutuXRARJnkwRXA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKt6-a8VGfvyqHd-O-Tj4UuchGj35fCPP6HYcFUGAT81w&oe=6AA509E2",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251237116590023",
-      "name": "AD21",
-      "status": true,
-      "campaignId": "120251236747830023",
-      "adsetId": "120251237116430023",
-      "creativeId": "2248824399209761",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-27-bbfe56517e093b25c910c04d42652042",
-      "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t15.5256-10/786212955_1742367097091618_4989826848167846210_n.jpg?_nc_cat=110&ccb=1-7&_nc_ohc=I2Q7LdSy9VMQ7kNvwGbKNHh&_nc_oc=AdraJCnn9HYdRIPubRwlspPJoUcX7Pp26oy0VnlPksHMk1NwQ4I29u7jJDki7sRS8Lyn5ETNRIyKI67stgt11VVi&_nc_zt=23&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=B4SZI89HhWrNSai47YaQNA&_nc_tpa=Q5bMBQJ3KXA-JVysYM2yDfke94d-X9QDgn0jsTYuICVw0ZGQFbDcRX_Y4lUOpSspHBXRITmZ8DboeIWz8g&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQK7igrgYcJIcmU_V-mOIWokj3ivdRk6ULvgNMZGFLCOJw&oe=6AA4EA77",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251237116620023",
-      "name": "AD20",
-      "status": true,
-      "campaignId": "120251236747830023",
-      "adsetId": "120251237116530023",
-      "creativeId": "1782779059571939",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-27-86acae4329ef69d943c8f9c186b63820",
-      "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/788139804_1781816572960836_4908898363086020590_n.jpg?_nc_cat=102&ccb=1-7&_nc_ohc=84fplrQ72-IQ7kNvwHVU2zR&_nc_oc=AdqAksQC9xLIUcHqQKalRQZvZ8NUsZWKIgLW4qB3Soa9xj_qTU65E2eKN7d4WClpa7f4ZdTGv8UurqMlME7pdXfW&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=B4SZI89HhWrNSai47YaQNA&_nc_tpa=Q5bMBQJXB_Bvrv7jIuviOG5bxRIwoVbU0lCCDN7pUQvhrcHA9URqZKC8DkY6ZxCfo8S8rk71VYaLvmGZzQ&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQITgK8uSYrz6lmSaqIHX8dGqcRjkZ6GpXJcQJ7_YrTwMQ&oe=6AA4F05A",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251237116550023",
-      "name": "AD13",
-      "status": true,
-      "campaignId": "120251236747830023",
-      "adsetId": "120251237116450023",
-      "creativeId": "1031031273260782",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-27-7e5b25a82f83525608a5b907b6e2263f",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/783255317_2914659942219844_8780218526216514785_n.jpg?_nc_cat=104&ccb=1-7&_nc_ohc=aW_f4fY2s1YQ7kNvwGopKBr&_nc_oc=Adpb7j18qgMkb2iOe7JQLNR9JcxTCbXjLZ6fIN24QBx06Jo1-LsfF182HTcrEoI3vT3Je5zg0ZduO3dymbXy0T5A&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=B4SZI89HhWrNSai47YaQNA&_nc_tpa=Q5bMBQIilAmTlTitvKKMS7W9-68Nj8F1ybKY4HvnBs6kE_fCFNwBS-EzgOaJRZ8O6-sO1rOFovbPrm5yeg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIGKjMTGsMcqlZ9GLNrvCdp64KbxhEph7--gVDve_ZF3w&oe=6AA4DFF1",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251237116630023",
-      "name": "AD14",
-      "status": true,
-      "campaignId": "120251236747830023",
-      "adsetId": "120251237116460023",
-      "creativeId": "1004260329297813",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-27-e28ce0726b58553b48c2d9284e4be0d7",
-      "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/785277126_2254337785143847_4606262765050911634_n.jpg?_nc_cat=106&ccb=1-7&_nc_ohc=LYkZ1iUKNVUQ7kNvwHSKBlp&_nc_oc=AdomrRlJfGCFUcr1z3YT6NnArkv6f-r6DOYIX-mLjzZDr-B_fKOcZEF-8DHJjwSKfeKx32u60ctv1Fom0wHOf5Se&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=B4SZI89HhWrNSai47YaQNA&_nc_tpa=Q5bMBQK-hH-jYO_Q1fOaj8lLjOGZm4BC9Sh9zwtNukv0qsU5ti0K3RVKPiUYaVUNq5IOlQi_-Z-RmoRu6A&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQK37AjwBWqBB4WPsHAFo1jBSU80uk6H2GD4pLFwdjTcrA&oe=6AA4FCA5",
-      "videoUrl": null,
-      "type": "image"
-    },
-    {
-      "id": "120251237116470023",
-      "name": "AD19",
-      "status": true,
-      "campaignId": "120251236747830023",
-      "adsetId": "120251237116420023",
-      "creativeId": "2527041387792339",
-      "creativeName": "Kauê precisa da nossa ajuda 2026-08-27-73e209633b6428ff44f38a5eaabf0df3",
-      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/785362558_2154617612156183_7675941620222605329_n.jpg?_nc_cat=104&ccb=1-7&_nc_ohc=vv-PVbBlj6UQ7kNvwHL5Xvs&_nc_oc=AdomNYJeUfl7hYTrUe-JL6CXdYcQEaAzensYUDi5Sr87wppCuEQi3Pr6mn27IrTm-pBs3bvFmF2BdPHMtIXPJIJF&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=B4SZI89HhWrNSai47YaQNA&_nc_tpa=Q5bMBQKwq1R2fuKQSexg7QwcIrqoLLoFa3Mq_ebGq9DrCiNr7HmnBUyxXMYlp0x1pFSZdXVXh0oPFtMZEA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLtth97n0R-A3SsOXlbZGc3rWFB4nhgJVSAnbkbfGrgSw&oe=6AA4E9DD",
+      "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/794957738_1369673165381045_4708530476406585398_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=KkhQ2XoTDRIQ7kNvwGyug_a&_nc_oc=Adq670ZiQVv-4TtEA5FP19_9pi3AU2OTlvZBhVsrW9FUXw09B-7Z-MrzhKlVLf5oTxtmgJhIm4beBS_099KHyqly&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=GmfdD-7az8fvW4KJXAy32A&_nc_tpa=Q5bMBQLK1w89WAfMMoWMBvDGY_Rne6Dpl_TfFfUvIIHkyArhh0KqPDMP1apNw8T4NaWcSjWfxMNapI23Rg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLmSdqSf0-Fj6KN7xVbbSLLxOWpxXkMzqOVWzoIW2UdGA&oe=6AA57F32",
       "videoUrl": null,
       "type": "image"
     }

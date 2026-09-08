@@ -707,7 +707,7 @@ app.get('/api/meta/status', (req, res) => {
   }
 });
 
-// D. Sincronizar campanhas de uma ou todas as contas
+// D. Sincronizar campanhas de uma ou todas as contas (execução paralela com Promise.all)
 app.post('/api/meta/sync', async (req, res) => {
   try {
     const connections = db.get('facebook_connections') || [];
@@ -715,38 +715,55 @@ app.post('/api/meta/sync', async (req, res) => {
       return res.status(400).json({ error: 'Nenhum perfil do Facebook conectado ainda.' });
     }
 
-    const { datePreset = 'today', accountId } = req.body || {};
+    const { datePreset = 'today', accountId, accountIds } = req.body || {};
     const latestConnection = connections[0];
     let adAccounts = db.get('ad_accounts') || [];
     
-    if (accountId) {
+    if (Array.isArray(accountIds) && accountIds.length > 0) {
+      const idSet = new Set(accountIds.map(id => String(id).replace('act_', '')));
+      adAccounts = adAccounts.filter(a => {
+        const clean = (a.accountId || a.id || '').replace('act_', '');
+        return idSet.has(clean);
+      });
+    } else if (accountId) {
       const actClean = accountId.replace('act_', '');
       adAccounts = adAccounts.filter(a => a.id === accountId || a.id === `act_${actClean}` || a.accountId === actClean);
     }
 
-    let allCampaigns = [];
-    let allAds = [];
-
-    for (const acc of adAccounts) {
+    const results = await Promise.all(adAccounts.map(async (acc) => {
       try {
         const campaigns = await fetchCampaigns(acc.id, latestConnection.accessToken, acc.name, datePreset);
         const ads = await fetchAdsWithCreatives(acc.id, latestConnection.accessToken);
-        allCampaigns = allCampaigns.concat(campaigns);
-        allAds = allAds.concat(ads);
+        return { campaigns, ads, error: null };
       } catch (err) {
         console.warn(`Erro ao sincronizar conta ${acc.id}:`, err.message);
+        return { campaigns: [], ads: [], error: err.message, accId: acc.id };
       }
-    }
+    }));
+
+    const hasErrors = results.some(r => r.error);
+    const allCampaigns = results.flatMap(r => r.campaigns);
+    const allAds = results.flatMap(r => r.ads);
 
     if (allCampaigns.length > 0) {
-      // Se sincronizou uma conta específica, atualiza mesclando
-      if (accountId) {
+      if (Array.isArray(accountIds) && accountIds.length > 0) {
+        const idSet = new Set(accountIds.map(id => String(id).replace('act_', '')));
+        const existingCamps = db.get('campaigns') || [];
+        const filteredCamps = existingCamps.filter(c => {
+          const clean = String(c.adAccountId || '').replace('act_', '');
+          return !idSet.has(clean);
+        });
+        db.set('campaigns', [...filteredCamps, ...allCampaigns]);
+      } else if (accountId) {
         const existingCamps = db.get('campaigns') || [];
         const filteredCamps = existingCamps.filter(c => c.adAccountId !== accountId && c.adAccountId !== `act_${accountId.replace('act_', '')}`);
         db.set('campaigns', [...filteredCamps, ...allCampaigns]);
       } else {
         db.set('campaigns', allCampaigns);
       }
+    } else if (hasErrors) {
+      // Se a Meta bloqueou temporariamente por limite de chamadas (Rate Limit), não mantém dados do período anterior
+      console.log('Meta retornou rate limit para a conta. Aguardando liberação do Meta Ads.');
     }
     if (allAds.length > 0) {
       db.set('meta_ads', allAds);
@@ -754,6 +771,7 @@ app.post('/api/meta/sync', async (req, res) => {
 
     res.json({
       success: true,
+      rateLimited: hasErrors,
       syncedCampaigns: allCampaigns.length,
       syncedAds: allAds.length,
       timestamp: new Date().toISOString()
@@ -1139,11 +1157,14 @@ app.post('/api/pixel/verify', async (req, res) => {
 });
 
 if (process.env.VERCEL !== '1') {
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`[PrimeTrack Server] Rodando na porta ${PORT}`);
     console.log(`[Pixel Script] Disponível em http://localhost:${PORT}/pixel.js`);
     console.log(`[Webhooks] Escutando em http://localhost:${PORT}/api/webhooks/:gateway`);
   });
+
+  // Mantém o event loop ativo em qualquer ambiente
+  setInterval(() => {}, 1 << 30);
 }
 
 export default app;

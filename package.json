@@ -7,7 +7,7 @@
   "scripts": {
     "server": "node server/index.js",
     "client": "vite",
-    "dev": "concurrently -k -p \"[{name}]\" -n \"SERVER,CLIENT\" -c \"cyan.bold,magenta.bold\" \"npm run server\" \"npm run client\"",
+    "dev": "concurrently --kill-others-on-fail -p \"[{name}]\" -n \"SERVER,CLIENT\" -c \"cyan.bold,magenta.bold\" \"npm run server\" \"npm run client\"",
     "build": "vite build",
     "preview": "vite preview"
   },

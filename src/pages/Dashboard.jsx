@@ -111,7 +111,7 @@ export default function Dashboard({ onSimulateSale }) {
     }
   };
 
-  const handleRefresh = async () => {
+  const handleRefresh = async (customPeriod = period) => {
     setSyncing(true);
     try {
       const periodToPreset = {
@@ -122,10 +122,25 @@ export default function Dashboard({ onSimulateSale }) {
         '30 dias': 'last_30d',
         'Personalizado': 'maximum'
       };
+      
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
+      let activeAccountIds = [];
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            activeAccountIds = parsed.filter(a => a.sync === true).map(a => a.id);
+          }
+        } catch (e) {}
+      }
+
       await fetch('/api/meta/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ datePreset: periodToPreset[period] || 'today' })
+        body: JSON.stringify({ 
+          datePreset: periodToPreset[customPeriod] || 'today',
+          accountIds: activeAccountIds.length > 0 ? activeAccountIds : undefined
+        })
       });
       await loadDashboardData();
     } catch (err) {
@@ -136,8 +151,10 @@ export default function Dashboard({ onSimulateSale }) {
   };
 
   useEffect(() => {
-    loadDashboardData();
+    handleRefresh(period);
+  }, [period]);
 
+  useEffect(() => {
     const handleProfileSync = () => {
       loadDashboardData();
     };
@@ -323,8 +340,8 @@ export default function Dashboard({ onSimulateSale }) {
             >
               <option value="Todas" className="bg-[#0A1426] text-white">Todas as Contas ({adAccountsList.length})</option>
               {adAccountsList.map(acc => (
-                <option key={acc.id} value={acc.name} className="bg-[#0A1426] text-white">
-                  {acc.name}
+                <option key={acc.id} value={acc.id} className="bg-[#0A1426] text-white">
+                  {acc.name} ({acc.id.slice(-4)})
                 </option>
               ))}
             </select>
@@ -438,12 +455,16 @@ export default function Dashboard({ onSimulateSale }) {
         {/* Lucro */}
         <div className="bg-[#0A1426] border border-[#13233E] p-4 rounded-2xl">
           <div className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">LUCRO</div>
-          <div className="text-xl sm:text-2xl font-extrabold text-[#5C9BFF] mt-1">
+          <div className={`text-xl sm:text-2xl font-extrabold mt-1 ${currentMetrics.profit >= 0 ? 'text-[#5C9BFF]' : 'text-red-400'}`}>
             R$ {currentMetrics.profit.toFixed(2)}
           </div>
           <div className="mt-1">
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold">
-              ↑ Positivo
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+              currentMetrics.profit >= 0 
+                ? 'bg-emerald-500/10 text-emerald-400' 
+                : 'bg-red-500/10 text-red-400'
+            }`}>
+              {currentMetrics.profit >= 0 ? '↑ Positivo' : '↓ Negativo'}
             </span>
           </div>
         </div>

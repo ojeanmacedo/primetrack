@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { db } from '../db.js';
 dotenv.config();
 
 const META_APP_ID = process.env.META_APP_ID || '1650241273321193';
@@ -124,10 +125,46 @@ export async function fetchAdAccounts(accessToken) {
 }
 
 /**
- * 5. Busca Campanhas reais da Conta de Anúncios com Gastos em Tempo Real
+ * Taxa de conversão USD -> BRL
+ */
+let cachedUsdRate = 5.60;
+let lastUsdRateFetch = 0;
+
+async function getUsdBrlRate() {
+  const now = Date.now();
+  if (now - lastUsdRateFetch < 3600000 && cachedUsdRate) {
+    return cachedUsdRate;
+  }
+  try {
+    const res = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL');
+    const data = await res.json();
+    if (data.USDBRL && data.USDBRL.bid) {
+      cachedUsdRate = Number(data.USDBRL.bid);
+      lastUsdRateFetch = now;
+      return cachedUsdRate;
+    }
+  } catch (e) {}
+  return cachedUsdRate || 5.60;
+}
+
+/**
+ * 5. Busca Campanhas reais da Conta de Anúncios com Gastos em Tempo Real (Convertido para BRL)
  */
 export async function fetchCampaigns(adAccountId, accessToken, accountName = '', datePreset = 'today') {
   const actId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`;
+  
+  // Verifica a moeda da conta a partir da lista salva ou consulta rápida
+  let isUsd = false;
+  try {
+    const savedAccs = db.get('ad_accounts') || [];
+    const found = savedAccs.find(a => a.id === actId || a.accountId === actId.replace('act_', ''));
+    if (found && found.currency === 'USD') {
+      isUsd = true;
+    }
+  } catch (e) {}
+
+  const rate = isUsd ? await getUsdBrlRate() : 1.0;
+
   const url = `${GRAPH_BASE_URL}/${actId}/campaigns?fields=id,name,status,effective_status,objective,daily_budget,lifetime_budget,insights.date_preset(${datePreset}){spend,impressions,clicks,cpc,cpm,ctr}&access_token=${accessToken}`;
   
   const res = await fetch(url);
@@ -136,15 +173,24 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
 
   return (data.data || []).map(c => {
     const insight = c.insights?.data?.[0] || {};
-    const spend = Number(insight.spend || 0);
+    const rawSpend = Number(insight.spend || 0);
+    const spend = rawSpend * rate;
     const clicks = Number(insight.clicks || 0);
     const impressions = Number(insight.impressions || 0);
-    const cpc = Number(insight.cpc || (clicks > 0 ? spend / clicks : 0));
-    const cpm = Number(insight.cpm || (impressions > 0 ? (spend / impressions) * 1000 : 0));
+    const cpc = clicks > 0 ? spend / clicks : 0;
+    const cpm = impressions > 0 ? (spend / impressions) * 1000 : 0;
     const ctr = Number(insight.ctr || (impressions > 0 ? (clicks / impressions) * 100 : 0));
     
-    // Gastos reais do Facebook; vendas e receitas são computadas pelas UTMs e Webhooks das plataformas
-    const budget = c.daily_budget ? (Number(c.daily_budget) / 100).toFixed(2) : (c.lifetime_budget ? (Number(c.lifetime_budget) / 100).toFixed(2) : '25.00');
+    // Converte orçamento para BRL
+    const rawDailyBudget = c.daily_budget ? (Number(c.daily_budget) / 100) : null;
+    const rawLifetimeBudget = c.lifetime_budget ? (Number(c.lifetime_budget) / 100) : null;
+    
+    let budgetVal = 25.00;
+    if (rawDailyBudget) {
+      budgetVal = rawDailyBudget * rate;
+    } else if (rawLifetimeBudget) {
+      budgetVal = rawLifetimeBudget * rate;
+    }
 
     return {
       id: c.id,
@@ -153,9 +199,10 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       rawStatus: c.status,
       effectiveStatus: c.effective_status || c.status,
       objective: c.objective,
-      budget,
+      budget: budgetVal.toFixed(2),
       budgetType: c.daily_budget ? 'Diário' : 'Vitalício',
       spend: spend.toFixed(2),
+      rawSpendUsd: isUsd ? rawSpend.toFixed(2) : null,
       impressions,
       clicks,
       cpc: cpc.toFixed(2),
@@ -167,7 +214,8 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       roas: '0.00',
       cpa: '0.00',
       adAccountId,
-      accountName: accountName || 'Conta de Anúncios'
+      accountName: accountName || 'Conta de Anúncios',
+      currency: 'BRL'
     };
   });
 }
