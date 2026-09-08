@@ -306,6 +306,42 @@ export default function Integrations() {
     setConnectPlatformStep(3);
   };
 
+  const handleQuickConnectPlatform = (platform = 'Monsterpay') => {
+    setSelectedPlatformName(platform);
+    const rawAlias = platform.toLowerCase();
+
+    // Gera token de 48 caracteres hexadecimais no padrão pt_
+    const chars = '0123456789abcdef';
+    let randomHex = '';
+    for (let i = 0; i < 48; i++) {
+      randomHex += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const fullToken = `pt_${randomHex}`;
+
+    const today = new Date();
+    const formattedDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+
+    const newTokenItem = {
+      id: `tok_${Date.now()}`,
+      name: rawAlias,
+      platform: rawAlias,
+      token: fullToken,
+      status: 'Ativo',
+      lastUsed: '—',
+      createdAt: formattedDate
+    };
+
+    const updated = [newTokenItem, ...apiTokens];
+    setApiTokens(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('primetrack_webhook_tokens', JSON.stringify(updated));
+    }
+
+    setGeneratedPlatformToken(fullToken);
+    setCopiedToken(false);
+    setConnectPlatformStep(3); // Vai direto para a tela do token
+  };
+
   const copyPlatformField = (text, type) => {
     navigator.clipboard?.writeText(text);
     if (type === 'token') {
@@ -1755,15 +1791,16 @@ export default function Integrations() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[320px] overflow-y-auto pr-1">
                   {'monsterpay'.includes(searchPlatform.toLowerCase().trim()) ? (
                     <div 
-                      onClick={() => {
-                        setSelectedPlatformName('Monsterpay');
-                        setTokenAliasInput('monsterpay');
-                        setConnectPlatformStep(2);
-                      }}
+                      onClick={() => handleQuickConnectPlatform('Monsterpay')}
                       className="bg-[#070D1A] hover:bg-[#0E1B33] border border-[#1E3254] hover:border-[#1A6DFF] rounded-xl p-4 transition-all cursor-pointer group flex flex-col justify-between h-24 shadow-sm"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-white text-sm">Monsterpay</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white text-sm">Monsterpay</span>
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono text-[9px] font-bold uppercase tracking-wider">
+                            Nativa
+                          </span>
+                        </div>
                         <button 
                           type="button"
                           onClick={(e) => {
@@ -1777,7 +1814,7 @@ export default function Integrations() {
                         </button>
                       </div>
                       <div className="text-xs text-[#5C9BFF] group-hover:text-white font-semibold flex items-center gap-1">
-                        <span>Conectar</span>
+                        <span>Gerar Token</span>
                         <span>→</span>
                       </div>
                     </div>
