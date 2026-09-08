@@ -813,10 +813,9 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 12 Mini Cards da UTMify (Lado Direito - 7 colunas de 12 em 3 colunas) */}
-        <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* Mini Cards (Lado Direito - 7 colunas de 12 em 2 colunas) */}
+        <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
           
-          {/* Linha 1 */}
           <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
             <div className="flex items-center justify-between text-xs text-zinc-400">
               <span>Vendas Pendentes</span>
@@ -841,27 +840,6 @@ export default function Dashboard() {
 
           <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
             <div className="flex items-center justify-between text-xs text-zinc-400">
-              <span>Custos de Produto</span>
-              <span className="text-zinc-500 text-[11px]">ⓘ</span>
-            </div>
-            <div className="text-lg font-bold text-white mt-2">
-              R$ 0,00
-            </div>
-          </div>
-
-          {/* Linha 2 */}
-          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
-            <div className="flex items-center justify-between text-xs text-zinc-400">
-              <span>Vendas Reembolsadas</span>
-              <span className="text-zinc-500 text-[11px]">ⓘ</span>
-            </div>
-            <div className="text-lg font-bold text-white mt-2">
-              R$ 0,00
-            </div>
-          </div>
-
-          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
-            <div className="flex items-center justify-between text-xs text-zinc-400">
               <span>Margem</span>
               <span className="text-zinc-500 text-[11px]">ⓘ</span>
             </div>
@@ -872,73 +850,11 @@ export default function Dashboard() {
 
           <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
             <div className="flex items-center justify-between text-xs text-zinc-400">
-              <span>Despesas adicionais</span>
+              <span>Custos de Produto</span>
               <span className="text-zinc-500 text-[11px]">ⓘ</span>
             </div>
             <div className="text-lg font-bold text-white mt-2">
               R$ 0,00
-            </div>
-          </div>
-
-          {/* Linha 3 */}
-          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
-            <div className="flex items-center justify-between text-xs text-zinc-400">
-              <span>Imposto sobre vendas</span>
-              <span className="text-zinc-500 text-[11px]">ⓘ</span>
-            </div>
-            <div className="text-lg font-bold text-white mt-2">
-              R$ 0,00
-            </div>
-          </div>
-
-          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
-            <div className="flex items-center justify-between text-xs text-zinc-400">
-              <span>Reembolso</span>
-              <span className="text-zinc-500 text-[11px]">ⓘ</span>
-            </div>
-            <div className="text-lg font-bold text-white mt-2">
-              0.0%
-            </div>
-          </div>
-
-          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
-            <div className="flex items-center justify-between text-xs text-zinc-400">
-              <span>Taxas</span>
-              <span className="text-zinc-500 text-[11px]">ⓘ</span>
-            </div>
-            <div className="text-lg font-bold text-white mt-2">
-              R$ 0,00
-            </div>
-          </div>
-
-          {/* Linha 4 */}
-          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
-            <div className="flex items-center justify-between text-xs text-zinc-400">
-              <span>Imposto total</span>
-              <span className="text-zinc-500 text-[11px]">ⓘ</span>
-            </div>
-            <div className="text-lg font-bold text-white mt-2">
-              R$ {impostoTotal.replace('.', ',')}
-            </div>
-          </div>
-
-          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
-            <div className="flex items-center justify-between text-xs text-zinc-400">
-              <span>Chargeback</span>
-              <span className="text-zinc-500 text-[11px]">ⓘ</span>
-            </div>
-            <div className="text-lg font-bold text-white mt-2">
-              0.0%
-            </div>
-          </div>
-
-          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 flex flex-col justify-between shadow-sm">
-            <div className="flex items-center justify-between text-xs text-zinc-400">
-              <span>Imposto Meta Ads</span>
-              <span className="text-zinc-500 text-[11px]">ⓘ</span>
-            </div>
-            <div className="text-lg font-bold text-white mt-2">
-              R$ {impostoMetaAds.replace('.', ',')}
             </div>
           </div>
 
