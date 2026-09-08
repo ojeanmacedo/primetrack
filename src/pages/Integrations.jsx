@@ -101,7 +101,7 @@ export default function Integrations() {
   const [newPixelMetaId, setNewPixelMetaId] = useState('');
   const [newPixelCapiToken, setNewPixelCapiToken] = useState('');
   const [newPixelIcType, setNewPixelIcType] = useState('css'); // 'css', 'url', 'text'
-  const [newPixelIcValue, setNewPixelIcValue] = useState('.btn-checkout');
+  const [newPixelIcValue, setNewPixelIcValue] = useState('');
   const [newPixelDomains, setNewPixelDomains] = useState('');
   const [pixelToDelete, setPixelToDelete] = useState(null);
   const [pixelSuccessMsg, setPixelSuccessMsg] = useState(null);
@@ -119,7 +119,7 @@ export default function Integrations() {
   const [editPixelMetaId, setEditPixelMetaId] = useState('');
   const [editPixelCapiToken, setEditPixelCapiToken] = useState('');
   const [editPixelIcType, setEditPixelIcType] = useState('css');
-  const [editPixelIcValue, setEditPixelIcValue] = useState('.btn-checkout');
+  const [editPixelIcValue, setEditPixelIcValue] = useState('');
   const [editPixelDomains, setEditPixelDomains] = useState('');
 
   // Modal Conectar Plataforma Flow States (Monsterpay)
@@ -465,12 +465,12 @@ export default function Integrations() {
       id: `px_${Date.now()}`,
       name: newPixelName.trim(),
       internalPixelId: autoInternalPixelId,
-      pixelId: autoInternalPixelId, // Código identificador único PrimeTrack (ex: pt_px_590fedcfff65)
+      pixelId: autoInternalPixelId, // Código identificador único PrimeTrack no script
       metaPixelId: newPixelMetaId.trim(), // ID do Pixel do Facebook/Meta (ex: 1056706567239394)
-      capiToken: newPixelCapiToken.trim() ? (newPixelCapiToken.slice(0, 6) + '••••' + newPixelCapiToken.slice(-4)) : '••••••9y2D2D',
+      capiToken: newPixelCapiToken.trim() || 'EAAB••••••••••••',
       capiTokenRaw: newPixelCapiToken.trim(),
       icType: newPixelIcType,
-      icValue: newPixelIcValue.trim() || (newPixelIcType === 'css' ? '.btn-checkout' : newPixelIcType === 'url' ? '/checkout' : 'Comprar'),
+      icValue: newPixelIcValue.trim(),
       icRule: ruleLabel,
       domains: newPixelDomains.trim() || '*',
       status: 'Ativo',
@@ -487,7 +487,7 @@ export default function Integrations() {
     setNewPixelMetaId('');
     setNewPixelCapiToken('');
     setNewPixelIcType('css');
-    setNewPixelIcValue('.btn-checkout');
+    setNewPixelIcValue('');
     setNewPixelDomains('');
     setPixelSuccessMsg(`Pixel "${newPx.name}" configurado com sucesso!`);
     setTimeout(() => setPixelSuccessMsg(null), 3500);
@@ -496,11 +496,11 @@ export default function Integrations() {
   const handleOpenEditPixel = (px) => {
     setPixelToEdit(px);
     setEditPixelName(px.name || '');
-    setEditPixelMetaId(px.metaPixelId || px.pixelId || '');
-    setEditPixelCapiToken(px.capiTokenRaw || (px.capiToken && !px.capiToken.includes('••••') ? px.capiToken : ''));
+    setEditPixelMetaId(px.metaPixelId || '');
+    setEditPixelCapiToken(px.capiTokenRaw || px.capiToken || '');
     const currentType = px.icType || (px.icRule && px.icRule.startsWith('url') ? 'url' : px.icRule && px.icRule.startsWith('texto') ? 'text' : 'css');
     setEditPixelIcType(currentType);
-    setEditPixelIcValue(px.icValue || (currentType === 'css' ? '.btn-checkout' : currentType === 'url' ? '/checkout' : 'Comprar'));
+    setEditPixelIcValue(px.icValue !== undefined ? px.icValue : '');
     setEditPixelDomains(px.domains === '*' ? '' : (px.domains || ''));
   };
 
@@ -519,13 +519,11 @@ export default function Integrations() {
         return {
           ...px,
           name: editPixelName.trim(),
-          // O identificador PrimeTrack interno (pixelId/internalPixelId) é imutável!
+          metaPixelId: editPixelMetaId.trim() || px.metaPixelId || '',
           capiTokenRaw: editPixelCapiToken.trim(),
-          capiToken: editPixelCapiToken.trim() 
-            ? (editPixelCapiToken.includes('••••') ? px.capiToken : (editPixelCapiToken.slice(0, 6) + '••••' + editPixelCapiToken.slice(-4)))
-            : px.capiToken,
+          capiToken: editPixelCapiToken.trim() || px.capiToken,
           icType: editPixelIcType,
-          icValue: editPixelIcValue.trim() || (editPixelIcType === 'css' ? '.btn-checkout' : editPixelIcType === 'url' ? '/checkout' : 'Comprar'),
+          icValue: editPixelIcValue.trim(),
           icRule: ruleLabel,
           domains: editPixelDomains.trim() || '*'
         };
@@ -1128,14 +1126,16 @@ export default function Integrations() {
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
                         <div>
                           <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1">Pixel ID</div>
-                          <div className="font-mono text-zinc-300 truncate" title={px.metaPixelId ? `Meta: ${px.metaPixelId}` : px.pixelId}>
-                            {px.pixelId}
+                          <div className="font-mono text-zinc-300 truncate" title={px.metaPixelId || px.pixelId}>
+                            {px.metaPixelId || px.pixelId}
                           </div>
                         </div>
 
                         <div>
                           <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1">Token CAPI</div>
-                          <div className="font-mono text-zinc-300 truncate">{px.capiToken || '••••••9y2D2D'}</div>
+                          <div className="font-mono text-zinc-300 truncate" title={px.capiTokenRaw || px.capiToken}>
+                            {px.capiTokenRaw || px.capiToken || 'Não informado'}
+                          </div>
                         </div>
 
                         <div>
@@ -1144,8 +1144,8 @@ export default function Integrations() {
                             <span className="px-1.5 py-0.5 rounded bg-[#1A6DFF] text-white font-mono text-[10px] font-bold">
                               {px.icType || (px.icRule && px.icRule.startsWith('url') ? 'url' : px.icRule && px.icRule.startsWith('texto') ? 'text' : 'css')}
                             </span>
-                            <span className="font-mono text-zinc-300 truncate max-w-[140px]" title={px.icRule}>
-                              {px.icValue || px.icRule || '.btn-checkout'}
+                            <span className="font-mono text-zinc-300 truncate max-w-[140px]" title={px.icValue || px.icRule}>
+                              {px.icValue || px.icRule || '—'}
                             </span>
                           </div>
                         </div>
@@ -2317,11 +2317,9 @@ export default function Integrations() {
       {showNewPixelModal && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150"
-          onClick={() => setShowNewPixelModal(false)}
         >
           <div 
             className="bg-[#0C172B] border border-[#1E3254] rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4"
-            onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-3 border-b border-[#1E3254]">
               <div className="flex items-center gap-2.5">
@@ -2376,7 +2374,7 @@ export default function Integrations() {
                   <span className="text-[10px] text-zinc-500 font-mono">Opcional</span>
                 </label>
                 <input
-                  type="password"
+                  type="text"
                   placeholder="EAAB... (Token gerado no Gerenciador de Eventos da Meta)"
                   value={newPixelCapiToken}
                   onChange={(e) => setNewPixelCapiToken(e.target.value)}
@@ -2392,7 +2390,7 @@ export default function Integrations() {
                 <div className="grid grid-cols-3 gap-2 mb-2">
                   <button
                     type="button"
-                    onClick={() => { setNewPixelIcType('css'); if (newPixelIcValue === '/checkout' || newPixelIcValue === 'Comprar') setNewPixelIcValue('.btn-checkout'); }}
+                    onClick={() => setNewPixelIcType('css')}
                     className={`py-2 px-2.5 rounded-xl text-center font-bold border transition-all cursor-pointer ${
                       newPixelIcType === 'css' 
                         ? 'bg-[#1A6DFF]/20 border-[#1A6DFF] text-[#5C9BFF]' 
@@ -2403,7 +2401,7 @@ export default function Integrations() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setNewPixelIcType('url'); if (newPixelIcValue === '.btn-checkout' || newPixelIcValue === 'Comprar') setNewPixelIcValue('/checkout'); }}
+                    onClick={() => setNewPixelIcType('url')}
                     className={`py-2 px-2.5 rounded-xl text-center font-bold border transition-all cursor-pointer ${
                       newPixelIcType === 'url' 
                         ? 'bg-[#1A6DFF]/20 border-[#1A6DFF] text-[#5C9BFF]' 
@@ -2414,7 +2412,7 @@ export default function Integrations() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setNewPixelIcType('text'); if (newPixelIcValue === '.btn-checkout' || newPixelIcValue === '/checkout') setNewPixelIcValue('Comprar'); }}
+                    onClick={() => setNewPixelIcType('text')}
                     className={`py-2 px-2.5 rounded-xl text-center font-bold border transition-all cursor-pointer ${
                       newPixelIcType === 'text' 
                         ? 'bg-[#1A6DFF]/20 border-[#1A6DFF] text-[#5C9BFF]' 
@@ -2427,7 +2425,6 @@ export default function Integrations() {
 
                 <input
                   type="text"
-                  required
                   placeholder={
                     newPixelIcType === 'css' 
                       ? 'Ex: .btn-checkout, #btn-comprar, .btn-cta' 
@@ -2486,11 +2483,9 @@ export default function Integrations() {
       {pixelToEdit && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150"
-          onClick={() => setPixelToEdit(null)}
         >
           <div 
             className="bg-[#0C172B] border border-[#1E3254] rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4"
-            onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-3 border-b border-[#1E3254]">
               <div className="flex items-center gap-2.5">
@@ -2526,20 +2521,17 @@ export default function Integrations() {
               </div>
 
               <div>
-                <label className="block text-zinc-400 font-medium mb-1.5 flex items-center justify-between">
-                  <span>Pixel ID (Identificador exclusivo)</span>
-                  <span className="text-[10px] text-zinc-500 font-mono">Não editável</span>
+                <label className="block text-zinc-400 font-medium mb-1.5">
+                  Pixel ID (Facebook / Meta Ads)
                 </label>
                 <input
                   type="text"
-                  disabled
-                  readOnly
-                  value={pixelToEdit.pixelId || pixelToEdit.internalPixelId || 'pt_px_590fedcfff65'}
-                  className="w-full bg-[#050A14] border border-[#1A263D] rounded-xl px-3.5 py-2.5 text-zinc-400 font-mono text-xs cursor-not-allowed select-none opacity-80"
+                  required
+                  placeholder="Ex: 1056786567239394"
+                  value={editPixelMetaId}
+                  onChange={(e) => setEditPixelMetaId(e.target.value)}
+                  className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-[#1A6DFF] transition-colors"
                 />
-                <p className="text-[11px] text-zinc-500 mt-1">
-                  O identificador exclusivo do script é gerado automaticamente e não pode ser alterado.
-                </p>
               </div>
 
               <div>
@@ -2548,7 +2540,7 @@ export default function Integrations() {
                   <span className="text-[10px] text-zinc-500 font-mono">Opcional</span>
                 </label>
                 <input
-                  type="password"
+                  type="text"
                   placeholder="EAAB... (Token gerado no Gerenciador de Eventos da Meta)"
                   value={editPixelCapiToken}
                   onChange={(e) => setEditPixelCapiToken(e.target.value)}
@@ -2564,7 +2556,7 @@ export default function Integrations() {
                 <div className="grid grid-cols-3 gap-2 mb-2">
                   <button
                     type="button"
-                    onClick={() => { setEditPixelIcType('css'); if (editPixelIcValue === '/checkout' || editPixelIcValue === 'Comprar') setEditPixelIcValue('.btn-checkout'); }}
+                    onClick={() => setEditPixelIcType('css')}
                     className={`py-2 px-2.5 rounded-xl text-center font-bold border transition-all cursor-pointer ${
                       editPixelIcType === 'css' 
                         ? 'bg-[#1A6DFF]/20 border-[#1A6DFF] text-[#5C9BFF]' 
@@ -2575,7 +2567,7 @@ export default function Integrations() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setEditPixelIcType('url'); if (editPixelIcValue === '.btn-checkout' || editPixelIcValue === 'Comprar') setEditPixelIcValue('/checkout'); }}
+                    onClick={() => setEditPixelIcType('url')}
                     className={`py-2 px-2.5 rounded-xl text-center font-bold border transition-all cursor-pointer ${
                       editPixelIcType === 'url' 
                         ? 'bg-[#1A6DFF]/20 border-[#1A6DFF] text-[#5C9BFF]' 
@@ -2586,7 +2578,7 @@ export default function Integrations() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setEditPixelIcType('text'); if (editPixelIcValue === '.btn-checkout' || editPixelIcValue === '/checkout') setEditPixelIcValue('Comprar'); }}
+                    onClick={() => setEditPixelIcType('text')}
                     className={`py-2 px-2.5 rounded-xl text-center font-bold border transition-all cursor-pointer ${
                       editPixelIcType === 'text' 
                         ? 'bg-[#1A6DFF]/20 border-[#1A6DFF] text-[#5C9BFF]' 
@@ -2599,7 +2591,6 @@ export default function Integrations() {
 
                 <input
                   type="text"
-                  required
                   placeholder={
                     editPixelIcType === 'css' 
                       ? 'Ex: .btn-checkout, #btn-comprar, .btn-cta' 
