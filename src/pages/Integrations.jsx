@@ -496,8 +496,8 @@ export default function Integrations() {
   const handleOpenEditPixel = (px) => {
     setPixelToEdit(px);
     setEditPixelName(px.name || '');
-    setEditPixelMetaId(px.pixelId || '');
-    setEditPixelCapiToken(px.capiTokenRaw || px.capiToken || '');
+    setEditPixelMetaId(px.metaPixelId || px.pixelId || '');
+    setEditPixelCapiToken(px.capiTokenRaw || (px.capiToken && !px.capiToken.includes('••••') ? px.capiToken : ''));
     const currentType = px.icType || (px.icRule && px.icRule.startsWith('url') ? 'url' : px.icRule && px.icRule.startsWith('texto') ? 'text' : 'css');
     setEditPixelIcType(currentType);
     setEditPixelIcValue(px.icValue || (currentType === 'css' ? '.btn-checkout' : currentType === 'url' ? '/checkout' : 'Comprar'));
@@ -506,7 +506,7 @@ export default function Integrations() {
 
   const handleUpdatePixel = (e) => {
     e.preventDefault();
-    if (!pixelToEdit || !editPixelName.trim() || !editPixelMetaId.trim()) return;
+    if (!pixelToEdit || !editPixelName.trim()) return;
 
     const ruleLabel = editPixelIcType === 'css' 
       ? `css ${editPixelIcValue.trim() || '.btn-checkout'}` 
@@ -519,7 +519,7 @@ export default function Integrations() {
         return {
           ...px,
           name: editPixelName.trim(),
-          pixelId: editPixelMetaId.trim(),
+          // O identificador PrimeTrack interno (pixelId/internalPixelId) é imutável!
           capiTokenRaw: editPixelCapiToken.trim(),
           capiToken: editPixelCapiToken.trim() 
             ? (editPixelCapiToken.includes('••••') ? px.capiToken : (editPixelCapiToken.slice(0, 6) + '••••' + editPixelCapiToken.slice(-4)))
@@ -538,6 +538,9 @@ export default function Integrations() {
       localStorage.setItem('primetrack_pixels', JSON.stringify(updated));
     }
     setPixelToEdit(null);
+    setPixelSuccessMsg(`Pixel "${editPixelName.trim()}" atualizado com sucesso!`);
+    setTimeout(() => setPixelSuccessMsg(null), 3500);
+  };
     setPixelSuccessMsg(`Pixel "${editPixelName.trim()}" atualizado com sucesso!`);
     setTimeout(() => setPixelSuccessMsg(null), 3500);
   };
@@ -2493,9 +2496,14 @@ export default function Integrations() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-3 border-b border-[#1E3254]">
-              <h3 className="text-sm font-bold text-white">
-                Editar Pixel
-              </h3>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-[#1A6DFF]/15 border border-[#1A6DFF]/30 flex items-center justify-center text-[#5C9BFF]">
+                  <Radio className="w-4 h-4" />
+                </div>
+                <h3 className="text-sm font-bold text-white">
+                  Editar Pixel de Rastreio
+                </h3>
+              </div>
               <button
                 type="button"
                 onClick={() => setPixelToEdit(null)}
@@ -2506,106 +2514,125 @@ export default function Integrations() {
             </div>
 
             <form onSubmit={handleUpdatePixel} className="space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold mb-1.5">
-                    NOME DO PIXEL
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editPixelName}
-                    onChange={(e) => setEditPixelName(e.target.value)}
-                    className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#1A6DFF] transition-colors"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold mb-1.5">
-                    PIXEL ID
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editPixelMetaId}
-                    onChange={(e) => setEditPixelMetaId(e.target.value)}
-                    className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-[#1A6DFF] transition-colors"
-                  />
-                </div>
-              </div>
-
               <div>
-                <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold mb-1.5">
-                  TOKEN DA API DE CONVERSÕES (CAPI)
+                <label className="block text-zinc-400 font-medium mb-1.5">
+                  Nome do Pixel (Identificação interna)
                 </label>
                 <input
                   type="text"
-                  placeholder="EAAB... (Token do Gerenciador de Eventos da Meta)"
-                  value={editPixelCapiToken}
-                  onChange={(e) => setEditPixelCapiToken(e.target.value)}
-                  className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-mono text-[11px] focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                  required
+                  placeholder="Ex: Hotmart, Meu Checkout, Pixel Principal"
+                  value={editPixelName}
+                  onChange={(e) => setEditPixelName(e.target.value)}
+                  className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#1A6DFF] transition-colors"
                 />
               </div>
-
-              {/* Regra de Detecção IC */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold mb-1.5 flex items-center gap-1">
-                    <span>REGRA DE DETECÇÃO IC</span>
-                    <span className="w-3.5 h-3.5 rounded-full bg-blue-500/20 text-blue-400 text-[9px] flex items-center justify-center font-bold">i</span>
-                  </label>
-                  <select
-                    value={editPixelIcType}
-                    onChange={(e) => {
-                      const newType = e.target.value;
-                      setEditPixelIcType(newType);
-                      if (newType === 'css') setEditPixelIcValue('.btn-checkout');
-                      else if (newType === 'url') setEditPixelIcValue('/checkout');
-                      else setEditPixelIcValue('Comprar');
-                    }}
-                    className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3 py-2.5 text-white text-xs font-medium focus:outline-none focus:border-[#1A6DFF] transition-colors cursor-pointer"
-                  >
-                    <option value="css">Seletor CSS</option>
-                    <option value="url">Contém na URL</option>
-                    <option value="text">Contém no Texto</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold mb-1.5">
-                    VALOR DA REGRA
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editPixelIcValue}
-                    onChange={(e) => setEditPixelIcValue(e.target.value)}
-                    placeholder={editPixelIcType === 'css' ? '.btn-checkout' : editPixelIcType === 'url' ? '/checkout' : 'Comprar'}
-                    className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-[#1A6DFF] transition-colors"
-                  />
-                </div>
-              </div>
-
-              <p className="text-[11px] text-zinc-500 -mt-2">
-                {editPixelIcType === 'css' && 'Seletor CSS do elemento de checkout.'}
-                {editPixelIcType === 'url' && 'Trecho ou domínio contido no link de checkout.'}
-                {editPixelIcType === 'text' && 'Texto visível no botão que dispara o checkout.'}
-              </p>
 
               <div>
-                <label className="block text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold mb-1.5">
-                  DOMÍNIOS AUTORIZADOS <span className="text-zinc-500 text-[10px] lowercase font-normal">(opcional)</span>
+                <label className="block text-zinc-400 font-medium mb-1.5 flex items-center justify-between">
+                  <span>Pixel ID (Identificador exclusivo)</span>
+                  <span className="text-[10px] text-zinc-500 font-mono">Não editável</span>
                 </label>
-                <textarea
-                  rows={3}
-                  placeholder={`meusite.com.br\nmeusite.com.br/p/123/produto-x`}
+                <input
+                  type="text"
+                  disabled
+                  readOnly
+                  value={pixelToEdit.pixelId || pixelToEdit.internalPixelId || 'pt_px_590fedcfff65'}
+                  className="w-full bg-[#050A14] border border-[#1A263D] rounded-xl px-3.5 py-2.5 text-zinc-400 font-mono text-xs cursor-not-allowed select-none opacity-80"
+                />
+                <p className="text-[11px] text-zinc-500 mt-1">
+                  O identificador exclusivo do script é gerado automaticamente e não pode ser alterado.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-zinc-400 font-medium mb-1.5 flex items-center justify-between">
+                  <span>Token de Acesso CAPI (Conversions API)</span>
+                  <span className="text-[10px] text-zinc-500 font-mono">Opcional</span>
+                </label>
+                <input
+                  type="password"
+                  placeholder="EAAB... (Token gerado no Gerenciador de Eventos da Meta)"
+                  value={editPixelCapiToken}
+                  onChange={(e) => setEditPixelCapiToken(e.target.value)}
+                  className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                />
+              </div>
+
+              {/* Regra de Detecção de InitiateCheckout */}
+              <div>
+                <label className="block text-zinc-400 font-medium mb-1.5">
+                  Regra de Detecção de Initiate Checkout (IC)
+                </label>
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => { setEditPixelIcType('css'); if (editPixelIcValue === '/checkout' || editPixelIcValue === 'Comprar') setEditPixelIcValue('.btn-checkout'); }}
+                    className={`py-2 px-2.5 rounded-xl text-center font-bold border transition-all cursor-pointer ${
+                      editPixelIcType === 'css' 
+                        ? 'bg-[#1A6DFF]/20 border-[#1A6DFF] text-[#5C9BFF]' 
+                        : 'bg-[#070D1A] border-[#1E3254] text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    Seletor CSS
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setEditPixelIcType('url'); if (editPixelIcValue === '.btn-checkout' || editPixelIcValue === 'Comprar') setEditPixelIcValue('/checkout'); }}
+                    className={`py-2 px-2.5 rounded-xl text-center font-bold border transition-all cursor-pointer ${
+                      editPixelIcType === 'url' 
+                        ? 'bg-[#1A6DFF]/20 border-[#1A6DFF] text-[#5C9BFF]' 
+                        : 'bg-[#070D1A] border-[#1E3254] text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    Contém na URL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setEditPixelIcType('text'); if (editPixelIcValue === '.btn-checkout' || editPixelIcValue === '/checkout') setEditPixelIcValue('Comprar'); }}
+                    className={`py-2 px-2.5 rounded-xl text-center font-bold border transition-all cursor-pointer ${
+                      editPixelIcType === 'text' 
+                        ? 'bg-[#1A6DFF]/20 border-[#1A6DFF] text-[#5C9BFF]' 
+                        : 'bg-[#070D1A] border-[#1E3254] text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    Contém no Texto
+                  </button>
+                </div>
+
+                <input
+                  type="text"
+                  required
+                  placeholder={
+                    editPixelIcType === 'css' 
+                      ? 'Ex: .btn-checkout, #btn-comprar, .btn-cta' 
+                      : editPixelIcType === 'url' 
+                        ? 'Ex: pay.hotmart, kiwify.com.br, /checkout' 
+                        : 'Ex: Comprar Agora, Quero Garantir'
+                  }
+                  value={editPixelIcValue}
+                  onChange={(e) => setEditPixelIcValue(e.target.value)}
+                  className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                />
+                <p className="text-[11px] text-zinc-500 mt-1">
+                  {editPixelIcType === 'css' && 'Dispara quando o usuário clicar em qualquer elemento que tenha a classe/ID configurada.'}
+                  {editPixelIcType === 'url' && 'Dispara quando o link clicado contiver o texto ou domínio informado.'}
+                  {editPixelIcType === 'text' && 'Dispara quando o botão clicado contiver o texto informado.'}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-zinc-400 font-medium mb-1.5 flex items-center justify-between">
+                  <span>Domínios Autorizados</span>
+                  <span className="text-[10px] text-zinc-500 font-mono">Opcional</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: meusite.com, checkout.meusite.com (ou deixe em branco para todos)"
                   value={editPixelDomains}
                   onChange={(e) => setEditPixelDomains(e.target.value)}
-                  className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2 text-white font-mono text-xs focus:outline-none focus:border-[#1A6DFF] transition-colors resize-none"
+                  className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#1A6DFF] transition-colors"
                 />
-                <p className="text-[10px] text-zinc-500 mt-1 leading-relaxed">
-                  1 por linha. Vazio = aceita de qualquer lugar. Use o domínio (<code className="text-zinc-400">meusite.com.br</code>) ou a URL completa para travar uma página específica.
-                </p>
               </div>
 
               <div className="flex items-center justify-end gap-2.5 pt-2">
@@ -2620,11 +2647,13 @@ export default function Integrations() {
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all cursor-pointer"
                 >
-                  Salvar
+                  Salvar Alterações
                 </button>
               </div>
             </form>
           </div>
+        </div>
+      )}
         </div>
       )}
 
