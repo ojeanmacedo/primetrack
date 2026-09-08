@@ -62,19 +62,18 @@ export default function Integrations() {
         id: 'tok_default',
         name: 'mosterpay',
         platform: 'lowify',
-        token: 'pt_live_9b4e721775a8',
+        token: 'pt_0498ccaba8db58a695a9becacca8857591b1f24f8fbbb4f25',
         status: 'Ativo',
-        lastUsed: '07/09 12:53',
+        lastUsed: '07/09 22:02',
         createdAt: '30/08/2026'
       }
     ];
   });
 
-  const [showConnectPlatformModal, setShowConnectPlatformModal] = useState(false);
-  const [selectedPlatform, setSelectedPlatform] = useState('kiwify');
-  const [platformTokenName, setPlatformTokenName] = useState('');
-  const [createdTokenModal, setCreatedTokenModal] = useState(null);
-  const [copiedTokenKey, setCopiedTokenKey] = useState(null);
+  const [showNewTokenModal, setShowNewTokenModal] = useState(false);
+  const [tokenInputName, setTokenInputName] = useState('');
+  const [recentCreatedToken, setRecentCreatedToken] = useState(null);
+  const [copiedRecentToken, setCopiedRecentToken] = useState(false);
 
   // Facebook Connection Flow States
   const [showConnectModal, setShowConnectModal] = useState(false);
@@ -204,65 +203,52 @@ export default function Integrations() {
     }
   };
 
-  const handleCreatePlatformToken = (e) => {
-    e.preventDefault();
-    const tokenHex = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
-    const newTokenStr = `pt_live_${tokenHex}`;
-    const name = platformTokenName.trim() || selectedPlatform.charAt(0).toUpperCase() + selectedPlatform.slice(1);
+  const handleGenerateToken = (e) => {
+    if (e) e.preventDefault();
+    const rawName = tokenInputName.trim() || 'Hotmart';
     
-    const newToken = {
+    // Gera token de 48 caracteres hexadecimais no padrão pt_ (igual ao lt_ do screenshot 2)
+    const chars = '0123456789abcdef';
+    let randomHex = '';
+    for (let i = 0; i < 48; i++) {
+      randomHex += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const fullToken = `pt_${randomHex}`;
+
+    // Detecta plataforma pelo nome digitado (ex: kiwify, hotmart, lowify, etc.)
+    const lowerName = rawName.toLowerCase();
+    let detectedPlatform = '';
+    if (lowerName.includes('lowify')) detectedPlatform = 'lowify';
+    else if (lowerName.includes('kiwify')) detectedPlatform = 'kiwify';
+    else if (lowerName.includes('eduzz')) detectedPlatform = 'eduzz';
+    else if (lowerName.includes('cakto')) detectedPlatform = 'cakto';
+    else if (lowerName.includes('kirvano')) detectedPlatform = 'kirvano';
+    else if (lowerName.includes('perfect')) detectedPlatform = 'perfectpay';
+    else if (lowerName.includes('braip')) detectedPlatform = 'braip';
+
+    // Data formatada DD/MM/YYYY
+    const today = new Date();
+    const formattedDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+
+    const newTokenItem = {
       id: `tok_${Date.now()}`,
-      name,
-      platform: selectedPlatform,
-      token: newTokenStr,
+      name: rawName,
+      platform: detectedPlatform,
+      token: fullToken,
       status: 'Ativo',
-      lastUsed: 'Aguardando 1º evento',
-      createdAt: new Date().toLocaleDateString('pt-BR')
+      lastUsed: '—',
+      createdAt: formattedDate
     };
 
-    const updated = [newToken, ...apiTokens];
+    const updated = [newTokenItem, ...apiTokens];
     setApiTokens(updated);
     if (typeof window !== 'undefined') {
       localStorage.setItem('primetrack_webhook_tokens', JSON.stringify(updated));
     }
 
-    setShowConnectPlatformModal(false);
-    setPlatformTokenName('');
-    setCreatedTokenModal({
-      name,
-      platform: selectedPlatform,
-      token: newTokenStr,
-      webhookUrl: `https://app.primetrack.top/api/webhook`
-    });
-  };
-
-  const handleCreateDefaultToken = () => {
-    const tokenHex = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
-    const newTokenStr = `pt_live_${tokenHex}`;
-    const name = `Token Padrão #${apiTokens.length + 1}`;
-
-    const newToken = {
-      id: `tok_${Date.now()}`,
-      name,
-      platform: 'generic',
-      token: newTokenStr,
-      status: 'Ativo',
-      lastUsed: 'Aguardando 1º evento',
-      createdAt: new Date().toLocaleDateString('pt-BR')
-    };
-
-    const updated = [newToken, ...apiTokens];
-    setApiTokens(updated);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('primetrack_webhook_tokens', JSON.stringify(updated));
-    }
-
-    setCreatedTokenModal({
-      name,
-      platform: 'generic',
-      token: newTokenStr,
-      webhookUrl: `https://app.primetrack.top/api/webhook`
-    });
+    setRecentCreatedToken(fullToken);
+    setShowNewTokenModal(false);
+    setTokenInputName('');
   };
 
   const handleDeleteToken = (tokenId) => {
@@ -1041,19 +1027,19 @@ export default function Integrations() {
           <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl overflow-hidden shadow-xl">
             <div className="p-4 border-b border-[#13233E] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <h3 className="font-bold text-white text-sm">
-                Tokens de API ({apiTokens.length})
+                Tokens de API ({apiTokens.length}/2)
               </h3>
 
               <div className="flex items-center gap-2">
                 <button 
-                  onClick={() => setShowConnectPlatformModal(true)}
+                  onClick={() => setShowNewTokenModal(true)}
                   className="px-3 py-1.5 rounded-lg bg-[#070D1A] hover:bg-white/5 border border-white/10 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Conectar Plataforma</span>
                 </button>
                 <button 
-                  onClick={handleCreateDefaultToken}
+                  onClick={() => setShowNewTokenModal(true)}
                   className="px-3 py-1.5 rounded-lg bg-[#070D1A] hover:bg-white/5 border border-white/10 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -1061,6 +1047,40 @@ export default function Integrations() {
                 </button>
               </div>
             </div>
+
+            {/* Banner de Token Recém-Gerado (Screenshot 2) */}
+            {recentCreatedToken && (
+              <div className="p-4 bg-[#081224] border-b border-[#13233E] space-y-2.5 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-amber-400">
+                    <span className="text-sm">⚠️</span>
+                    <span>Copie seu token agora. Ele não será exibido novamente.</span>
+                  </div>
+                  <button 
+                    onClick={() => setRecentCreatedToken(null)}
+                    className="text-zinc-500 hover:text-zinc-300 text-xs p-1 cursor-pointer"
+                    title="Fechar"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 p-2.5 rounded-lg bg-[#050B14] border border-white/5 font-mono text-xs text-zinc-200">
+                  <span className="select-all break-all tracking-wider">{recentCreatedToken}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(recentCreatedToken);
+                      setCopiedRecentToken(true);
+                      setTimeout(() => setCopiedRecentToken(false), 2000);
+                    }}
+                    className="px-3 py-1 rounded bg-white/10 hover:bg-white/15 text-xs text-zinc-200 font-sans font-medium transition-colors shrink-0 cursor-pointer"
+                  >
+                    {copiedRecentToken ? '✓ Copiado' : 'Copiar'}
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs font-sans whitespace-nowrap">
@@ -1076,48 +1096,44 @@ export default function Integrations() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#13233E]/60 font-sans">
-                  {apiTokens.length === 0 ? (
-                    <tr>
-                      <td colSpan="7" className="py-8 text-center text-zinc-500 text-xs">
-                        Nenhum token criado ainda. Clique em <strong>"Conectar Plataforma"</strong> ou <strong>"Token Padrão"</strong> acima para começar.
+                  {apiTokens.map((tok) => (
+                    <tr key={tok.id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="py-4 px-4 font-bold text-white">
+                        {tok.name}
                       </td>
-                    </tr>
-                  ) : (
-                    apiTokens.map((tok) => (
-                      <tr key={tok.id} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="py-4 px-4 font-bold text-white">
-                          {tok.name}
-                        </td>
-                        <td className="py-4 px-4">
-                          <span className="px-2.5 py-0.5 rounded-full bg-[#1A6DFF] text-white font-mono text-[10px] font-bold uppercase">
+                      <td className="py-4 px-4">
+                        {tok.platform ? (
+                          <span className="px-2.5 py-0.5 rounded-full bg-[#1A6DFF] text-white font-mono text-[10px] font-bold">
                             {tok.platform}
                           </span>
-                        </td>
-                        <td className="py-4 px-4 font-mono text-zinc-300">
-                          {tok.token ? `${tok.token.slice(0, 7)}****${tok.token.slice(-6)}` : 'pt_****1775a8'}
-                        </td>
-                        <td className="py-4 px-4 text-center">
-                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono text-[10px] font-bold">
-                            {tok.status || 'Ativo'}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 font-mono text-zinc-400 text-[11px]">
-                          {tok.lastUsed || 'Aguardando 1º evento'}
-                        </td>
-                        <td className="py-4 px-4 font-mono text-zinc-400 text-[11px]">
-                          {tok.createdAt || 'Hoje'}
-                        </td>
-                        <td className="py-4 px-4 text-right font-mono">
-                          <button 
-                            onClick={() => handleDeleteToken(tok.id)}
-                            className="text-red-400 hover:text-red-300 text-xs font-medium transition-colors cursor-pointer"
-                          >
-                            Excluir
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
+                        ) : (
+                          <span className="text-zinc-600 font-mono">—</span>
+                        )}
+                      </td>
+                      <td className="py-4 px-4 font-mono text-zinc-300">
+                        {tok.token ? `${tok.token.slice(0, 3)}****${tok.token.slice(-6)}` : 'pt_****1775a8'}
+                      </td>
+                      <td className="py-4 px-4 text-center">
+                        <span className="px-2.5 py-0.5 rounded-full bg-[#1A6DFF] text-white font-mono text-[10px] font-bold">
+                          {tok.status || 'Ativo'}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 font-mono text-zinc-400 text-[11px]">
+                        {tok.lastUsed || '—'}
+                      </td>
+                      <td className="py-4 px-4 font-mono text-zinc-400 text-[11px]">
+                        {tok.createdAt || '07/09/2026'}
+                      </td>
+                      <td className="py-4 px-4 text-right font-mono">
+                        <button 
+                          onClick={() => handleDeleteToken(tok.id)}
+                          className="text-red-400 hover:text-red-300 text-xs font-medium transition-colors cursor-pointer"
+                        >
+                          Excluir
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -1586,190 +1602,48 @@ export default function Integrations() {
         </div>
       )}
 
-      {/* Modal Conectar Plataforma de Vendas */}
-      {showConnectPlatformModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-[#0A1426] border border-[#1E3A5F] rounded-2xl max-w-lg w-full p-6 shadow-2xl relative space-y-5">
-            <button 
-              onClick={() => setShowConnectPlatformModal(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
+      {/* Modal Novo Token de API (Screenshot 1) */}
+      {showNewTokenModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-[#0C172B] border border-[#1E3254] rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-5">
+            <h3 className="text-base font-bold text-white tracking-tight">
+              Novo Token de API
+            </h3>
 
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
-                <Radio className="w-5 h-5" />
-              </div>
+            <form onSubmit={handleGenerateToken} className="space-y-4">
               <div>
-                <h3 className="text-base font-bold text-white tracking-tight">
-                  Conectar Plataforma de Vendas
-                </h3>
-                <p className="text-xs text-zinc-400 font-sans">
-                  Gere a URL de Webhook e Token para receber vendas automaticamente.
-                </p>
-              </div>
-            </div>
-
-            <form onSubmit={handleCreatePlatformToken} className="space-y-4 pt-1">
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5 font-sans">
-                  Selecione sua Plataforma de Checkout:
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {[
-                    { id: 'kiwify', name: 'Kiwify' },
-                    { id: 'hotmart', name: 'Hotmart' },
-                    { id: 'eduzz', name: 'Eduzz' },
-                    { id: 'perfectpay', name: 'PerfectPay' },
-                    { id: 'cakto', name: 'Cakto' },
-                    { id: 'kirvano', name: 'Kirvano' },
-                    { id: 'braip', name: 'Braip' },
-                    { id: 'cartpanda', name: 'CartPanda' },
-                    { id: 'yampi', name: 'Yampi' },
-                    { id: 'shopify', name: 'Shopify' },
-                    { id: 'lowify', name: 'Lowify' },
-                    { id: 'generic', name: 'Outro / Genérico' },
-                  ].map((plat) => (
-                    <button
-                      key={plat.id}
-                      type="button"
-                      onClick={() => setSelectedPlatform(plat.id)}
-                      className={`p-2.5 rounded-xl text-xs font-bold border transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer ${
-                        selectedPlatform === plat.id 
-                          ? 'bg-[#0066FF] text-white border-[#0066FF] shadow-md shadow-[#0066FF]/30' 
-                          : 'bg-[#070D1A] text-zinc-400 border-white/5 hover:border-white/20 hover:text-white'
-                      }`}
-                    >
-                      {selectedPlatform === plat.id && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                      <span>{plat.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5 font-sans">
-                  Nome da Conexão / Loja (Opcional):
+                <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-2 font-mono">
+                  NOME DO TOKEN
                 </label>
                 <input 
-                  type="text" 
-                  value={platformTokenName}
-                  onChange={(e) => setPlatformTokenName(e.target.value)}
-                  placeholder={`Ex: Minha Conta ${selectedPlatform.charAt(0).toUpperCase() + selectedPlatform.slice(1)}`}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#070D1A] border border-white/10 text-white placeholder:text-zinc-600 text-xs focus:outline-none focus:border-[#0066FF] transition-colors"
+                  type="text"
+                  autoFocus
+                  value={tokenInputName}
+                  onChange={(e) => setTokenInputName(e.target.value)}
+                  placeholder="Ex: Hotmart Produto X"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[#060D1A] border border-[#1E3254] text-white placeholder:text-zinc-600 text-xs focus:outline-none focus:border-[#1A6DFF] transition-colors"
                 />
               </div>
 
-              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-300 flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-                <span>Liberado no seu plano! Sem limites de conexões.</span>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="flex items-center justify-end gap-2.5 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowConnectPlatformModal(false)}
-                  className="px-4 py-2 rounded-xl bg-[#070D1A] border border-white/10 text-xs font-semibold text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                  onClick={() => {
+                    setShowNewTokenModal(false);
+                    setTokenInputName('');
+                  }}
+                  className="px-4 py-2 rounded-lg bg-[#070D1A] hover:bg-white/5 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-[#0066FF] hover:bg-blue-600 text-xs font-bold text-white shadow-lg shadow-[#0066FF]/30 transition-all flex items-center gap-2 cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-[#1A6DFF] hover:bg-blue-600 text-xs font-bold text-white shadow-md shadow-blue-500/20 transition-colors cursor-pointer"
                 >
-                  <span>Gerar Webhook & Conectar</span>
-                  <span>→</span>
+                  Gerar Token
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Webhook e Token Gerados */}
-      {createdTokenModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-[#0A1426] border border-emerald-500/30 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative space-y-5">
-            <button 
-              onClick={() => setCreatedTokenModal(null)}
-              className="absolute top-4 right-4 p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                <CheckCircle2 className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-white tracking-tight">
-                  Webhook Criado com Sucesso! 🎉
-                </h3>
-                <p className="text-xs text-zinc-400 font-sans">
-                  Plataforma: <span className="text-white font-bold uppercase">{createdTokenModal.platform}</span> ({createdTokenModal.name})
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-3 pt-1">
-              <div>
-                <div className="flex items-center justify-between text-xs font-semibold text-zinc-300 mb-1">
-                  <span>URL do Webhook (Cole no Checkout):</span>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(createdTokenModal.webhookUrl);
-                      setCopiedTokenKey('url');
-                      setTimeout(() => setCopiedTokenKey(null), 2000);
-                    }}
-                    className="text-[#0066FF] hover:underline flex items-center gap-1 text-[11px] cursor-pointer"
-                  >
-                    {copiedTokenKey === 'url' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                    <span>{copiedTokenKey === 'url' ? 'Copiado!' : 'Copiar URL'}</span>
-                  </button>
-                </div>
-                <div className="p-3 rounded-xl bg-[#070D1A] border border-white/10 font-mono text-xs text-emerald-400 break-all select-all">
-                  {createdTokenModal.webhookUrl}
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between text-xs font-semibold text-zinc-300 mb-1">
-                  <span>Token de Autorização (Bearer Token):</span>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(createdTokenModal.token);
-                      setCopiedTokenKey('token');
-                      setTimeout(() => setCopiedTokenKey(null), 2000);
-                    }}
-                    className="text-[#0066FF] hover:underline flex items-center gap-1 text-[11px] cursor-pointer"
-                  >
-                    {copiedTokenKey === 'token' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                    <span>{copiedTokenKey === 'token' ? 'Copiado!' : 'Copiar Token'}</span>
-                  </button>
-                </div>
-                <div className="p-3 rounded-xl bg-[#070D1A] border border-white/10 font-mono text-xs text-blue-300 break-all select-all">
-                  {createdTokenModal.token}
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-[#0B132B] border border-white/5 space-y-1.5 text-xs text-zinc-400 leading-relaxed">
-                <p className="font-semibold text-zinc-200">📌 Como Configurar:</p>
-                <p>1. Vá nas configurações de Webhooks da sua plataforma de vendas.</p>
-                <p>2. Cole a URL acima e selecione os eventos de <strong>Compra Aprovada</strong>, <strong>Gerada</strong> e <strong>Reembolso</strong>.</p>
-                <p>3. Dúvidas? Consulte o guia oficial em <a href="https://docs.primetrack.top" target="_blank" rel="noopener noreferrer" className="text-[#0066FF] underline font-bold">docs.primetrack.top</a>.</p>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <button
-                type="button"
-                onClick={() => setCreatedTokenModal(null)}
-                className="px-6 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
-              >
-                Pronto, já configurei!
-              </button>
-            </div>
           </div>
         </div>
       )}
