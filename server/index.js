@@ -329,6 +329,27 @@ app.post(['/api/webhook', '/api/webhooks/:gateway'], async (req, res) => {
 
     db.append('orders', orderRecord);
 
+    try {
+      await supabaseAdmin.from('orders').insert({
+        id: orderRecord.id,
+        user_id: 'usr_admin_digitaljm',
+        order_code: parsed.orderCode,
+        gateway: parsed.gateway || 'MonsterPay',
+        product_name: parsed.productName,
+        amount: parsed.amount,
+        status: parsed.status || 'approved',
+        payment_method: parsed.paymentMethod,
+        customer_name: parsed.customer?.name || null,
+        customer_email: parsed.customer?.email || null,
+        customer_phone: parsed.customer?.phone || null,
+        attribution: attribution || null,
+        emq_score: capiResult.emq.score || 9.7,
+        created_at: orderRecord.createdAt
+      });
+    } catch (supaErr) {
+      console.warn('Erro ao salvar pedido no Supabase:', supaErr.message);
+    }
+
     console.log(`[Venda Registrada] R$ ${parsed.amount} via ${parsed.gateway} atribuída ao anúncio: ${attribution.ad}`);
 
     res.json({
@@ -392,6 +413,47 @@ app.get('/api/stats', (req, res) => {
 const campaignsCache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
 
+async function getApprovedOrders() {
+  let orders = [];
+  try {
+    const { data } = await supabaseAdmin
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (Array.isArray(data) && data.length > 0) {
+      orders = data.map(row => ({
+        id: row.id,
+        orderCode: row.order_code,
+        gateway: row.gateway,
+        productName: row.product_name,
+        amount: Number(row.amount || 0),
+        status: row.status,
+        paymentMethod: row.payment_method,
+        customer: {
+          name: row.customer_name,
+          email: row.customer_email,
+          phone: row.customer_phone
+        },
+        attribution: row.attribution,
+        emqScore: row.emq_score,
+        createdAt: row.created_at
+      }));
+    }
+  } catch (e) {
+    console.warn('Erro ao buscar pedidos no Supabase:', e.message);
+  }
+
+  if (orders.length === 0) {
+    orders = db.get('orders') || [];
+  }
+
+  return orders.filter(o => 
+    (o.status === 'approved' || !o.status) && 
+    (!o.gateway || o.gateway.toLowerCase().includes('monster'))
+  );
+}
+
 app.get('/api/campaigns', async (req, res) => {
   const connections = db.get('facebook_connections') || [];
   
@@ -435,12 +497,7 @@ app.get('/api/campaigns', async (req, res) => {
     return activeAccountIds.has(cAdId);
   });
 
-  const orders = db.get('orders') || [];
-  // Restringe estritamente às vendas aprovadas da MonsterPay
-  const approvedOrders = orders.filter(o => 
-    (o.status === 'approved' || !o.status) && 
-    (!o.gateway || o.gateway.toLowerCase().includes('monster'))
-  );
+  const approvedOrders = await getApprovedOrders();
 
 function resolveDateRange(datePreset = 'today', since = null, until = null) {
   if (since && until) {
@@ -545,10 +602,14 @@ function resolveDateRange(datePreset = 'today', since = null, until = null) {
 /**
  * 5. Listagem de Vendas com Atribuição
  */
-app.get('/api/orders', (req, res) => {
-  const orders = db.get('orders') || [];
-  const monsterOrders = orders.filter(o => !o.gateway || o.gateway.toLowerCase().includes('monster'));
-  res.json(monsterOrders);
+app.get('/api/orders', async (req, res) => {
+  try {
+    const orders = await getApprovedOrders();
+    res.json(orders);
+  } catch (err) {
+    const orders = db.get('orders') || [];
+    res.json(orders.filter(o => !o.gateway || o.gateway.toLowerCase().includes('monster')));
+  }
 });
 
 /**
@@ -966,12 +1027,7 @@ app.post('/api/meta/sync', async (req, res) => {
       return activeAccountIds.has(cAdId);
     });
 
-    const orders = db.get('orders') || [];
-    // Restringe estritamente às vendas aprovadas da MonsterPay
-    const approvedOrders = orders.filter(o => 
-      (o.status === 'approved' || !o.status) && 
-      (!o.gateway || o.gateway.toLowerCase().includes('monster'))
-    );
+    const approvedOrders = await getApprovedOrders();
 
     const { since: filterSince, until: filterUntil } = resolveDateRange(datePreset, since, until);
     const filteredOrders = approvedOrders.filter(o => {
