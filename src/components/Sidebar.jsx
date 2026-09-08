@@ -3,29 +3,21 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { getCurrentUser, getTrialStatus, logoutUser } from '../utils/auth';
 import { 
   FileText,
-  Search,
-  Video,
-  Music2,
-  LayoutGrid,
-  Link as LinkIcon,
+  ShoppingBag,
   Link2,
   SlidersHorizontal,
   Percent,
   DollarSign,
   BarChart3,
-  Zap,
   Bell,
   CreditCard,
   User,
   Settings,
   Rocket,
   Headphones,
-  Star,
-  Smartphone,
   ChevronLeft, 
   ChevronRight, 
-  LogOut, 
-  Target
+  LogOut
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -35,7 +27,7 @@ export default function Sidebar() {
   const user = getCurrentUser();
   const trialStatus = getTrialStatus(user);
 
-  // Menu items exatamente como na UTMify
+  // Menu items do PrimeTrack com estética UTMify
   const navItems = [
     { to: '/dashboard', label: 'Resumo', icon: FileText, exact: true },
     { to: '/campanhas', label: 'Meta', icon: ({ className }) => (
@@ -43,25 +35,18 @@ export default function Sidebar() {
         <path d="M12 7.2c-2.4 0-4.3 1.6-5.4 3.7C5.4 9 3.5 7.6 1.8 7.6.8 7.6 0 8.4 0 9.4c0 2.2 2.6 6.3 5.4 6.3 1.8 0 3.3-1.1 4.4-2.8 1.1 1.7 2.6 2.8 4.4 2.8 2.8 0 5.4-4.1 5.4-6.3 0-1-.8-1.8-1.8-1.8-1.7 0-3.6 1.4-4.8 3.3-1.1-2.1-3-3.7-5.4-3.7zm-6.6 6.7c-1.6 0-3.6-2.9-3.6-4.5 0-.3.2-.5.5-.5 1.1 0 2.5 1.1 3.5 2.7-.2.9-.3 1.8-.4 2.3zm13.2 0c-.1-.5-.2-1.4-.4-2.3 1-1.6 2.4-2.7 3.5-2.7.3 0 .5.2.5.5 0 1.6-2 4.5-3.6 4.5z"/>
       </svg>
     )},
-    { to: '/google', label: 'Google', icon: Search },
-    { to: '/kwai', label: 'Kwai', icon: Video },
-    { to: '/tiktok', label: 'TikTok', icon: Music2 },
-    { to: '/taboola', label: 'Taboola', icon: LayoutGrid },
-    { to: '/utms', label: 'UTMs', icon: LinkIcon },
+    { to: '/vendas', label: 'Vendas', icon: ShoppingBag },
     { to: '/integracoes', label: 'Integrações', icon: Link2 },
     { to: '/regras', label: 'Regras', icon: SlidersHorizontal },
     { to: '/taxas', label: 'Taxas', icon: Percent },
     { to: '/despesas', label: 'Despesas', icon: DollarSign },
     { to: '/relatorios', label: 'Relatórios', icon: BarChart3 },
-    { to: '/eventos', label: 'Eventos', icon: Zap },
     { to: '/notificacoes', label: 'Notificações', icon: Bell },
     { to: '/planos', label: 'Assinatura', icon: CreditCard },
     { to: '/integracoes?tab=app', label: 'Minha conta', icon: User },
     { to: '/avancado', label: 'Avançado', icon: Settings },
     { to: '/indique', label: 'Indique e Ganhe 10%', icon: Rocket },
     { to: '/suporte', label: 'Suporte', icon: Headphones },
-    { to: '/novidades', label: 'Novidades', icon: Star },
-    { to: '/aplicativo', label: 'Aplicativo', icon: Smartphone },
   ];
 
   return (
