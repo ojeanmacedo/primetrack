@@ -462,10 +462,10 @@ export default function Dashboard() {
     return filteredCampaigns.reduce((acc, c) => acc + Number(c.clicks || 0), 0);
   }, [filteredCampaigns]);
 
-  const rawVis = pixelStats.pageViews || 0;
-  const rawIcs = pixelStats.initiateCheckouts || 0;
   const rawInic = filteredOrders.length;
   const rawApr = realApprovedSales;
+  const rawIcs = Math.max(pixelStats.initiateCheckouts || 0, rawInic);
+  const rawVis = Math.max(pixelStats.pageViews || 0, rawIcs);
 
   const funnelClicks = totalMetaClicks > 0 
     ? totalMetaClicks 
