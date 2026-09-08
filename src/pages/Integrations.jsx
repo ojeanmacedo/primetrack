@@ -665,7 +665,15 @@ export default function Integrations() {
       .catch(e => console.log('Backend offline ou usando cache local'));
   }, []);
 
-  const pixelScript = `<script> window.pixelId = "pt_px_590fedcfff65"; var a = document.createElement("script"); a.setAttribute("async", ""); a.setAttribute("defer", ""); a.setAttribute("src", "https://primetrack.com.br/pixel.js"); document.head.appendChild(a); </script>`;
+  const pixelScript = `<!-- PrimeTrack Pixel -->
+<script>
+  window.pixelId = "pt_px_590fedcfff65";
+  var a = document.createElement("script");
+  a.setAttribute("async", "");
+  a.setAttribute("defer", "");
+  a.setAttribute("src", "https://primetrack.com.br/pixel.js");
+  document.head.appendChild(a);
+</script>`;
 
   const utmString = `utm_source=FB&utm_campaign={{campaign.name}}|{{campaign.id}}&utm_medium={{adset.name}}|{{adset.id}}&utm_content={{ad.name}}|{{ad.id}}&utm_term={{placement}}`;
 
@@ -1003,7 +1011,15 @@ export default function Integrations() {
             ) : (
               <div className="space-y-6">
                 {trackingPixels.map((px) => {
-                  const pxScript = `<script> window.pixelId = "${px.pixelId}"; var a = document.createElement("script"); a.setAttribute("async", ""); a.setAttribute("defer", ""); a.setAttribute("src", "https://primetrack.com.br/pixel.js"); document.head.appendChild(a); </script>`;
+                  const pxScript = `<!-- PrimeTrack Pixel -->
+<script>
+  window.pixelId = "${px.pixelId}";
+  var a = document.createElement("script");
+  a.setAttribute("async", "");
+  a.setAttribute("defer", "");
+  a.setAttribute("src", "https://primetrack.com.br/pixel.js");
+  document.head.appendChild(a);
+</script>`;
                   return (
                     <div key={px.id} className="space-y-4 pb-6 border-b border-[#13233E] last:border-b-0 last:pb-0">
                       <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-[#13233E]/60">
@@ -1072,7 +1088,7 @@ export default function Integrations() {
                         <div className="text-[11px] text-zinc-400 font-sans">
                           Instale no &lt;head&gt; do seu site:
                         </div>
-                        <div className="relative bg-[#070D1A] border border-[#13233E] rounded-xl p-3.5 font-mono text-[11px] text-zinc-300 pr-20 overflow-x-auto">
+                        <div className="relative bg-[#070D1A] border border-[#13233E] rounded-xl p-3.5 font-mono text-[11px] text-zinc-300 pr-20 overflow-x-auto whitespace-pre">
                           <code>{pxScript}</code>
                           <button
                             onClick={() => copyToClipboard(pxScript, 'pixel')}
