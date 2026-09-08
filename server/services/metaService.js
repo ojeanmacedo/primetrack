@@ -119,7 +119,7 @@ export async function fetchAdAccounts(accessToken) {
     balance: (Number(acc.balance || 0) / 100).toFixed(2),
     status: acc.account_status === 1 ? 'ACTIVE' : 'DISABLED',
     businessName: acc.business_name || acc.business?.name || 'BM Principal',
-    syncActive: true
+    syncActive: false
   }));
 }
 

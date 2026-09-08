@@ -504,12 +504,21 @@ app.get('/api/auth/facebook/callback', async (req, res) => {
 
     db.set('facebook_connections', updatedConnections);
 
-    // Salva as contas de anúncios no Banco de Dados
+    // Salva as contas de anúncios no Banco de Dados (sempre desativadas por padrão ao conectar)
     const existingAccounts = db.get('ad_accounts') || [];
-    const mergedAccounts = [...adAccounts];
+    const accountsWithProfile = adAccounts.map(acc => ({
+      ...acc,
+      profileId: userProfile.id,
+      profileName: userProfile.name,
+      syncActive: false
+    }));
+    
+    // Mescla mantendo outras contas de outros perfis e atualizando as deste perfil
+    const otherAccounts = existingAccounts.filter(a => a.profileId !== userProfile.id);
+    const mergedAccounts = [...otherAccounts, ...accountsWithProfile];
     db.set('ad_accounts', mergedAccounts);
 
-    console.log(`[Meta OAuth Sucesso!] Perfil ${userProfile.name} conectado com ${adAccounts.length} contas de anúncio!`);
+    console.log(`[Meta OAuth Sucesso!] Perfil ${userProfile.name} conectado com ${adAccounts.length} contas de anúncio (todas desativadas por padrão)!`);
 
     return res.redirect(`${baseUrl}/integracoes?connected=true&name=${encodeURIComponent(userProfile.name)}`);
   } catch (err) {
@@ -592,6 +601,11 @@ app.post('/api/meta/disconnect', (req, res) => {
       const connections = db.get('facebook_connections') || [];
       const filtered = connections.filter(c => c.id !== profileId);
       db.set('facebook_connections', filtered);
+      
+      const adAccounts = db.get('ad_accounts') || [];
+      const remainingAccounts = adAccounts.filter(a => a.profileId !== profileId);
+      db.set('ad_accounts', remainingAccounts);
+
       if (filtered.length === 0) {
         db.set('ad_accounts', []);
         db.set('campaigns', []);

@@ -168,7 +168,7 @@ export default function Integrations() {
       } catch (e) {}
     }
     return [
-      { name: 'CA01', id: '1892117896682979', bm: 'Marinhos Dog', currency: 'USD (→ BRL @ 5,12)', status: 'Ativa', sync: true },
+      { name: 'CA01', id: '1892117896682979', bm: 'Marinhos Dog', currency: 'USD (→ BRL @ 5,12)', status: 'Ativa', sync: false },
       { name: 'Rafaelli Ribeiro', id: '988187735672553', bm: '—', currency: 'BRL', status: 'Ativa', sync: false },
       { name: 'CA03', id: '1095793299643643', bm: 'DIGITAL JM SOLUCOES LTDA', currency: 'BRL', status: 'Ativa', sync: false },
       { name: 'CA02 JEFFREY', id: '1101817232408751', bm: 'DIGITAL MEI', currency: 'USD (→ BRL @ 5,12)', status: 'Ativa', sync: false },
@@ -573,14 +573,31 @@ export default function Integrations() {
         }
 
         if (data.adAccounts && data.adAccounts.length > 0) {
-          const mappedAccs = data.adAccounts.map(a => ({
-            name: a.name || 'Conta',
-            id: a.accountId || (a.id ? a.id.replace('act_', '') : '0000'),
-            bm: a.businessName || 'BM Principal',
-            currency: a.currency === 'USD' ? 'USD (→ BRL @ 5,12)' : 'BRL',
-            status: a.status === 'ACTIVE' ? 'Ativa' : 'Desativada',
-            sync: a.status === 'ACTIVE'
-          }));
+          const savedLocal = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
+          let localSyncMap = {};
+          if (savedLocal) {
+            try {
+              const parsed = JSON.parse(savedLocal);
+              if (Array.isArray(parsed)) {
+                parsed.forEach(p => {
+                  if (p.id) localSyncMap[p.id] = p.sync;
+                });
+              }
+            } catch (e) {}
+          }
+
+          const mappedAccs = data.adAccounts.map(a => {
+            const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
+            return {
+              name: a.name || 'Conta',
+              id: accId,
+              bm: a.businessName || 'BM Principal',
+              currency: a.currency === 'USD' ? 'USD (→ BRL @ 5,12)' : 'BRL',
+              status: a.status === 'ACTIVE' ? 'Ativa' : 'Desativada',
+              // Sempre inicia desativada (sync: false), a menos que o usuário já tenha ativado manualmente no localStorage
+              sync: localSyncMap[accId] === true
+            };
+          });
           setAdAccounts(mappedAccs);
           localStorage.setItem('primetrack_ad_accounts', JSON.stringify(mappedAccs));
         }
@@ -1745,8 +1762,8 @@ export default function Integrations() {
                       localStorage.setItem('primetrack_connected_profiles', JSON.stringify(newProfiles));
 
                       const newAccs = [
-                        { name: 'CA01', id: '1892117896682979', bm: 'DIGITAL JM SOLUCOES LTDA', currency: 'BRL', status: 'Ativa', sync: true },
-                        { name: 'CA02 JEFFREY', id: '1101817232408751', bm: 'DIGITAL JM SOLUCOES LTDA', currency: 'BRL', status: 'Ativa', sync: trialStatus.isTrial ? false : true }
+                        { name: 'CA01', id: '1892117896682979', bm: 'DIGITAL JM SOLUCOES LTDA', currency: 'BRL', status: 'Ativa', sync: false },
+                        { name: 'CA02 JEFFREY', id: '1101817232408751', bm: 'DIGITAL JM SOLUCOES LTDA', currency: 'BRL', status: 'Ativa', sync: false }
                       ];
                       setAdAccounts(newAccs);
                       localStorage.setItem('primetrack_ad_accounts', JSON.stringify(newAccs));
