@@ -279,7 +279,32 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             setAdAccountsList([]);
           }
         } else if (data.adAccounts && data.adAccounts.length > 0) {
-          setAdAccountsList(data.adAccounts);
+          const savedLocal = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
+          let localSyncMap = {};
+          if (savedLocal) {
+            try {
+              const parsed = JSON.parse(savedLocal);
+              if (Array.isArray(parsed)) {
+                parsed.forEach(p => {
+                  if (p.id) localSyncMap[p.id] = p.sync;
+                });
+              }
+            } catch (e) {}
+          }
+          const mappedAccs = data.adAccounts.map(a => {
+            const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
+            return {
+              name: a.name || 'Conta',
+              id: accId,
+              bm: a.businessName || 'BM Principal',
+              currency: a.currency === 'USD' ? 'USD (→ BRL @ 5,12)' : 'BRL',
+              status: a.status === 'ACTIVE' ? 'Ativa' : 'Desativada',
+              balance: a.balance || '0,00',
+              amountSpent: a.amountSpent || '0,00',
+              sync: localSyncMap[accId] === true
+            };
+          });
+          setAdAccountsList(mappedAccs);
         }
       })
       .catch(err => console.log('Erro ao carregar contas:', err));
