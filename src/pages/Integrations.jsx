@@ -215,16 +215,8 @@ export default function Integrations() {
     }
     const fullToken = `pt_${randomHex}`;
 
-    // Detecta plataforma pelo nome digitado (ex: kiwify, hotmart, lowify, etc.)
-    const lowerName = rawName.toLowerCase();
-    let detectedPlatform = '';
-    if (lowerName.includes('lowify')) detectedPlatform = 'lowify';
-    else if (lowerName.includes('kiwify')) detectedPlatform = 'kiwify';
-    else if (lowerName.includes('eduzz')) detectedPlatform = 'eduzz';
-    else if (lowerName.includes('cakto')) detectedPlatform = 'cakto';
-    else if (lowerName.includes('kirvano')) detectedPlatform = 'kirvano';
-    else if (lowerName.includes('perfect')) detectedPlatform = 'perfectpay';
-    else if (lowerName.includes('braip')) detectedPlatform = 'braip';
+    // Plataforma é o nome inserido pelo usuário
+    const platformName = rawName.toLowerCase();
 
     // Data formatada DD/MM/YYYY
     const today = new Date();
@@ -233,7 +225,7 @@ export default function Integrations() {
     const newTokenItem = {
       id: `tok_${Date.now()}`,
       name: rawName,
-      platform: detectedPlatform,
+      platform: platformName,
       token: fullToken,
       status: 'Ativo',
       lastUsed: '—',
@@ -1086,7 +1078,6 @@ export default function Integrations() {
               <table className="w-full text-left text-xs font-sans whitespace-nowrap">
                 <thead className="bg-[#070D1A] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E]">
                   <tr>
-                    <th className="py-3 px-4">NOME</th>
                     <th className="py-3 px-4">PLATAFORMA</th>
                     <th className="py-3 px-4">TOKEN</th>
                     <th className="py-3 px-4 text-center">STATUS</th>
@@ -1099,16 +1090,9 @@ export default function Integrations() {
                   {apiTokens.map((tok) => (
                     <tr key={tok.id} className="hover:bg-white/[0.02] transition-colors">
                       <td className="py-4 px-4 font-bold text-white">
-                        {tok.name}
-                      </td>
-                      <td className="py-4 px-4">
-                        {tok.platform ? (
-                          <span className="px-2.5 py-0.5 rounded-full bg-[#1A6DFF] text-white font-mono text-[10px] font-bold">
-                            {tok.platform}
-                          </span>
-                        ) : (
-                          <span className="text-zinc-600 font-mono">—</span>
-                        )}
+                        <span className="px-2.5 py-0.5 rounded-full bg-[#1A6DFF] text-white font-mono text-[10px] font-bold">
+                          {tok.platform || tok.name}
+                        </span>
                       </td>
                       <td className="py-4 px-4 font-mono text-zinc-300">
                         {tok.token ? `${tok.token.slice(0, 3)}****${tok.token.slice(-6)}` : 'pt_****1775a8'}
@@ -1613,14 +1597,14 @@ export default function Integrations() {
             <form onSubmit={handleGenerateToken} className="space-y-4">
               <div>
                 <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-2 font-mono">
-                  NOME DO TOKEN
+                  NOME DA PLATAFORMA
                 </label>
                 <input 
                   type="text"
                   autoFocus
                   value={tokenInputName}
                   onChange={(e) => setTokenInputName(e.target.value)}
-                  placeholder="Ex: Hotmart Produto X"
+                  placeholder="Ex: Hotmart, Kiwify, Monetizze..."
                   className="w-full px-4 py-2.5 rounded-xl bg-[#060D1A] border border-[#1E3254] text-white placeholder:text-zinc-600 text-xs focus:outline-none focus:border-[#1A6DFF] transition-colors"
                 />
               </div>
