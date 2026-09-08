@@ -111,6 +111,7 @@ export default function Integrations() {
   const [tokenInputName, setTokenInputName] = useState('');
   const [recentCreatedToken, setRecentCreatedToken] = useState(null);
   const [copiedRecentToken, setCopiedRecentToken] = useState(false);
+  const [tokenToDelete, setTokenToDelete] = useState(null);
 
   // Facebook Connection Flow States
   const [showConnectModal, setShowConnectModal] = useState(false);
@@ -1201,7 +1202,7 @@ export default function Integrations() {
                       </td>
                       <td className="py-4 px-4 text-right font-mono">
                         <button 
-                          onClick={() => handleDeleteToken(tok.id)}
+                          onClick={() => setTokenToDelete(tok)}
                           className="text-red-400 hover:text-red-300 text-xs font-medium transition-colors cursor-pointer"
                         >
                           Excluir
@@ -1966,6 +1967,50 @@ export default function Integrations() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO DE TOKEN (Screenshot)                    */}
+      {/* ========================================================================= */}
+      {tokenToDelete && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => setTokenToDelete(null)}
+        >
+          <div 
+            className="bg-[#0C172B] border border-[#1E3254] rounded-2xl max-w-sm w-full p-6 shadow-2xl relative text-center space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Ícone de alerta em círculo azul */}
+            <div className="w-12 h-12 rounded-full bg-[#10203D] border border-[#1E3254] flex items-center justify-center mx-auto text-[#2B66E3]">
+              <AlertTriangle className="w-6 h-6 stroke-[2]" />
+            </div>
+
+            <h3 className="text-base font-bold text-white tracking-tight">
+              Excluir este token?
+            </h3>
+
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setTokenToDelete(null)}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-[#070D1A] hover:bg-white/5 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleDeleteToken(tokenToDelete.id);
+                  setTokenToDelete(null);
+                }}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 text-xs font-bold text-white shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+              >
+                Confirmar
+              </button>
+            </div>
           </div>
         </div>
       )}
