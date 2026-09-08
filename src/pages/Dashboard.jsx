@@ -144,35 +144,39 @@ export default function Dashboard({ onSimulateSale }) {
       }
 
       if (data.adAccounts && data.adAccounts.length > 0) {
-        const mappedAccs = data.adAccounts
-          .map(a => {
-            const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
-            const isSyncActive = a.syncActive !== undefined
-              ? a.syncActive === true
-              : (localSyncMap[accId] !== undefined ? localSyncMap[accId] === true : false);
+        const allMappedAccs = data.adAccounts.map(a => {
+          const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
+          const isSyncActive = a.syncActive !== undefined
+            ? a.syncActive === true
+            : (localSyncMap[accId] !== undefined ? localSyncMap[accId] === true : false);
 
-            const isRealPrepay = a.isPrepay === true || accId === '1218349886840112';
-            const realBalance = isRealPrepay ? (a.balance || '4,05') : '0,00';
+          const isRealPrepay = a.isPrepay === true || accId === '1218349886840112';
+          const realBalance = isRealPrepay ? (a.balance || '4,05') : '0,00';
+          const realCurrency = a.currency === 'USD' || a.rawCurrency === 'USD' || ['1043285988469816', '1092137896602979', '1611243834049326', '28591581777115664'].includes(accId)
+            ? 'USD'
+            : (a.currency || a.rawCurrency || 'BRL');
+          const isAccountActive = a.status === 'ACTIVE' || a.status === 'Ativa' || a.account_status === 1;
 
-            return {
-              name: a.name || 'Conta',
-              id: accId,
-              bm: a.businessName || 'BM Principal',
-              currency: 'BRL',
-              status: a.status === 'ACTIVE' ? 'Ativa' : 'Desativada',
-              balance: realBalance,
-              amountSpent: a.amountSpent || '0,00',
-              sync: isSyncActive
-            };
-          })
-          .filter(a => a.sync === true); // Apenas contas ativadas no perfil em integrações
-        
-        setAdAccountsList(mappedAccs);
+          return {
+            name: a.name || 'Conta',
+            id: accId,
+            bm: a.businessName || 'BM Principal',
+            currency: realCurrency,
+            status: isAccountActive ? 'Ativa' : 'Bloqueada',
+            balance: realBalance,
+            amountSpent: a.amountSpent || '0,00',
+            sync: isSyncActive
+          };
+        });
+
         if (typeof window !== 'undefined') {
-          localStorage.setItem('primetrack_ad_accounts', JSON.stringify(mappedAccs));
+          localStorage.setItem('primetrack_ad_accounts', JSON.stringify(allMappedAccs));
         }
 
-        if (accountFilter !== 'Todas' && !mappedAccs.some(a => a.id === accountFilter || a.name === accountFilter)) {
+        const activeSyncedAccs = allMappedAccs.filter(a => a.sync === true);
+        setAdAccountsList(activeSyncedAccs);
+
+        if (accountFilter !== 'Todas' && !activeSyncedAccs.some(a => a.id === accountFilter || a.name === accountFilter)) {
           setAccountFilter('Todas');
         }
       } else {

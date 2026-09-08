@@ -204,8 +204,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               name: a.name || 'Conta',
               id: accId,
               bm: a.businessName || 'BM Principal',
-              currency: 'BRL',
-              status: a.status === 'ACTIVE' ? 'Ativa' : 'Desativada',
+              currency: a.currency || a.rawCurrency || 'BRL',
+              status: a.status === 'ACTIVE' || a.status === 'Ativa' ? 'Ativa' : 'Bloqueada',
               balance: a.balance || '0,00',
               amountSpent: a.amountSpent || '0,00',
               sync: isSyncActive
@@ -643,10 +643,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                         <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
                           acc.status === 'ACTIVE' || acc.status === 'Ativa'
                             ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                            : 'bg-zinc-800 text-zinc-400'
+                            : 'bg-red-500/10 text-red-400 border border-red-500/30'
                         }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${acc.status === 'ACTIVE' || acc.status === 'Ativa' ? 'bg-emerald-400' : 'bg-zinc-500'}`} />
-                          <span>{acc.status === 'ACTIVE' || acc.status === 'Ativa' ? 'Ativo' : 'Desativado'}</span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${acc.status === 'ACTIVE' || acc.status === 'Ativa' ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                          <span>{acc.status === 'ACTIVE' || acc.status === 'Ativa' ? 'Ativa' : 'Bloqueada'}</span>
                         </span>
                       </td>
                       <td className="py-3.5 px-4 font-sans font-bold text-white">

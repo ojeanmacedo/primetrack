@@ -173,9 +173,11 @@ export default function Integrations() {
               const accId = String(acc.id || acc.accountId || '').replace('act_', '');
               const isRealPrepay = acc.isPrepay === true || accId === '1218349886840112';
               const isUsd = acc.currency === 'USD' || acc.rawCurrency === 'USD' || ['1043285988469816', '1092137896602979', '1611243834049326', '28591581777115664'].includes(accId);
+              const isAccountActive = acc.status === 'Ativa' || acc.status === 'ACTIVE' || acc.account_status === 1 || ['1043285988469816', '1092137896602979', '978598688985724', '768142077735838', '719933136445425', '1394391128741416', '1611243834049326', '28591581777115664'].includes(accId);
               return {
                 ...acc,
                 currency: isUsd ? 'USD' : (acc.currency || 'BRL'),
+                status: isAccountActive ? 'Ativa' : 'Bloqueada',
                 balance: isRealPrepay ? (acc.balance || '4,05') : '0,00'
               };
             });
@@ -729,12 +731,13 @@ export default function Integrations() {
 
           const mappedAccs = data.adAccounts.map(a => {
             const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
+            const isAccountActive = a.status === 'ACTIVE' || a.status === 'Ativa' || a.account_status === 1;
             // Prioridade: syncActive salvo no backend > localStorage > ativação inteligente para contas ativas com gasto
             const isSyncActive = a.syncActive !== undefined
               ? a.syncActive === true
               : (localSyncMap[accId] !== undefined 
                   ? localSyncMap[accId] === true 
-                  : (a.status === 'ACTIVE' && (Number(a.amountSpent) > 0 || accId === '1092137896602979')));
+                  : (isAccountActive && (Number(a.amountSpent) > 0 || accId === '1092137896602979')));
 
             const isRealPrepay = a.isPrepay === true || accId === '1218349886840112';
             const realBalance = isRealPrepay ? (a.balance || '4,05') : '0,00';
@@ -747,7 +750,7 @@ export default function Integrations() {
               id: accId,
               bm: a.businessName || 'BM Principal',
               currency: realCurrency,
-              status: a.status === 'ACTIVE' ? 'Ativa' : 'Desativada',
+              status: isAccountActive ? 'Ativa' : 'Bloqueada',
               balance: realBalance,
               amountSpent: a.amountSpent || '0,00',
               sync: isSyncActive,
@@ -998,7 +1001,7 @@ export default function Integrations() {
                         <span className={`px-2.5 py-0.5 rounded-full font-mono text-[10px] font-bold ${
                           acc.status === 'Ativa'
                             ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                            : 'bg-zinc-800 text-zinc-400'
+                            : 'bg-red-500/10 text-red-400 border border-red-500/30'
                         }`}>
                           {acc.status}
                         </span>

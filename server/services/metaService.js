@@ -158,7 +158,8 @@ export async function fetchAdAccounts(accessToken) {
       rawBalanceUsd: isUsd ? rawBalance.toFixed(2) : null,
       isPrepay,
       cardInfo: acc.funding_source_details?.display_string || null,
-      status: acc.account_status === 1 ? 'ACTIVE' : 'DISABLED',
+      account_status: acc.account_status,
+      status: acc.account_status === 1 ? 'Ativa' : 'Bloqueada',
       businessName: acc.business_name || acc.business?.name || 'BM Principal',
       syncActive: false
     };
@@ -197,7 +198,8 @@ export async function fetchLiveAccountDetails(adAccountId, accessToken) {
     rawBalanceUsd: isUsd ? rawBalance.toFixed(2) : null,
     isPrepay,
     cardInfo: data.funding_source_details?.display_string || null,
-    status: data.account_status === 1 ? 'ACTIVE' : 'DISABLED',
+    account_status: data.account_status,
+    status: data.account_status === 1 ? 'Ativa' : 'Bloqueada',
     businessName: data.business_name || 'BM Principal'
   };
 }

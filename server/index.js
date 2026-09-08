@@ -966,7 +966,7 @@ async function executeMetaSync({ datePreset = 'today', timeRange = null, account
   }
 
   // Garante que só consulta contas ativas para não tomar rate limit em contas desativadas da BM
-  const accountsToQuery = targetAccounts.filter(a => a.status !== 'DISABLED' && a.account_status !== 2 && a.account_status !== 101);
+  const accountsToQuery = targetAccounts.filter(a => a.status !== 'DISABLED' && a.status !== 'Bloqueada' && a.account_status !== 2 && a.account_status !== 3 && a.account_status !== 101);
 
   if (accountsToQuery.length === 0) {
     return { 

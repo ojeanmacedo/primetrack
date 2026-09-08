@@ -67,9 +67,10 @@
       "rawBalanceUsd": null,
       "isPrepay": false,
       "cardInfo": null,
-      "status": "DISABLED",
+      "status": "Bloqueada",
       "businessName": "DIGITAL JM SOLUCOES LTDA",
-      "syncActive": false
+      "syncActive": false,
+      "account_status": 2
     },
     {
       "id": "act_1095793299643643",
@@ -82,9 +83,10 @@
       "rawBalanceUsd": null,
       "isPrepay": false,
       "cardInfo": "VISA *1623",
-      "status": "DISABLED",
+      "status": "Bloqueada",
       "businessName": "DIGITAL JM SOLUCOES LTDA",
-      "syncActive": false
+      "syncActive": false,
+      "account_status": 2
     },
     {
       "id": "act_1043285988469816",
@@ -97,9 +99,10 @@
       "rawBalanceUsd": "0.00",
       "isPrepay": false,
       "cardInfo": null,
-      "status": "ACTIVE",
+      "status": "Ativa",
       "businessName": "Alpha Contingência",
-      "syncActive": false
+      "syncActive": false,
+      "account_status": 1
     },
     {
       "id": "act_1092137896602979",
@@ -112,9 +115,10 @@
       "rawBalanceUsd": "12.59",
       "isPrepay": false,
       "cardInfo": "Mastercard *8994",
-      "status": "ACTIVE",
+      "status": "Ativa",
       "businessName": "Marinhos Dog",
-      "syncActive": true
+      "syncActive": true,
+      "account_status": 1
     },
     {
       "id": "act_978598688985724",
@@ -127,9 +131,10 @@
       "rawBalanceUsd": null,
       "isPrepay": false,
       "cardInfo": null,
-      "status": "ACTIVE",
+      "status": "Ativa",
       "businessName": "BM Principal",
-      "syncActive": false
+      "syncActive": false,
+      "account_status": 1
     },
     {
       "id": "act_768142077735838",
@@ -142,9 +147,10 @@
       "rawBalanceUsd": null,
       "isPrepay": false,
       "cardInfo": null,
-      "status": "ACTIVE",
+      "status": "Ativa",
       "businessName": "BM MTZ",
-      "syncActive": false
+      "syncActive": false,
+      "account_status": 1
     },
     {
       "id": "act_719933136445425",
@@ -157,9 +163,10 @@
       "rawBalanceUsd": null,
       "isPrepay": false,
       "cardInfo": null,
-      "status": "ACTIVE",
+      "status": "Ativa",
       "businessName": "DIGITAL JM SOLUCOES LTDA",
-      "syncActive": false
+      "syncActive": false,
+      "account_status": 1
     },
     {
       "id": "act_1893409298725562",
@@ -172,9 +179,10 @@
       "rawBalanceUsd": null,
       "isPrepay": false,
       "cardInfo": "VISA *2618",
-      "status": "DISABLED",
+      "status": "Bloqueada",
       "businessName": "DIGITAL JM SOLUCOES LTDA",
-      "syncActive": false
+      "syncActive": false,
+      "account_status": 2
     },
     {
       "id": "act_853877350942504",
@@ -187,9 +195,10 @@
       "rawBalanceUsd": null,
       "isPrepay": false,
       "cardInfo": "VISA *2168",
-      "status": "DISABLED",
+      "status": "Bloqueada",
       "businessName": "DIGITAL JM SOLUCOES LTDA",
-      "syncActive": false
+      "syncActive": false,
+      "account_status": 2
     },
     {
       "id": "act_1644138016951671",
@@ -202,9 +211,10 @@
       "rawBalanceUsd": null,
       "isPrepay": false,
       "cardInfo": "VISA *5964",
-      "status": "DISABLED",
+      "status": "Bloqueada",
       "businessName": "DIGITAL JM SOLUCOES LTDA",
-      "syncActive": false
+      "syncActive": false,
+      "account_status": 2
     },
     {
       "id": "act_1382762426809874",
@@ -217,9 +227,10 @@
       "rawBalanceUsd": null,
       "isPrepay": false,
       "cardInfo": "VISA *5575",
-      "status": "DISABLED",
+      "status": "Bloqueada",
       "businessName": "DIGITAL JM SOLUCOES LTDA",
-      "syncActive": false
+      "syncActive": false,
+      "account_status": 2
     },
     {
       "id": "act_1394391128741416",
@@ -232,9 +243,10 @@
       "rawBalanceUsd": null,
       "isPrepay": false,
       "cardInfo": "VISA *4416",
-      "status": "ACTIVE",
+      "status": "Ativa",
       "businessName": "DIGITAL JM SOLUCOES LTDA",
-      "syncActive": false
+      "syncActive": false,
+      "account_status": 1
     },
     {
       "id": "act_1218349886840112",
@@ -247,9 +259,10 @@
       "rawBalanceUsd": null,
       "isPrepay": true,
       "cardInfo": null,
-      "status": "DISABLED",
+      "status": "Bloqueada",
       "businessName": "DIGITAL JM SOLUCOES LTDA",
-      "syncActive": false
+      "syncActive": false,
+      "account_status": 2
     },
     {
       "id": "act_1218328933564373",
@@ -262,9 +275,10 @@
       "rawBalanceUsd": null,
       "isPrepay": false,
       "cardInfo": null,
-      "status": "DISABLED",
+      "status": "Bloqueada",
       "businessName": "DIGITAL JM SOLUCOES LTDA",
-      "syncActive": false
+      "syncActive": false,
+      "account_status": 2
     },
     {
       "id": "act_892092096617273",
@@ -277,9 +291,10 @@
       "rawBalanceUsd": null,
       "isPrepay": false,
       "cardInfo": "VISA *8596",
-      "status": "DISABLED",
+      "status": "Bloqueada",
       "businessName": "DIGITAL JM SOLUCOES LTDA",
-      "syncActive": false
+      "syncActive": false,
+      "account_status": 2
     },
     {
       "id": "act_890158093617924",
@@ -292,9 +307,10 @@
       "rawBalanceUsd": null,
       "isPrepay": false,
       "cardInfo": null,
-      "status": "DISABLED",
+      "status": "Bloqueada",
       "businessName": "DJS02",
-      "syncActive": false
+      "syncActive": false,
+      "account_status": 2
     },
     {
       "id": "act_4088067061443375",
@@ -307,9 +323,10 @@
       "rawBalanceUsd": null,
       "isPrepay": false,
       "cardInfo": "VISA *6037",
-      "status": "DISABLED",
+      "status": "Bloqueada",
       "businessName": "ACOUGUE CENTRAL LTDA",
-      "syncActive": false
+      "syncActive": false,
+      "account_status": 2
     },
     {
       "id": "act_1530496848523142",
@@ -322,9 +339,10 @@
       "rawBalanceUsd": null,
       "isPrepay": false,
       "cardInfo": null,
-      "status": "DISABLED",
+      "status": "Bloqueada",
       "businessName": "MARKTPLACE ONLINE",
-      "syncActive": false
+      "syncActive": false,
+      "account_status": 2
     },
     {
       "id": "act_1611243834049326",
@@ -337,9 +355,10 @@
       "rawBalanceUsd": "0.00",
       "isPrepay": false,
       "cardInfo": null,
-      "status": "ACTIVE",
+      "status": "Ativa",
       "businessName": "Mr. Tyler",
-      "syncActive": false
+      "syncActive": false,
+      "account_status": 1
     },
     {
       "id": "act_28591581777115664",
@@ -352,9 +371,10 @@
       "rawBalanceUsd": "0.80",
       "isPrepay": false,
       "cardInfo": "VISA *9912",
-      "status": "ACTIVE",
+      "status": "Ativa",
       "businessName": "DIGITAL ONLINE",
-      "syncActive": false
+      "syncActive": false,
+      "account_status": 1
     },
     {
       "id": "act_1803706660782856",
@@ -367,9 +387,10 @@
       "rawBalanceUsd": null,
       "isPrepay": false,
       "cardInfo": null,
-      "status": "DISABLED",
+      "status": "Bloqueada",
       "businessName": "Jean Macedo",
-      "syncActive": false
+      "syncActive": false,
+      "account_status": 2
     },
     {
       "id": "act_2090890291518170",
@@ -382,9 +403,10 @@
       "rawBalanceUsd": null,
       "isPrepay": false,
       "cardInfo": null,
-      "status": "DISABLED",
+      "status": "Bloqueada",
       "businessName": "Jean Macedo",
-      "syncActive": false
+      "syncActive": false,
+      "account_status": 2
     }
   ],
   "meta_ads": [
