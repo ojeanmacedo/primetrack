@@ -508,8 +508,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setEditingCampaign(parentCamp);
     setEditingField(field);
     setEditName(item.name || parentCamp.name || 'TESTE MI');
-    setEditBudget(parentCamp.budget || item.budget || '256.99');
-    setEditBidCap(item.bidCap || parentCamp.bidCap || '11.02');
+
+    // Converte ponto para vírgula para exibição no padrão brasileiro
+    const rawBudget = String(parentCamp.budget || item.budget || '256,99').replace('.', ',');
+    const rawBidCap = String(item.bidCap || parentCamp.bidCap || '11,02').replace('.', ',');
+    
+    setEditBudget(rawBudget);
+    setEditBidCap(rawBidCap);
     setEditStrategy(parentCamp.bidStrategy || 'LOWEST_COST_WITH_BID_CAP');
   };
 
@@ -519,6 +524,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setSavingEdit(true);
 
     const targetId = editingItem?.id || editingCampaign.id;
+
+    // Normaliza valores numéricos trocando vírgula por ponto para o backend
+    const normalizedBudget = String(editBudget).trim().replace(',', '.');
+    const normalizedBidCap = String(editBidCap).trim().replace(',', '.');
 
     // Se estiver editando nome de Conjunto ou Anúncio
     if (editingField === 'name' && subTab !== 'Campanhas') {
@@ -536,14 +545,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       saveItemNameOverride(editingCampaign.id, editName);
     }
 
-    // Atualiza imediatamente na tabela
+    // Atualiza imediatamente na tabela (formato exibição com vírgula ou float padronizado)
     setCampaignsList(prev => prev.map(c => {
       if (c.id === editingCampaign.id || c.name === editingCampaign.name) {
         return {
           ...c,
           name: editingField === 'name' ? editName : c.name,
-          budget: editingField === 'budget' ? editBudget : c.budget,
-          bidCap: editingField === 'bid' ? editBidCap : c.bidCap,
+          budget: editingField === 'budget' ? normalizedBudget : c.budget,
+          bidCap: editingField === 'bid' ? normalizedBidCap : c.bidCap,
           bidStrategy: editStrategy
         };
       }
@@ -558,8 +567,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         body: JSON.stringify({
           id: editingCampaign.id,
           name: editingField === 'name' ? editName : editingCampaign.name,
-          budget: editBudget,
-          bidCap: editBidCap,
+          budget: normalizedBudget,
+          bidCap: normalizedBidCap,
           bidStrategy: editStrategy,
           profileType: 'standard'
         })
@@ -1863,7 +1872,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       value={editBudget}
                       onChange={e => setEditBudget(e.target.value)}
                       className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white focus:outline-none focus:border-[#1A6DFF] font-mono font-bold text-sm"
-                      placeholder="99.51"
+                      placeholder="99,51"
                       required
                     />
                   </div>
@@ -1883,7 +1892,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       value={editBidCap}
                       onChange={e => setEditBidCap(e.target.value)}
                       className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-amber-300 focus:outline-none focus:border-amber-400 font-mono font-bold text-sm"
-                      placeholder="15.00"
+                      placeholder="15,00"
                       required
                     />
                   </div>
