@@ -28,12 +28,14 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body,
-    icon: data.icon || '/images/primetrack-app-icon.png',
-    badge: data.badge || '/images/primetrack-app-icon.png',
+    icon: data.icon || 'https://app.primetrack.top/images/primetrack-app-icon.png',
+    badge: data.badge || 'https://app.primetrack.top/images/primetrack-app-icon.png',
     image: data.image || undefined,
     tag: data.tag || 'primetrack-alert',
     renotify: true,
-    vibrate: [200, 100, 200, 100, 200],
+    silent: false,
+    sound: '/cash-register.wav',
+    vibrate: [300, 100, 300, 100, 300],
     data: data.data || { url: '/sales' }
   };
 

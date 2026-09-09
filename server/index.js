@@ -2326,32 +2326,43 @@ app.get('/api/push/vapid-public-key', (req, res) => {
   res.json({ publicKey: getVapidPublicKey() });
 });
 
-app.post('/api/push/subscribe', (req, res) => {
-  const subscription = req.body;
-  if (!subscription || !subscription.endpoint) {
-    return res.status(400).json({ error: 'Subscription inválida' });
+app.post('/api/push/subscribe', async (req, res) => {
+  try {
+    const subscription = req.body;
+    if (!subscription || !subscription.endpoint) {
+      return res.status(400).json({ error: 'Subscription inválida' });
+    }
+    await saveSubscription(subscription);
+    console.log('[WebPush] Nova inscrição gravada com sucesso!');
+    res.json({ success: true });
+  } catch (e) {
+    console.error('[WebPush] Erro ao salvar subscription:', e);
+    res.status(500).json({ error: e.message });
   }
-  saveSubscription(subscription);
-  res.json({ success: true });
 });
 
 app.post('/api/push/test', async (req, res) => {
-  const { type, amount, productName, campaign } = req.body;
-  const isPending = type === 'pending';
-  const val = amount || 'R$ 147,00';
-  const prod = productName || 'Produto Exemplo';
-  const camp = campaign ? ` • ${campaign}` : '';
+  try {
+    const { type, amount, productName, campaign } = req.body;
+    const isPending = type === 'pending';
+    const val = amount || 'R$ 147,00';
+    const prod = productName || 'Produto Exemplo';
+    const camp = campaign ? ` • ${campaign}` : '';
 
-  const result = await sendSalesNotification({
-    title: isPending ? '⏳ Venda Pendente!' : '🎉 Venda Aprovada!',
-    body: isPending 
-      ? `${val} — ${prod}${camp} (Aguardando Pagamento)`
-      : `${val} — ${prod}${camp}`,
-    icon: '/images/primetrack-app-icon.png',
-    data: { url: '/sales' }
-  });
+    const result = await sendSalesNotification({
+      title: isPending ? '⏳ Venda Pendente!' : '🎉 Venda Aprovada!',
+      body: isPending 
+        ? `${val} — ${prod}${camp} (Aguardando Pagamento)`
+        : `${val} — ${prod}${camp}`,
+      icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
+      data: { url: '/sales' }
+    });
 
-  res.json({ success: true, result });
+    res.json({ success: true, result });
+  } catch (err) {
+    console.error('[WebPush] Erro no endpoint /api/push/test:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 if (process.env.VERCEL !== '1') {

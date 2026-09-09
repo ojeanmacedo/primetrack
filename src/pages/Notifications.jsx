@@ -23,15 +23,24 @@ export default function Notifications() {
     }
   }, []);
 
+  const playCashSound = () => {
+    try {
+      const audio = new Audio('/cash-register.wav');
+      audio.volume = 1.0;
+      audio.play().catch(() => {});
+    } catch(e){}
+  };
+
   const handleSubscribePush = async () => {
     setPushLoading(true);
     setPushError(null);
     try {
+      playCashSound();
       await subscribeUserToPush();
       setPushSubscribed(true);
-      setTestMsg('Aparelho conectado com sucesso! Agora você pode testar pelo PC ou celular.');
+      setTestMsg('✅ iPhone conectado com sucesso! Agora você receberá notificações mesmo com a tela bloqueada.');
       setTestSent(true);
-      setTimeout(() => setTestSent(false), 4000);
+      setTimeout(() => setTestSent(false), 5000);
     } catch (err) {
       setPushError(err.message || 'Falha ao ativar notificações push');
     } finally {
@@ -40,6 +49,7 @@ export default function Notifications() {
   };
 
   const handleTest = async (type = 'approved') => {
+    playCashSound();
     setTestMsg(type === 'pending' ? 'Notificação de Venda Pendente enviada para todos os aparelhos!' : 'Notificação de Venda Aprovada enviada para todos os aparelhos!');
     setTestSent(true);
 
@@ -58,7 +68,7 @@ export default function Notifications() {
       if (data?.result?.sent > 0) {
         setTestMsg(`🎉 Notificação entregue para ${data.result.sent} aparelho(s)!`);
       } else if (data?.result?.total === 0) {
-        setTestMsg('Nenhum aparelho com permissão ativa. Ative no iPhone primeiro.');
+        setTestMsg('Nenhum aparelho conectado. Abra o app no iPhone e clique no botão azul "Ativar no iPhone / Safari".');
       }
     } catch (e) {
       console.warn('Erro ao disparar teste push:', e);
