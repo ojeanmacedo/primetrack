@@ -2357,14 +2357,14 @@ app.post('/api/push/test', async (req, res) => {
     const val = amount || 'R$ 14,00';
     const camp = campaign || '[ESCALA] BF Criativo 03';
 
-    let title = 'Venda Aprovada!';
+    let title = 'Notificação Teste — Venda Aprovada!';
     let body = `Comissão: ${val} — ${camp}`;
 
     if (isPending) {
-      title = 'Venda Pendente!';
+      title = 'Notificação Teste — Venda Pendente!';
       body = `Comissão: ${val} — ${camp}`;
     } else if (isRefunded) {
-      title = 'Venda Reembolsada!';
+      title = 'Notificação Teste — Venda Reembolsada!';
       body = `Comissão: -${val} — ${camp}`;
     }
 
