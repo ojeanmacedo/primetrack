@@ -210,15 +210,6 @@ export default function Notifications() {
                 </button>
               </div>
             </div>
-                    vendasPendentes ? 'bg-[#2B66E3]' : 'bg-zinc-700'
-                  }`}
-                >
-                  <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                    vendasPendentes ? 'translate-x-4' : 'translate-x-0'
-                  }`} />
-                </button>
-              </div>
-            </div>
 
             {/* Item 3 */}
             <div className="flex items-center justify-between">
