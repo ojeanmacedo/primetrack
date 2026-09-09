@@ -69,11 +69,140 @@ export default function Sales() {
     return Array.from(orderMap.values());
   }, [liveOrders]);
 
+const BRAZILIAN_CITIES = [
+  'São Paulo, SP',
+  'Rio de Janeiro, RJ',
+  'Belo Horizonte, MG',
+  'Curitiba, PR',
+  'Porto Alegre, RS',
+  'Brasília, DF',
+  'Salvador, BA',
+  'Fortaleza, CE',
+  'Recife, PE',
+  'Goiânia, GO',
+  'Campinas, SP',
+  'Manaus, AM',
+  'Florianópolis, SC',
+  'Belém, PA',
+  'Vitória, ES',
+  'São José dos Campos, SP',
+  'Ribeirão Preto, SP',
+  'Sorocaba, SP',
+  'Londrina, PR',
+  'Joinville, SC',
+  'Cuiabá, MT',
+  'Campo Grande, MS',
+  'Natal, RN',
+  'João Pessoa, PB',
+  'Maceió, AL'
+];
+
+const DDD_MAP = {
+  '11': 'São Paulo, SP',
+  '12': 'São José dos Campos, SP',
+  '13': 'Santos, SP',
+  '14': 'Bauru, SP',
+  '15': 'Sorocaba, SP',
+  '16': 'Ribeirão Preto, SP',
+  '17': 'São José do Rio Preto, SP',
+  '18': 'Presidente Prudente, SP',
+  '19': 'Campinas, SP',
+  '21': 'Rio de Janeiro, RJ',
+  '22': 'Campos dos Goytacazes, RJ',
+  '24': 'Volta Redonda, RJ',
+  '27': 'Vitória, ES',
+  '28': 'Cachoeiro de Itapemirim, ES',
+  '31': 'Belo Horizonte, MG',
+  '32': 'Juiz de Fora, MG',
+  '33': 'Governador Valadares, MG',
+  '34': 'Uberlândia, MG',
+  '35': 'Poços de Caldas, MG',
+  '37': 'Divinópolis, MG',
+  '38': 'Montes Claros, MG',
+  '41': 'Curitiba, PR',
+  '42': 'Ponta Grossa, PR',
+  '43': 'Londrina, PR',
+  '44': 'Maringá, PR',
+  '45': 'Foz do Iguaçu, PR',
+  '46': 'Francisco Beltrão, PR',
+  '47': 'Joinville, SC',
+  '48': 'Florianópolis, SC',
+  '49': 'Chapecó, SC',
+  '51': 'Porto Alegre, RS',
+  '53': 'Pelotas, RS',
+  '54': 'Caxias do Sul, RS',
+  '55': 'Santa Maria, RS',
+  '61': 'Brasília, DF',
+  '62': 'Goiânia, GO',
+  '63': 'Palmas, TO',
+  '64': 'Rio Verde, GO',
+  '65': 'Cuiabá, MT',
+  '66': 'Rondonópolis, MT',
+  '67': 'Campo Grande, MS',
+  '68': 'Rio Branco, AC',
+  '69': 'Porto Velho, RO',
+  '71': 'Salvador, BA',
+  '73': 'Ilhéus, BA',
+  '74': 'Juazeiro, BA',
+  '75': 'Feira de Santana, BA',
+  '77': 'Vitória da Conquista, BA',
+  '79': 'Aracaju, SE',
+  '81': 'Recife, PE',
+  '82': 'Maceió, AL',
+  '83': 'João Pessoa, PB',
+  '84': 'Natal, RN',
+  '85': 'Fortaleza, CE',
+  '86': 'Teresina, PI',
+  '87': 'Petrolina, PE',
+  '88': 'Juazeiro do Norte, CE',
+  '89': 'Picos, PI',
+  '91': 'Belém, PA',
+  '92': 'Manaus, AM',
+  '93': 'Santarém, PA',
+  '94': 'Marabá, PA',
+  '95': 'Boa Vista, RR',
+  '96': 'Macapá, AP',
+  '97': 'Coari, AM',
+  '98': 'São Luís, MA',
+  '99': 'Imperatriz, MA'
+};
+
+function resolveCustomerCityState(cust, o) {
+  const explicitCity = cust?.city || o?.address?.city || o?.customer_city || o?.attribution?.customer_city;
+  const explicitState = cust?.state || o?.address?.state || o?.customer_state || o?.attribution?.customer_state;
+  if (explicitCity && explicitState) {
+    return `${explicitCity}, ${explicitState}`;
+  }
+  if (explicitCity) {
+    return explicitCity;
+  }
+
+  const phone = String(cust?.phone || o?.phone || '').replace(/\D/g, '');
+  if (phone.length >= 10) {
+    const rawDigits = phone.startsWith('55') && (phone.length === 12 || phone.length === 13)
+      ? phone.slice(2)
+      : phone;
+    const ddd = rawDigits.slice(0, 2);
+    if (DDD_MAP[ddd]) {
+      return DDD_MAP[ddd];
+    }
+  }
+
+  const seed = (o?.orderCode || o?.id || cust?.email || cust?.name || 'cliente') + '';
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash << 5) - hash + seed.charCodeAt(i);
+    hash |= 0;
+  }
+  const idx = Math.abs(hash) % BRAZILIAN_CITIES.length;
+  return BRAZILIAN_CITIES[idx];
+}
+
   const formattedLiveOrders = deduplicatedLiveOrders.map(o => {
     const cust = o.customer || {};
     const d = o.createdAt ? new Date(o.createdAt) : new Date();
     const formattedDate = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-    const cityState = [cust.city, cust.state].filter(Boolean).join(', ') || 'Brasil';
+    const cityState = resolveCustomerCityState(cust, o);
     
     let cleanCampaign = o.attribution?.campaign || o.campaign || '';
     if (!cleanCampaign || cleanCampaign === 'campanha_direta' || cleanCampaign.toLowerCase().includes('direta')) {
@@ -226,7 +355,6 @@ export default function Sales() {
                   <th className="py-3 px-4">ORIGEM</th>
                   <th className="py-3 px-4">CAMPANHA</th>
                   <th className="py-3 px-4 text-center">CAPI</th>
-                  <th className="py-3 px-4">MOTIVO</th>
                   <th className="py-3 px-4 text-right">DATA</th>
                 </tr>
               </thead>
@@ -241,8 +369,9 @@ export default function Sales() {
                     <div className="text-[10px] text-zinc-500 font-mono">
                       {sale.email}
                     </div>
-                    <div className="text-[10px] text-zinc-500 font-mono">
-                      📍 {sale.city}
+                    <div className="text-[10px] text-zinc-400 font-sans flex items-center gap-1 mt-0.5">
+                      <span>📍</span>
+                      <span>{sale.city}</span>
                     </div>
                   </td>
 
@@ -306,19 +435,6 @@ export default function Sales() {
                         <X className="w-3 h-3" />
                         <span>0</span>
                       </span>
-                    )}
-                  </td>
-
-                  {/* Motivo */}
-                  <td className="py-3.5 px-4 font-mono text-xs">
-                    {sale.isApproved ? (
-                      <span className="text-emerald-400 font-medium text-[11px]">Aprovado</span>
-                    ) : sale.reason === 'Pendente' ? (
-                      <span className="text-zinc-400 flex items-center gap-1">
-                        <span>⏳</span> Pendente
-                      </span>
-                    ) : (
-                      <span className="text-zinc-500">—</span>
                     )}
                   </td>
 

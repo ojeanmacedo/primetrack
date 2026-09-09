@@ -418,7 +418,11 @@ app.all([
           customer_name: parsed.customer?.name || null,
           customer_email: parsed.customer?.email || null,
           customer_phone: parsed.customer?.phone || null,
-          attribution: attribution || null,
+          attribution: {
+            ...(attribution || {}),
+            customer_city: parsed.customer?.city || '',
+            customer_state: parsed.customer?.state || ''
+          },
           emq_score: capiResult.emq.score || 9.7,
           created_at: orderRecord.createdAt
         });
@@ -540,7 +544,9 @@ async function getAllOrders(forceFresh = false) {
         customer: {
           name: row.customer_name,
           email: row.customer_email,
-          phone: row.customer_phone
+          phone: row.customer_phone,
+          city: row.customer_city || row.city || row.attribution?.customer_city || row.attribution?.city || '',
+          state: row.customer_state || row.state || row.attribution?.customer_state || row.attribution?.state || ''
         },
         attribution: sanitizeAttribution(row.attribution),
         emqScore: row.emq_score,
