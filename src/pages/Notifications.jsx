@@ -71,7 +71,11 @@ export default function Notifications() {
   };
 
   const handleTest = async (type = 'approved') => {
-    setTestMsg(type === 'pending' ? 'Notificação de Venda Pendente enviada para todos os aparelhos!' : 'Notificação de Venda Aprovada enviada para todos os aparelhos!');
+    let typeLabel = 'Venda Aprovada';
+    if (type === 'pending') typeLabel = 'Venda Pendente';
+    if (type === 'refunded') typeLabel = 'Venda Reembolsada';
+
+    setTestMsg(`Notificação de ${typeLabel} enviada para todos os aparelhos!`);
     setTestSent(true);
 
     try {
@@ -80,16 +84,15 @@ export default function Notifications() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type,
-          amount: 'R$ 147,00',
-          productName: 'Mentoria PrimeTrack',
-          campaign: '[ESCALA] Campanha Teste'
+          amount: 'R$ 14,00',
+          campaign: '[ESCALA] BF Criativo 03'
         })
       });
       const data = await res.json();
       if (data?.result?.sent > 0) {
         setTestMsg(`🎉 Notificação entregue para ${data.result.sent} aparelho(s)!`);
       } else if (data?.result?.total === 0) {
-        setTestMsg('Nenhum aparelho conectado. Abra o app no iPhone e clique no botão azul "Ativar no iPhone / Safari".');
+        setTestMsg('Nenhum aparelho conectado.');
       }
     } catch (e) {
       console.warn('Erro ao disparar teste push:', e);
@@ -216,8 +219,8 @@ export default function Notifications() {
               <span className="text-white font-medium">Vendas reembolsadas</span>
               <div className="flex items-center gap-3">
                 <button 
-                  onClick={handleTest}
-                  className="px-2.5 py-1 rounded-lg bg-[#070D1A] border border-white/10 hover:border-brand text-zinc-300 text-[11px] flex items-center gap-1.5"
+                  onClick={() => handleTest('refunded')}
+                  className="px-2.5 py-1 rounded-lg bg-[#070D1A] border border-white/10 hover:border-brand text-zinc-300 text-[11px] flex items-center gap-1.5 cursor-pointer"
                 >
                   <Bell className="w-3 h-3 text-amber-400" />
                   <span>Testar</span>
@@ -225,7 +228,7 @@ export default function Notifications() {
                 <button
                   type="button"
                   onClick={() => setVendasReembolsadas(!vendasReembolsadas)}
-                  className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors ${
+                  className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
                     vendasReembolsadas ? 'bg-[#2B66E3]' : 'bg-zinc-700'
                   }`}
                 >

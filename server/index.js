@@ -569,6 +569,7 @@ app.all([
     try {
       const isPaid = parsed.status === 'paid' || parsed.status === 'approved';
       const isPending = parsed.status === 'waiting_payment' || parsed.status === 'pending';
+      const isRefunded = parsed.status === 'refunded';
       
       const formattedAmount = (parsed.amount || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
       const campaignName = attribution?.campaign || 'Campanha';
@@ -576,14 +577,21 @@ app.all([
       if (isPaid) {
         sendSalesNotification({
           title: 'Venda Aprovada!',
-          body: `${formattedAmount} — ${campaignName}`,
+          body: `Comissão: ${formattedAmount} — ${campaignName}`,
           icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
           data: { url: '/sales', orderCode: parsed.orderCode }
         });
       } else if (isPending) {
         sendSalesNotification({
           title: 'Venda Pendente!',
-          body: `${formattedAmount} — ${campaignName}`,
+          body: `Comissão: ${formattedAmount} — ${campaignName}`,
+          icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
+          data: { url: '/sales', orderCode: parsed.orderCode }
+        });
+      } else if (isRefunded) {
+        sendSalesNotification({
+          title: 'Venda Reembolsada!',
+          body: `Comissão: -${formattedAmount} — ${campaignName}`,
           icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
           data: { url: '/sales', orderCode: parsed.orderCode }
         });
@@ -2345,12 +2353,24 @@ app.post('/api/push/test', async (req, res) => {
   try {
     const { type, amount, campaign } = req.body;
     const isPending = type === 'pending';
-    const val = amount || 'R$ 9,44';
-    const camp = campaign || '[ESCALA] Campanha Teste';
+    const isRefunded = type === 'refunded';
+    const val = amount || 'R$ 14,00';
+    const camp = campaign || '[ESCALA] BF Criativo 03';
+
+    let title = 'Venda Aprovada!';
+    let body = `Comissão: ${val} — ${camp}`;
+
+    if (isPending) {
+      title = 'Venda Pendente!';
+      body = `Comissão: ${val} — ${camp}`;
+    } else if (isRefunded) {
+      title = 'Venda Reembolsada!';
+      body = `Comissão: -${val} — ${camp}`;
+    }
 
     const result = await sendSalesNotification({
-      title: isPending ? 'Venda Pendente!' : 'Venda Aprovada!',
-      body: `${val} — ${camp}`,
+      title,
+      body,
       icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
       data: { url: '/sales' }
     });
