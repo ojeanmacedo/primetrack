@@ -497,6 +497,9 @@ export async function fetchAdsWithCreatives(adAccountId, accessToken) {
       videoUrl: videoUrl,
       type: videoUrl ? 'video' : 'image'
     });
+  }
+
+  return ads;
 }
 
 /**
