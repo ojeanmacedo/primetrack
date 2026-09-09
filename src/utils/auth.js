@@ -346,7 +346,7 @@ export function getTrialStatus(user) {
   }
 
   // Conta Digital JM / Admin / Pro: NUNCA expira, não exibe banner de renovação urgente
-  if (current.email === 'digitaljmsolucoes@gmail.com' || current.plan === 'pro' || current.role === 'admin') {
+  if (current.email === 'digitaljmsolucoes@gmail.com' || current.email === 'jeeanmacedo@gmail.com' || current.plan === 'pro' || current.role === 'admin') {
     return {
       showExpiredBanner: false,
       isExpired: false,
