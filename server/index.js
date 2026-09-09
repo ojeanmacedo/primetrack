@@ -2355,16 +2355,16 @@ app.post('/api/push/test', async (req, res) => {
     const isPending = type === 'pending';
     const isRefunded = type === 'refunded';
     const val = amount || 'R$ 14,00';
-    const camp = campaign || '[ESCALA] BF Criativo 03';
+    const camp = campaign || 'Notificação Teste';
 
-    let title = 'Notificação Teste — Venda Aprovada!';
+    let title = 'Venda Aprovada!';
     let body = `Comissão: ${val} — ${camp}`;
 
     if (isPending) {
-      title = 'Notificação Teste — Venda Pendente!';
+      title = 'Venda Pendente!';
       body = `Comissão: ${val} — ${camp}`;
     } else if (isRefunded) {
-      title = 'Notificação Teste — Venda Reembolsada!';
+      title = 'Venda Reembolsada!';
       body = `Comissão: -${val} — ${camp}`;
     }
 

@@ -85,7 +85,7 @@ export default function Notifications() {
         body: JSON.stringify({
           type,
           amount: 'R$ 14,00',
-          campaign: '[ESCALA] BF Criativo 03'
+          campaign: 'Notificação Teste'
         })
       });
       const data = await res.json();
