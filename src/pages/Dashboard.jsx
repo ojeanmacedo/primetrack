@@ -494,7 +494,7 @@ export default function Dashboard() {
   const deduplicatedOrders = useMemo(() => {
     const orderMap = new Map();
     for (const o of ordersList) {
-      const key = o.orderCode || o.id;
+      const key = o.id || o.orderCode;
       if (!orderMap.has(key)) {
         orderMap.set(key, o);
       } else {

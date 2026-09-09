@@ -617,10 +617,10 @@ async function getAllOrders(forceFresh = false) {
     }
   }
 
-  // Mantém todas as vendas individuais pelo ID único do pedido (orderCode)
+  // Mantém todas as vendas individuais pelo ID
   const orderMap = new Map();
   for (const o of filtered) {
-    const key = o.orderCode || o.id;
+    const key = o.id || o.orderCode;
     if (!orderMap.has(key)) {
       orderMap.set(key, o);
     } else {
