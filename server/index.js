@@ -404,64 +404,75 @@ app.all([
     parsed.customer.city = resolvedCity;
     parsed.customer.state = resolvedState;
 
-    // 3. Envia evento Purchase enriquecido para Meta CAPI com os dados reais de geolocalização do pixel
+    // 3. Envia evento Purchase enriquecido para Meta CAPI para todos os Pixels ativos cadastrados
     const settings = db.get('settings') || {};
-    let pixels = db.get('pixels') || [];
+    let pixels = [];
 
-    // Busca pixels atualizados no Supabase se não houver no db local
+    try {
+      const { data: supaPixels } = await supabaseAdmin.from('pixels').select('*').eq('status', 'active');
+      if (Array.isArray(supaPixels) && supaPixels.length > 0) {
+        pixels = supaPixels.map(p => {
+          let extra = {};
+          try { extra = JSON.parse(p.domain); } catch(e){}
+          return {
+            id: p.id,
+            pixelId: p.id,
+            name: p.name,
+            metaPixelId: extra.metaPixelId || '',
+            capiToken: extra.capiToken || extra.capiTokenRaw || '',
+            capiTokenRaw: extra.capiTokenRaw || extra.capiToken || ''
+          };
+        });
+      }
+    } catch (errSup) {}
+
     if (pixels.length === 0) {
-      try {
-        const { data: supaPixels } = await supabaseAdmin.from('pixels').select('*');
-        if (Array.isArray(supaPixels) && supaPixels.length > 0) {
-          pixels = supaPixels.map(p => {
-            let extra = {};
-            try { extra = JSON.parse(p.domain); } catch(e){}
-            return {
-              id: p.id,
-              pixelId: p.id,
-              name: p.name,
-              metaPixelId: extra.metaPixelId || '',
-              capiToken: extra.capiToken || extra.capiTokenRaw || '',
-              capiTokenRaw: extra.capiTokenRaw || extra.capiToken || ''
-            };
-          });
-        }
-      } catch (errSup) {}
+      pixels = db.get('pixels') || [];
     }
 
-    const primaryPixel = pixels.find(p => {
-      const t = p.capiTokenRaw || p.capiToken || '';
-      return t.startsWith('EAA') && t.length > 50 && (p.metaPixelId || p.pixelId);
-    }) || pixels.find(p => (p.capiToken || p.capiTokenRaw) && (p.metaPixelId || p.pixelId)) || pixels[0] || {};
-
-    const targetPixelId = primaryPixel.metaPixelId || primaryPixel.pixelId || settings.metaPixelId || '1056706567239394';
-    const targetCapiToken = primaryPixel.capiTokenRaw || primaryPixel.capiToken || settings.metaAccessToken;
-
-    const capiResult = await sendCapiEvent({
-      pixelId: targetPixelId,
-      accessToken: targetCapiToken,
-      eventName: 'Purchase',
-      eventId: `capi_pur_${parsed.orderCode}`,
-      eventSourceUrl: attribution.landingUrl || `https://${targetPixelId || 'checkout'}.primetrack.top/checkout`,
-      userData: {
-        email: parsed.customer.email,
-        phone: parsed.customer.phone,
-        name: parsed.customer.name,
-        city: resolvedCity,
-        state: resolvedState,
-        fbp: attribution.fbp,
-        fbc: attribution.fbc,
-        client_ip_address: effectiveIp,
-        client_user_agent: attribution.userAgent || req.headers['user-agent']
-      },
-      customData: {
-        currency: 'BRL',
-        value: parsed.amount,
-        content_name: parsed.productName,
-        order_id: parsed.orderCode
-      },
-      testEventCode: settings.testEventCode
+    // Identifica todos os pixels com MetaPixelId e Token válidos
+    const activeCapiPixels = pixels.filter(p => {
+      const token = p.capiTokenRaw || p.capiToken || '';
+      return (p.metaPixelId || p.pixelId) && token.startsWith('EAA') && token.length > 30;
     });
+
+    let capiResult = { success: false, emq: { score: 7.3 }, response: null };
+
+    if (activeCapiPixels.length > 0) {
+      for (const px of activeCapiPixels) {
+        const pxId = px.metaPixelId || px.pixelId;
+        const pxToken = px.capiTokenRaw || px.capiToken;
+        const resCapi = await sendCapiEvent({
+          pixelId: pxId,
+          accessToken: pxToken,
+          eventName: 'Purchase',
+          eventId: `capi_pur_${parsed.orderCode}`,
+          eventSourceUrl: attribution.landingUrl || `https://conteudodelas.shop/checkout`,
+          userData: {
+            email: parsed.customer.email,
+            phone: parsed.customer.phone,
+            name: parsed.customer.name,
+            city: resolvedCity || 'São Paulo',
+            state: resolvedState || 'SP',
+            fbp: attribution.fbp,
+            fbc: attribution.fbc,
+            client_ip_address: effectiveIp,
+            client_user_agent: attribution.userAgent || req.headers['user-agent']
+          },
+          customData: {
+            currency: 'BRL',
+            value: parsed.amount,
+            content_name: parsed.productName,
+            order_id: parsed.orderCode
+          },
+          testEventCode: settings.testEventCode
+        });
+
+        if (resCapi && resCapi.success) {
+          capiResult = resCapi;
+        }
+      }
+    }
 
     // 4. Salva a venda atribuída
     const orderRecord = {
