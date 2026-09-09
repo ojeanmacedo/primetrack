@@ -768,40 +768,14 @@ function resolveDateRange(datePreset = 'today', since = null, until = null) {
 
     const matchingOrders = filteredOrders.filter(o => {
       const oCamp = ((o.attribution && o.attribution.campaign) || o.campaign || '').toLowerCase().trim();
-      const oAd = ((o.attribution && o.attribution.ad) || o.ad || '').toLowerCase().trim();
-      const oAdset = ((o.attribution && o.attribution.adset) || o.adset || '').toLowerCase().trim();
-      const oFbc = (o.attribution && o.attribution.fbc) || '';
-
-      if (oCamp && oCamp !== 'orgânico' && oCamp !== 'organico' && oCamp !== 'histórico') {
-        if (oCamp === cName || oCamp === cUtm || oCamp === cId || cName.includes(oCamp) || oCamp.includes(cName)) {
-          return true;
-        }
-      }
-
-      if (oAd.includes('ad01') || oAd.includes('ad02') || oAdset.includes('conjunto') || oFbc) {
-        return true;
-      }
-
-      return false;
+      if (!oCamp || oCamp === 'orgânico' || oCamp === 'organico' || oCamp === 'histórico') return false;
+      return (oCamp === cName || oCamp === cUtm || oCamp === cId || cName.includes(oCamp) || oCamp.includes(cName));
     });
 
     const matchingPixelEvents = pixelPurchases.filter(e => {
       const eCamp = ((e.attribution && e.attribution.campaign) || e.campaign || (e.utms && e.utms.utm_campaign) || '').toLowerCase().trim();
-      const eAd = ((e.attribution && e.attribution.ad) || (e.utms && e.utms.utm_content) || '').toLowerCase().trim();
-      const eAdset = ((e.attribution && e.attribution.adset) || (e.utms && e.utms.utm_medium) || '').toLowerCase().trim();
-      const eFbc = (e.attribution && e.attribution.fbc) || (e.utms && e.utms.fbc) || '';
-
-      if (eCamp && eCamp !== 'orgânico' && eCamp !== 'organico' && eCamp !== 'histórico') {
-        if (eCamp === cName || eCamp === cUtm || eCamp === cId || cName.includes(eCamp) || eCamp.includes(cName)) {
-          return true;
-        }
-      }
-
-      if (eAd.includes('ad01') || eAd.includes('ad02') || eAdset.includes('conjunto') || eFbc) {
-        return true;
-      }
-
-      return false;
+      if (!eCamp || eCamp === 'orgânico' || eCamp === 'organico' || eCamp === 'histórico') return false;
+      return (eCamp === cName || eCamp === cUtm || eCamp === cId || cName.includes(eCamp) || eCamp.includes(cName));
     });
 
     const matchingPixelICs = pixelICs.filter(e => {
@@ -1425,40 +1399,14 @@ app.post('/api/meta/sync', async (req, res) => {
 
       const matchingOrders = filteredOrders.filter(o => {
         const oCamp = ((o.attribution && o.attribution.campaign) || o.campaign || '').toLowerCase().trim();
-        const oAd = ((o.attribution && o.attribution.ad) || o.ad || '').toLowerCase().trim();
-        const oAdset = ((o.attribution && o.attribution.adset) || o.adset || '').toLowerCase().trim();
-        const oFbc = (o.attribution && o.attribution.fbc) || '';
-
-        if (oCamp && oCamp !== 'orgânico' && oCamp !== 'organico' && oCamp !== 'histórico') {
-          if (oCamp === cName || oCamp === cUtm || oCamp === cId || cName.includes(oCamp) || oCamp.includes(cName)) {
-            return true;
-          }
-        }
-
-        if (oAd.includes('ad01') || oAd.includes('ad02') || oAdset.includes('conjunto') || oFbc) {
-          return true;
-        }
-
-        return false;
+        if (!oCamp || oCamp === 'orgânico' || oCamp === 'organico' || oCamp === 'histórico') return false;
+        return (oCamp === cName || oCamp === cUtm || oCamp === cId || cName.includes(oCamp) || oCamp.includes(cName));
       });
 
       const matchingPixelEvents = pixelPurchases.filter(e => {
         const eCamp = ((e.attribution && e.attribution.campaign) || e.campaign || (e.utms && e.utms.utm_campaign) || '').toLowerCase().trim();
-        const eAd = ((e.attribution && e.attribution.ad) || (e.utms && e.utms.utm_content) || '').toLowerCase().trim();
-        const eAdset = ((e.attribution && e.attribution.adset) || (e.utms && e.utms.utm_medium) || '').toLowerCase().trim();
-        const eFbc = (e.attribution && e.attribution.fbc) || (e.utms && e.utms.fbc) || '';
-
-        if (eCamp && eCamp !== 'orgânico' && eCamp !== 'organico' && eCamp !== 'histórico') {
-          if (eCamp === cName || eCamp === cUtm || eCamp === cId || cName.includes(eCamp) || eCamp.includes(cName)) {
-            return true;
-          }
-        }
-
-        if (eAd.includes('ad01') || eAd.includes('ad02') || eAdset.includes('conjunto') || eFbc) {
-          return true;
-        }
-
-        return false;
+        if (!eCamp || eCamp === 'orgânico' || eCamp === 'organico' || eCamp === 'histórico') return false;
+        return (eCamp === cName || eCamp === cUtm || eCamp === cId || cName.includes(eCamp) || eCamp.includes(cName));
       });
 
       const webhookSales = matchingOrders.length;

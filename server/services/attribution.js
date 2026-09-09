@@ -66,37 +66,17 @@ function cleanTrackingValue(val) {
   const rawAd = tracking.utm_content || (matchedSession && matchedSession.utms && matchedSession.utms.utm_content) || '';
   const resolvedAd = cleanTrackingValue(rawAd) || 'criativo_padrao';
 
-  // Extrai e normaliza o nome da campanha
+  // Extrai e normaliza o nome da campanha estritamente do tracking real (UTM ou Pixel)
   let rawCampaign = tracking.utm_campaign || (matchedSession && matchedSession.utms && matchedSession.utms.utm_campaign) || '';
   let resolvedCampaign = rawCampaign;
   if (!resolvedCampaign || resolvedCampaign === 'campanha_direta' || resolvedCampaign.toLowerCase().includes('direta')) {
-    resolvedCampaign = '';
-  } else {
-    resolvedCampaign = cleanTrackingValue(resolvedCampaign);
-  }
-
-  // Se a campanha não veio explícita no link mas temos criativo (AD01, AD02), conjunto ou fbc do Meta
-  const hasMetaTraffic = Boolean(tracking.fbc || (matchedSession && matchedSession.fbc) || (resolvedAd && resolvedAd !== 'criativo_padrao') || (resolvedAdset && resolvedAdset !== 'conjunto_padrao'));
-  
-  if (!resolvedCampaign && hasMetaTraffic) {
-    const campaigns = db.get('campaigns') || [];
-    const activeCamp = campaigns.find(c => c.status === true || c.rawStatus === 'ACTIVE') || campaigns[0];
-    if (activeCamp && activeCamp.name) {
-      resolvedCampaign = activeCamp.name;
-    }
-  }
-
-  if (!resolvedCampaign) {
     resolvedCampaign = 'Orgânico';
+  } else {
+    resolvedCampaign = cleanTrackingValue(resolvedCampaign) || 'Orgânico';
   }
 
   const rawSource = tracking.utm_source || (matchedSession && matchedSession.utms && matchedSession.utms.utm_source) || '';
-  let resolvedSource = 'facebook';
-  if (resolvedCampaign === 'Orgânico' && !hasMetaTraffic) {
-    resolvedSource = 'Orgânico';
-  } else if (rawSource) {
-    resolvedSource = rawSource;
-  }
+  const resolvedSource = resolvedCampaign === 'Orgânico' ? 'Orgânico' : (rawSource || 'facebook');
 
   // Extrai as UTMs finais
   const finalUtms = {
