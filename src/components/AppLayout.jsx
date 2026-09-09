@@ -4,6 +4,7 @@ import Sidebar from './Sidebar';
 import { getCurrentUser } from '../utils/auth';
 import { 
   Eye, 
+  EyeOff,
   RotateCw, 
   Edit3, 
   Trophy, 
@@ -82,12 +83,12 @@ export default function AppLayout() {
             <div className="flex items-center gap-1.5 text-zinc-400">
               <button 
                 onClick={handleToggleShowValues}
-                className={`p-1.5 rounded-lg hover:text-white transition-colors cursor-pointer ${
-                  !showValues ? 'text-zinc-500 bg-white/5' : ''
+                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                  !showValues ? 'text-blue-400 bg-blue-500/10' : 'hover:text-white'
                 }`} 
-                title={showValues ? "Ocultar valores" : "Mostrar valores"}
+                title={showValues ? "Ocultar nome dos produtos" : "Mostrar nome dos produtos"}
               >
-                <Eye className="w-3.5 h-3.5" />
+                {!showValues ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               </button>
               <button 
                 onClick={() => window.dispatchEvent(new Event('primetrack_profile_sync'))}

@@ -860,8 +860,17 @@ export default function Dashboard() {
 
                   return (
                     <div key={i} className="flex items-center justify-between text-xs group">
-                      <div className="font-normal text-zinc-200 truncate pr-3 text-xs tracking-tight" title={prod.name}>
-                        {prod.name}
+                      <div 
+                        className="font-normal text-zinc-200 truncate pr-3 text-xs tracking-tight select-none" 
+                        title={showValues ? prod.name : undefined}
+                      >
+                        {showValues ? (
+                          prod.name
+                        ) : (
+                          <span className="tracking-widest font-mono text-zinc-400 font-semibold">
+                            ••••••••••••
+                          </span>
+                        )}
                       </div>
                       
                       <div className="flex items-center gap-3 shrink-0">
@@ -1536,8 +1545,8 @@ export default function Dashboard() {
                 className="w-full appearance-none bg-[#0F1728] border border-[#1E293B] rounded-lg px-2.5 py-1.5 text-zinc-200 focus:outline-none focus:border-[#0066FF] text-xs cursor-pointer font-medium"
               >
                 <option value="Qualquer">Qualquer</option>
-                {uniqueProducts.map(p => (
-                  <option key={p} value={p}>{p}</option>
+                {uniqueProducts.map((p, idx) => (
+                  <option key={p} value={p}>{showValues ? p : `Produto ${idx + 1}`}</option>
                 ))}
               </select>
               <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -1596,7 +1605,7 @@ export default function Dashboard() {
 
               <div>
                 <div className={`text-lg sm:text-xl font-bold tracking-tight font-sans ${card.valueColor}`}>
-                  {showValues ? card.value : '••••••'}
+                  {card.value}
                 </div>
                 <div className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 truncate font-sans">
                   {card.subtitle}
