@@ -2000,7 +2000,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto overflow-y-auto max-h-[500px] scrollbar-thin scrollbar-thumb-[#1A6DFF]/40 scrollbar-track-[#070D1A]">
+            <div className="overflow-x-auto overflow-y-auto max-h-[580px] scrollbar-thin scrollbar-thumb-[#1A6DFF]/40 scrollbar-track-[#070D1A]">
               <table className="w-full text-left text-xs font-sans whitespace-nowrap border-collapse">
                 <thead className="bg-[#0A1426] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E] sticky top-0 z-30 shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
                   <tr>
