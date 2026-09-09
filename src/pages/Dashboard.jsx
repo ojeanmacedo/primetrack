@@ -344,16 +344,35 @@ export default function Dashboard() {
 
       const data = await rRes.json();
       if (data.adAccounts && data.adAccounts.length > 0) {
-        const allMappedAccs = data.adAccounts.map(a => ({
-          ...a,
-          id: a.accountId || (a.id ? a.id.replace('act_', '') : '0000'),
-          sync: a.syncActive !== undefined ? a.syncActive === true : (a.status === 'ACTIVE' || a.status === 'Ativa')
-        }));
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('primetrack_ad_accounts', JSON.stringify(allMappedAccs));
+        const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
+        let localSyncMap = {};
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) {
+              parsed.forEach(p => {
+                if (p.id) localSyncMap[p.id] = p.sync;
+              });
+            }
+          } catch (e) {}
         }
+
+        const allMappedAccs = data.adAccounts.map(a => {
+          const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
+          const isSync = localSyncMap[accId] !== undefined
+            ? localSyncMap[accId] === true
+            : (a.syncActive === true);
+          return {
+            ...a,
+            id: accId,
+            sync: isSync
+          };
+        });
+
         const activeSynced = allMappedAccs.filter(a => a.sync);
-        setAdAccountsList(activeSynced);
+        if (activeSynced.length > 0) {
+          setAdAccountsList(activeSynced);
+        }
       }
 
       const cData = await crRes.json();

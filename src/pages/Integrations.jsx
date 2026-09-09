@@ -741,12 +741,10 @@ export default function Integrations() {
           const mappedAccs = data.adAccounts.map(a => {
             const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
             const isAccountActive = a.status === 'ACTIVE' || a.status === 'Ativa' || a.account_status === 1;
-            // Prioridade: syncActive salvo no backend > localStorage > ativação inteligente para contas ativas com gasto
-            const isSyncActive = a.syncActive !== undefined
-              ? a.syncActive === true
-              : (localSyncMap[accId] !== undefined 
-                  ? localSyncMap[accId] === true 
-                  : (isAccountActive && (Number(a.amountSpent) > 0 || accId === '1092137896602979')));
+            // Prioridade: localStorage (escolha manual do usuário) > syncActive retornado do backend
+            const isSyncActive = localSyncMap[accId] !== undefined
+              ? localSyncMap[accId] === true
+              : (a.syncActive === true);
 
             const isRealPrepay = a.isPrepay === true || accId === '1218349886840112';
             const realBalance = isRealPrepay ? (a.balance || '4,05') : '0,00';

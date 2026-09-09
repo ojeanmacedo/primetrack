@@ -296,9 +296,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         const mappedAccs = data.adAccounts
           .map(a => {
             const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
-            const isSyncActive = a.syncActive !== undefined
-              ? a.syncActive === true
-              : (localSyncMap[accId] !== undefined ? localSyncMap[accId] === true : false);
+            // Prioridade: status salvo no localStorage pelo usuário > status retornado do backend
+            const isSyncActive = localSyncMap[accId] !== undefined
+              ? localSyncMap[accId] === true
+              : (a.syncActive === true);
 
             return {
               name: a.name || 'Conta',
@@ -313,16 +314,16 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           })
           .filter(a => a.sync === true); // Apenas contas ativadas no perfil em integrações
 
-        setAdAccountsList(mappedAccs);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('primetrack_ad_accounts', JSON.stringify(mappedAccs));
+        if (mappedAccs.length > 0) {
+          setAdAccountsList(mappedAccs);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('primetrack_ad_accounts', JSON.stringify(mappedAccs));
+          }
         }
 
         if (accountFilter !== 'Todas' && !mappedAccs.some(a => a.id === accountFilter || a.name === accountFilter)) {
           setAccountFilter('Todas');
         }
-      } else {
-        setAdAccountsList([]);
       }
 
       const cData = await crRes.json();

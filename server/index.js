@@ -1337,19 +1337,34 @@ app.get('/api/meta/status', async (req, res) => {
             connectedAt: c.connected_at
           }));
         }
+
+        // Lê contas ativas salvas
+        let activeSet = new Set();
+        if (connections[0] && connections[0].email) {
+          try {
+            const parsedMeta = JSON.parse(connections[0].email);
+            if (parsedMeta && Array.isArray(parsedMeta.activeAccounts)) {
+              activeSet = new Set(parsedMeta.activeAccounts);
+            }
+          } catch (e) {}
+        }
+
         const { data: supaAccs } = await supabaseAdmin.from('ad_accounts').select('*');
         if (supaAccs && supaAccs.length > 0) {
-          adAccounts = supaAccs.map(a => ({
-            id: a.id,
-            accountId: (a.id || '').replace('act_', ''),
-            name: a.name,
-            businessName: a.bm_name,
-            currency: a.currency,
-            status: a.status,
-            amountSpent: String(a.amount_spent || '0.00'),
-            balance: String(a.balance || '0.00'),
-            syncActive: false
-          }));
+          adAccounts = supaAccs.map(a => {
+            const cleanId = (a.id || '').replace('act_', '');
+            return {
+              id: a.id,
+              accountId: cleanId,
+              name: a.name,
+              businessName: a.bm_name,
+              currency: a.currency,
+              status: a.status,
+              amountSpent: String(a.amount_spent || '0.00'),
+              balance: String(a.balance || '0.00'),
+              syncActive: activeSet.has(cleanId)
+            };
+          });
         }
       } catch (supaReadErr) {
         console.warn('[Supabase Read Status] Aviso:', supaReadErr.message);
@@ -1595,10 +1610,30 @@ app.post('/api/meta/sync', async (req, res) => {
 });
 
 // Endpoint para persistir status de sincronização de contas (Ativar/Desativar sincronização de contas de anúncio)
-app.post('/api/meta/accounts/sync-status', (req, res) => {
+app.post('/api/meta/accounts/sync-status', async (req, res) => {
   try {
     const { accountId, activeAccounts, syncActive } = req.body || {};
     let adAccounts = db.get('ad_accounts') || [];
+
+    // Se estiver em ambiente serverless sem store em disco, carrega do Supabase primeiro
+    if (adAccounts.length === 0) {
+      try {
+        const { data: supaAccs } = await supabaseAdmin.from('ad_accounts').select('*');
+        if (supaAccs && supaAccs.length > 0) {
+          adAccounts = supaAccs.map(a => ({
+            id: a.id,
+            accountId: (a.id || '').replace('act_', ''),
+            name: a.name,
+            businessName: a.bm_name,
+            currency: a.currency,
+            status: a.status,
+            amountSpent: String(a.amount_spent || '0.00'),
+            balance: String(a.balance || '0.00'),
+            syncActive: false
+          }));
+        }
+      } catch (e) {}
+    }
     
     if (Array.isArray(activeAccounts)) {
       const activeSet = new Set(activeAccounts.map(id => String(id).replace('act_', '')));
@@ -1620,6 +1655,20 @@ app.post('/api/meta/accounts/sync-status', (req, res) => {
       });
     }
     db.set('ad_accounts', adAccounts);
+
+    // Salva o mapa de contas ativas no Supabase (no registro do perfil do Facebook)
+    try {
+      const activeIds = adAccounts.filter(a => a.syncActive).map(a => (a.accountId || a.id || '').replace('act_', ''));
+      const { data: conns } = await supabaseAdmin.from('facebook_connections').select('id').limit(1);
+      if (conns && conns.length > 0) {
+        await supabaseAdmin.from('facebook_connections').update({
+          email: JSON.stringify({ activeAccounts: activeIds })
+        }).eq('id', conns[0].id);
+      }
+    } catch (supaSyncErr) {
+      console.warn('[Supabase Sync Status] Aviso:', supaSyncErr.message);
+    }
+
     res.json({ success: true, adAccounts });
   } catch (err) {
     res.status(500).json({ error: err.message });
