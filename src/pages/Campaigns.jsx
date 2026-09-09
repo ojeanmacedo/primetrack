@@ -489,13 +489,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       });
       const data = await res.json();
       if (data && data.metaSynced) {
-        setSaveSuccessMsg(nextStatus ? '🟢 Item ativado com sucesso no Gerenciador Meta!' : '⚪ Item pausado com sucesso no Gerenciador Meta!');
+        setSaveSuccessMsg(nextStatus ? '🟢 Ativada com sucesso no Gerenciador Meta!' : '⚪ Desativada com sucesso no Gerenciador Meta!');
       } else if (data && data.metaError) {
-        setSaveSuccessMsg(`⚠️ Erro na Meta: ${data.metaError}`);
+        setSaveSuccessMsg(`⚠️ ${data.metaError}`);
       } else {
         setSaveSuccessMsg('Status atualizado na PrimeTrack!');
       }
-      setTimeout(() => setSaveSuccessMsg(null), 4000);
+      setTimeout(() => setSaveSuccessMsg(null), 5000);
     } catch (e) {
       console.warn('Erro ao sincronizar status com a Meta:', e);
     }
