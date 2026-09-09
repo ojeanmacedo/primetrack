@@ -2133,7 +2133,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             </div>
           )}
 
-          {/* Barra de Paginação para manter a tabela compacta e o puxador sempre no campo de visão */}
+          {/* Barra de Paginação inteligente quando ultrapassar 100 registros */}
           {currentItems.length > 100 && (
             <div className="px-4 py-3 bg-[#0A1426] border-t border-[#13233E] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
               <div className="flex items-center gap-2 text-zinc-400">
@@ -2149,11 +2149,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   }}
                   className="bg-[#070D1A] border border-[#13233E] text-white px-2 py-1 rounded-lg font-mono text-xs focus:outline-none cursor-pointer"
                 >
-                  <option value={5}>5 linhas</option>
-                  <option value={10}>10 linhas</option>
-                  <option value={20}>20 linhas</option>
-                  <option value={50}>50 linhas</option>
-                  <option value={100}>100 linhas</option>
+                  <option value={100}>100 por página</option>
+                  <option value={200}>200 por página</option>
+                  <option value={500}>500 por página</option>
                 </select>
                 <span>de <strong className="text-white font-mono">{currentItems.length}</strong> {subTab.toLowerCase()}</span>
               </div>
