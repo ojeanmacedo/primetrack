@@ -601,8 +601,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   // Filtragem - se campaignsList já possui dados, exibe imediatamente
   const filteredCampaigns = campaignsList.filter(c => {
-    // Filtro por status
-    if (statusFilter === 'Ativo' && !c.status) return false;
+    // Se o filtro estiver em "Desativadas", mostra apenas desativadas
     if (statusFilter === 'Desativadas' && c.status) return false;
 
     const cAdId = String(c.adAccountId || '').replace('act_', '');
@@ -668,7 +667,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     });
 
     return allAdsets.filter(as => {
-      if (statusFilter === 'Ativo' && !as.status) return false;
       if (statusFilter === 'Desativadas' && as.status) return false;
       return true;
     });
@@ -818,7 +816,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     }
 
     return result.filter(ad => {
-      if (statusFilter === 'Ativo' && !ad.status) return false;
       if (statusFilter === 'Desativadas' && ad.status) return false;
       return true;
     });
