@@ -6,6 +6,7 @@ import { db } from './db.js';
 import { sendCapiEvent } from './services/capi.js';
 import { parseWebhook } from './services/webhooks.js';
 import { attributeOrder } from './services/attribution.js';
+import { resolveIpLocation } from './services/geoService.js';
 import { 
   getAuthorizationUrl, 
   exchangeCodeForLongLivedToken, 
@@ -203,6 +204,9 @@ app.post('/api/track/event', async (req, res) => {
     const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '189.40.122.45';
     const clientUserAgent = req.headers['user-agent'] || 'Mozilla/5.0';
 
+    // Geolocalização real do visitante capturada pelo Pixel PrimeTrack
+    const geo = await resolveIpLocation(clientIp);
+
     // Grava/Atualiza Sessão
     const sessions = db.get('sessions') || [];
     let session = sessions.find(s => s.sessionId === sessionId || (sessionId && s.sessionId === sessionId));
@@ -211,6 +215,8 @@ app.post('/api/track/event', async (req, res) => {
       session = {
         sessionId: sessionId,
         ip: clientIp,
+        city: geo.city,
+        state: geo.state,
         fbp,
         fbc,
         userAgent: clientUserAgent,
@@ -224,6 +230,8 @@ app.post('/api/track/event', async (req, res) => {
       if (sessions.length > 500) sessions.pop();
     } else if (session) {
       session.lastSeen = new Date().toISOString();
+      if (!session.city && geo.city) session.city = geo.city;
+      if (!session.state && geo.state) session.state = geo.state;
       if (fbc && !session.fbc) session.fbc = fbc;
       if (fbp && !session.fbp) session.fbp = fbp;
       if (utms.utm_campaign && (!session.utms || !session.utms.utm_campaign)) {
@@ -232,7 +240,7 @@ app.post('/api/track/event', async (req, res) => {
     }
     db.set('sessions', sessions);
 
-    // Envia para o Meta CAPI Server-Side
+    // Envia para o Meta CAPI Server-Side enriquecido com dados de geolocalização reais do pixel
     const settings = db.get('settings') || {};
     const pixels = db.get('pixels') || [];
     const matchedPixel = pixels.find(p => p.pixelId === pixelId || p.id === pixelId || p.metaPixelId === pixelId) || pixels[0] || {};
@@ -248,6 +256,8 @@ app.post('/api/track/event', async (req, res) => {
       userData: {
         fbp,
         fbc,
+        city: geo.city,
+        state: geo.state,
         client_ip_address: clientIp,
         client_user_agent: clientUserAgent
       },
@@ -321,10 +331,24 @@ app.all([
     // 1. Normaliza payload do gateway
     const parsed = parseWebhook(gateway, body);
 
-    // 2. Executa atribuição cross-session inteligente
+    // 2. Executa atribuição cross-session inteligente (recupera IP, cidade e estado do Pixel)
     const attribution = attributeOrder(parsed, clientIp);
 
-    // 3. Envia evento Purchase enriquecido para Meta CAPI
+    // Resolução da Cidade e Estado reais do Pixel CAPI
+    const effectiveIp = attribution.ip || clientIp || '189.40.122.45';
+    let resolvedCity = parsed.customer.city || attribution.city;
+    let resolvedState = parsed.customer.state || attribution.state;
+
+    if (!resolvedCity || !resolvedState) {
+      const geo = await resolveIpLocation(effectiveIp);
+      if (!resolvedCity) resolvedCity = geo.city;
+      if (!resolvedState) resolvedState = geo.state;
+    }
+
+    parsed.customer.city = resolvedCity;
+    parsed.customer.state = resolvedState;
+
+    // 3. Envia evento Purchase enriquecido para Meta CAPI com os dados reais de geolocalização do pixel
     const settings = db.get('settings') || {};
     const pixels = db.get('pixels') || [];
     const primaryPixel = pixels.find(p => (p.capiToken || p.capiTokenRaw) && (p.metaPixelId || p.pixelId)) || pixels[0] || {};
@@ -341,12 +365,12 @@ app.all([
         email: parsed.customer.email,
         phone: parsed.customer.phone,
         name: parsed.customer.name,
-        city: parsed.customer.city,
-        state: parsed.customer.state,
+        city: resolvedCity,
+        state: resolvedState,
         fbp: attribution.fbp,
         fbc: attribution.fbc,
-        client_ip_address: clientIp || '189.40.122.45',
-        client_user_agent: req.headers['user-agent']
+        client_ip_address: effectiveIp,
+        client_user_agent: attribution.userAgent || req.headers['user-agent']
       },
       customData: {
         currency: 'BRL',
@@ -366,8 +390,17 @@ app.all([
       status: parsed.status,
       paymentMethod: parsed.paymentMethod,
       amount: parsed.amount,
-      customer: parsed.customer,
-      attribution,
+      customer: {
+        ...parsed.customer,
+        city: resolvedCity,
+        state: resolvedState
+      },
+      attribution: {
+        ...attribution,
+        customer_city: resolvedCity,
+        customer_state: resolvedState,
+        client_ip: effectiveIp
+      },
       emqScore: capiResult.emq.score,
       capiSent: capiResult.success,
       capiResponse: capiResult.response,
@@ -565,6 +598,24 @@ async function getAllOrders(forceFresh = false) {
   }
 
   const filtered = orders.filter(o => !o.gateway || o.gateway.toLowerCase().includes('monster'));
+
+  // Enriquece pedidos com dados de geolocalização capturados pelo Pixel CAPI
+  const sessions = db.get('sessions') || [];
+  for (const o of filtered) {
+    if (!o.customer) o.customer = {};
+    if (!o.customer.city || !o.customer.state) {
+      const matchedSession = sessions.find(s => 
+        (o.customer.email && s.customerEmail === o.customer.email) ||
+        (o.attribution?.sessionId && s.sessionId === o.attribution.sessionId) ||
+        (o.attribution?.fbp && s.fbp === o.attribution.fbp) ||
+        (o.attribution?.ip && s.ip === o.attribution.ip)
+      );
+      if (matchedSession && matchedSession.city) {
+        o.customer.city = matchedSession.city;
+        o.customer.state = matchedSession.state;
+      }
+    }
+  }
 
   // Mantém todas as vendas individuais pelo ID único do pedido
   const orderMap = new Map();

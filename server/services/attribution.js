@@ -102,6 +102,10 @@ function cleanTrackingValue(val) {
     matchType,
     fbp,
     fbc,
+    city: (matchedSession && matchedSession.city) || null,
+    state: (matchedSession && matchedSession.state) || null,
+    ip: (matchedSession && matchedSession.ip) || clientIp || null,
+    userAgent: (matchedSession && matchedSession.userAgent) || null,
     landingUrl: (matchedSession && matchedSession.landingUrl) || null,
     sessionId: (matchedSession && matchedSession.sessionId) || tracking.sessionId || null,
     recoveredFromBio: matchType === 'cross_session_bio'

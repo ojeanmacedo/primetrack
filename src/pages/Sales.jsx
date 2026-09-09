@@ -69,33 +69,6 @@ export default function Sales() {
     return Array.from(orderMap.values());
   }, [liveOrders]);
 
-const BRAZILIAN_CITIES = [
-  'São Paulo, SP',
-  'Rio de Janeiro, RJ',
-  'Belo Horizonte, MG',
-  'Curitiba, PR',
-  'Porto Alegre, RS',
-  'Brasília, DF',
-  'Salvador, BA',
-  'Fortaleza, CE',
-  'Recife, PE',
-  'Goiânia, GO',
-  'Campinas, SP',
-  'Manaus, AM',
-  'Florianópolis, SC',
-  'Belém, PA',
-  'Vitória, ES',
-  'São José dos Campos, SP',
-  'Ribeirão Preto, SP',
-  'Sorocaba, SP',
-  'Londrina, PR',
-  'Joinville, SC',
-  'Cuiabá, MT',
-  'Campo Grande, MS',
-  'Natal, RN',
-  'João Pessoa, PB',
-  'Maceió, AL'
-];
 
 const DDD_MAP = {
   '11': 'São Paulo, SP',
@@ -168,8 +141,9 @@ const DDD_MAP = {
 };
 
 function resolveCustomerCityState(cust, o) {
-  const explicitCity = cust?.city || o?.address?.city || o?.customer_city || o?.attribution?.customer_city;
-  const explicitState = cust?.state || o?.address?.state || o?.customer_state || o?.attribution?.customer_state;
+  // 1. Dados reais capturados pelo Pixel PrimeTrack / Meta CAPI
+  const explicitCity = cust?.city || o?.attribution?.customer_city || o?.attribution?.city || o?.customer_city;
+  const explicitState = cust?.state || o?.attribution?.customer_state || o?.attribution?.state || o?.customer_state;
   if (explicitCity && explicitState) {
     return `${explicitCity}, ${explicitState}`;
   }
@@ -177,6 +151,7 @@ function resolveCustomerCityState(cust, o) {
     return explicitCity;
   }
 
+  // 2. DDD do telefone real fornecido pelo comprador no checkout
   const phone = String(cust?.phone || o?.phone || '').replace(/\D/g, '');
   if (phone.length >= 10) {
     const rawDigits = phone.startsWith('55') && (phone.length === 12 || phone.length === 13)
@@ -188,14 +163,7 @@ function resolveCustomerCityState(cust, o) {
     }
   }
 
-  const seed = (o?.orderCode || o?.id || cust?.email || cust?.name || 'cliente') + '';
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
-    hash = (hash << 5) - hash + seed.charCodeAt(i);
-    hash |= 0;
-  }
-  const idx = Math.abs(hash) % BRAZILIAN_CITIES.length;
-  return BRAZILIAN_CITIES[idx];
+  return 'Localizando...';
 }
 
   const formattedLiveOrders = deduplicatedLiveOrders.map(o => {

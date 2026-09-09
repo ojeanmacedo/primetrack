@@ -19,6 +19,24 @@ export function formatPhone(phone) {
   return digits;
 }
 
+export function formatCity(city) {
+  if (!city) return undefined;
+  return String(city)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+
+export function formatState(state) {
+  if (!state) return undefined;
+  const clean = String(state)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+  if (clean.length === 2) return clean;
+  return clean.slice(0, 2);
+}
+
 /**
  * Calcula a Nota do Pixel / EMQ (Event Match Quality) de 0 a 10
  */
@@ -87,8 +105,8 @@ export async function sendCapiEvent({
     ph: userData.ph ? (Array.isArray(userData.ph) ? userData.ph : [userData.ph]) : (userData.phone ? [sha256(formatPhone(userData.phone))] : undefined),
     fn: userData.fn ? [userData.fn] : (userData.name ? [sha256(userData.name.split(' ')[0])] : undefined),
     ln: userData.ln ? [userData.ln] : (userData.name && userData.name.split(' ').length > 1 ? [sha256(userData.name.split(' ').slice(1).join(' '))] : undefined),
-    ct: userData.ct ? [userData.ct] : (userData.city ? [sha256(userData.city)] : undefined),
-    st: userData.st ? [userData.st] : (userData.state ? [sha256(userData.state)] : undefined),
+    ct: userData.ct ? [userData.ct] : (userData.city ? [sha256(formatCity(userData.city))] : undefined),
+    st: userData.st ? [userData.st] : (userData.state ? [sha256(formatState(userData.state))] : undefined),
     fbp: userData.fbp || undefined,
     fbc: userData.fbc || undefined,
     client_ip_address: userData.client_ip_address || userData.ip || undefined,
