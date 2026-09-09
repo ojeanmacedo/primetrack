@@ -2023,7 +2023,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
                 <tbody className="divide-y divide-[#13233E]/60 font-mono">
                   {currentItems.map((item, idx) => (
-                    <tr key={item.id || idx} className={`group hover:bg-[#0e1b33] transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#1A6DFF]/10' : ''}`}>
+                    <tr key={item.id || idx} className={`group hover:bg-[#0e1b33] transition-colors border-b border-[#13233E]/60 ${activeSelectedSet.has(item.id) ? 'bg-[#1A6DFF]/10' : ''}`}>
                       {/* Checkbox fixo na lateral */}
                       <td className={`py-4 pl-4 pr-4 sticky left-0 z-10 transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0f1d38]' : 'bg-[#0A1426] group-hover:bg-[#0e1b33]'}`}>
                         <input 
@@ -2084,11 +2084,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 </tbody>
 
                 {/* Rodapé com totais reais sticky embaixo */}
-                <tfoot className="bg-[#0A1426] font-bold border-t-2 border-[#1E3A66] text-xs font-mono sticky bottom-0 z-20 shadow-[0_-4px_16px_rgba(0,0,0,0.4)]">
+                <tfoot className="bg-[#0A1426] font-bold border-t border-[#13233E] text-xs font-mono sticky bottom-0 z-20 shadow-lg">
                   <tr>
-                    <td className="py-3.5 pl-4 pr-4 bg-[#0A1426] sticky left-0 z-30 border-t-2 border-[#1E3A66]"></td>
-                    <td className="py-3.5 pl-4 pr-5 bg-[#0A1426] sticky left-12 z-30 border-t-2 border-[#1E3A66]"></td>
-                    <td className="py-3.5 px-4 font-sans text-white uppercase text-[11px] bg-[#0A1426] sticky left-[122px] z-30 border-r border-[#13233E] border-t-2 border-t-[#1E3A66] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
+                    <td className="py-3.5 pl-4 pr-4 bg-[#0A1426] sticky left-0 z-30"></td>
+                    <td className="py-3.5 pl-4 pr-5 bg-[#0A1426] sticky left-12 z-30"></td>
+                    <td className="py-3.5 px-4 font-sans text-white uppercase text-[11px] bg-[#0A1426] sticky left-[122px] z-30 border-r border-[#13233E] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
                       {currentItems.length} {
                         subTab === 'Campanhas' 
                           ? (currentItems.length === 1 ? 'CAMPANHA' : 'CAMPANHAS')
@@ -2100,7 +2100,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
                     {/* Totais dinâmicos alinhados às colunas ativas */}
                     {activeVisibleColumns.map(col => (
-                      <td key={col.id} className="py-3.5 px-4 border-t-2 border-[#1E3A66]">
+                      <td key={col.id} className="py-3.5 px-4">
                         {renderFooterCell(col.id, totals)}
                       </td>
                     ))}
