@@ -421,9 +421,13 @@ app.all([
       } catch (errSup) {}
     }
 
-    const primaryPixel = pixels.find(p => (p.capiToken || p.capiTokenRaw) && (p.metaPixelId || p.pixelId)) || pixels[0] || {};
+    const primaryPixel = pixels.find(p => {
+      const t = p.capiTokenRaw || p.capiToken || '';
+      return t.startsWith('EAA') && t.length > 50 && (p.metaPixelId || p.pixelId);
+    }) || pixels.find(p => (p.capiToken || p.capiTokenRaw) && (p.metaPixelId || p.pixelId)) || pixels[0] || {};
+
     const targetPixelId = primaryPixel.metaPixelId || primaryPixel.pixelId || settings.metaPixelId || '1056706567239394';
-    const targetCapiToken = primaryPixel.capiToken || primaryPixel.capiTokenRaw || settings.metaAccessToken;
+    const targetCapiToken = primaryPixel.capiTokenRaw || primaryPixel.capiToken || settings.metaAccessToken;
 
     const capiResult = await sendCapiEvent({
       pixelId: targetPixelId,
