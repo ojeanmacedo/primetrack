@@ -35,30 +35,30 @@ export async function subscribeUserToPush() {
     throw new Error('Permissão de notificação negada.');
   }
 
+  // 1. Garante que o Service Worker está registrado e pronto
+  let reg = await navigator.serviceWorker.getRegistration();
+  if (!reg) {
+    reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+  }
   const registration = await navigator.serviceWorker.ready;
 
-  // Busca VAPID public key do servidor
+  // 2. Busca VAPID public key do servidor
   const keyRes = await fetch('/api/push/vapid-public-key');
   const { publicKey } = await keyRes.json();
   if (!publicKey) throw new Error('Chave VAPID pública não encontrada.');
 
   const convertedVapidKey = urlBase64ToUint8Array(publicKey);
 
+  // 3. Obtém ou cria inscrição PushManager
   let subscription = await registration.pushManager.getSubscription();
-  
-  // Se já havia uma antiga ou com outra chave, renova
-  if (subscription) {
-    try {
-      await subscription.unsubscribe();
-    } catch(e){}
+  if (!subscription) {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: convertedVapidKey
+    });
   }
 
-  subscription = await registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: convertedVapidKey
-  });
-
-  // Envia subscription para o backend
+  // 4. Envia subscription para o backend
   const subRes = await fetch('/api/push/subscribe', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
