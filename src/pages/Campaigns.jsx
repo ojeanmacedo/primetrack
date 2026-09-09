@@ -103,6 +103,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   });
   const [currentPage, setCurrentPage] = useState(1);
 
+  const [columnsConfigByTab, setColumnsConfigByTab] = useState(() => ({
+    Contas: getInitialColsForTab('Contas'),
+    Campanhas: getInitialColsForTab('Campanhas'),
+    Conjuntos: getInitialColsForTab('Conjuntos'),
+    Anúncios: getInitialColsForTab('Anúncios')
+  }));
+
   const columnsConfig = columnsConfigByTab[subTab] || columnsConfigByTab['Campanhas'];
 
   const [showColumnsModal, setShowColumnsModal] = useState(false);
