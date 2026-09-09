@@ -1199,10 +1199,10 @@ function getBaseUrl(req) {
   if (process.env.APP_URL) return process.env.APP_URL;
   const host = req.headers['x-forwarded-host'] || req.headers.host;
   const proto = req.headers['x-forwarded-proto'] || (req.secure ? 'https' : 'http');
-  if (host && !host.includes('localhost')) {
+  if (host) {
     return `${proto}://${host}`;
   }
-  return 'https://app.primetrack.top';
+  return 'http://localhost:3001';
 }
 
 // A. Iniciar fluxo de Login OAuth
