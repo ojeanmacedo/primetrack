@@ -422,13 +422,44 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setSyncing(false);
   };
 
-  const handleToggleStatus = (campId) => {
+  const handleToggleStatus = async (itemId) => {
+    let nextStatus = false;
     setCampaignsList(prev => prev.map(c => {
-      if (c.id === campId) {
-        return { ...c, status: !c.status };
+      if (c.id === itemId) {
+        nextStatus = !c.status;
+        return { ...c, status: nextStatus };
+      }
+      if (c.adsets) {
+        c.adsets = c.adsets.map(as => {
+          if (as.id === itemId) {
+            nextStatus = !as.status;
+            return { ...as, status: nextStatus };
+          }
+          return as;
+        });
+      }
+      if (c.ads) {
+        c.ads = c.ads.map(ad => {
+          if (ad.id === itemId) {
+            nextStatus = !ad.status;
+            return { ...ad, status: nextStatus };
+          }
+          return ad;
+        });
       }
       return c;
     }));
+
+    // Dispara sincronização direta com a API do Meta Ads
+    try {
+      await fetch('/api/campaigns/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: itemId, status: nextStatus })
+      });
+    } catch (e) {
+      console.warn('Erro ao sincronizar status com a Meta:', e);
+    }
   };
 
   // Abre modal direto para edição do valor selecionado

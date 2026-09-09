@@ -497,7 +497,64 @@ export async function fetchAdsWithCreatives(adAccountId, accessToken) {
       videoUrl: videoUrl,
       type: videoUrl ? 'video' : 'image'
     });
+}
+
+/**
+ * 7. Atualiza status de Campanha, Conjunto ou Anúncio no Meta Ads
+ */
+export async function updateMetaItemStatus(itemId, status, accessToken) {
+  const metaStatus = status ? 'ACTIVE' : 'PAUSED';
+  const url = `${GRAPH_BASE_URL}/${itemId}?access_token=${accessToken}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: metaStatus })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data;
+}
+
+/**
+ * 8. Atualiza orçamento (budget), limite de lance (bid_amount) ou estratégia no Meta Ads
+ */
+export async function updateMetaItemDetails(itemId, { budget, bidCap, bidStrategy, itemType = 'campaign' }, accessToken, isUsd = false, usdRate = 1.0) {
+  const url = `${GRAPH_BASE_URL}/${itemId}?access_token=${accessToken}`;
+  const body = {};
+
+  if (budget !== undefined && budget !== null && budget !== '') {
+    const numBudget = Number(budget);
+    if (!isNaN(numBudget) && numBudget > 0) {
+      // Converte se a conta for em USD
+      const budgetInAccountCurrency = isUsd ? (numBudget / usdRate) : numBudget;
+      const budgetInCents = Math.round(budgetInAccountCurrency * 100);
+      body.daily_budget = budgetInCents;
+    }
   }
 
-  return ads;
+  if (bidCap !== undefined && bidCap !== null && bidCap !== '') {
+    const numBid = Number(bidCap);
+    if (!isNaN(numBid) && numBid > 0) {
+      const bidInAccountCurrency = isUsd ? (numBid / usdRate) : numBid;
+      const bidInCents = Math.round(bidInAccountCurrency * 100);
+      body.bid_amount = bidInCents;
+    }
+  }
+
+  if (bidStrategy) {
+    body.bid_strategy = bidStrategy;
+  }
+
+  if (Object.keys(body).length === 0) {
+    return { success: true, message: 'Nenhum campo para atualizar na Meta' };
+  }
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data;
 }

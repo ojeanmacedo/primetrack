@@ -14,7 +14,10 @@ import {
   fetchAdAccounts, 
   fetchLiveAccountDetails,
   fetchCampaigns, 
-  fetchAdsWithCreatives 
+  fetchAdsWithCreatives,
+  updateMetaItemStatus,
+  updateMetaItemDetails,
+  getUsdToBrlRate
 } from './services/metaService.js';
 import { supabaseAdmin } from './supabase.js';
 
@@ -1802,10 +1805,66 @@ app.post('/api/meta/disconnect', async (req, res) => {
   }
 });
 
-// F. Atualizar Campanha, Orçamento e Bid Cap
-app.post('/api/campaigns/update', (req, res) => {
+// F. Atualizar Status no Gerenciador Meta Ads (Ligar / Desligar Campanha, Conjunto ou Anúncio)
+app.post('/api/campaigns/status', async (req, res) => {
   try {
-    const { id, name, budget, bidCap, bidStrategy, profileType } = req.body;
+    const { id, status } = req.body;
+    if (!id) return res.status(400).json({ error: 'ID é obrigatório' });
+
+    let connections = db.get('facebook_connections') || [];
+    if (connections.length === 0) {
+      try {
+        const { data: supaConns } = await supabaseAdmin.from('facebook_connections').select('*');
+        if (supaConns && supaConns.length > 0) connections = supaConns;
+      } catch (e) {}
+    }
+
+    const token = connections[0]?.access_token || connections[0]?.accessToken;
+    let metaSuccess = false;
+    let metaError = null;
+
+    if (token) {
+      try {
+        await updateMetaItemStatus(id, Boolean(status), token);
+        metaSuccess = true;
+      } catch (err) {
+        console.warn(`[Meta Status Update Error]:`, err.message);
+        metaError = err.message;
+      }
+    }
+
+    // Atualiza status na memória local/cache
+    const campaigns = db.get('campaigns') || [];
+    const updatedCampaigns = campaigns.map(c => {
+      if (c.id === id) {
+        return { ...c, status: Boolean(status) };
+      }
+      if (c.adsets) {
+        c.adsets = c.adsets.map(as => as.id === id ? { ...as, status: Boolean(status) } : as);
+      }
+      if (c.ads) {
+        c.ads = c.ads.map(ad => ad.id === id ? { ...ad, status: Boolean(status) } : ad);
+      }
+      return c;
+    });
+    db.set('campaigns', updatedCampaigns);
+    campaignsCache.clear();
+
+    res.json({
+      success: true,
+      metaSynced: metaSuccess,
+      metaError,
+      message: metaSuccess ? 'Status atualizado com sucesso no Gerenciador da Meta!' : 'Status atualizado localmente na PrimeTrack.'
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// F2. Atualizar Campanha, Orçamento e Bid Cap diretamente no Gerenciador Meta Ads
+app.post('/api/campaigns/update', async (req, res) => {
+  try {
+    const { id, name, budget, bidCap, bidStrategy, profileType, itemType } = req.body;
     const campaigns = db.get('campaigns') || [];
     const index = campaigns.findIndex(c => c.id === id || c.name === 'TESTE MI');
 
@@ -1836,17 +1895,44 @@ app.post('/api/campaigns/update', (req, res) => {
       campaigns.unshift(target);
     }
     db.set('campaigns', campaigns);
+    campaignsCache.clear();
+
+    let connections = db.get('facebook_connections') || [];
+    if (connections.length === 0) {
+      try {
+        const { data: supaConns } = await supabaseAdmin.from('facebook_connections').select('*');
+        if (supaConns && supaConns.length > 0) connections = supaConns;
+      } catch (e) {}
+    }
+
+    const token = connections[0]?.access_token || connections[0]?.accessToken;
+    let metaSuccess = false;
+    let metaError = null;
+
+    if (token && id) {
+      try {
+        const usdRate = await getUsdToBrlRate();
+        await updateMetaItemDetails(id, { budget, bidCap, bidStrategy, itemType }, token, true, usdRate);
+        metaSuccess = true;
+      } catch (err) {
+        console.warn(`[Meta Details Update Error]:`, err.message);
+        metaError = err.message;
+      }
+    }
 
     const isBackupProfile = profileType === 'backup';
-    const message = isBackupProfile 
-      ? '🛡️ Trava de Segurança: Perfil conectado é BACKUP. O valor foi atualizado na PrimeTrack com sucesso.'
-      : 'Alteração salva e sincronizada com sucesso no Meta Ads.';
+    const message = metaSuccess
+      ? 'Alteração salva e sincronizada com sucesso no Gerenciador da Meta!'
+      : (isBackupProfile 
+          ? '🛡️ Perfil Backup: Valor atualizado na PrimeTrack.'
+          : 'Alteração salva com sucesso na PrimeTrack.');
 
     res.json({
       success: true,
       campaign: target,
       isBackupProfile,
-      metaSynced: !isBackupProfile,
+      metaSynced: metaSuccess,
+      metaError,
       message
     });
   } catch (err) {
