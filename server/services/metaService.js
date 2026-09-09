@@ -528,11 +528,15 @@ export async function updateMetaItemStatus(itemId, status, accessToken) {
 }
 
 /**
- * 8. Atualiza orçamento (budget), limite de lance (bid_amount) ou estratégia no Meta Ads
+ * 8. Atualiza orçamento (budget), limite de lance (bid_amount), estratégia ou NOME no Meta Ads
  */
-export async function updateMetaItemDetails(itemId, { budget, bidCap, bidStrategy, itemType = 'campaign' }, accessToken, isUsd = false, usdRate = 1.0) {
+export async function updateMetaItemDetails(itemId, { name, budget, bidCap, bidStrategy, itemType = 'campaign' }, accessToken, isUsd = false, usdRate = 1.0) {
   const url = `${GRAPH_BASE_URL}/${itemId}?access_token=${accessToken}`;
   const body = {};
+
+  if (name && typeof name === 'string' && name.trim().length > 0) {
+    body.name = name.trim();
+  }
 
   if (budget !== undefined && budget !== null && budget !== '') {
     const numBudget = Number(budget);

@@ -1912,7 +1912,7 @@ app.post('/api/campaigns/update', async (req, res) => {
     if (token && id) {
       try {
         const usdRate = await getUsdToBrlRate();
-        await updateMetaItemDetails(id, { budget, bidCap, bidStrategy, itemType }, token, true, usdRate);
+        await updateMetaItemDetails(id, { name, budget, bidCap, bidStrategy, itemType }, token, true, usdRate);
         metaSuccess = true;
       } catch (err) {
         console.warn(`[Meta Details Update Error]:`, err.message);

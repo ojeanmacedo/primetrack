@@ -555,20 +555,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     const normalizedBudget = cleanNumber(editBudget);
     const normalizedBidCap = cleanNumber(editBidCap);
 
-    // Se estiver editando nome de Conjunto ou Anúncio
-    if (editingField === 'name' && subTab !== 'Campanhas') {
+    // Salva sobrescrita no cache local
+    if (editingField === 'name') {
       saveItemNameOverride(targetId, editName);
-      setSaveSuccessMsg('Nome atualizado com sucesso na PrimeTrack!');
-      setTimeout(() => setSaveSuccessMsg(null), 4000);
-      setEditingCampaign(null);
-      setEditingItem(null);
-      setSavingEdit(false);
-      return;
-    }
-
-    // Se estiver editando Campanha ou Orçamento/Lance
-    if (subTab === 'Campanhas' && editingField === 'name') {
-      saveItemNameOverride(editingCampaign.id, editName);
     }
 
     // Atualiza imediatamente na tabela APENAS o campo específico que foi editado
@@ -584,10 +573,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       return c;
     }));
 
-    // Envia ao servidor estritamente o campo isolado que você alterou
+    // Envia ao servidor estritamente o campo isolado que você alterou (inclusive Nome para a Meta)
     try {
       const payload = {
-        id: editingCampaign.id,
+        id: targetId,
         itemType: subTab === 'Conjuntos' ? 'adset' : (subTab === 'Anúncios' ? 'ad' : 'campaign'),
         profileType: 'standard'
       };
