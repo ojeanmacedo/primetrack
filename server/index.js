@@ -683,7 +683,9 @@ app.get('/api/campaigns', async (req, res) => {
     return activeAccountIds.has(cAdId);
   });
 
-  const approvedOrders = await getApprovedOrders();
+  const allOrders = await getAllOrders();
+  const approvedOrders = allOrders.filter(o => o.status === 'approved' || o.status === 'paid' || o.status === 'pago');
+  const pendingOrders = allOrders.filter(o => o.status === 'pending' || o.status === 'waiting_payment' || o.status === 'aguardando_pagamento');
 
 function toBrazilYMD(dateInput) {
   if (!dateInput) return null;
@@ -741,6 +743,14 @@ function resolveDateRange(datePreset = 'today', since = null, until = null) {
     return true;
   });
 
+  const filteredPendingOrders = pendingOrders.filter(o => {
+    if (filterSince && filterUntil && o.createdAt) {
+      const oDate = toBrazilYMD(o.createdAt);
+      return oDate >= filterSince && oDate <= filterUntil;
+    }
+    return true;
+  });
+
   const events = db.get('events') || [];
   const pixelPurchases = events.filter(e => {
     if (e.eventName !== 'Purchase') return false;
@@ -767,6 +777,12 @@ function resolveDateRange(datePreset = 'today', since = null, until = null) {
     const cId = String(c.id || '');
 
     const matchingOrders = filteredOrders.filter(o => {
+      const oCamp = ((o.attribution && o.attribution.campaign) || o.campaign || '').toLowerCase().trim();
+      if (!oCamp || oCamp === 'orgânico' || oCamp === 'organico' || oCamp === 'histórico') return false;
+      return (oCamp === cName || oCamp === cUtm || oCamp === cId || cName.includes(oCamp) || oCamp.includes(cName));
+    });
+
+    const matchingPendingOrders = filteredPendingOrders.filter(o => {
       const oCamp = ((o.attribution && o.attribution.campaign) || o.campaign || '').toLowerCase().trim();
       if (!oCamp || oCamp === 'orgânico' || oCamp === 'organico' || oCamp === 'histórico') return false;
       return (oCamp === cName || oCamp === cUtm || oCamp === cId || cName.includes(oCamp) || oCamp.includes(cName));
@@ -803,6 +819,7 @@ function resolveDateRange(datePreset = 'today', since = null, until = null) {
     return {
       ...c,
       sales: totalSales,
+      pendingSales: matchingPendingOrders.length,
       revenue: totalRevenue.toFixed(2),
       profit: profitNum.toFixed(2),
       roas: roasNum,
