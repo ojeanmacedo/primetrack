@@ -574,8 +574,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         })
       });
       const data = await res.json();
-      setSaveSuccessMsg(data.message || 'Atualizado com sucesso!');
-      setTimeout(() => setSaveSuccessMsg(null), 5000);
+      if (data.metaError) {
+        setSaveSuccessMsg(`⚠️ ${data.metaError}`);
+      } else {
+        setSaveSuccessMsg(data.message || 'Atualizado com sucesso!');
+      }
+      setTimeout(() => setSaveSuccessMsg(null), 6000);
       setEditingCampaign(null);
       setEditingItem(null);
     } catch (err) {
