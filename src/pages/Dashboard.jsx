@@ -544,34 +544,49 @@ export default function Dashboard() {
     });
   }, [campaigns, selectedAccount, adAccountsList]);
 
+  // Converte qualquer data para YYYY-MM-DD no fuso de São Paulo (UTC-3)
+  const toBrazilYMD = (dateInput) => {
+    if (!dateInput) return null;
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return null;
+    const spDate = new Date(d.getTime() - (3 * 3600 * 1000));
+    const y = spDate.getUTCFullYear();
+    const m = String(spDate.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(spDate.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
   // Filtra as vendas baseado no período e filtros selecionados
   const filteredOrders = useMemo(() => {
+    const todayYMD = toBrazilYMD(new Date());
+    const yesterdayYMD = toBrazilYMD(new Date(Date.now() - 86400000));
+    const sevenDaysAgoYMD = toBrazilYMD(new Date(Date.now() - 6 * 86400000));
+    const fourteenDaysAgoYMD = toBrazilYMD(new Date(Date.now() - 13 * 86400000));
+    const thirtyDaysAgoYMD = toBrazilYMD(new Date(Date.now() - 29 * 86400000));
+    const currentMonthPrefix = todayYMD ? todayYMD.slice(0, 7) : '';
+
     return deduplicatedOrders.filter(o => {
       if (!o.createdAt) return true;
-      const d = new Date(o.createdAt);
-      const now = new Date();
-      const diffHours = (now - d) / (1000 * 60 * 60);
+      const orderYMD = toBrazilYMD(o.createdAt);
+      if (!orderYMD) return false;
 
-      // Filtro de data
+      // Filtro de data estrito pelo calendário civil (dia vira exatamente às 00:00)
       if (period === 'Personalizado' && customRange?.since) {
-        const orderDateStr = d.toISOString().split('T')[0];
         const since = customRange.since;
         const until = customRange.until || customRange.since;
-        if (orderDateStr < since || orderDateStr > until) return false;
+        if (orderYMD < since || orderYMD > until) return false;
       } else if (period === 'Hoje') {
-        const isSameDay = d.toDateString() === now.toDateString();
-        if (!isSameDay && !(diffHours >= -1 && diffHours <= 24)) return false;
+        if (orderYMD !== todayYMD) return false;
       } else if (period === 'Ontem') {
-        if (!(diffHours > 24 && diffHours <= 48)) return false;
+        if (orderYMD !== yesterdayYMD) return false;
       } else if (period === '7 dias') {
-        if (diffHours > 24 * 7) return false;
+        if (orderYMD < sevenDaysAgoYMD || orderYMD > todayYMD) return false;
       } else if (period === '14 dias') {
-        if (diffHours > 24 * 14) return false;
+        if (orderYMD < fourteenDaysAgoYMD || orderYMD > todayYMD) return false;
       } else if (period === '30 dias') {
-        if (diffHours > 24 * 30) return false;
+        if (orderYMD < thirtyDaysAgoYMD || orderYMD > todayYMD) return false;
       } else if (period === 'Este mês') {
-        const isThisMonth = d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-        if (!isThisMonth) return false;
+        if (!orderYMD.startsWith(currentMonthPrefix)) return false;
       }
 
       // Filtro de fonte

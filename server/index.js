@@ -1006,31 +1006,14 @@ app.get('/api/pixel/stats', async (req, res) => {
   const sessions = db.get('sessions') || [];
   const { datePreset, since, until } = req.query;
 
-  const now = new Date();
+  const { since: filterSince, until: filterUntil } = resolveDateRange(datePreset, since, until);
+
   const filterByDate = (itemDate) => {
     if (!itemDate) return true;
-    const d = new Date(itemDate);
-    const diffHours = (now - d) / (1000 * 60 * 60);
-
-    if (datePreset === 'today' || datePreset === 'Hoje') {
-      return d.toDateString() === now.toDateString() || (diffHours >= -1 && diffHours <= 24);
-    }
-    if (datePreset === 'yesterday' || datePreset === 'Ontem') {
-      return diffHours > 24 && diffHours <= 48;
-    }
-    if (datePreset === 'last_7d' || datePreset === '7 dias') {
-      return diffHours <= 24 * 7;
-    }
-    if (datePreset === 'last_14d' || datePreset === '14 dias') {
-      return diffHours <= 24 * 14;
-    }
-    if (datePreset === 'last_30d' || datePreset === 'this_month' || datePreset === '30 dias') {
-      return diffHours <= 24 * 30;
-    }
-    if (since) {
-      const s = new Date(since);
-      const u = until ? new Date(until) : now;
-      return d >= s && d <= u;
+    if (filterSince && filterUntil) {
+      const itemYMD = toBrazilYMD(itemDate);
+      if (!itemYMD) return false;
+      return itemYMD >= filterSince && itemYMD <= filterUntil;
     }
     return true;
   };

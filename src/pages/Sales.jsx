@@ -208,16 +208,32 @@ function resolveCustomerCityState(cust, o) {
     };
   });
 
+  // Converte data para YYYY-MM-DD no fuso de São Paulo (UTC-3)
+  const toBrazilYMD = (dateInput) => {
+    if (!dateInput) return null;
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return null;
+    const spDate = new Date(d.getTime() - (3 * 3600 * 1000));
+    const y = spDate.getUTCFullYear();
+    const m = String(spDate.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(spDate.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
   // Apenas vendas reais que vierem da MonsterPay ou do Pixel da PrimeTrack
   const baseSales = formattedLiveOrders;
 
   const displayedSales = baseSales.filter(sale => {
     if (!sale.rawDate) return true;
-    const now = new Date();
-    const diffHours = (now - sale.rawDate) / (1000 * 60 * 60);
-    if (period === 'Hoje') return diffHours <= 24;
-    if (period === 'Ontem') return diffHours > 24 && diffHours <= 48;
-    if (period === '7d') return diffHours <= 24 * 7;
+    const todayYMD = toBrazilYMD(new Date());
+    const yesterdayYMD = toBrazilYMD(new Date(Date.now() - 86400000));
+    const sevenDaysAgoYMD = toBrazilYMD(new Date(Date.now() - 6 * 86400000));
+    const saleYMD = toBrazilYMD(sale.rawDate);
+    if (!saleYMD) return false;
+
+    if (period === 'Hoje') return saleYMD === todayYMD;
+    if (period === 'Ontem') return saleYMD === yesterdayYMD;
+    if (period === '7d') return saleYMD >= sevenDaysAgoYMD && saleYMD <= todayYMD;
     return true;
   });
 
