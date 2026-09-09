@@ -1917,9 +1917,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         </div>
       )}
 
-      {/* ── VIEWS 1, 2, 3: SUB-ABAS CAMPANHAS, CONJUNTOS, ANÚNCIOS (TABELA DINÂMICA MALEÁVEL) ── */}
+      {/* ── VIEWS 1, 2, 3: SUB-ABAS CAMPANHAS, CONJUNTOS, ANÚNCIOS (TABELA COM SCROLL INTERNO E CABEÇALHO/RODAPÉ FIXOS) ── */}
       {subTab !== 'Contas' && (
-        <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl overflow-hidden shadow-xl">
+        <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl overflow-hidden shadow-xl flex flex-col">
           {currentItems.length === 0 ? (
             <div className="p-12 text-center">
               <div className="w-12 h-12 rounded-2xl bg-[#070D1A] border border-white/10 flex items-center justify-center mx-auto mb-3 text-zinc-500">
@@ -1944,12 +1944,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs font-sans whitespace-nowrap">
-                <thead className="bg-[#070D1A] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E]">
+            <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] min-h-[420px] scrollbar-thin scrollbar-thumb-[#1A6DFF]/40 scrollbar-track-[#070D1A]">
+              <table className="w-full text-left text-xs font-sans whitespace-nowrap border-collapse">
+                <thead className="bg-[#070D1A] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E] sticky top-0 z-20 shadow-md">
                   <tr>
-                    {/* Checkbox fixo */}
-                    <th className="py-3 px-3 w-8">
+                    {/* Checkbox fixo na lateral esquerda */}
+                    <th className="py-3 px-3 w-8 bg-[#070D1A] sticky left-0 z-30 border-r border-[#13233E]/40">
                       <input 
                         type="checkbox" 
                         className="rounded bg-[#03060D] border-white/10 cursor-pointer accent-[#1A6DFF]" 
@@ -1959,11 +1959,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       />
                     </th>
 
-                    {/* Status fixo */}
-                    <th className="py-3 px-3">STATUS</th>
+                    {/* Status fixo na lateral esquerda */}
+                    <th className="py-3 px-3 bg-[#070D1A] sticky left-8 z-30 border-r border-[#13233E]/40">STATUS</th>
 
-                    {/* Nome (Campanha / Conjunto / Anúncio) */}
-                    <th className="py-3 px-4">
+                    {/* Nome (Campanha / Conjunto / Anúncio) fixo na lateral esquerda */}
+                    <th className="py-3 px-4 bg-[#070D1A] sticky left-[88px] z-30 border-r border-[#13233E] min-w-[220px] max-w-[320px] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
                       {subTab === 'Campanhas' ? 'CAMPANHA' : (subTab === 'Conjuntos' ? 'CONJUNTO' : 'ANÚNCIO')}
                     </th>
 
@@ -1991,8 +1991,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 <tbody className="divide-y divide-[#13233E]/60 font-mono">
                   {currentItems.map((item, idx) => (
                     <tr key={item.id || idx} className={`hover:bg-white/[0.02] transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#1A6DFF]/5' : ''}`}>
-                      {/* Checkbox */}
-                      <td className="py-4 px-3">
+                      {/* Checkbox fixo na lateral */}
+                      <td className="py-4 px-3 bg-[#0A1426] sticky left-0 z-10 border-r border-[#13233E]/40">
                         <input 
                           type="checkbox" 
                           className="rounded bg-[#03060D] border-white/10 cursor-pointer accent-[#1A6DFF]" 
@@ -2001,8 +2001,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                         />
                       </td>
 
-                      {/* Status Toggle */}
-                      <td className="py-4 px-3">
+                      {/* Status Toggle fixo na lateral */}
+                      <td className="py-4 px-3 bg-[#0A1426] sticky left-8 z-10 border-r border-[#13233E]/40">
                         <button
                           type="button"
                           onClick={() => handleToggleStatus(item.id || item.campaignId || item.adsetId || item.adId)}
@@ -2016,23 +2016,23 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                         </button>
                       </td>
 
-                      {/* Nome do Item */}
-                      <td className="py-4 px-4 font-sans">
-                        <div>
+                      {/* Nome do Item fixo na lateral */}
+                      <td className="py-4 px-4 font-sans bg-[#0A1426] sticky left-[88px] z-10 border-r border-[#13233E] min-w-[220px] max-w-[320px] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
+                        <div className="truncate">
                           <div 
                             onClick={() => handleOpenEdit(item, 'name')}
-                            className="font-bold text-white text-xs sm:text-sm flex items-center gap-2 hover:text-[#5C9BFF] cursor-pointer"
+                            className="font-bold text-white text-xs sm:text-sm flex items-center gap-2 hover:text-[#5C9BFF] cursor-pointer truncate"
                             title="Clique para editar nome"
                           >
-                            <span>{item.name}</span>
-                            <Edit3 className="w-3 h-3 text-zinc-500 hover:text-[#5C9BFF]" />
+                            <span className="truncate">{item.name}</span>
+                            <Edit3 className="w-3 h-3 text-zinc-500 hover:text-[#5C9BFF] shrink-0" />
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-[10px] text-zinc-500 font-mono">
                               {item.accountName || 'CA01'}
                             </span>
                             {item.bidCap && (
-                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono font-bold">
+                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono font-bold shrink-0">
                                 Bid Cap: R$ {item.bidCap}
                               </span>
                             )}
@@ -2050,12 +2050,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   ))}
                 </tbody>
 
-                {/* Rodapé com totais reais */}
-                <tfoot className="bg-[#070D1A] font-bold border-t border-[#13233E] text-xs font-mono">
+                {/* Rodapé com totais reais sticky embaixo */}
+                <tfoot className="bg-[#070D1A] font-bold border-t border-[#13233E] text-xs font-mono sticky bottom-0 z-20 shadow-lg">
                   <tr>
-                    <td className="py-3.5 px-3"></td>
-                    <td className="py-3.5 px-3"></td>
-                    <td className="py-3.5 px-4 font-sans text-white uppercase text-[11px]">
+                    <td className="py-3.5 px-3 bg-[#070D1A] sticky left-0 z-30 border-r border-[#13233E]/40"></td>
+                    <td className="py-3.5 px-3 bg-[#070D1A] sticky left-8 z-30 border-r border-[#13233E]/40"></td>
+                    <td className="py-3.5 px-4 font-sans text-white uppercase text-[11px] bg-[#070D1A] sticky left-[88px] z-30 border-r border-[#13233E] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
                       {currentItems.length} {
                         subTab === 'Campanhas' 
                           ? (currentItems.length === 1 ? 'CAMPANHA' : 'CAMPANHAS')
