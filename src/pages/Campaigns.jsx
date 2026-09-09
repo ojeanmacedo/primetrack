@@ -221,6 +221,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const [bulkModalAction, setBulkModalAction] = useState(null); // 'budget' | 'bid'
   const [bulkInputValue, setBulkInputValue] = useState('');
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [onlySelectedFilter, setOnlySelectedFilter] = useState(false);
 
   const subTabs = ['Contas', 'Campanhas', 'Conjuntos', 'Anúncios'];
   const isFirstMount = React.useRef(true);
@@ -806,6 +807,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   // Filtragem - se campaignsList já possui dados, exibe imediatamente
   const filteredCampaigns = campaignsList.filter(c => {
+    // Filtro de Selecionadas
+    if (onlySelectedFilter && selectedCampaignIds.size > 0 && !selectedCampaignIds.has(c.id)) {
+      return false;
+    }
+
     // Filtro de Status
     if (statusFilter === 'Ativo' && !c.status) return false;
     if (statusFilter === 'Desativadas' && c.status) return false;
@@ -1735,6 +1741,30 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     <span>Ações em Massa</span>
                     <span className="text-[#5C9BFF] font-bold">{activeSelectedSet.size} selecionado(s)</span>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOnlySelectedFilter(prev => !prev);
+                      setBulkMenuOpen(false);
+                    }}
+                    disabled={activeSelectedSet.size === 0 && !onlySelectedFilter}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                      onlySelectedFilter
+                        ? 'bg-[#1A6DFF]/20 text-[#5C9BFF] font-bold'
+                        : 'text-zinc-200 hover:text-white hover:bg-[#12223D]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Filter className={`w-4 h-4 ${onlySelectedFilter ? 'text-[#5C9BFF]' : 'text-zinc-400'}`} />
+                      <span>{onlySelectedFilter ? 'Exibindo selecionadas' : 'Filtrar selecionadas'}</span>
+                    </div>
+                    {onlySelectedFilter && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#1A6DFF] text-white">Ativo</span>
+                    )}
+                  </button>
+
+                  <div className="h-px bg-[#13233E]/60 my-1" />
 
                   <button
                     type="button"
