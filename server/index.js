@@ -147,10 +147,15 @@ app.get('/api/pixel/config', async (req, res) => {
     }
   }
 
+  const defaultMetaPixel = '1056706567239394';
+  const resolvedMetaPixelId = (foundPixel && foundPixel.metaPixelId) 
+    ? foundPixel.metaPixelId 
+    : (/^\d{10,25}$/.test(id) ? id : (settings.metaPixelId || defaultMetaPixel));
+
   res.json({
     pixelId: id,
-    metaPixelId: (foundPixel && foundPixel.metaPixelId) ? foundPixel.metaPixelId : (settings.metaPixelId || ''),
-    icRule: foundPixel ? (foundPixel.icValue || foundPixel.icRule) : null,
+    metaPixelId: resolvedMetaPixelId,
+    icRule: foundPixel ? (foundPixel.icValue || foundPixel.icRule) : '.btn-checkout',
     icType: foundPixel ? (foundPixel.icType || 'css') : 'css'
   });
 });
