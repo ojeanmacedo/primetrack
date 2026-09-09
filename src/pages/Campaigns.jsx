@@ -2174,7 +2174,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       {editingCampaign && (
         <div 
           className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in"
-          // Não fecha ao clicar no fundo nem ao passar o mouse fora - apenas pelo botão de Cancelar ou no X
+          onClick={() => setEditingCampaign(null)}
         >
           <div 
             className="relative w-full max-w-[380px] bg-[#0A1426] border border-[#13233E] rounded-3xl p-5 shadow-2xl animate-in zoom-in-95"
