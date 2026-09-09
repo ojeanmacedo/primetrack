@@ -33,15 +33,13 @@ const COLUMN_DEFS = [
   { id: 'preview', label: 'Preview', defaultVisible: true, adsOnly: true },
   { id: 'budget', label: 'Orçamento', defaultVisible: true, notAds: true },
   { id: 'bid', label: 'Lance', defaultVisible: true },
-  { id: 'spend', label: 'Gasto', defaultVisible: true },
   { id: 'sales', label: 'Vendas', defaultVisible: true },
   { id: 'pendingSales', label: 'Vendas Pendentes', defaultVisible: true },
+  { id: 'spend', label: 'Gasto', defaultVisible: true },
+  { id: 'cpa', label: 'CPA', defaultVisible: true },
   { id: 'revenue', label: 'Faturamento', defaultVisible: true },
   { id: 'profit', label: 'Lucro', defaultVisible: true },
-  { id: 'roas', label: 'ROAS', defaultVisible: true },
   { id: 'roi', label: 'ROI', defaultVisible: true },
-  { id: 'margin', label: 'Margem', defaultVisible: false },
-  { id: 'cpa', label: 'CPA', defaultVisible: true },
   { id: 'arpu', label: 'ARPU', defaultVisible: true },
   { id: 'cpc', label: 'CPC', defaultVisible: true },
   { id: 'ctr', label: 'CTR', defaultVisible: true },
@@ -51,6 +49,8 @@ const COLUMN_DEFS = [
   { id: 'visits', label: 'Visitas', defaultVisible: true },
   { id: 'ic', label: 'IC', defaultVisible: true },
   { id: 'costPerIc', label: 'Custo por IC', defaultVisible: true },
+  { id: 'roas', label: 'ROAS', defaultVisible: false },
+  { id: 'margin', label: 'Margem', defaultVisible: false },
   { id: 'icRate', label: '% IC', defaultVisible: false },
   { id: 'id', label: 'ID', defaultVisible: false },
   { id: 'campaignId', label: 'ID Campanha', defaultVisible: false },
@@ -72,7 +72,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   // Customização maleável de colunas independente por aba (Contas, Campanhas, Conjuntos, Anúncios)
   const getInitialColsForTab = (tab) => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(`primetrack_columns_${tab}`);
+      const saved = localStorage.getItem(`primetrack_columns_v2_${tab}`);
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
@@ -710,7 +710,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       const [moved] = newConfig.splice(fromIndex, 1);
       newConfig.splice(toIndex, 0, moved);
       if (typeof window !== 'undefined') {
-        localStorage.setItem(`primetrack_columns_${subTab}`, JSON.stringify(newConfig));
+        localStorage.setItem(`primetrack_columns_v2_${subTab}`, JSON.stringify(newConfig));
       }
       return {
         ...prevByTab,
@@ -738,6 +738,19 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     e.dataTransfer.dropEffect = 'move';
   };
 
+  const saveColumnsImmediately = (newConfig) => {
+    setColumnsConfigByTab(prev => {
+      const updated = {
+        ...prev,
+        [subTab]: newConfig
+      };
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`primetrack_columns_v2_${subTab}`, JSON.stringify(newConfig));
+      }
+      return updated;
+    });
+  };
+
   const handleModalDrop = (e, targetIndex) => {
     e.preventDefault();
     if (modalDraggedIndex === null || modalDraggedIndex === targetIndex) return;
@@ -746,39 +759,41 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       const list = [...prev];
       const [moved] = list.splice(modalDraggedIndex, 1);
       list.splice(targetIndex, 0, moved);
+      saveColumnsImmediately(list);
       return list;
     });
     setModalDraggedIndex(null);
   };
 
   const toggleTempColumn = (id) => {
-    setTempColumnsConfig(prev => prev.map(col => col.id === id ? { ...col, visible: !col.visible } : col));
+    setTempColumnsConfig(prev => {
+      const updated = prev.map(col => col.id === id ? { ...col, visible: !col.visible } : col);
+      saveColumnsImmediately(updated);
+      return updated;
+    });
   };
 
   const handleSaveColumns = () => {
-    setColumnsConfigByTab(prev => {
-      const updated = {
-        ...prev,
-        [subTab]: tempColumnsConfig
-      };
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(`primetrack_columns_${subTab}`, JSON.stringify(tempColumnsConfig));
-      }
-      return updated;
-    });
+    saveColumnsImmediately(tempColumnsConfig);
     setShowColumnsModal(false);
   };
 
   const selectAllTempColumns = () => {
-    setTempColumnsConfig(prev => prev.map(c => ({ ...c, visible: true })));
+    const updated = tempColumnsConfig.map(c => ({ ...c, visible: true }));
+    setTempColumnsConfig(updated);
+    saveColumnsImmediately(updated);
   };
 
   const deselectAllTempColumns = () => {
-    setTempColumnsConfig(prev => prev.map(c => ({ ...c, visible: false })));
+    const updated = tempColumnsConfig.map(c => ({ ...c, visible: false }));
+    setTempColumnsConfig(updated);
+    saveColumnsImmediately(updated);
   };
 
   const resetDefaultTempColumns = () => {
-    setTempColumnsConfig(COLUMN_DEFS.map(c => ({ id: c.id, visible: c.defaultVisible })));
+    const updated = COLUMN_DEFS.map(c => ({ id: c.id, visible: c.defaultVisible }));
+    setTempColumnsConfig(updated);
+    saveColumnsImmediately(updated);
   };
 
   // Exportar para CSV
@@ -961,7 +976,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       case 'profit': {
         const pVal = Number(item.profit || 0);
         return (
-          <span className={`font-extrabold font-mono ${pVal >= 0 ? 'text-[#38bdf8]' : 'text-red-400'}`}>
+          <span className={`font-extrabold font-mono ${pVal > 0 ? 'text-emerald-400' : pVal < 0 ? 'text-red-400' : 'text-zinc-400'}`}>
             R$ {pVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         );
@@ -970,7 +985,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       case 'roas': {
         const rVal = Number(item.roas || 0);
         return (
-          <span className={`font-extrabold font-mono ${rVal >= 1 ? 'text-[#38bdf8]' : 'text-red-400'}`}>
+          <span className={`font-extrabold font-mono ${rVal >= 1 ? 'text-emerald-400' : 'text-red-400'}`}>
             {rVal.toFixed(2)}
           </span>
         );
@@ -981,7 +996,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         const prof = Number(item.profit !== undefined ? item.profit : (Number(item.revenue || 0) - sp));
         const roiVal = sp > 0 ? (prof / sp) : 0;
         return (
-          <span className={`font-extrabold font-mono ${roiVal >= 0 ? 'text-[#38bdf8]' : 'text-red-400'}`}>
+          <span className={`font-extrabold font-mono ${roiVal > 0 ? 'text-emerald-400' : roiVal < 0 ? 'text-red-400' : 'text-zinc-400'}`}>
             {roiVal.toFixed(2)}
           </span>
         );
@@ -994,8 +1009,19 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         return <span className="font-mono text-zinc-300">{marginPct}</span>;
       }
 
-      case 'cpa':
-        return <span className="font-bold text-[#38bdf8] font-mono">R$ {Number(item.cpa || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>;
+      case 'cpa': {
+        const cpaVal = Number(item.cpa || 0);
+        const salesVal = Number(item.sales || 0);
+        const spendVal = Number(item.spend || 0);
+        // Verde se teve vendas com CPA válido; vermelho se gastou e não vendeu
+        const isGoodCpa = salesVal > 0 && cpaVal > 0;
+        const isBadCpa = spendVal > 0 && salesVal === 0;
+        return (
+          <span className={`font-bold font-mono ${isGoodCpa ? 'text-emerald-400' : isBadCpa ? 'text-red-400' : 'text-zinc-400'}`}>
+            R$ {cpaVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
+        );
+      }
 
       case 'arpu': {
         const s = Number(item.sales || 0);
@@ -1064,19 +1090,19 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         return <span className="text-white font-bold font-mono">R$ {t.revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>;
       case 'profit':
         return (
-          <span className={`font-extrabold font-mono ${t.profit >= 0 ? 'text-[#38bdf8]' : 'text-red-400'}`}>
+          <span className={`font-extrabold font-mono ${t.profit > 0 ? 'text-emerald-400' : t.profit < 0 ? 'text-red-400' : 'text-zinc-400'}`}>
             R$ {t.profit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         );
       case 'roas':
         return (
-          <span className={`font-extrabold font-mono ${t.roas >= 1 ? 'text-[#38bdf8]' : 'text-red-400'}`}>
+          <span className={`font-extrabold font-mono ${t.roas >= 1 ? 'text-emerald-400' : 'text-red-400'}`}>
             {t.roas.toFixed(2)}
           </span>
         );
       case 'roi':
         return (
-          <span className={`font-extrabold font-mono ${t.roi >= 0 ? 'text-[#38bdf8]' : 'text-red-400'}`}>
+          <span className={`font-extrabold font-mono ${t.roi > 0 ? 'text-emerald-400' : t.roi < 0 ? 'text-red-400' : 'text-zinc-400'}`}>
             {t.roi.toFixed(2)}
           </span>
         );
@@ -1084,8 +1110,15 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         const marginPct = t.revenue > 0 ? ((t.profit / t.revenue) * 100).toFixed(1) + '%' : '0.0%';
         return <span className="font-mono text-zinc-300">{marginPct}</span>;
       }
-      case 'cpa':
-        return <span className="text-[#38bdf8] font-bold font-mono">R$ {t.cpa.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>;
+      case 'cpa': {
+        const isGoodTotalCpa = t.sales > 0 && t.cpa > 0;
+        const isBadTotalCpa = t.spend > 0 && t.sales === 0;
+        return (
+          <span className={`font-bold font-mono ${isGoodTotalCpa ? 'text-emerald-400' : isBadTotalCpa ? 'text-red-400' : 'text-zinc-400'}`}>
+            R$ {t.cpa.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
+        );
+      }
       case 'arpu':
         return <span className="text-zinc-200 font-mono">R$ {t.arpu.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>;
       case 'cpc':
