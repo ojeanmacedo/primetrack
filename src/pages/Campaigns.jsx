@@ -1990,9 +1990,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
                 <tbody className="divide-y divide-[#13233E]/60 font-mono">
                   {currentItems.map((item, idx) => (
-                    <tr key={item.id || idx} className={`hover:bg-white/[0.02] transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#1A6DFF]/5' : ''}`}>
+                    <tr key={item.id || idx} className={`group hover:bg-[#0e1b33] transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#1A6DFF]/10' : ''}`}>
                       {/* Checkbox fixo na lateral */}
-                      <td className="py-4 pl-4 pr-4 bg-[#0A1426] sticky left-0 z-10">
+                      <td className={`py-4 pl-4 pr-4 sticky left-0 z-10 transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0f1d38]' : 'bg-[#0A1426] group-hover:bg-[#0e1b33]'}`}>
                         <input 
                           type="checkbox" 
                           className="rounded bg-[#03060D] border-white/10 cursor-pointer accent-[#1A6DFF]" 
@@ -2002,7 +2002,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       </td>
 
                       {/* Status Toggle fixo na lateral */}
-                      <td className="py-4 pl-4 pr-5 bg-[#0A1426] sticky left-12 z-10">
+                      <td className={`py-4 pl-4 pr-5 sticky left-12 z-10 transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0f1d38]' : 'bg-[#0A1426] group-hover:bg-[#0e1b33]'}`}>
                         <button
                           type="button"
                           onClick={() => handleToggleStatus(item.id || item.campaignId || item.adsetId || item.adId)}
@@ -2017,7 +2017,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       </td>
 
                       {/* Nome do Item fixo na lateral */}
-                      <td className="py-4 px-4 font-sans bg-[#0A1426] sticky left-[122px] z-10 border-r border-[#13233E] min-w-[220px] max-w-[320px] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
+                      <td className={`py-4 px-4 font-sans sticky left-[122px] z-10 border-r border-[#13233E] min-w-[220px] max-w-[320px] shadow-[4px_0_12px_rgba(0,0,0,0.5)] transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0f1d38]' : 'bg-[#0A1426] group-hover:bg-[#0e1b33]'}`}>
                         <div className="truncate">
                           <div 
                             onClick={() => handleOpenEdit(item, 'name')}
