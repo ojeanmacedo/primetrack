@@ -64,7 +64,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const isAdmin = isMasterAdmin(user);
   const [subTab, setSubTab] = useState('Campanhas');
   const [activeCreativePreview, setActiveCreativePreview] = useState(null);
-  const [statusFilter, setStatusFilter] = useState('Qualquer');
+  const [statusFilter, setStatusFilter] = useState('Ativo');
   const [periodFilter, setPeriodFilter] = useState('Hoje');
   const [customRange, setCustomRange] = useState(null);
   const [accountFilter, setAccountFilter] = useState('Todas');
@@ -514,7 +514,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   // Filtragem - se campaignsList já possui dados, exibe imediatamente
   const filteredCampaigns = campaignsList.filter(c => {
     if (statusFilter === 'Ativo' && !c.status) return false;
-    if (statusFilter === 'Pausado' && c.status) return false;
+    if ((statusFilter === 'Desativadas' || statusFilter === 'Pausado' || statusFilter === 'Inativo') && c.status) return false;
     const cAdId = String(c.adAccountId || '').replace('act_', '');
     if (accountFilter !== 'Todas') {
       const selectedAcc = adAccountsList.find(a => a.name === accountFilter || a.id === accountFilter);
@@ -1321,9 +1321,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               onChange={e => setStatusFilter(e.target.value)}
               className="bg-transparent text-white font-semibold text-xs focus:outline-none cursor-pointer"
             >
-              <option value="Qualquer" className="bg-[#0A1426] text-white">Qualquer</option>
-              <option value="Ativo" className="bg-[#0A1426] text-emerald-400">Ativo</option>
-              <option value="Pausado" className="bg-[#0A1426] text-zinc-400">Pausado</option>
+              <option value="Ativo" className="bg-[#0A1426] text-emerald-400">Ativas</option>
+              <option value="Desativadas" className="bg-[#0A1426] text-zinc-400">Desativadas</option>
+              <option value="Todas" className="bg-[#0A1426] text-white">Todas</option>
             </select>
           </div>
 
