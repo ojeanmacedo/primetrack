@@ -80,63 +80,63 @@ export default function LandingPage({ onGoToDashboard }) {
         </div>
       </nav>
 
-      {/* ── HERO SECTION (Cinematográfico com zucknovoo.webp) ── */}
-      <section className="relative min-h-screen flex items-end pt-36 pb-20 overflow-hidden">
-        
-        {/* Background oficial do PrimeTrack */}
-        <img 
-          src="/images/zucknovoo.webp" 
-          alt="" 
-          aria-hidden="true" 
-          className="absolute inset-0 w-full h-full object-cover object-center z-0 scale-105"
-        />
-
-        {/* Overlays cinematográficos idênticos ao site */}
-        <div 
-          className="absolute inset-0 z-[1] pointer-events-none"
-          style={{
-            background: 'linear-gradient(180deg, rgba(6,15,31,.55) 0%, rgba(6,15,31,0) 25%, rgba(6,15,31,0) 45%, rgba(6,15,31,.85) 88%, rgba(6,15,31,.98) 100%), radial-gradient(120% 80% at 50% 50%, transparent 40%, rgba(0,0,0,.55) 100%)'
-          }}
-        />
-
-        {/* Label vertical lateral esquerda */}
-        <div className="hidden lg:flex absolute left-8 top-1/2 -translate-y-1/2 -rotate-90 origin-left items-center gap-3.5 font-['JetBrains_Mono',monospace] text-[11px] tracking-[0.32em] uppercase text-white/55 z-10 whitespace-nowrap">
-          <span className="w-12 h-[1px] bg-white/40" />
-          <span><strong className="text-white font-semibold">01</strong> · O Problema do Tracking</span>
-        </div>
+      {/* ── HERO SECTION (Objetivo e Limpo) ── */}
+      <section className="relative pt-32 pb-20 overflow-hidden bg-gradient-to-b from-[#070D1A] via-[#03060D] to-[#03060D]">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(92,155,255,0.18),transparent_70%)] pointer-events-none" />
 
         {/* Hero Content */}
-        <div className="max-w-[1180px] w-full mx-auto px-6 sm:px-8 relative z-10">
-          <div className="max-w-[880px]">
-            
-            <h1 className="text-4xl sm:text-6xl lg:text-[76px] font-extrabold tracking-[-0.035em] text-white leading-[1.02] mb-6 drop-shadow-2xl">
-              Tracking ruim =<br />
-              <span>anúncio caro.</span>
-            </h1>
+        <div className="max-w-[1000px] w-full mx-auto px-6 sm:px-8 text-center relative z-10">
+          <div className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-[#5C9BFF] px-3.5 py-1.5 rounded-full bg-[#5C9BFF]/10 border border-[#5C9BFF]/20 mb-6">
+            <span className="w-2 h-2 rounded-full bg-[#5C9BFF] animate-pulse" />
+            <span>Tracking de alta precisão para Meta Ads</span>
+          </div>
 
-            <p className="text-base sm:text-[17px] text-white/75 font-normal leading-[1.6] max-w-[520px] mb-9">
-              Seu Pixel tá cego mandando seu anúncio pra curioso. A PrimeTrack devolve os dados certos para o pixel achar seu <strong className="text-white font-semibold">comprador real</strong>. CPA cai, escala sobe.
-            </p>
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-[-0.035em] text-white leading-[1.05] mb-6">
+            Tracking ruim = <span className="text-[#5C9BFF]">anúncio caro</span>.<br />
+            Dados certos = <span className="text-white">escala no lucro</span>.
+          </h1>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                onClick={handleGoToDashboard}
-                className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-full bg-white hover:bg-[#5C9BFF] hover:text-white text-[#060F1F] font-semibold text-sm tracking-tight shadow-xl transition-all cursor-pointer transform hover:-translate-y-0.5 active:scale-95"
-              >
-                <span>Quero baixar meu CPA agora</span>
-                <span className="w-6 h-6 rounded-full bg-[#060F1F] text-white flex items-center justify-center text-xs">
-                  →
-                </span>
-              </button>
+          <p className="text-base sm:text-lg text-zinc-300 font-normal leading-relaxed max-w-[680px] mx-auto mb-8">
+            Envie dados completos via CAPI em tempo real, aumente a nota do pixel e pare de queimar verba com público errado.
+          </p>
 
-              <a
-                href="#pixel"
-                className="inline-flex items-center gap-1.5 px-5 py-3.5 rounded-full bg-transparent hover:bg-white/5 text-white font-semibold text-sm border border-white/20 transition-colors"
-              >
-                <span>▸ Ver por que tá caro</span>
-              </a>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={handleGoToDashboard}
+              className="inline-flex items-center gap-2.5 px-7 py-4 rounded-full bg-white hover:bg-[#5C9BFF] hover:text-white text-[#060F1F] font-bold text-sm tracking-tight shadow-xl transition-all cursor-pointer transform hover:-translate-y-0.5 active:scale-95"
+            >
+              <span>Começar teste grátis de 7 dias</span>
+              <span className="w-6 h-6 rounded-full bg-[#060F1F] text-white flex items-center justify-center text-xs">
+                →
+              </span>
+            </button>
+
+            <a
+              href="#planos"
+              className="inline-flex items-center gap-1.5 px-6 py-4 rounded-full bg-white/5 hover:bg-white/10 text-white font-semibold text-sm border border-white/15 transition-colors"
+            >
+              <span>Ver planos</span>
+            </a>
+          </div>
+
+          {/* Mini métricas rápidas */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto mt-12 pt-8 border-t border-white/[0.08]">
+            <div className="p-3">
+              <strong className="block text-2xl font-extrabold text-white">9.1+</strong>
+              <span className="text-xs text-zinc-400">Nota média de pixel</span>
             </div>
-
+            <div className="p-3">
+              <strong className="block text-2xl font-extrabold text-white">1 linha</strong>
+              <span className="text-xs text-zinc-400">Instalação sem GTM</span>
+            </div>
+            <div className="p-3">
+              <strong className="block text-2xl font-extrabold text-white">7 dias</strong>
+              <span className="text-xs text-zinc-400">Janela de cross-session</span>
+            </div>
+            <div className="p-3">
+              <strong className="block text-2xl font-extrabold text-white">0% taxa</strong>
+              <span className="text-xs text-zinc-400">Mensalidade 100% fixa</span>
+            </div>
           </div>
         </div>
       </section>
@@ -240,73 +240,56 @@ export default function LandingPage({ onGoToDashboard }) {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            {/* YouTube Video Embed */}
-            <div className="lg:col-span-5 flex justify-center">
-              <div className="w-full max-w-[340px] aspect-[9/16] rounded-2xl overflow-hidden border border-white/10 bg-black shadow-2xl shadow-[#5C9BFF]/20 relative">
-                <iframe 
-                  src="https://www.youtube.com/embed/gE6eYIFzm-E"
-                  title="PrimeTrack — Prova de pixel"
-                  className="w-full h-full border-0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="p-4 rounded-xl bg-[#03060D] border border-white/[0.08] flex gap-3.5 items-start hover:border-[#5C9BFF] transition-colors">
+              <div className="w-7 h-7 rounded-full bg-[#5C9BFF]/10 text-[#5C9BFF] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 font-mono">
+                01
+              </div>
+              <div>
+                <strong className="text-sm font-bold text-white block mb-0.5">Toda venda chega na Meta</strong>
+                <span className="text-xs text-zinc-400">Bloqueador, iPhone, navegador anônimo. Não importa. Nenhuma compra fica fora do pixel.</span>
               </div>
             </div>
 
-            {/* 5 Pilares */}
-            <div className="lg:col-span-7 space-y-3.5">
-              <div className="p-4 rounded-xl bg-[#03060D] border border-white/[0.08] flex gap-3.5 items-start hover:border-[#5C9BFF] transition-colors">
-                <div className="w-7 h-7 rounded-full bg-[#5C9BFF]/10 text-[#5C9BFF] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 font-mono">
-                  01
-                </div>
-                <div>
-                  <strong className="text-sm font-bold text-white block mb-0.5">Toda venda chega na Meta</strong>
-                  <span className="text-xs text-zinc-400">Bloqueador, iPhone, navegador anônimo. Não importa. Nenhuma compra fica fora do pixel.</span>
-                </div>
+            <div className="p-4 rounded-xl bg-[#03060D] border border-white/[0.08] flex gap-3.5 items-start hover:border-[#5C9BFF] transition-colors">
+              <div className="w-7 h-7 rounded-full bg-[#5C9BFF]/10 text-[#5C9BFF] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 font-mono">
+                02
               </div>
-
-              <div className="p-4 rounded-xl bg-[#03060D] border border-white/[0.08] flex gap-3.5 items-start hover:border-[#5C9BFF] transition-colors">
-                <div className="w-7 h-7 rounded-full bg-[#5C9BFF]/10 text-[#5C9BFF] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 font-mono">
-                  02
-                </div>
-                <div>
-                  <strong className="text-sm font-bold text-white block mb-0.5">Mandamos o dado completo</strong>
-                  <span className="text-xs text-zinc-400">Nome, e-mail, telefone, cidade e IP em toda venda. Quanto mais dado, mais barato o anúncio fica.</span>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-xl bg-[#03060D] border border-white/[0.08] flex gap-3.5 items-start hover:border-[#5C9BFF] transition-colors">
-                <div className="w-7 h-7 rounded-full bg-[#5C9BFF]/10 text-[#5C9BFF] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 font-mono">
-                  03
-                </div>
-                <div>
-                  <strong className="text-sm font-bold text-white block mb-0.5">Acaba a venda dobrada</strong>
-                  <span className="text-xs text-zinc-400">O Meta para de receber a mesma compra 2x. Sem número inflado bagunçando sua otimização.</span>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-xl bg-[#03060D] border border-white/[0.08] flex gap-3.5 items-start hover:border-[#5C9BFF] transition-colors">
-                <div className="w-7 h-7 rounded-full bg-[#5C9BFF]/10 text-[#5C9BFF] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 font-mono">
-                  04
-                </div>
-                <div>
-                  <strong className="text-sm font-bold text-white block mb-0.5">Concorrente não rouba seu pixel</strong>
-                  <span className="text-xs text-zinc-400">A gente trava. Só o seu site usa. Ninguém mais entra no seu público.</span>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-xl bg-[#03060D] border border-white/[0.08] flex gap-3.5 items-start hover:border-[#5C9BFF] transition-colors">
-                <div className="w-7 h-7 rounded-full bg-[#5C9BFF]/10 text-[#5C9BFF] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 font-mono">
-                  05
-                </div>
-                <div>
-                  <strong className="text-sm font-bold text-white block mb-0.5">Instala em 1 linha</strong>
-                  <span className="text-xs text-zinc-400">Sem GTM, sem container, sem programador. Cola o código e pronto.</span>
-                </div>
+              <div>
+                <strong className="text-sm font-bold text-white block mb-0.5">Mandamos o dado completo</strong>
+                <span className="text-xs text-zinc-400">Nome, e-mail, telefone, cidade e IP em toda venda. Quanto mais dado, mais barato o anúncio fica.</span>
               </div>
             </div>
 
+            <div className="p-4 rounded-xl bg-[#03060D] border border-white/[0.08] flex gap-3.5 items-start hover:border-[#5C9BFF] transition-colors">
+              <div className="w-7 h-7 rounded-full bg-[#5C9BFF]/10 text-[#5C9BFF] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 font-mono">
+                03
+              </div>
+              <div>
+                <strong className="text-sm font-bold text-white block mb-0.5">Acaba a venda dobrada</strong>
+                <span className="text-xs text-zinc-400">O Meta para de receber a mesma compra 2x. Sem número inflado bagunçando sua otimização.</span>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-[#03060D] border border-white/[0.08] flex gap-3.5 items-start hover:border-[#5C9BFF] transition-colors">
+              <div className="w-7 h-7 rounded-full bg-[#5C9BFF]/10 text-[#5C9BFF] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 font-mono">
+                04
+              </div>
+              <div>
+                <strong className="text-sm font-bold text-white block mb-0.5">Concorrente não rouba seu pixel</strong>
+                <span className="text-xs text-zinc-400">A gente trava. Só o seu site usa. Ninguém mais entra no seu público.</span>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-[#03060D] border border-white/[0.08] flex gap-3.5 items-start hover:border-[#5C9BFF] transition-colors md:col-span-2 lg:col-span-1">
+              <div className="w-7 h-7 rounded-full bg-[#5C9BFF]/10 text-[#5C9BFF] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 font-mono">
+                05
+              </div>
+              <div>
+                <strong className="text-sm font-bold text-white block mb-0.5">Instala em 1 linha</strong>
+                <span className="text-xs text-zinc-400">Sem GTM, sem container, sem programador. Cola o código e pronto.</span>
+              </div>
+            </div>
           </div>
 
         </div>
@@ -371,71 +354,37 @@ export default function LandingPage({ onGoToDashboard }) {
 
       {/* ── APP MOBILE (#app) ── */}
       <section id="app" className="py-24 bg-[#070D1A] border-t border-b border-white/[0.08]">
-        <div className="max-w-[1280px] mx-auto px-6 sm:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-            
-            <div className="lg:col-span-6 space-y-6">
-              <span className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em] text-[#5C9BFF]">
-                <span className="w-4 h-[1px] bg-[#5C9BFF]" />
-                <span>03 / App Mobile</span>
-              </span>
+        <div className="max-w-[880px] mx-auto px-6 sm:px-8 text-center space-y-6">
+          <span className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em] text-[#5C9BFF] mx-auto">
+            <span className="w-4 h-[1px] bg-[#5C9BFF]" />
+            <span>03 / App Mobile</span>
+          </span>
 
-              <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-[1.08]">
-                Lucro, ROAS e venda <span className="text-[#5C9BFF]">na palma da mão</span>.
-              </h2>
+          <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-[1.08]">
+            Lucro, ROAS e venda <span className="text-[#5C9BFF]">na palma da mão</span>.
+          </h2>
 
-              <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed max-w-[480px]">
-                Acabou aquele trauma de abrir o Gerenciador 50 vezes por dia. Você vê venda caindo, ROAS subindo e lucro real em tempo real — direto do bolso.
-              </p>
+          <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed max-w-[600px] mx-auto">
+            Acabou aquele trauma de abrir o Gerenciador 50 vezes por dia. Você vê venda caindo, ROAS subindo e lucro real em tempo real — direto do bolso.
+          </p>
 
-              <ul className="space-y-3 text-xs sm:text-sm text-zinc-300 font-medium">
-                <li className="flex items-center gap-3 pb-3 border-b border-white/[0.05]">
-                  <span className="w-2 h-2 rounded-full bg-[#5C9BFF]" />
-                  <span>Push na hora que cai venda aprovada</span>
-                </li>
-                <li className="flex items-center gap-3 pb-3 border-b border-white/[0.05]">
-                  <span className="w-2 h-2 rounded-full bg-[#5C9BFF]" />
-                  <span>Dashboard ao vivo com lucro líquido</span>
-                </li>
-                <li className="flex items-center gap-3 pb-3 border-b border-white/[0.05]">
-                  <span className="w-2 h-2 rounded-full bg-[#5C9BFF]" />
-                  <span>Sobe campanha pelo celular, na fila do café</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <span className="w-2 h-2 rounded-full bg-[#5C9BFF]" />
-                  <span>Mata anúncio caro sem abrir o Gerenciador</span>
-                </li>
-              </ul>
-
-              <div className="flex flex-wrap gap-3 pt-2">
-                <a href="https://apps.apple.com/us/app/primetrack/id6760451690" target="_blank" rel="noopener noreferrer" className="px-5 py-2.5 rounded-xl bg-[#060F1F] hover:bg-[#5C9BFF] hover:text-white border border-white/10 text-white font-bold text-xs flex items-center gap-3 transition-colors">
-                  <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.87c.65-.8 1.09-1.92.97-3.04-.96.04-2.13.64-2.82 1.45-.6.69-1.13 1.83-.99 2.92 1.07.08 2.19-.53 2.84-1.33z"/></svg>
-                  <div className="text-left leading-tight">
-                    <span className="block text-[10px] text-zinc-400">Baixar na</span>
-                    <strong>App Store</strong>
-                  </div>
-                </a>
-
-                <div className="px-5 py-2.5 rounded-xl bg-[#060F1F] hover:bg-[#5C9BFF] hover:text-white border border-white/10 text-white font-bold text-xs flex items-center gap-3 transition-colors cursor-pointer">
-                  <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M3.609 1.814L13.792 12 3.61 22.186a.996.996 0 01-.61-.92V2.734a1 1 0 01.609-.92zm10.89 10.893l2.302 2.302-10.937 6.333 8.635-8.635zm3.199-3.198l2.807 1.626a1 1 0 010 1.73l-2.808 1.626L15.396 12l2.302-2.491zM5.864 2.658L16.802 8.99l-2.302 2.302-8.636-8.634z"/></svg>
-                  <div className="text-left leading-tight">
-                    <span className="block text-[10px] text-zinc-400">Baixar no</span>
-                    <strong>Google Play</strong>
-                  </div>
-                </div>
-              </div>
-
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left max-w-[640px] mx-auto pt-2">
+            <div className="p-3.5 rounded-xl bg-[#03060D] border border-white/[0.08] flex items-center gap-3">
+              <span className="w-2 h-2 rounded-full bg-[#5C9BFF] shrink-0" />
+              <span className="text-xs sm:text-sm text-zinc-300 font-medium">Push na hora que cai venda aprovada</span>
             </div>
-
-            {/* Imagem Oficial do App do PrimeTrack */}
-            <div className="lg:col-span-6 flex justify-center">
-              <img 
-                src="/images/appdark2.png" 
-                alt="PrimeTrack App Mobile" 
-                className="max-w-[460px] w-full h-auto drop-shadow-2xl"
-              />
+            <div className="p-3.5 rounded-xl bg-[#03060D] border border-white/[0.08] flex items-center gap-3">
+              <span className="w-2 h-2 rounded-full bg-[#5C9BFF] shrink-0" />
+              <span className="text-xs sm:text-sm text-zinc-300 font-medium">Dashboard ao vivo com lucro líquido</span>
             </div>
-
+            <div className="p-3.5 rounded-xl bg-[#03060D] border border-white/[0.08] flex items-center gap-3">
+              <span className="w-2 h-2 rounded-full bg-[#5C9BFF] shrink-0" />
+              <span className="text-xs sm:text-sm text-zinc-300 font-medium">Sobe campanha pelo celular</span>
+            </div>
+            <div className="p-3.5 rounded-xl bg-[#03060D] border border-white/[0.08] flex items-center gap-3">
+              <span className="w-2 h-2 rounded-full bg-[#5C9BFF] shrink-0" />
+              <span className="text-xs sm:text-sm text-zinc-300 font-medium">Mata anúncio caro sem abrir o Gerenciador</span>
+            </div>
           </div>
         </div>
       </section>
@@ -712,14 +661,6 @@ export default function LandingPage({ onGoToDashboard }) {
               <p className="text-zinc-400 text-sm max-w-xs leading-relaxed">
                 O tracking que faz a Meta parar de chutar e seu CPA finalmente cair. Pra quem roda low ticket e quer escalar sem queimar verba.
               </p>
-              <div className="flex items-center gap-2 pt-2">
-                <a href="https://instagram.com/primetrack.com.br" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/[0.04] border border-white/[0.08] hover:border-[#5C9BFF] hover:text-white flex items-center justify-center transition-colors">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
-                </a>
-                <a href="https://www.youtube.com/@primetrackads" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white/[0.04] border border-white/[0.08] hover:border-[#5C9BFF] hover:text-white flex items-center justify-center transition-colors">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/></svg>
-                </a>
-              </div>
             </div>
 
             <div className="md:col-span-3 space-y-3">
@@ -729,8 +670,7 @@ export default function LandingPage({ onGoToDashboard }) {
               <ul className="space-y-2 text-sm">
                 <li><button onClick={handleGoToDashboard} className="hover:text-white transition-colors">Entrar</button></li>
                 <li><a href="#planos" className="hover:text-white transition-colors">Planos</a></li>
-                <li><a href="#pixel" className="hover:text-white transition-colors">Nota do pixel 9.3</a></li>
-                <li><a href="#app" className="hover:text-white transition-colors">App Mobile</a></li>
+                <li><a href="#pixel" className="hover:text-white transition-colors">Nota do pixel</a></li>
               </ul>
             </div>
 
