@@ -199,6 +199,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     return () => clearInterval(timer);
   }, []);
 
+  const [editingField, setEditingField] = useState(null); // 'budget' | 'bid' | 'name'
   const [editingCampaign, setEditingCampaign] = useState(null);
   const [editName, setEditName] = useState('');
   const [editBudget, setEditBudget] = useState('');
@@ -405,13 +406,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     }));
   };
 
-  // Abre modal de edição
-  const handleOpenEdit = (item) => {
+  // Abre modal direto para edição do valor selecionado
+  const handleOpenEdit = (item, field = 'budget') => {
     const parentCamp = campaignsList.find(c => c.id === item.id || c.id === item.campaignId) || item;
     setEditingCampaign(parentCamp);
-    setEditName(parentCamp.name || 'TESTE MI');
-    setEditBudget(parentCamp.budget || '256.99');
-    setEditBidCap(parentCamp.bidCap || '11.02');
+    setEditingField(field);
+    setEditName(parentCamp.name || item.name || 'TESTE MI');
+    setEditBudget(parentCamp.budget || item.budget || '256.99');
+    setEditBidCap(parentCamp.bidCap || item.bidCap || '11.02');
     setEditStrategy(parentCamp.bidStrategy || 'LOWEST_COST_WITH_BID_CAP');
   };
 
@@ -937,8 +939,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           return (
             <div 
               className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group" 
-              onClick={() => handleOpenEdit(item)}
-              title="Clique para editar orçamento da campanha"
+              onClick={() => handleOpenEdit(item, 'budget')}
+              title="Clique para editar orçamento"
             >
               <div className="text-zinc-300 font-sans text-xs">
                 Usando orç. campanha
@@ -952,7 +954,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         return (
           <div 
             className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group" 
-            onClick={() => handleOpenEdit(item)}
+            onClick={() => handleOpenEdit(item, 'budget')}
             title="Clique para alterar orçamento"
           >
             <div className="font-bold text-white font-mono flex items-center gap-1.5">
@@ -977,9 +979,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
         return (
           <div 
-            onClick={() => handleOpenEdit(item)}
+            onClick={() => handleOpenEdit(item, 'bid')}
             className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group"
-            title="Clique para alterar limite de lance (Bid Cap / Cost Cap)"
+            title="Clique para alterar limite de lance"
           >
             <div className="font-bold text-white font-mono flex items-center gap-1.5">
               <span>R$ {bidVal}</span>
@@ -1529,9 +1531,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       <td className="py-4 px-4 font-sans">
                         <div>
                           <div 
-                            onClick={() => handleOpenEdit(item)}
+                            onClick={() => handleOpenEdit(item, 'name')}
                             className="font-bold text-white text-xs sm:text-sm flex items-center gap-2 hover:text-[#5C9BFF] cursor-pointer"
-                            title="Clique para editar nome, orçamento ou lance"
+                            title="Clique para editar nome"
                           >
                             <span>{item.name}</span>
                             <Edit3 className="w-3 h-3 text-zinc-500 hover:text-[#5C9BFF]" />
@@ -1596,121 +1598,113 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         </div>
       )}
 
-      {/* ── MODAL DE EDIÇÃO DE CAMPANHA & BID CAP ── */}
+      {/* ── MODAL DIRETO DE EDIÇÃO DO VALOR ── */}
       {editingCampaign && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="relative w-full max-w-[500px] bg-[#0A1426] border border-[#13233E] rounded-3xl p-6 sm:p-7 shadow-2xl animate-in fade-in zoom-in-95">
-            
+        <div 
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in"
+          onClick={() => setEditingCampaign(null)}
+        >
+          <div 
+            className="relative w-full max-w-[380px] bg-[#0A1426] border border-[#13233E] rounded-3xl p-5 shadow-2xl animate-in zoom-in-95"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Modal Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-[#13233E] mb-5">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-[#12223D] border border-[#1A6DFF]/30 flex items-center justify-center text-[#5C9BFF]">
-                  <Sliders className="w-4 h-4" />
+            <div className="flex items-center justify-between pb-3 border-b border-[#13233E] mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-[#12223D] border border-[#1A6DFF]/30 flex items-center justify-center text-[#5C9BFF]">
+                  <Edit3 className="w-3.5 h-3.5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-sm">Editar Campanha & Lances</h3>
-                  <span className="text-[10px] font-mono text-zinc-400">ID: {editingCampaign.id}</span>
+                  <h3 className="font-bold text-white text-xs">
+                    {editingField === 'bid' ? 'Editar Limite de Lance' : (editingField === 'name' ? 'Editar Nome' : 'Editar Orçamento')}
+                  </h3>
+                  <span className="text-[10px] font-mono text-zinc-400 truncate max-w-[200px] block">
+                    {editingCampaign.name}
+                  </span>
                 </div>
               </div>
               <button 
+                type="button"
                 onClick={() => setEditingCampaign(null)}
                 className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Form */}
+            {/* Form Direto */}
             <form onSubmit={handleSaveCampaign} className="space-y-4 text-xs">
-              <div>
-                <label className="block text-zinc-300 font-semibold mb-1.5">Nome da Campanha</label>
-                <input 
-                  type="text"
-                  value={editName}
-                  onChange={e => setEditName(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white focus:outline-none focus:border-[#1A6DFF] font-medium"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+              {editingField === 'budget' && (
                 <div>
                   <label className="block text-zinc-300 font-semibold mb-1.5">
                     Orçamento Diário (R$)
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2 text-zinc-500 font-mono">
-                      R$
-                    </span>
+                    <span className="absolute left-3 top-2.5 text-zinc-500 font-mono">R$</span>
                     <input 
                       type="text"
+                      autoFocus
                       value={editBudget}
                       onChange={e => setEditBudget(e.target.value)}
-                      className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white focus:outline-none focus:border-[#1A6DFF] font-mono font-bold"
+                      className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white focus:outline-none focus:border-[#1A6DFF] font-mono font-bold text-sm"
                       placeholder="99.51"
                       required
                     />
                   </div>
                 </div>
+              )}
 
+              {editingField === 'bid' && (
                 <div>
-                  <label className="block text-zinc-300 font-semibold mb-1.5">Bid Cap / Limite de Lance</label>
+                  <label className="block text-zinc-300 font-semibold mb-1.5">
+                    Limite de Lance / Bid Cap (R$)
+                  </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2 text-zinc-500 font-mono">R$</span>
+                    <span className="absolute left-3 top-2.5 text-zinc-500 font-mono">R$</span>
                     <input 
                       type="text"
+                      autoFocus
                       value={editBidCap}
                       onChange={e => setEditBidCap(e.target.value)}
-                      className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-amber-300 focus:outline-none focus:border-amber-400 font-mono font-bold"
+                      className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-amber-300 focus:outline-none focus:border-amber-400 font-mono font-bold text-sm"
                       placeholder="15.00"
+                      required
                     />
                   </div>
                 </div>
-              </div>
+              )}
 
-              <div>
-                <label className="block text-zinc-300 font-semibold mb-1.5">Estratégia de Lance</label>
-                <select 
-                  value={editStrategy}
-                  onChange={e => setEditStrategy(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white focus:outline-none focus:border-[#1A6DFF] font-medium cursor-pointer"
-                >
-                  <option value="LOWEST_COST_WITH_BID_CAP">Limite de Lance (Bid Cap) — Recomendado</option>
-                  <option value="LOWEST_COST_WITHOUT_CAP">Menor Custo (Maximizar Volume)</option>
-                  <option value="COST_CAP">Meta de Custo (Cost Cap)</option>
-                </select>
-              </div>
-
-              {/* CARD DE PROTEÇÃO TOTAL DO PERFIL BACKUP */}
-              <div className="p-3.5 rounded-2xl bg-[#070D1A] border border-amber-500/30 text-[11px] leading-relaxed space-y-1.5">
-                <div className="flex items-center gap-2 font-bold text-amber-300">
-                  <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>Trava de Proteção Ativa: Perfil Backup</span>
+              {editingField === 'name' && (
+                <div>
+                  <label className="block text-zinc-300 font-semibold mb-1.5">
+                    Nome
+                  </label>
+                  <input 
+                    type="text"
+                    autoFocus
+                    value={editName}
+                    onChange={e => setEditName(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white focus:outline-none focus:border-[#1A6DFF] font-medium text-xs"
+                    required
+                  />
                 </div>
-                <p className="text-zinc-400">
-                  O perfil conectado atualmente é um <strong className="text-white">Perfil Backup (Contingência)</strong>. Para garantir que seu ativo nunca sofra bloqueios ou penalidades, a PrimeTrack <strong className="text-emerald-400">bloqueia qualquer chamada de escrita para o Meta Ads através deste perfil</strong>.
-                </p>
-                <p className="text-zinc-500 font-mono text-[10px]">
-                  ✓ Valores atualizados na PrimeTrack imediatamente<br/>
-                  ✓ Zero risco para o seu perfil de backup
-                </p>
-              </div>
+              )}
 
               {/* Action buttons */}
-              <div className="flex items-center justify-end gap-3 pt-2">
+              <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setEditingCampaign(null)}
-                  className="px-4 py-2 rounded-xl border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer text-xs"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={savingEdit}
-                  className="px-5 py-2 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-bold transition-all shadow-md shadow-brand/30 cursor-pointer disabled:opacity-60"
+                  className="px-4 py-1.5 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-bold transition-all shadow-md shadow-brand/30 cursor-pointer disabled:opacity-60 text-xs"
                 >
-                  {savingEdit ? 'Salvando...' : 'Salvar Alterações'}
+                  {savingEdit ? 'Salvando...' : 'Salvar'}
                 </button>
               </div>
             </form>
