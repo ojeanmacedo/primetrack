@@ -18,10 +18,41 @@ export default function Notifications() {
   const [pushError, setPushError] = useState(null);
 
   useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      setPushSubscribed(true);
-    }
+    // Sincronização e inscrição 100% automática se suporte estiver presente
+    const autoSyncPush = async () => {
+      if ('Notification' in window && 'serviceWorker' in window && 'PushManager' in window) {
+        if (Notification.permission === 'granted') {
+          setPushSubscribed(true);
+          try {
+            await subscribeUserToPush();
+          } catch (e) {
+            console.warn('[Push] Falha na auto-sincronização push:', e);
+          }
+        }
+      }
+    };
+    autoSyncPush();
   }, []);
+
+  const handleToggleVendasAprovadas = async (val) => {
+    setVendasAprovadas(val);
+    if (val && 'Notification' in window && Notification.permission !== 'granted') {
+      try {
+        await subscribeUserToPush();
+        setPushSubscribed(true);
+      } catch (e) {}
+    }
+  };
+
+  const handleToggleVendasPendentes = async (val) => {
+    setVendasPendentes(val);
+    if (val && 'Notification' in window && Notification.permission !== 'granted') {
+      try {
+        await subscribeUserToPush();
+        setPushSubscribed(true);
+      } catch (e) {}
+    }
+  };
 
   const handleSubscribePush = async () => {
     setPushLoading(true);
@@ -81,20 +112,23 @@ export default function Notifications() {
           </p>
         </div>
 
-        {/* Botão de Ativação do Web Push iOS */}
+        {/* Status / Botão de Ativação Push */}
         <div>
-          <button
-            onClick={handleSubscribePush}
-            disabled={pushLoading}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold font-sans flex items-center gap-2 transition-all shadow-lg active:scale-95 cursor-pointer ${
-              pushSubscribed
-                ? 'bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/30'
-                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/20'
-            }`}
-          >
-            <Smartphone className="w-4 h-4" />
-            <span>{pushLoading ? 'Conectando...' : pushSubscribed ? '✅ Sincronizar com este Aparelho' : 'Ativar no iPhone / Safari'}</span>
-          </button>
+          {pushSubscribed ? (
+            <div className="px-3.5 py-2 rounded-xl text-xs font-medium font-sans flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Notificações Ativas neste Aparelho</span>
+            </div>
+          ) : (
+            <button
+              onClick={handleSubscribePush}
+              disabled={pushLoading}
+              className="px-4 py-2.5 rounded-xl text-xs font-bold font-sans flex items-center gap-2 transition-all shadow-lg active:scale-95 cursor-pointer bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/20"
+            >
+              <Smartphone className="w-4 h-4" />
+              <span>{pushLoading ? 'Conectando...' : 'Ativar no iPhone / Safari'}</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -133,15 +167,15 @@ export default function Notifications() {
               <div className="flex items-center gap-3">
                 <button 
                   onClick={() => handleTest('approved')}
-                  className="px-2.5 py-1 rounded-lg bg-[#070D1A] border border-white/10 hover:border-brand text-zinc-300 text-[11px] flex items-center gap-1.5"
+                  className="px-2.5 py-1 rounded-lg bg-[#070D1A] border border-white/10 hover:border-brand text-zinc-300 text-[11px] flex items-center gap-1.5 cursor-pointer"
                 >
                   <Bell className="w-3 h-3 text-amber-400" />
                   <span>Testar</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setVendasAprovadas(!vendasAprovadas)}
-                  className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors ${
+                  onClick={() => handleToggleVendasAprovadas(!vendasAprovadas)}
+                  className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
                     vendasAprovadas ? 'bg-[#2B66E3]' : 'bg-zinc-700'
                   }`}
                 >
@@ -158,15 +192,24 @@ export default function Notifications() {
               <div className="flex items-center gap-3">
                 <button 
                   onClick={() => handleTest('pending')}
-                  className="px-2.5 py-1 rounded-lg bg-[#070D1A] border border-white/10 hover:border-brand text-zinc-300 text-[11px] flex items-center gap-1.5"
+                  className="px-2.5 py-1 rounded-lg bg-[#070D1A] border border-white/10 hover:border-brand text-zinc-300 text-[11px] flex items-center gap-1.5 cursor-pointer"
                 >
                   <Bell className="w-3 h-3 text-amber-400" />
                   <span>Testar</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setVendasPendentes(!vendasPendentes)}
-                  className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors ${
+                  onClick={() => handleToggleVendasPendentes(!vendasPendentes)}
+                  className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
+                    vendasPendentes ? 'bg-[#2B66E3]' : 'bg-zinc-700'
+                  }`}
+                >
+                  <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                    vendasPendentes ? 'translate-x-4' : 'translate-x-0'
+                  }`} />
+                </button>
+              </div>
+            </div>
                     vendasPendentes ? 'bg-[#2B66E3]' : 'bg-zinc-700'
                   }`}
                 >
