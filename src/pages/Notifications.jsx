@@ -23,19 +23,10 @@ export default function Notifications() {
     }
   }, []);
 
-  const playCashSound = () => {
-    try {
-      const audio = new Audio('/cash-register.wav');
-      audio.volume = 1.0;
-      audio.play().catch(() => {});
-    } catch(e){}
-  };
-
   const handleSubscribePush = async () => {
     setPushLoading(true);
     setPushError(null);
     try {
-      playCashSound();
       await subscribeUserToPush();
       setPushSubscribed(true);
       setTestMsg('✅ iPhone conectado com sucesso! Agora você receberá notificações mesmo com a tela bloqueada.');
@@ -49,7 +40,6 @@ export default function Notifications() {
   };
 
   const handleTest = async (type = 'approved') => {
-    playCashSound();
     setTestMsg(type === 'pending' ? 'Notificação de Venda Pendente enviada para todos os aparelhos!' : 'Notificação de Venda Aprovada enviada para todos os aparelhos!');
     setTestSent(true);
 
