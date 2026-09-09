@@ -1949,10 +1949,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           ) : (
             <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] min-h-[420px] scrollbar-thin scrollbar-thumb-[#1A6DFF]/40 scrollbar-track-[#070D1A]">
               <table className="w-full text-left text-xs font-sans whitespace-nowrap border-collapse">
-                <thead className="bg-[#070D1A] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E] sticky top-0 z-20 shadow-md">
+                <thead className="bg-[#0A1426] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E] sticky top-0 z-20 shadow-md">
                   <tr>
                     {/* Checkbox fixo na lateral esquerda */}
-                    <th className="py-3 pl-4 pr-4 w-12 bg-[#070D1A] sticky left-0 z-30">
+                    <th className="py-3 pl-4 pr-4 w-12 bg-[#0A1426] sticky left-0 z-30">
                       <input 
                         type="checkbox" 
                         className="rounded bg-[#03060D] border-white/10 cursor-pointer accent-[#1A6DFF]" 
@@ -1963,10 +1963,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     </th>
 
                     {/* Status fixo na lateral esquerda */}
-                    <th className="py-3 pl-4 pr-5 bg-[#070D1A] sticky left-12 z-30">STATUS</th>
+                    <th className="py-3 pl-4 pr-5 bg-[#0A1426] sticky left-12 z-30">STATUS</th>
 
                     {/* Nome (Campanha / Conjunto / Anúncio) fixo na lateral esquerda */}
-                    <th className="py-3 px-4 bg-[#070D1A] sticky left-[122px] z-30 border-r border-[#13233E] min-w-[220px] max-w-[320px] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
+                    <th className="py-3 px-4 bg-[#0A1426] sticky left-[122px] z-30 border-r border-[#13233E] min-w-[220px] max-w-[320px] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
                       {subTab === 'Campanhas' ? 'CAMPANHA' : (subTab === 'Conjuntos' ? 'CONJUNTO' : 'ANÚNCIO')}
                     </th>
 
@@ -2054,11 +2054,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 </tbody>
 
                 {/* Rodapé com totais reais sticky embaixo */}
-                <tfoot className="bg-[#070D1A] font-bold border-t border-[#13233E] text-xs font-mono sticky bottom-0 z-20 shadow-lg">
+                <tfoot className="bg-[#0A1426] font-bold border-t border-[#13233E] text-xs font-mono sticky bottom-0 z-20 shadow-lg">
                   <tr>
-                    <td className="py-3.5 pl-4 pr-4 bg-[#070D1A] sticky left-0 z-30"></td>
-                    <td className="py-3.5 pl-4 pr-5 bg-[#070D1A] sticky left-12 z-30"></td>
-                    <td className="py-3.5 px-4 font-sans text-white uppercase text-[11px] bg-[#070D1A] sticky left-[122px] z-30 border-r border-[#13233E] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
+                    <td className="py-3.5 pl-4 pr-4 bg-[#0A1426] sticky left-0 z-30"></td>
+                    <td className="py-3.5 pl-4 pr-5 bg-[#0A1426] sticky left-12 z-30"></td>
+                    <td className="py-3.5 px-4 font-sans text-white uppercase text-[11px] bg-[#0A1426] sticky left-[122px] z-30 border-r border-[#13233E] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
                       {currentItems.length} {
                         subTab === 'Campanhas' 
                           ? (currentItems.length === 1 ? 'CAMPANHA' : 'CAMPANHAS')
