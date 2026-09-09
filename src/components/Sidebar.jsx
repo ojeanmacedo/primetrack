@@ -79,14 +79,13 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }
           <div className="h-16 flex items-center justify-between px-5 border-b border-[#182238] shrink-0 bg-[#0D1424]">
             <NavLink to="/" className="flex items-center gap-2.5 overflow-hidden">
               <img 
-                src="/images/logo-primetrack.png" 
+                src="/images/logo-primetrack.png?v=5" 
                 alt="PrimeTrack" 
-                className="w-8 h-8 rounded-lg object-contain shadow-md shadow-blue-500/20 shrink-0" 
+                className="w-8 h-8 object-contain shrink-0" 
               />
               {(!collapsed || mobileOpen) && (
                 <span className="text-lg font-bold tracking-tight text-white font-sans flex items-center">
-                  <span>Prime</span>
-                  <span className="text-[#1877F2]">Track</span>
+                  <span>PrimeTrack</span>
                 </span>
               )}
             </NavLink>

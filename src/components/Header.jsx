@@ -48,9 +48,11 @@ export default function Header({ activeTab, setActiveTab, onQuickSimulate }) {
           
           {/* Logo & Brand */}
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('dashboard')}>
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand to-brand-light flex items-center justify-center text-white shadow-lg shadow-brand/30">
-              <Zap className="w-5 h-5 fill-current" />
-            </div>
+            <img 
+              src="/images/logo-primetrack.png?v=5" 
+              alt="PrimeTrack" 
+              className="w-9 h-9 object-contain shrink-0" 
+            />
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-lg tracking-tight text-white font-sans">

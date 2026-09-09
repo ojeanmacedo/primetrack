@@ -175,12 +175,12 @@ export default function LoginPage() {
         {/* PrimeTrack Brand Logo */}
         <div className="flex items-center gap-2.5 mb-2">
           <img 
-            src="/images/logo-primetrack.png" 
+            src="/images/logo-primetrack.png?v=5" 
             alt="PrimeTrack" 
-            className="w-8 h-8 rounded-lg object-contain shadow-md shrink-0" 
+            className="w-8 h-8 object-contain shrink-0" 
           />
           <span className="text-xl font-extrabold text-white tracking-tight flex items-center">
-            <span>Prime</span><span className="text-[#5C9BFF]">Track</span>
+            PrimeTrack
           </span>
         </div>
 

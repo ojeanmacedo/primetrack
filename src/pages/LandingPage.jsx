@@ -52,12 +52,12 @@ export default function LandingPage({ onGoToDashboard }) {
       <nav className="fixed top-3 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-24px)] max-w-[640px] bg-[#0B1424]/85 backdrop-blur-xl border border-white/10 rounded-full px-4 py-1.5 flex items-center justify-between shadow-2xl shadow-black/70">
         <a href="/" className="flex items-center gap-2">
           <img 
-            src="/images/logo-primetrack.png" 
+            src="/images/logo-primetrack.png?v=5" 
             alt="PrimeTrack" 
-            className="w-6 h-6 rounded-md object-contain shadow-md shrink-0" 
+            className="w-6 h-6 object-contain shrink-0" 
           />
           <span className="text-sm font-extrabold text-white tracking-tight flex items-center">
-            <span>Prime</span><span className="text-[#5C9BFF]">Track</span>
+            PrimeTrack
           </span>
         </a>
 
@@ -701,12 +701,12 @@ export default function LandingPage({ onGoToDashboard }) {
             <div className="md:col-span-5 space-y-4">
               <div className="flex items-center gap-2.5">
                 <img 
-                  src="/images/logo-primetrack.png" 
+                  src="/images/logo-primetrack.png?v=5" 
                   alt="PrimeTrack" 
-                  className="w-8 h-8 rounded-lg object-contain shadow-md shrink-0" 
+                  className="w-8 h-8 object-contain shrink-0" 
                 />
                 <span className="text-lg font-extrabold text-white tracking-tight flex items-center">
-                  <span>Prime</span><span className="text-[#5C9BFF]">Track</span>
+                  PrimeTrack
                 </span>
               </div>
               <p className="text-zinc-400 text-sm max-w-xs leading-relaxed">
