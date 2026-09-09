@@ -17,13 +17,16 @@ export default function LoginPage() {
   const [directEmail, setDirectEmail] = useState('jeeanmacedo@gmail.com');
   const [directName, setDirectName] = useState('Jean Macedo');
 
-  // Limpeza automática de usuários incorretos e captura do retorno do Google OAuth
+  // Se já houver usuário logado no localStorage, redireciona direto pro Dashboard
   useEffect(() => {
     try {
       const curr = localStorage.getItem('primetrack_current_user');
-      if (curr && curr.includes('jeanmacedo@gmail.com') && !curr.includes('jeeanmacedo@gmail.com')) {
-        localStorage.removeItem('primetrack_current_user');
-        localStorage.removeItem('primetrack_usr_jeanmacedo@gmail.com');
+      if (curr) {
+        const parsed = JSON.parse(curr);
+        if (parsed?.email) {
+          navigate('/dashboard', { replace: true });
+          return;
+        }
       }
     } catch (e) {}
 
