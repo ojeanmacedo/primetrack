@@ -97,9 +97,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const [rowsPerPage, setRowsPerPage] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('primetrack_rows_per_page');
-      return saved ? Number(saved) : 5;
+      return saved ? Number(saved) : 100;
     }
-    return 5;
+    return 100;
   });
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -2000,12 +2000,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-[#1A6DFF]/40 scrollbar-track-[#070D1A]">
+            <div className="overflow-x-auto overflow-y-auto max-h-[350px] scrollbar-thin scrollbar-thumb-[#1A6DFF]/40 scrollbar-track-[#070D1A]">
               <table className="w-full text-left text-xs font-sans whitespace-nowrap border-collapse">
-                <thead className="bg-[#0A1426] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E]">
+                <thead className="bg-[#0A1426] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E] sticky top-0 z-30 shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
                   <tr>
                     {/* Checkbox fixo na lateral esquerda */}
-                    <th className="py-3 pl-4 pr-4 w-12 bg-[#0A1426] sticky left-0 z-20">
+                    <th className="py-3 pl-4 pr-4 w-12 bg-[#0A1426] sticky left-0 z-40">
                       <input 
                         type="checkbox" 
                         className="rounded bg-[#03060D] border-white/10 cursor-pointer accent-[#1A6DFF]" 
@@ -2016,10 +2016,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     </th>
 
                     {/* Status fixo na lateral esquerda */}
-                    <th className="py-3 pl-4 pr-5 bg-[#0A1426] sticky left-12 z-20">STATUS</th>
+                    <th className="py-3 pl-4 pr-5 bg-[#0A1426] sticky left-12 z-40">STATUS</th>
 
                     {/* Nome (Campanha / Conjunto / Anúncio) fixo na lateral esquerda */}
-                    <th className="py-3 px-4 bg-[#0A1426] sticky left-[122px] z-20 border-r border-[#13233E] min-w-[220px] max-w-[320px] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
+                    <th className="py-3 px-4 bg-[#0A1426] sticky left-[122px] z-40 border-r border-[#13233E] min-w-[220px] max-w-[320px] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
                       {subTab === 'Campanhas' ? 'CAMPANHA' : (subTab === 'Conjuntos' ? 'CONJUNTO' : 'ANÚNCIO')}
                     </th>
 
@@ -2107,11 +2107,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 </tbody>
 
                 {/* Rodapé com totais reais sticky embaixo */}
-                <tfoot className="bg-[#0A1426] font-bold border-t border-[#13233E] text-xs font-mono">
+                <tfoot className="bg-[#0A1426] font-bold border-t border-[#13233E] text-xs font-mono sticky bottom-0 z-30 shadow-[0_-2px_10px_rgba(0,0,0,0.5)]">
                   <tr>
-                    <td className="py-3.5 pl-4 pr-4 bg-[#0A1426] sticky left-0 z-10"></td>
-                    <td className="py-3.5 pl-4 pr-5 bg-[#0A1426] sticky left-12 z-10"></td>
-                    <td className="py-3.5 px-4 font-sans text-white uppercase text-[11px] bg-[#0A1426] sticky left-[122px] z-10 border-r border-[#13233E] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
+                    <td className="py-3.5 pl-4 pr-4 bg-[#0A1426] sticky left-0 z-40"></td>
+                    <td className="py-3.5 pl-4 pr-5 bg-[#0A1426] sticky left-12 z-40"></td>
+                    <td className="py-3.5 px-4 font-sans text-white uppercase text-[11px] bg-[#0A1426] sticky left-[122px] z-40 border-r border-[#13233E] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
                       {currentItems.length} {
                         subTab === 'Campanhas' 
                           ? (currentItems.length === 1 ? 'CAMPANHA' : 'CAMPANHAS')
@@ -2123,7 +2123,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
                     {/* Totais dinâmicos alinhados às colunas ativas */}
                     {activeVisibleColumns.map(col => (
-                      <td key={col.id} className="py-3.5 px-4">
+                      <td key={col.id} className="py-3.5 px-4 bg-[#0A1426]">
                         {renderFooterCell(col.id, totals)}
                       </td>
                     ))}
@@ -2134,7 +2134,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           )}
 
           {/* Barra de Paginação para manter a tabela compacta e o puxador sempre no campo de visão */}
-          {currentItems.length > 5 && (
+          {currentItems.length > 100 && (
             <div className="px-4 py-3 bg-[#0A1426] border-t border-[#13233E] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
               <div className="flex items-center gap-2 text-zinc-400">
                 <span>Exibindo</span>
