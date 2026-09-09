@@ -503,33 +503,23 @@ export async function fetchAdsWithCreatives(adAccountId, accessToken) {
 }
 
 /**
- * 7. Atualiza status de Campanha, Conjunto ou Anúncio no Meta Ads com retry automático em caso de rate limit (#613)
+ * 7. Atualiza status de Campanha, Conjunto ou Anúncio no Meta Ads
  */
 export async function updateMetaItemStatus(itemId, status, accessToken) {
   const metaStatus = status ? 'ACTIVE' : 'PAUSED';
   const url = `${GRAPH_BASE_URL}/${itemId}?access_token=${accessToken}`;
 
-  const sendRequest = async () => {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: metaStatus })
-    });
-    return await res.json();
-  };
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: metaStatus })
+  });
 
-  let data = await sendRequest();
-
-  // Se a Meta retornar erro de rate limit (#613 concurrent limit 1 call per 30s), tenta novamente após um breve intervalo
-  if (data && data.error && (data.error.code === 613 || data.error.error_subcode === 4841018)) {
-    console.log(`[Meta Rate Limit]: Aguardando 3 segundos para tentar novamente atualizar status de ${itemId}...`);
-    await new Promise(r => setTimeout(r, 3000));
-    data = await sendRequest();
-  }
+  const data = await res.json();
 
   if (data && data.error) {
-    if (data.error.code === 613) {
-      throw new Error('A Meta exige um intervalo de alguns segundos entre alterações no mesmo item. Aguarde um instante.');
+    if (data.error.code === 613 || data.error.error_subcode === 4841018) {
+      throw new Error('Aguarde alguns segundos para alterar novamente este mesmo item no Meta Ads.');
     }
     throw new Error(data.error.message || 'Erro ao comunicar com o Meta Ads');
   }
