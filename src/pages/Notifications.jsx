@@ -95,15 +95,15 @@ export default function Notifications() {
         <div>
           <button
             onClick={handleSubscribePush}
-            disabled={pushLoading || pushSubscribed}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold font-sans flex items-center gap-2 transition-all shadow-lg ${
+            disabled={pushLoading}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold font-sans flex items-center gap-2 transition-all shadow-lg active:scale-95 cursor-pointer ${
               pushSubscribed
-                ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 cursor-default'
+                ? 'bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 hover:bg-emerald-500/30'
                 : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/20'
             }`}
           >
             <Smartphone className="w-4 h-4" />
-            <span>{pushLoading ? 'Ativando...' : pushSubscribed ? 'Notificações Ativadas no Aparelho' : 'Ativar no iPhone / Safari'}</span>
+            <span>{pushLoading ? 'Conectando...' : pushSubscribed ? '✅ Sincronizar com este Aparelho' : 'Ativar no iPhone / Safari'}</span>
           </button>
         </div>
       </div>
