@@ -720,8 +720,26 @@ async function getApprovedOrders() {
 }
 
 app.get('/api/campaigns', async (req, res) => {
-  const connections = db.get('facebook_connections') || [];
+  let connections = db.get('facebook_connections') || [];
   
+  if (connections.length === 0) {
+    try {
+      const { data: supaConns } = await supabaseAdmin.from('facebook_connections').select('*');
+      if (supaConns && supaConns.length > 0) {
+        connections = supaConns.map(c => ({
+          id: c.id,
+          name: c.name,
+          email: c.email,
+          avatarUrl: c.avatar_url,
+          accessToken: c.access_token,
+          accountsCount: c.accounts_count,
+          connectedAt: c.connected_at
+        }));
+        db.set('facebook_connections', connections);
+      }
+    } catch (e) {}
+  }
+
   if (connections.length === 0) {
     return res.json([]);
   }
@@ -757,10 +775,12 @@ app.get('/api/campaigns', async (req, res) => {
       .map(a => String(a.accountId || a.id).replace('act_', ''))
   );
 
-  const activeOnlyCampaigns = allCampaigns.filter(c => {
-    const cAdId = String(c.adAccountId || '').replace('act_', '');
-    return activeAccountIds.has(cAdId);
-  });
+  const activeOnlyCampaigns = activeAccountIds.size > 0 
+    ? allCampaigns.filter(c => {
+        const cAdId = String(c.adAccountId || '').replace('act_', '');
+        return activeAccountIds.has(cAdId);
+      })
+    : allCampaigns;
 
   const allOrders = await getAllOrders();
   const approvedOrders = allOrders.filter(o => o.status === 'approved' || o.status === 'paid' || o.status === 'pago');
@@ -1390,13 +1410,64 @@ app.get('/api/meta/status', async (req, res) => {
 
 // D. Função central para sincronizar campanhas e saldos reais das contas ativas em integrações
 async function executeMetaSync({ datePreset = 'today', timeRange = null, accountIds = null, accountId = null } = {}) {
-  const connections = db.get('facebook_connections') || [];
+  let connections = db.get('facebook_connections') || [];
+  let allAdAccounts = db.get('ad_accounts') || [];
+
+  // Em ambiente serverless (Vercel), restaura do Supabase caso o db em memória esteja vazio
+  if (connections.length === 0) {
+    try {
+      const { data: supaConns } = await supabaseAdmin.from('facebook_connections').select('*');
+      if (supaConns && supaConns.length > 0) {
+        connections = supaConns.map(c => ({
+          id: c.id,
+          name: c.name,
+          email: c.email,
+          avatarUrl: c.avatar_url,
+          accessToken: c.access_token,
+          accountsCount: c.accounts_count,
+          connectedAt: c.connected_at
+        }));
+        db.set('facebook_connections', connections);
+
+        let activeSet = new Set();
+        if (connections[0] && connections[0].email) {
+          try {
+            const parsedMeta = JSON.parse(connections[0].email);
+            if (parsedMeta && Array.isArray(parsedMeta.activeAccounts)) {
+              activeSet = new Set(parsedMeta.activeAccounts);
+            }
+          } catch (e) {}
+        }
+
+        const { data: supaAccs } = await supabaseAdmin.from('ad_accounts').select('*');
+        if (supaAccs && supaAccs.length > 0) {
+          allAdAccounts = supaAccs.map(a => {
+            const cleanId = (a.id || '').replace('act_', '');
+            return {
+              id: a.id,
+              accountId: cleanId,
+              name: a.name,
+              businessName: a.bm_name,
+              currency: a.currency,
+              status: a.status,
+              amountSpent: String(a.amount_spent || '0.00'),
+              balance: String(a.balance || '0.00'),
+              syncActive: activeSet.has(cleanId)
+            };
+          });
+          db.set('ad_accounts', allAdAccounts);
+        }
+      }
+    } catch (e) {
+      console.warn('[Sync Supabase Restore Error]:', e.message);
+    }
+  }
+
   if (connections.length === 0) {
     return { success: false, error: 'Nenhum perfil do Facebook conectado ainda.', syncedCampaigns: 0 };
   }
 
   const latestConnection = connections[0];
-  let allAdAccounts = db.get('ad_accounts') || [];
 
   // Se o usuário especificou contas
   let targetAccounts = [];
@@ -1407,8 +1478,13 @@ async function executeMetaSync({ datePreset = 'today', timeRange = null, account
     const actClean = accountId.replace('act_', '');
     targetAccounts = allAdAccounts.filter(a => a.id === accountId || a.id === `act_${actClean}` || a.accountId === actClean);
   } else {
-    // Sincroniza APENAS contas ativas em integrações (syncActive: true)
+    // Sincroniza contas ativas em integrações (syncActive: true)
     targetAccounts = allAdAccounts.filter(a => a.syncActive === true);
+  }
+
+  // Fallback de segurança: Se nenhuma conta está marcada com syncActive, mas temos contas disponíveis, usa as contas ativas do status da Meta
+  if (targetAccounts.length === 0 && allAdAccounts.length > 0) {
+    targetAccounts = allAdAccounts.filter(a => a.status === 'Ativa' || a.status === 'ACTIVE');
   }
 
   // Se nenhuma conta estiver ativa nas integrações, não puxa nada
