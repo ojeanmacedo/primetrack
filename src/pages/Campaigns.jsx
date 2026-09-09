@@ -97,9 +97,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const [rowsPerPage, setRowsPerPage] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('primetrack_rows_per_page');
-      return saved ? Number(saved) : 5;
+      return saved ? Number(saved) : 100;
     }
-    return 5;
+    return 100;
   });
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -2133,8 +2133,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             </div>
           )}
 
-          {/* Barra de Paginação para manter a tabela compacta e o puxador sempre no campo de visão */}
-          {currentItems.length > 5 && (
+          {/* Barra de Paginação (visível apenas se houver mais de 100 itens) */}
+          {currentItems.length > 100 && (
             <div className="px-4 py-3 bg-[#0A1426] border-t border-[#13233E] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
               <div className="flex items-center gap-2 text-zinc-400">
                 <span>Exibindo</span>
@@ -2149,10 +2149,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   }}
                   className="bg-[#070D1A] border border-[#13233E] text-white px-2 py-1 rounded-lg font-mono text-xs focus:outline-none cursor-pointer"
                 >
-                  <option value={5}>5 linhas</option>
-                  <option value={10}>10 linhas</option>
                   <option value={20}>20 linhas</option>
                   <option value={50}>50 linhas</option>
+                  <option value={100}>100 linhas</option>
+                  <option value={200}>200 linhas</option>
                 </select>
                 <span>de <strong className="text-white font-mono">{currentItems.length}</strong> {subTab.toLowerCase()}</span>
               </div>
