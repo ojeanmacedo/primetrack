@@ -163,7 +163,7 @@ function resolveCustomerCityState(cust, o) {
     }
   }
 
-  return 'Localizando...';
+  return 'Brasil';
 }
 
   const formattedLiveOrders = deduplicatedLiveOrders.map(o => {
