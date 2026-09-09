@@ -24,6 +24,54 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Utilitários de fuso horário de São Paulo (UTC-3)
+export function toBrazilYMD(dateInput) {
+  if (!dateInput) return null;
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return null;
+  // America/Sao_Paulo (UTC-3)
+  const spDate = new Date(d.getTime() - (3 * 3600 * 1000));
+  const y = spDate.getUTCFullYear();
+  const m = String(spDate.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(spDate.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+export function resolveDateRange(datePreset = 'today', since = null, until = null) {
+  if (since && until) {
+    return { since, until };
+  }
+  const now = new Date();
+  const spNow = new Date(now.getTime() - (3 * 3600 * 1000));
+  const formatYMD = (d) => {
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  if (datePreset === 'today') {
+    const t = formatYMD(spNow);
+    return { since: t, until: t };
+  } else if (datePreset === 'yesterday') {
+    const yest = formatYMD(new Date(spNow.getTime() - 86400000));
+    return { since: yest, until: yest };
+  } else if (datePreset === 'last_7d') {
+    const d7 = formatYMD(new Date(spNow.getTime() - 6 * 86400000));
+    return { since: d7, until: formatYMD(spNow) };
+  } else if (datePreset === 'last_14d') {
+    const d14 = formatYMD(new Date(spNow.getTime() - 13 * 86400000));
+    return { since: d14, until: formatYMD(spNow) };
+  } else if (datePreset === 'last_30d') {
+    const d30 = formatYMD(new Date(spNow.getTime() - 29 * 86400000));
+    return { since: d30, until: formatYMD(spNow) };
+  } else if (datePreset === 'this_month') {
+    const mStart = `${spNow.getUTCFullYear()}-${String(spNow.getUTCMonth() + 1).padStart(2, '0')}-01`;
+    return { since: mStart, until: formatYMD(spNow) };
+  }
+  return { since: null, until: null };
+}
+
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -686,53 +734,6 @@ app.get('/api/campaigns', async (req, res) => {
   const allOrders = await getAllOrders();
   const approvedOrders = allOrders.filter(o => o.status === 'approved' || o.status === 'paid' || o.status === 'pago');
   const pendingOrders = allOrders.filter(o => o.status === 'pending' || o.status === 'waiting_payment' || o.status === 'aguardando_pagamento');
-
-function toBrazilYMD(dateInput) {
-  if (!dateInput) return null;
-  const d = new Date(dateInput);
-  if (isNaN(d.getTime())) return null;
-  // America/Sao_Paulo (UTC-3)
-  const spDate = new Date(d.getTime() - (3 * 3600 * 1000));
-  const y = spDate.getUTCFullYear();
-  const m = String(spDate.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(spDate.getUTCDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
-function resolveDateRange(datePreset = 'today', since = null, until = null) {
-  if (since && until) {
-    return { since, until };
-  }
-  const now = new Date();
-  const spNow = new Date(now.getTime() - (3 * 3600 * 1000));
-  const formatYMD = (d) => {
-    const y = d.getUTCFullYear();
-    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(d.getUTCDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  };
-
-  if (datePreset === 'today') {
-    const t = formatYMD(spNow);
-    return { since: t, until: t };
-  } else if (datePreset === 'yesterday') {
-    const yest = formatYMD(new Date(spNow.getTime() - 86400000));
-    return { since: yest, until: yest };
-  } else if (datePreset === 'last_7d') {
-    const d7 = formatYMD(new Date(spNow.getTime() - 6 * 86400000));
-    return { since: d7, until: formatYMD(spNow) };
-  } else if (datePreset === 'last_14d') {
-    const d14 = formatYMD(new Date(spNow.getTime() - 13 * 86400000));
-    return { since: d14, until: formatYMD(spNow) };
-  } else if (datePreset === 'last_30d') {
-    const d30 = formatYMD(new Date(spNow.getTime() - 29 * 86400000));
-    return { since: d30, until: formatYMD(spNow) };
-  } else if (datePreset === 'this_month') {
-    const mStart = `${spNow.getUTCFullYear()}-${String(spNow.getUTCMonth() + 1).padStart(2, '0')}-01`;
-    return { since: mStart, until: formatYMD(spNow) };
-  }
-  return { since: null, until: null };
-}
 
   const { since: filterSince, until: filterUntil } = resolveDateRange(datePreset, since, until);
   const filteredOrders = approvedOrders.filter(o => {
