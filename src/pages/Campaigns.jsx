@@ -94,12 +94,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     return COLUMN_DEFS.map(c => ({ id: c.id, visible: c.defaultVisible }));
   };
 
-  const [columnsConfigByTab, setColumnsConfigByTab] = useState(() => ({
-    Contas: getInitialColsForTab('Contas'),
-    Campanhas: getInitialColsForTab('Campanhas'),
-    Conjuntos: getInitialColsForTab('Conjuntos'),
-    Anúncios: getInitialColsForTab('Anúncios')
-  }));
+  const [rowsPerPage, setRowsPerPage] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('primetrack_rows_per_page');
+      return saved ? Number(saved) : 5;
+    }
+    return 5;
+  });
+  const [currentPage, setCurrentPage] = useState(1);
 
   const columnsConfig = columnsConfigByTab[subTab] || columnsConfigByTab['Campanhas'];
 
@@ -1037,6 +1039,20 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   // Itens da sub-aba ativa
   const currentItems = subTab === 'Campanhas' ? filteredCampaigns : (subTab === 'Conjuntos' ? adsetsList : adsList);
+
+  // Paginação inteligente para manter o puxador de métricas sempre no campo de visão
+  const totalPages = Math.max(1, Math.ceil(currentItems.length / rowsPerPage));
+  const paginatedItems = React.useMemo(() => {
+    const start = (currentPage - 1) * rowsPerPage;
+    return currentItems.slice(start, start + rowsPerPage);
+  }, [currentItems, currentPage, rowsPerPage]);
+
+  // Reseta página caso ultrapasse o total ao filtrar
+  React.useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
 
   // Totais calculados dinamicamente
   const totals = React.useMemo(() => {
@@ -2022,7 +2038,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 </thead>
 
                 <tbody className="divide-y divide-[#13233E]/60 font-mono">
-                  {currentItems.map((item, idx) => (
+                  {paginatedItems.map((item, idx) => (
                     <tr key={item.id || idx} className={`group hover:bg-[#0e1b33] transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#1A6DFF]/10' : ''}`}>
                       {/* Checkbox fixo na lateral */}
                       <td className={`py-4 pl-4 pr-4 sticky left-0 z-10 transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0f1d38]' : 'bg-[#0A1426] group-hover:bg-[#0e1b33]'}`}>
@@ -2107,6 +2123,56 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   </tr>
                 </tfoot>
               </table>
+            </div>
+          )}
+
+          {/* Barra de Paginação para manter a tabela compacta e o puxador sempre no campo de visão */}
+          {currentItems.length > 5 && (
+            <div className="px-4 py-3 bg-[#0A1426] border-t border-[#13233E] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2 text-zinc-400">
+                <span>Exibindo</span>
+                <select
+                  value={rowsPerPage}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    setRowsPerPage(val);
+                    if (typeof window !== 'undefined') {
+                      localStorage.setItem('primetrack_rows_per_page', String(val));
+                    }
+                  }}
+                  className="bg-[#070D1A] border border-[#13233E] text-white px-2 py-1 rounded-lg font-mono text-xs focus:outline-none cursor-pointer"
+                >
+                  <option value={5}>5 linhas</option>
+                  <option value={10}>10 linhas</option>
+                  <option value={20}>20 linhas</option>
+                  <option value={50}>50 linhas</option>
+                </select>
+                <span>de <strong className="text-white font-mono">{currentItems.length}</strong> {subTab.toLowerCase()}</span>
+              </div>
+
+              {totalPages > 1 && (
+                <div className="flex items-center gap-1.5 font-mono">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="px-2.5 py-1 rounded-lg border border-[#13233E] bg-[#070D1A] text-zinc-300 hover:text-white hover:bg-[#12223D] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Anterior
+                  </button>
+                  <span className="px-3 py-1 text-zinc-400 text-xs">
+                    Página <strong className="text-white">{currentPage}</strong> de {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-2.5 py-1 rounded-lg border border-[#13233E] bg-[#070D1A] text-zinc-300 hover:text-white hover:bg-[#12223D] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Próxima
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
