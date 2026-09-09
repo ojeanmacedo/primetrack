@@ -571,20 +571,20 @@ app.all([
       const isPending = parsed.status === 'waiting_payment' || parsed.status === 'pending';
       
       const formattedAmount = (parsed.amount || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-      const campaignPart = attribution?.campaign ? ` • ${attribution.campaign}` : '';
+      const campaignName = attribution?.campaign || 'Campanha';
 
       if (isPaid) {
         sendSalesNotification({
-          title: '🎉 Venda Aprovada!',
-          body: `${formattedAmount} — ${parsed.productName || 'Produto'}${campaignPart}`,
-          icon: '/images/primetrack-app-icon.png',
+          title: 'Venda Aprovada!',
+          body: `${formattedAmount} — ${campaignName}`,
+          icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
           data: { url: '/sales', orderCode: parsed.orderCode }
         });
       } else if (isPending) {
         sendSalesNotification({
-          title: '⏳ Venda Pendente!',
-          body: `${formattedAmount} — ${parsed.productName || 'Produto'}${campaignPart} (Aguardando Pagamento)`,
-          icon: '/images/primetrack-app-icon.png',
+          title: 'Venda Pendente!',
+          body: `${formattedAmount} — ${campaignName}`,
+          icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
           data: { url: '/sales', orderCode: parsed.orderCode }
         });
       }
@@ -2343,17 +2343,14 @@ app.post('/api/push/subscribe', async (req, res) => {
 
 app.post('/api/push/test', async (req, res) => {
   try {
-    const { type, amount, productName, campaign } = req.body;
+    const { type, amount, campaign } = req.body;
     const isPending = type === 'pending';
-    const val = amount || 'R$ 147,00';
-    const prod = productName || 'Produto Exemplo';
-    const camp = campaign ? ` • ${campaign}` : '';
+    const val = amount || 'R$ 9,44';
+    const camp = campaign || '[ESCALA] Campanha Teste';
 
     const result = await sendSalesNotification({
-      title: isPending ? '⏳ Venda Pendente!' : '🎉 Venda Aprovada!',
-      body: isPending 
-        ? `${val} — ${prod}${camp} (Aguardando Pagamento)`
-        : `${val} — ${prod}${camp}`,
+      title: isPending ? 'Venda Pendente!' : 'Venda Aprovada!',
+      body: `${val} — ${camp}`,
       icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
       data: { url: '/sales' }
     });
