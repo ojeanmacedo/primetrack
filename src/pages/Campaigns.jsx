@@ -384,12 +384,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   };
 
   // Abre modal de edição
-  const handleOpenEdit = (camp) => {
-    setEditingCampaign(camp);
-    setEditName(camp.name || 'TESTE MI');
-    setEditBudget(camp.budget || '256.99');
-    setEditBidCap(camp.bidCap || '15.00');
-    setEditStrategy(camp.bidStrategy || 'LOWEST_COST_WITH_BID_CAP');
+  const handleOpenEdit = (item) => {
+    const parentCamp = campaignsList.find(c => c.id === item.id || c.id === item.campaignId) || item;
+    setEditingCampaign(parentCamp);
+    setEditName(parentCamp.name || 'TESTE MI');
+    setEditBudget(parentCamp.budget || '256.99');
+    setEditBidCap(parentCamp.bidCap || '11.02');
+    setEditStrategy(parentCamp.bidStrategy || 'LOWEST_COST_WITH_BID_CAP');
   };
 
   // Salva alteração com Trava de Perfil Backup
@@ -466,11 +467,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         id: `${camp.id}_adset_1`,
         campaignId: camp.id,
         adsetId: `${camp.id}_adset_1`,
-        name: `${camp.name} — Conjunto 01`,
+        name: camp.name.includes('TESTE MI') ? 'Novo conjunto de anúncios de teste' : `${camp.name} — Conjunto 01`,
         accountName: camp.accountName || 'CA01',
         status: camp.status,
         budget: camp.budget,
         budgetType: camp.budgetType || 'Diário',
+        bidCap: camp.bidCap || '11.02',
+        bidStrategy: camp.bidStrategy || 'LOWEST_COST_WITH_BID_CAP',
         spend: camp.spend,
         sales: camp.sales,
         pendingSales: camp.pendingSales || 0,
@@ -826,22 +829,59 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         );
 
       case 'budget':
+        if (subTab === 'Conjuntos') {
+          return (
+            <div 
+              className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group" 
+              onClick={() => handleOpenEdit(item)}
+              title="Clique para editar orçamento da campanha"
+            >
+              <div className="text-zinc-300 font-sans text-xs">
+                Usando orç. campanha
+              </div>
+              <div className="text-[10px] text-zinc-500 font-mono">
+                R$ {Number(item.budget || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({item.budgetType || 'Diário'})
+              </div>
+            </div>
+          );
+        }
         return (
           <div 
             className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group" 
-            onClick={() => subTab === 'Campanhas' && handleOpenEdit(item)}
+            onClick={() => handleOpenEdit(item)}
             title="Clique para alterar orçamento"
           >
             <div className="font-bold text-white font-mono flex items-center gap-1.5">
               <span>R$ {Number(item.budget || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              {subTab === 'Campanhas' && <Edit3 className="w-2.5 h-2.5 text-zinc-500 group-hover:text-[#5C9BFF]" />}
+              <Edit3 className="w-2.5 h-2.5 text-zinc-500 group-hover:text-[#5C9BFF]" />
             </div>
             <div className="text-[10px] text-zinc-400">{item.budgetType || 'Diário'}</div>
           </div>
         );
 
-      case 'bid':
-        return <span className="text-amber-300 font-mono text-[11px] font-medium">{item.bidCap ? `R$ ${item.bidCap}` : 'Menor Custo'}</span>;
+      case 'bid': {
+        const hasBidCap = Boolean(item.bidCap);
+        const bidVal = item.bidCap ? Number(item.bidCap).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '11,02';
+        const strategyLabel = item.bidStrategy === 'COST_CAP' 
+          ? 'Meta de custo' 
+          : (item.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || hasBidCap ? 'Limite de lance' : 'Menor custo');
+
+        return (
+          <div 
+            onClick={() => handleOpenEdit(item)}
+            className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group"
+            title="Clique para alterar limite de lance (Bid Cap / Cost Cap)"
+          >
+            <div className="font-bold text-white font-mono flex items-center gap-1.5">
+              <span>R$ {bidVal}</span>
+              <Edit3 className="w-2.5 h-2.5 text-zinc-500 group-hover:text-[#5C9BFF]" />
+            </div>
+            <div className="text-[10px] text-zinc-400 capitalize">
+              {strategyLabel}
+            </div>
+          </div>
+        );
+      }
 
       case 'spend':
         return <span className="font-bold text-white font-mono">R$ {Number(item.spend || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>;
@@ -1372,6 +1412,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                           onClick={() => {
                             if (subTab === 'Campanhas') {
                               handleToggleStatus(item.id);
+                            } else {
+                              handleToggleStatus(item.campaignId || item.id);
                             }
                           }}
                           className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
@@ -1388,16 +1430,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       <td className="py-4 px-4 font-sans">
                         <div>
                           <div 
-                            onClick={() => subTab === 'Campanhas' && handleOpenEdit(item)}
-                            className={`font-bold text-white text-xs sm:text-sm flex items-center gap-2 ${
-                              subTab === 'Campanhas' ? 'hover:text-[#5C9BFF] cursor-pointer' : ''
-                            }`}
-                            title={subTab === 'Campanhas' ? "Clique para editar nome ou orçamento" : ""}
+                            onClick={() => handleOpenEdit(item)}
+                            className="font-bold text-white text-xs sm:text-sm flex items-center gap-2 hover:text-[#5C9BFF] cursor-pointer"
+                            title="Clique para editar nome, orçamento ou lance"
                           >
                             <span>{item.name}</span>
-                            {subTab === 'Campanhas' && (
-                              <Edit3 className="w-3 h-3 text-zinc-500 hover:text-[#5C9BFF]" />
-                            )}
+                            <Edit3 className="w-3 h-3 text-zinc-500 hover:text-[#5C9BFF]" />
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-[10px] text-zinc-500 font-mono">
