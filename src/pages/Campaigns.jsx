@@ -1348,24 +1348,19 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             }`}
           >
             <span>{tab}</span>
-            {tab === 'Contas' && adAccountsList.length > 0 && (
-              <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-white/10 text-[10px]">
-                {adAccountsList.length}
+            {tab === 'Campanhas' && selectedCampaignIds.size > 0 && (
+              <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-[#1A6DFF]/20 text-[#5C9BFF] text-[10px] font-bold">
+                {selectedCampaignIds.size}
               </span>
             )}
-            {tab === 'Campanhas' && campaignsList.length > 0 && (
+            {tab === 'Conjuntos' && selectedAdsetIds.size > 0 && (
               <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-[#1A6DFF]/20 text-[#5C9BFF] text-[10px] font-bold">
-                {campaignsList.length}
+                {selectedAdsetIds.size}
               </span>
             )}
-            {tab === 'Conjuntos' && adsetsList.length > 0 && (
+            {tab === 'Anúncios' && selectedAdIds.size > 0 && (
               <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-[#1A6DFF]/20 text-[#5C9BFF] text-[10px] font-bold">
-                {adsetsList.length}
-              </span>
-            )}
-            {tab === 'Anúncios' && adsList.length > 0 && (
-              <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-[#1A6DFF]/20 text-[#5C9BFF] text-[10px] font-bold">
-                {adsList.length}
+                {selectedAdIds.size}
               </span>
             )}
             {subTab === tab && (
