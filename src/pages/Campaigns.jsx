@@ -24,7 +24,14 @@ import {
   Sliders,
   ArrowRight,
   GripVertical,
-  Palette
+  Palette,
+  Layers,
+  Power,
+  DollarSign,
+  Pin,
+  Copy,
+  Filter,
+  Trash2
 } from 'lucide-react';
 import DateRangePicker from '../components/DateRangePicker';
 
@@ -208,6 +215,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const [editStrategy, setEditStrategy] = useState('LOWEST_COST_WITH_BID_CAP');
   const [savingEdit, setSavingEdit] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState(null);
+
+  // Menu de Ações em Massa (Batch Actions)
+  const [bulkMenuOpen, setBulkMenuOpen] = useState(false);
+  const [bulkModalAction, setBulkModalAction] = useState(null); // 'budget' | 'bid'
+  const [bulkInputValue, setBulkInputValue] = useState('');
+  const [bulkProcessing, setBulkProcessing] = useState(false);
 
   const subTabs = ['Contas', 'Campanhas', 'Conjuntos', 'Anúncios'];
   const isFirstMount = React.useRef(true);
@@ -609,6 +622,137 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       setEditingItem(null);
     }
     setSavingEdit(false);
+  };
+
+  // Ações em massa para itens selecionados
+  const handleBulkStatus = async (enable) => {
+    const ids = Array.from(activeSelectedSet);
+    if (ids.length === 0) return;
+    setBulkMenuOpen(false);
+    setBulkProcessing(true);
+
+    // Atualiza otimista na tabela
+    setCampaignsList(prev => prev.map(c => {
+      if (ids.includes(c.id)) {
+        return { ...c, status: enable };
+      }
+      let adsetsUpdated = false;
+      let adsUpdated = false;
+
+      const newAdsets = c.adsets ? c.adsets.map(as => {
+        if (ids.includes(as.id) || ids.includes(as.adsetId)) {
+          adsetsUpdated = true;
+          return { ...as, status: enable };
+        }
+        return as;
+      }) : c.adsets;
+
+      const newAds = c.ads ? c.ads.map(ad => {
+        if (ids.includes(ad.id) || ids.includes(ad.adId)) {
+          adsUpdated = true;
+          return { ...ad, status: enable };
+        }
+        return ad;
+      }) : c.ads;
+
+      if (adsetsUpdated || adsUpdated) {
+        return { ...c, adsets: newAdsets, ads: newAds };
+      }
+      return c;
+    }));
+
+    setSaveSuccessMsg(`${enable ? 'Ativando' : 'Desativando'} ${ids.length} ${subTab.toLowerCase()}...`);
+
+    // Dispara chamadas de atualização para a Meta
+    let successCount = 0;
+    for (const targetId of ids) {
+      try {
+        await fetch('/api/campaigns/status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: targetId, status: enable })
+        });
+        successCount++;
+      } catch (e) {}
+    }
+
+    setSaveSuccessMsg(`${successCount} ${subTab.toLowerCase()} ${enable ? 'ativadas' : 'desativadas'} com sucesso!`);
+    setTimeout(() => setSaveSuccessMsg(null), 5000);
+    setBulkProcessing(false);
+  };
+
+  const handleOpenBulkModal = (action) => {
+    setBulkMenuOpen(false);
+    setBulkModalAction(action);
+    setBulkInputValue(action === 'budget' ? '60,00' : '15,00');
+  };
+
+  const handleSaveBulkValue = async (e) => {
+    e.preventDefault();
+    const ids = Array.from(activeSelectedSet);
+    if (ids.length === 0) return;
+    setBulkProcessing(true);
+
+    const cleanNumber = (val) => {
+      if (!val) return '0.00';
+      const clean = String(val).replace(/\./g, '').replace(',', '.');
+      return isNaN(Number(clean)) ? '0.00' : clean;
+    };
+    const normalizedVal = cleanNumber(bulkInputValue);
+
+    // Atualiza otimista na tabela
+    setCampaignsList(prev => prev.map(c => {
+      if (ids.includes(c.id)) {
+        return {
+          ...c,
+          ...(bulkModalAction === 'budget' ? { budget: normalizedVal } : { bidCap: normalizedVal })
+        };
+      }
+      return c;
+    }));
+
+    setSaveSuccessMsg(`Atualizando ${ids.length} ${subTab.toLowerCase()} na Meta...`);
+
+    let successCount = 0;
+    let lastError = null;
+
+    for (const targetId of ids) {
+      try {
+        const payload = {
+          id: targetId,
+          itemType: subTab === 'Conjuntos' ? 'adset' : (subTab === 'Anúncios' ? 'ad' : 'campaign'),
+          profileType: 'standard'
+        };
+        if (bulkModalAction === 'budget') {
+          payload.budget = normalizedVal;
+        } else {
+          payload.bidCap = normalizedVal;
+        }
+
+        const res = await fetch('/api/campaigns/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.metaError) {
+          lastError = data.metaError;
+        } else {
+          successCount++;
+        }
+      } catch (err) {
+        lastError = err.message;
+      }
+    }
+
+    if (lastError && successCount === 0) {
+      setSaveSuccessMsg(`⚠️ ${lastError}`);
+    } else {
+      setSaveSuccessMsg(`Orçamento/Lance de ${successCount} item(ns) alterado com sucesso!`);
+    }
+    setTimeout(() => setSaveSuccessMsg(null), 6000);
+    setBulkModalAction(null);
+    setBulkProcessing(false);
   };
 
   const isNoAccountActive = adAccountsList.length === 0 && campaignsList.length === 0;
@@ -1569,7 +1713,114 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         </div>
 
         {/* Action Toolbar */}
-        <div className="flex flex-wrap items-center gap-2 self-end lg:self-auto">
+        <div className="flex flex-wrap items-center gap-2 self-end lg:self-auto relative">
+          
+          {/* Menu Dropdown de Ações em Massa / Bulk Actions */}
+          <div className="relative">
+            <button 
+              type="button"
+              onClick={() => setBulkMenuOpen(prev => !prev)}
+              disabled={bulkProcessing}
+              className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 cursor-pointer transition-all ${
+                activeSelectedSet.size > 0 
+                  ? 'bg-[#12223D] border-[#1A6DFF] text-[#5C9BFF] font-bold shadow-lg shadow-brand/20 animate-pulse' 
+                  : 'bg-[#0A1426] border-[#13233E] text-zinc-300 hover:text-white'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>Ações ({activeSelectedSet.size})</span>
+              <ChevronDown className={`w-3 h-3 transition-transform ${bulkMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {bulkMenuOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setBulkMenuOpen(false)} 
+                />
+                <div className="absolute right-0 top-full mt-2 w-56 bg-[#0A1426] border border-[#13233E] rounded-2xl shadow-2xl z-50 p-1.5 space-y-0.5 text-xs animate-in fade-in zoom-in-95">
+                  <div className="px-3 py-1.5 text-[10px] font-mono uppercase text-zinc-500 border-b border-[#13233E]/60 mb-1 flex items-center justify-between">
+                    <span>Ações em Massa</span>
+                    <span className="text-[#5C9BFF] font-bold">{activeSelectedSet.size} selecionado(s)</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleBulkStatus(true)}
+                    disabled={activeSelectedSet.size === 0}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-zinc-200 hover:text-white hover:bg-emerald-500/10 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span>Ativar selecionadas</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleBulkStatus(false)}
+                    disabled={activeSelectedSet.size === 0}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-zinc-200 hover:text-white hover:bg-red-500/10 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Power className="w-4 h-4 text-zinc-400" />
+                    <span>Desativar selecionadas</span>
+                  </button>
+
+                  <div className="h-px bg-[#13233E]/60 my-1" />
+
+                  <button
+                    type="button"
+                    onClick={() => handleOpenBulkModal('budget')}
+                    disabled={activeSelectedSet.size === 0}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-zinc-200 hover:text-white hover:bg-[#12223D] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <DollarSign className="w-4 h-4 text-[#5C9BFF]" />
+                    <span>Alterar orçamento</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleOpenBulkModal('bid')}
+                    disabled={activeSelectedSet.size === 0}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-zinc-200 hover:text-white hover:bg-[#12223D] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Edit3 className="w-4 h-4 text-amber-400" />
+                    <span>Alterar bid cap</span>
+                  </button>
+
+                  <div className="h-px bg-[#13233E]/60 my-1" />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const ids = Array.from(activeSelectedSet).join(', ');
+                      navigator.clipboard.writeText(ids);
+                      setSaveSuccessMsg('IDs copiados para a área de transferência!');
+                      setTimeout(() => setSaveSuccessMsg(null), 3000);
+                      setBulkMenuOpen(false);
+                    }}
+                    disabled={activeSelectedSet.size === 0}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-zinc-200 hover:text-white hover:bg-[#12223D] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Copy className="w-4 h-4 text-zinc-400" />
+                    <span>Copiar IDs</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveSelectedSet(new Set());
+                      setBulkMenuOpen(false);
+                    }}
+                    disabled={activeSelectedSet.size === 0}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <X className="w-4 h-4" />
+                    <span>Limpar seleção</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
           <button 
             onClick={() => window.open('https://adsmanager.facebook.com', '_blank')}
             className="px-3 py-1.5 rounded-xl bg-[#0A1426] border border-[#13233E] text-zinc-300 hover:text-white flex items-center gap-1.5 cursor-pointer transition-colors"
@@ -1844,6 +2095,89 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         <div className="fixed bottom-6 right-6 z-50 p-4 rounded-2xl bg-[#0A1426] border border-[#1A6DFF] text-white text-xs font-semibold shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5">
           <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0" />
           <span>{saveSuccessMsg}</span>
+        </div>
+      )}
+
+      {/* ── MODAL DE EDIÇÃO EM MASSA (ORÇAMENTO / BID CAP) ── */}
+      {bulkModalAction && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in"
+          onClick={() => setBulkModalAction(null)}
+        >
+          <div 
+            className="relative w-full max-w-[380px] bg-[#0A1426] border border-[#13233E] rounded-3xl p-5 shadow-2xl animate-in zoom-in-95"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-[#13233E] mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-[#12223D] border border-[#1A6DFF]/30 flex items-center justify-center text-[#5C9BFF]">
+                  {bulkModalAction === 'budget' ? <DollarSign className="w-3.5 h-3.5" /> : <Edit3 className="w-3.5 h-3.5" />}
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-xs">
+                    {bulkModalAction === 'budget' ? 'Alterar Orçamento em Massa' : 'Alterar Bid Cap em Massa'}
+                  </h3>
+                  <span className="text-[10px] font-mono text-[#5C9BFF] block">
+                    {activeSelectedSet.size} {subTab.toLowerCase()} selecionada(s)
+                  </span>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setBulkModalAction(null)}
+                className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveBulkValue} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-zinc-300 font-semibold mb-1.5">
+                  {bulkModalAction === 'budget' ? 'Novo Orçamento Diário (R$)' : 'Novo Limite de Lance / Bid Cap (R$)'}
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2.5 text-zinc-500 font-mono">R$</span>
+                  <input 
+                    type="text"
+                    autoFocus
+                    value={bulkInputValue}
+                    onChange={e => setBulkInputValue(formatCurrencyInput(e.target.value))}
+                    className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white focus:outline-none focus:border-[#1A6DFF] font-mono font-bold text-sm"
+                    placeholder="60,00"
+                    required
+                  />
+                </div>
+                <p className="text-[10px] text-zinc-400 mt-1.5">
+                  Este valor será aplicado simultaneamente a todas as {activeSelectedSet.size} {subTab.toLowerCase()} selecionadas.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setBulkModalAction(null)}
+                  className="px-3 py-1.5 rounded-xl border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer text-xs"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={bulkProcessing}
+                  className="px-4 py-1.5 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-bold transition-all shadow-md shadow-brand/30 cursor-pointer disabled:opacity-60 text-xs flex items-center gap-1.5"
+                >
+                  {bulkProcessing ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Aplicando...</span>
+                    </>
+                  ) : (
+                    <span>Aplicar a todas ({activeSelectedSet.size})</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
