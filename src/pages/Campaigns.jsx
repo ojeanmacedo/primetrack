@@ -1451,10 +1451,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
         {/* Action Toolbar */}
         <div className="flex flex-wrap items-center gap-2 self-end lg:self-auto">
-          {selectedItemIds.size > 0 && (
+          {activeSelectedSet.size > 0 && (
             <div className="px-2.5 py-1 rounded-xl bg-[#1A6DFF]/20 border border-[#1A6DFF]/40 text-[#5C9BFF] font-mono font-bold text-xs flex items-center gap-1.5 animate-in fade-in duration-200">
               <span className="w-2 h-2 rounded-full bg-[#1A6DFF] animate-pulse" />
-              <span>{selectedItemIds.size} selecionada{selectedItemIds.size > 1 ? 's' : ''}</span>
+              <span>{activeSelectedSet.size} selecionada{activeSelectedSet.size > 1 ? 's' : ''}</span>
             </div>
           )}
 
@@ -1601,9 +1601,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       <input 
                         type="checkbox" 
                         className="rounded bg-[#03060D] border-white/10 cursor-pointer accent-[#1A6DFF]" 
-                        checked={currentItems.length > 0 && selectedItemIds.size === currentItems.length}
+                        checked={currentItems.length > 0 && activeSelectedSet.size === currentItems.length}
                         onChange={handleToggleSelectAll}
-                        title={selectedItemIds.size === currentItems.length ? "Desmarcar todas" : "Selecionar todas"}
+                        title={activeSelectedSet.size === currentItems.length ? "Desmarcar todas" : "Selecionar todas"}
                       />
                     </th>
 
@@ -1638,13 +1638,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
                 <tbody className="divide-y divide-[#13233E]/60 font-mono">
                   {currentItems.map((item, idx) => (
-                    <tr key={item.id || idx} className={`hover:bg-white/[0.02] transition-colors ${selectedItemIds.has(item.id) ? 'bg-[#1A6DFF]/5' : ''}`}>
+                    <tr key={item.id || idx} className={`hover:bg-white/[0.02] transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#1A6DFF]/5' : ''}`}>
                       {/* Checkbox */}
                       <td className="py-4 px-3">
                         <input 
                           type="checkbox" 
                           className="rounded bg-[#03060D] border-white/10 cursor-pointer accent-[#1A6DFF]" 
-                          checked={selectedItemIds.has(item.id)}
+                          checked={activeSelectedSet.has(item.id)}
                           onChange={() => handleToggleSelectItem(item.id)}
                         />
                       </td>
