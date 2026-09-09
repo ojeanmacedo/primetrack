@@ -424,42 +424,72 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   const handleToggleStatus = async (itemId) => {
     let nextStatus = false;
+    let targetId = itemId;
+
     setCampaignsList(prev => prev.map(c => {
       if (c.id === itemId) {
         nextStatus = !c.status;
         return { ...c, status: nextStatus };
       }
-      if (c.adsets) {
-        c.adsets = c.adsets.map(as => {
-          if (as.id === itemId) {
-            nextStatus = !as.status;
-            return { ...as, status: nextStatus };
-          }
-          return as;
-        });
+      let adsetsUpdated = false;
+      let adsUpdated = false;
+
+      const newAdsets = c.adsets ? c.adsets.map(as => {
+        if (as.id === itemId || as.adsetId === itemId) {
+          nextStatus = !as.status;
+          targetId = as.id || as.adsetId;
+          adsetsUpdated = true;
+          return { ...as, status: nextStatus };
+        }
+        return as;
+      }) : c.adsets;
+
+      const newAds = c.ads ? c.ads.map(ad => {
+        if (ad.id === itemId || ad.adId === itemId) {
+          nextStatus = !ad.status;
+          targetId = ad.id || ad.adId;
+          adsUpdated = true;
+          return { ...ad, status: nextStatus };
+        }
+        return ad;
+      }) : c.ads;
+
+      if (adsetsUpdated || adsUpdated) {
+        return {
+          ...c,
+          adsets: newAdsets,
+          ads: newAds
+        };
       }
-      if (c.ads) {
-        c.ads = c.ads.map(ad => {
-          if (ad.id === itemId) {
-            nextStatus = !ad.status;
-            return { ...ad, status: nextStatus };
-          }
-          return ad;
-        });
-      }
+
       return c;
     }));
+
+    // Persiste no cache local do navegador
+    try {
+      const saved = localStorage.getItem('primetrack_cached_campaigns');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const updated = parsed.map(c => {
+          if (c.id === targetId) return { ...c, status: nextStatus };
+          if (c.adsets) c.adsets = c.adsets.map(as => (as.id === targetId || as.adsetId === targetId) ? { ...as, status: nextStatus } : as);
+          if (c.ads) c.ads = c.ads.map(ad => (ad.id === targetId || ad.adId === targetId) ? { ...ad, status: nextStatus } : ad);
+          return c;
+        });
+        localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(updated));
+      }
+    } catch (e) {}
 
     // Dispara sincronização direta com a API do Meta Ads
     try {
       const res = await fetch('/api/campaigns/status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: itemId, status: nextStatus })
+        body: JSON.stringify({ id: targetId, status: nextStatus })
       });
       const data = await res.json();
       if (data && data.metaSynced) {
-        setSaveSuccessMsg(nextStatus ? '🟢 Campanha ligada com sucesso no Gerenciador Meta!' : '⚪ Campanha pausada com sucesso no Gerenciador Meta!');
+        setSaveSuccessMsg(nextStatus ? '🟢 Item ativado com sucesso no Gerenciador Meta!' : '⚪ Item pausado com sucesso no Gerenciador Meta!');
       } else if (data && data.metaError) {
         setSaveSuccessMsg(`⚠️ Erro na Meta: ${data.metaError}`);
       } else {
@@ -1702,13 +1732,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       <td className="py-4 px-3">
                         <button
                           type="button"
-                          onClick={() => {
-                            if (subTab === 'Campanhas') {
-                              handleToggleStatus(item.id);
-                            } else {
-                              handleToggleStatus(item.campaignId || item.id);
-                            }
-                          }}
+                          onClick={() => handleToggleStatus(item.id || item.campaignId || item.adsetId || item.adId)}
                           className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
                             item.status ? 'bg-[#2B66E3]' : 'bg-zinc-700'
                           }`}
