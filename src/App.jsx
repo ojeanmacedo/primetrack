@@ -11,6 +11,8 @@ import Integrations from './pages/Integrations';
 import Notifications from './pages/Notifications';
 import Plans from './pages/Plans';
 import Support from './pages/Support';
+import Taxes from './pages/Taxes';
+import Account from './pages/Account';
 import DocsWebhook from './pages/DocsWebhook';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
@@ -128,9 +130,12 @@ export default function App() {
                 <Route path="/campanhas" element={<Campaigns />} />
                 <Route path="/vendas" element={<Sales />} />
                 <Route path="/regras" element={<Rules />} />
+                <Route path="/taxas" element={<Taxes />} />
                 <Route path="/integracoes" element={<Integrations />} />
                 <Route path="/notificacoes" element={<Notifications />} />
                 <Route path="/planos" element={<Plans />} />
+                <Route path="/conta" element={<Account />} />
+                <Route path="/minha-conta" element={<Account />} />
                 <Route path="/suporte" element={<Support />} />
               </Route>
 

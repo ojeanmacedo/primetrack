@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { getCurrentUser, isMasterAdmin, setCurrentUser, getTrialStatus } from '../utils/auth';
 import { supabase } from '../lib/supabase';
 import { 
@@ -32,8 +32,7 @@ const INTEGRATION_TABS = [
   'Pixel de Rastreio',
   'UTMs',
   'Webhook API',
-  'Baixe nosso App',
-  'Dúvidas'
+  'Baixe nosso App'
 ];
 
 export default function Integrations() {
@@ -876,23 +875,12 @@ export default function Integrations() {
               </h3>
 
               <div className="flex items-center gap-2">
-                <button className="px-3 py-1.5 rounded-lg bg-[#24131A] hover:bg-red-950/40 text-red-400 text-xs font-medium flex items-center gap-1.5 transition-colors">
-                  <Play className="w-3 h-3 fill-current" />
-                  <span>Tutorial</span>
-                </button>
                 <button 
                   onClick={() => setShowConnectModal(true)}
                   className="px-3 py-1.5 rounded-lg bg-[#2B66E3] hover:bg-[#2558C7] text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-brand/30 transition-all cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Adicionar Facebook</span>
-                </button>
-                <button 
-                  onClick={() => setShowConnectModal(true)}
-                  className="px-3 py-1.5 rounded-lg bg-[#070D1A] border border-white/10 hover:border-brand text-zinc-300 text-xs font-medium flex items-center gap-1.5 transition-colors"
-                >
-                  <RefreshCw className="w-3 h-3" />
-                  <span>Reconectar</span>
                 </button>
               </div>
             </div>
@@ -1103,10 +1091,6 @@ export default function Integrations() {
               </h3>
 
               <div className="flex items-center gap-2">
-                <button className="px-3 py-1.5 rounded-lg bg-[#24131A] hover:bg-red-950/40 text-red-400 text-xs font-medium flex items-center gap-1.5 transition-colors">
-                  <Play className="w-3 h-3 fill-current" />
-                  <span>Tutorial</span>
-                </button>
                 <button 
                   onClick={() => {
                     if (trialStatus.isTrial && trackingPixels.length >= 1) {
@@ -1258,107 +1242,6 @@ export default function Integrations() {
             </div>
           </div>
 
-          {/* Big Blue Card: Nosso Pixel entrega 9.1/10 de Event Match Quality */}
-          <div className="bg-[#1A6DFF] rounded-3xl p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden">
-            
-            {/* Top row with Meta seal and EMQ Score */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
-              <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/20">
-                <ShieldCheck className="w-8 h-8 text-white" />
-              </div>
-
-              <div>
-                <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-[10px] font-mono font-bold uppercase tracking-wider">
-                  META CERTIFIED
-                </span>
-                <h3 className="text-xl sm:text-2xl font-black mt-1 tracking-tight">
-                  Nosso Pixel entrega 9.1/10 de Event Match Quality
-                </h3>
-                <p className="text-xs sm:text-sm text-white/80 font-sans mt-0.5 max-w-2xl">
-                  A maioria das plataformas fica abaixo de 6.0. Com PrimeTrack você envia eventos enriquecidos direto para o CAPI da Meta, escalando anúncios com a maior precisão do mercado.
-                </p>
-              </div>
-            </div>
-
-            {/* Bottom Row: Video Thumbnail + 6 Grid Cards */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-              
-              {/* Left Video Thumbnail Card matching Screenshot 5 */}
-              <div className="lg:col-span-3 flex justify-center lg:justify-start">
-                <div className="relative w-[130px] sm:w-[150px] aspect-[9/16] rounded-2xl overflow-hidden border border-white/30 shadow-2xl bg-black group cursor-pointer">
-                  <img 
-                    src="/images/pixel_video_thumb.png" 
-                    alt="Nota do pixel PrimeTrack" 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                    <div className="w-11 h-11 rounded-full bg-red-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                      <Play className="w-5 h-5 fill-white text-white translate-x-0.5" />
-                    </div>
-                  </div>
-                  <div className="absolute top-2 left-2 right-2 text-[10px] font-bold text-white drop-shadow bg-black/50 px-2 py-0.5 rounded backdrop-blur-sm truncate">
-                    Nota do pixel
-                  </div>
-                </div>
-              </div>
-
-              {/* Right 6 Benefit Cards Grid matching Screenshot 5 */}
-              <div className="lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                
-                {/* 1 */}
-                <div className="bg-[#1258DB] border border-white/15 p-4 rounded-2xl">
-                  <div className="font-bold text-sm text-white mb-1">CAPI server-side direto</div>
-                  <div className="text-[11px] text-white/80 leading-relaxed">
-                    Eventos disparados pelo nosso servidor, sem perda por bloqueador ou iOS.
-                  </div>
-                </div>
-
-                {/* 2 */}
-                <div className="bg-[#1258DB] border border-white/15 p-4 rounded-2xl">
-                  <div className="font-bold text-sm text-white mb-1">Enriquecimento completo</div>
-                  <div className="text-[11px] text-white/80 leading-relaxed">
-                    fbp, fbc, IP real, geo, e-mail e telefone em todo Purchase.
-                  </div>
-                </div>
-
-                {/* 3 */}
-                <div className="bg-[#1258DB] border border-white/15 p-4 rounded-2xl">
-                  <div className="font-bold text-sm text-white mb-1">Deduplicação automática</div>
-                  <div className="text-[11px] text-white/80 leading-relaxed">
-                    Sem evento duplicado entre browser e servidor. EMQ limpo.
-                  </div>
-                </div>
-
-                {/* 4 */}
-                <div className="bg-[#1258DB] border border-white/15 p-4 rounded-2xl">
-                  <div className="font-bold text-sm text-white mb-1">Escala com precisão</div>
-                  <div className="text-[11px] text-white/80 leading-relaxed">
-                    Mais qualidade de match = otimização rápida e CPA mais baixo.
-                  </div>
-                </div>
-
-                {/* 5 */}
-                <div className="bg-[#1258DB] border border-white/15 p-4 rounded-2xl">
-                  <div className="font-bold text-sm text-white mb-1">Allowlist de domínios</div>
-                  <div className="text-[11px] text-white/80 leading-relaxed">
-                    Bloqueie tráfego de terceiros que tentem copiar seu pixel.
-                  </div>
-                </div>
-
-                {/* 6 */}
-                <div className="bg-[#1258DB] border border-white/15 p-4 rounded-2xl">
-                  <div className="font-bold text-sm text-white mb-1">Sem container, sem GTM-SS</div>
-                  <div className="text-[11px] text-white/80 leading-relaxed">
-                    Mesmo poder do Stape/Elevar, com instalação em 1 linha.
-                  </div>
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
         </div>
       )}
 
@@ -1375,11 +1258,6 @@ export default function Integrations() {
               <h3 className="font-bold text-white text-sm">
                 UTMs para Facebook Ads
               </h3>
-
-              <button className="px-3 py-1.5 rounded-lg bg-[#24131A] hover:bg-red-950/40 text-red-400 text-xs font-medium flex items-center gap-1.5 transition-colors">
-                <Play className="w-3 h-3 fill-current" />
-                <span>Tutorial</span>
-              </button>
             </div>
 
             {/* O que são UTMs? */}
@@ -1664,31 +1542,10 @@ export default function Integrations() {
       {/* ========================================================================= */}
       {activeTab === 'Baixe nosso App' && (
         <div className="space-y-6">
-          
-          {/* Header Card with Status Senha Definida */}
-          <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl p-5 shadow-xl flex items-center justify-between">
-            <div className="flex items-center gap-2 font-bold text-white text-sm">
-              <span>📲</span>
-              <span>App PrimeTrack</span>
-            </div>
-
-            {currentUser?.hasSetPassword ? (
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono text-[10px] font-bold">
-                <span>Senha</span>
-                <Check className="w-3 h-3 stroke-[3]" />
-                <span>Definida</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono text-[10px] font-bold">
-                <span>Defina sua Senha</span>
-              </div>
-            )}
-          </div>
-
-          {/* 2 Columns Grid: Baixe o app + Atualizar senha */}
+          {/* 2 Columns Grid: Baixe o app + Link Minha Conta */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
-            {/* Left Col (5 cols): Baixe o app & Como acessar */}
+            {/* Left Col (5 cols): Baixe o app */}
             <div className="lg:col-span-5 space-y-4">
               <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl p-6 shadow-xl space-y-4">
                 <h3 className="font-bold text-white text-sm">
@@ -1709,161 +1566,33 @@ export default function Integrations() {
                   </button>
                 </div>
               </div>
-
-              {/* Como acessar box */}
-              <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl p-6 shadow-xl space-y-2 text-xs">
-                <div className="font-bold text-white">Como acessar:</div>
-                <ol className="space-y-1.5 text-zinc-400 text-[12px]">
-                  <li>1. Baixe o app</li>
-                  <li>2. Defina uma senha ao lado →</li>
-                  <li>
-                    3. No app ou em outro navegador, faça login com:
-                    <div className="mt-1 pl-4 space-y-0.5 font-mono text-zinc-300">
-                      <div>✉️ {currentUser?.email || 'seu@email.com'}</div>
-                      <div>🔑 A senha que você definir</div>
-                    </div>
-                  </li>
-                </ol>
-              </div>
             </div>
 
-            {/* Right Col (7 cols): Atualizar senha do app Form */}
-            <div className="lg:col-span-7 bg-[#0A1426] border border-[#13233E] rounded-2xl p-6 shadow-xl space-y-4">
-              <div className="flex items-center gap-2 font-bold text-white text-sm">
-                <Key className="w-4 h-4 text-[#5C9BFF]" />
-                <span>{currentUser?.hasSetPassword ? 'Atualizar senha de acesso' : 'Cadastre sua senha de acesso'}</span>
+            {/* Right Col (7 cols): Link para Minha Conta */}
+            <div className="lg:col-span-7 bg-[#0A1426] border border-[#13233E] rounded-2xl p-6 shadow-xl space-y-4 flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 font-bold text-white text-sm">
+                  <Key className="w-4 h-4 text-[#5C9BFF]" />
+                  <span>Gerenciar Senha de Acesso</span>
+                </div>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  A definição e troca de senha foi unificada na aba <strong>Minha Conta</strong> para facilitar a gestão centralizada da sua segurança.
+                </p>
               </div>
-              <p className="text-xs text-zinc-400">
-                {currentUser?.hasSetPassword 
-                  ? 'Você já possui uma senha ativa. Preencha abaixo caso queira alterá-la.' 
-                  : 'Cadastre sua senha abaixo para conseguir fazer login em outros navegadores ou no aplicativo sem precisar do Google.'}
-              </p>
 
-              <form onSubmit={handleUpdatePassword} className="space-y-4 pt-2">
-                <div>
-                  <label className="block text-[10px] font-mono text-zinc-400 uppercase tracking-wider mb-1.5">
-                    NOVA SENHA
-                  </label>
-                  <input
-                    type="password"
-                    placeholder="Mínimo 6 caracteres"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full bg-[#070D1A] border border-[#13233E] focus:border-[#1A6DFF] rounded-xl px-4 py-2.5 text-xs text-white placeholder-zinc-600 outline-none transition-colors"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-mono text-zinc-400 uppercase tracking-wider mb-1.5">
-                    CONFIRMAR SENHA
-                  </label>
-                  <input
-                    type="password"
-                    placeholder="Repita a senha"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full bg-[#070D1A] border border-[#13233E] focus:border-[#1A6DFF] rounded-xl px-4 py-2.5 text-xs text-white placeholder-zinc-600 outline-none transition-colors"
-                  />
-                </div>
-
-                {passError && (
-                  <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>{passError}</span>
-                  </div>
-                )}
-
-                {passUpdated && (
-                  <div className="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 font-semibold flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    <span>Senha cadastrada com sucesso! Agora você pode logar em qualquer navegador digitando seu e-mail ({currentUser?.email}) e sua senha.</span>
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={isSavingPass}
-                  className="px-5 py-2.5 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-brand/30 transition-all cursor-pointer disabled:opacity-50"
+              <div className="pt-2">
+                <Link
+                  to="/conta"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs transition-all shadow-md shadow-blue-500/20"
                 >
                   <Key className="w-3.5 h-3.5" />
-                  <span>{isSavingPass ? 'Salvando senha...' : (currentUser?.hasSetPassword ? 'Atualizar Senha' : 'Cadastrar Senha')}</span>
-                </button>
-              </form>
+                  <span>Ir para Minha Conta e Gerenciar Senha</span>
+                </Link>
+              </div>
             </div>
 
           </div>
 
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 6: Dúvidas (Screenshot 3)                                              */}
-      {/* ========================================================================= */}
-      {activeTab === 'Dúvidas' && (
-        <div className="space-y-3">
-          {[
-            {
-              title: "Minhas vendas não está marcando nas campanhas",
-              hasVideo: true,
-              content: "Certifique-se de que os botões de checkout da sua landing page estão com o script da PrimeTrack instalado e que o webhook da sua plataforma foi cadastrado corretamente com os eventos de compra aprovada."
-            },
-            {
-              title: "Não tá marcando IC",
-              hasVideo: true,
-              content: "O evento InitiateCheckout (IC) é disparado automaticamente quando o lead clica em qualquer botão com a classe .btn-checkout ou link de checkout."
-            },
-            {
-              title: "Como faço para entrar no app?",
-              hasVideo: false,
-              content: "Basta baixar o app na App Store ou Android APK, definir sua senha na aba 'Baixe nosso App' e fazer login com seu e-mail cadastrado."
-            },
-            {
-              title: "Meu app não notificou a venda",
-              hasVideo: false,
-              content: "Verifique na aba Notificações se as opções de notificações estão ativas e conceda permissão de notificações push no seu smartphone."
-            },
-            {
-              title: "Como funciona a notificação de saldo baixo e limite de gastos?",
-              hasVideo: false,
-              content: "Sincronizamos de hora em hora o saldo das suas contas de anúncios. Ao atingir o limite estipulado, você recebe um push imediato."
-            },
-            {
-              title: "Não está trackeando minhas vendas na Hotmart",
-              hasVideo: false,
-              content: "Na Hotmart, certifique-se de usar a versão 2.0.0 de Webhook com a URL gerada e com o evento 'Compra Aprovada' selecionado."
-            },
-            {
-              title: "A plataforma que uso para vender não está na lista de integrações",
-              hasVideo: false,
-              content: "A PrimeTrack possui suporte a Webhook Genérico via API para aceitar payloads em JSON de qualquer plataforma proprietária."
-            }
-          ].map((faq, idx) => (
-            <div 
-              key={idx}
-              className="bg-[#0A1426] border border-[#13233E] rounded-2xl overflow-hidden transition-all"
-            >
-              <button
-                onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
-                className="w-full p-4 flex items-center justify-between text-left text-xs font-semibold text-white hover:bg-white/[0.02] transition-colors"
-              >
-                <span>{faq.title}</span>
-                <div className="flex items-center gap-3">
-                  {faq.hasVideo && (
-                    <span className="px-2 py-0.5 rounded-full bg-red-600 text-white font-mono text-[9px] font-bold uppercase tracking-wider">
-                      Vídeo
-                    </span>
-                  )}
-                  <ChevronDown className={`w-4 h-4 text-zinc-400 transition-transform ${openFaq === idx ? 'rotate-180 text-white' : ''}`} />
-                </div>
-              </button>
-
-              {openFaq === idx && (
-                <div className="px-4 pb-4 pt-1 text-xs text-zinc-400 border-t border-[#13233E]/60 bg-[#070D1A]/50 leading-relaxed font-sans">
-                  {faq.content}
-                </div>
-              )}
-            </div>
-          ))}
         </div>
       )}
 
@@ -1907,19 +1636,6 @@ export default function Integrations() {
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                 </svg>
                 <span>Conectar com Facebook</span>
-              </button>
-
-              {/* Secondary Dark Button: Copiar link de conexão */}
-              <button
-                onClick={() => {
-                  copyToClipboard(`${window.location.origin}/auth/facebook/connect?token=pt_auth_${Date.now()}`, 'connect');
-                  setCopiedConnectLink(true);
-                  setTimeout(() => setCopiedConnectLink(false), 2500);
-                }}
-                className="w-full py-3 px-4 rounded-xl bg-[#070D1A] hover:bg-[#12223D] border border-white/10 text-zinc-200 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors"
-              >
-                <span>📋</span>
-                <span>{copiedConnectLink ? 'Link copiado com sucesso!' : 'Copiar link de conexão'}</span>
               </button>
             </div>
           </div>

@@ -310,7 +310,7 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
   });
 
   // Processa os anúncios reais vindos direto do Gerenciador de Anúncios da Meta
-  const allAds = (adsData.data || []).map(ad => {
+  const allAds = await Promise.all((adsData.data || []).map(async ad => {
     const insight = ad.insights?.data?.[0] || {};
     const rawSpend = Number(insight.spend || 0);
     const clicks = Number(insight.clicks || 0);
@@ -334,6 +334,17 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const costPerIc = metaInitCheckouts > 0 ? (realSpend / metaInitCheckouts).toFixed(2) : '0.00';
     const thumb = ad.creative?.thumbnail_url || ad.creative?.image_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=80';
 
+    let videoUrl = null;
+    if (ad.creative?.video_id) {
+      try {
+        const vidRes = await fetch(`${GRAPH_BASE_URL}/${ad.creative.video_id}?fields=source,picture&access_token=${accessToken}`);
+        const vidData = await vidRes.json();
+        if (vidData.source) {
+          videoUrl = vidData.source;
+        }
+      } catch (err) {}
+    }
+
     return {
       id: ad.id,
       adId: ad.id,
@@ -346,6 +357,7 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       effectiveStatus: ad.effective_status || ad.status,
       mediaSrc: thumb,
       thumbnailUrl: thumb,
+      videoUrl: videoUrl,
       spend: realSpend.toFixed(2),
       impressions,
       clicks,
@@ -364,7 +376,7 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       arpu: '0.00',
       updatedAt: 'N/A'
     };
-  });
+  }));
 
   return (data.data || []).map(c => {
     const insight = c.insights?.data?.[0] || {};

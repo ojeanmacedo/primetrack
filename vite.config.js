@@ -4,6 +4,10 @@ import react from '@vitejs/plugin-react';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  build: {
+    sourcemap: false, // Impede a exposição dos arquivos fonte (.jsx, .ts) no DevTools do navegador
+    minify: true
+  },
   server: {
     port: 5173,
     proxy: {

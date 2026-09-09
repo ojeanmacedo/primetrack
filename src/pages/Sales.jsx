@@ -270,11 +270,6 @@ function resolveCustomerCityState(cust, o) {
             <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
           </div>
 
-          {/* Eye Icon */}
-          <button className="p-2 bg-[#0A1426] border border-[#13233E] rounded-xl text-zinc-400 hover:text-white transition-colors">
-            <Eye className="w-3.5 h-3.5" />
-          </button>
-
           {/* Period Pills */}
           <div className="flex items-center bg-[#0A1426] border border-[#13233E] rounded-xl p-0.5 text-xs">
             {['Hoje', 'Ontem', '7d'].map(p => (
@@ -291,12 +286,6 @@ function resolveCustomerCityState(cust, o) {
               </button>
             ))}
           </div>
-
-          {/* Export Button */}
-          <button className="px-3 py-1.5 rounded-xl bg-[#0A1426] hover:bg-[#12223D] border border-[#13233E] text-zinc-300 hover:text-white font-medium flex items-center gap-1.5 transition-colors">
-            <Download className="w-3.5 h-3.5" />
-            <span>Exportar</span>
-          </button>
 
         </div>
       </div>

@@ -39,6 +39,7 @@ const COLUMN_DEFS = [
   { id: 'revenue', label: 'Faturamento', defaultVisible: true },
   { id: 'profit', label: 'Lucro', defaultVisible: true },
   { id: 'roas', label: 'ROAS', defaultVisible: true },
+  { id: 'roi', label: 'ROI', defaultVisible: true },
   { id: 'margin', label: 'Margem', defaultVisible: false },
   { id: 'cpa', label: 'CPA', defaultVisible: true },
   { id: 'arpu', label: 'ARPU', defaultVisible: true },
@@ -68,10 +69,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const [customRange, setCustomRange] = useState(null);
   const [accountFilter, setAccountFilter] = useState('Todas');
   
-  // Customização maleável de colunas (com persistência no localStorage)
-  const [columnsConfig, setColumnsConfig] = useState(() => {
+  // Customização maleável de colunas independente por aba (Contas, Campanhas, Conjuntos, Anúncios)
+  const getInitialColsForTab = (tab) => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('primetrack_campaign_columns');
+      const saved = localStorage.getItem(`primetrack_columns_${tab}`);
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
@@ -84,7 +85,16 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       }
     }
     return COLUMN_DEFS.map(c => ({ id: c.id, visible: c.defaultVisible }));
-  });
+  };
+
+  const [columnsConfigByTab, setColumnsConfigByTab] = useState(() => ({
+    Contas: getInitialColsForTab('Contas'),
+    Campanhas: getInitialColsForTab('Campanhas'),
+    Conjuntos: getInitialColsForTab('Conjuntos'),
+    Anúncios: getInitialColsForTab('Anúncios')
+  }));
+
+  const columnsConfig = columnsConfigByTab[subTab] || columnsConfigByTab['Campanhas'];
 
   const [showColumnsModal, setShowColumnsModal] = useState(false);
   const [tempColumnsConfig, setTempColumnsConfig] = useState([]);
@@ -544,6 +554,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           status: true,
           updatedAt: 'N/A',
           mediaSrc: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=80',
+          videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-woman-posing-for-a-fashion-photoshoot-40291-large.mp4',
           spend: ad2Spend.toFixed(2),
           sales: ad2Sales,
           pendingSales: ad2Pending,
@@ -570,6 +581,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           status: false,
           updatedAt: 'N/A',
           mediaSrc: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&auto=format&fit=crop&q=80',
+          videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-vertical-selfie-of-a-woman-smiling-at-the-camera-42867-large.mp4',
           spend: '0.00',
           sales: 0,
           pendingSales: 0,
@@ -596,6 +608,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           status: true,
           updatedAt: 'N/A',
           mediaSrc: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=800&auto=format&fit=crop&q=80',
+          videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-hands-holding-a-smartphone-with-a-green-screen-41527-large.mp4',
           spend: ad1Spend.toFixed(2),
           sales: ad1Sales,
           pendingSales: ad1Pending,
@@ -628,6 +641,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     const revenue = currentItems.reduce((acc, c) => acc + Number(c.revenue || 0), 0);
     const profit = revenue - spend;
     const roas = spend > 0 ? revenue / spend : 0;
+    const roi = spend > 0 ? profit / spend : 0;
     const cpa = sales > 0 ? spend / sales : 0;
     const impressions = currentItems.reduce((acc, c) => acc + Number(c.impressions || 0), 0);
     const clicks = currentItems.reduce((acc, c) => acc + Number(c.clicks || 0), 0);
@@ -646,6 +660,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       revenue,
       profit,
       roas,
+      roi,
       cpa,
       arpu,
       cpc,
@@ -686,17 +701,21 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     e.preventDefault();
     if (!draggedTableColId || draggedTableColId === targetColId) return;
 
-    setColumnsConfig(prev => {
-      const fromIndex = prev.findIndex(c => c.id === draggedTableColId);
-      const toIndex = prev.findIndex(c => c.id === targetColId);
-      if (fromIndex === -1 || toIndex === -1) return prev;
-      const newConfig = [...prev];
+    setColumnsConfigByTab(prevByTab => {
+      const currentConfig = prevByTab[subTab] || prevByTab['Campanhas'];
+      const fromIndex = currentConfig.findIndex(c => c.id === draggedTableColId);
+      const toIndex = currentConfig.findIndex(c => c.id === targetColId);
+      if (fromIndex === -1 || toIndex === -1) return prevByTab;
+      const newConfig = [...currentConfig];
       const [moved] = newConfig.splice(fromIndex, 1);
       newConfig.splice(toIndex, 0, moved);
       if (typeof window !== 'undefined') {
-        localStorage.setItem('primetrack_campaign_columns', JSON.stringify(newConfig));
+        localStorage.setItem(`primetrack_columns_${subTab}`, JSON.stringify(newConfig));
       }
-      return newConfig;
+      return {
+        ...prevByTab,
+        [subTab]: newConfig
+      };
     });
     setDraggedTableColId(null);
   };
@@ -737,10 +756,16 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   };
 
   const handleSaveColumns = () => {
-    setColumnsConfig(tempColumnsConfig);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('primetrack_campaign_columns', JSON.stringify(tempColumnsConfig));
-    }
+    setColumnsConfigByTab(prev => {
+      const updated = {
+        ...prev,
+        [subTab]: tempColumnsConfig
+      };
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`primetrack_columns_${subTab}`, JSON.stringify(tempColumnsConfig));
+      }
+      return updated;
+    });
     setShowColumnsModal(false);
   };
 
@@ -834,16 +859,24 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         }
         return <span className="text-zinc-500 font-mono text-[11px]">N/A</span>;
 
-      case 'preview':
+      case 'preview': {
+        // Verifica se o anúncio tem vídeo real cadastrado ou se é vídeo pelo tipo/url
+        const hasVideo = Boolean(
+          item.videoUrl || 
+          (item.type && item.type.toLowerCase().includes('video')) ||
+          (typeof item.mediaSrc === 'string' && (item.mediaSrc.includes('.mp4') || item.mediaSrc.includes('video')))
+        );
+
+        const videoSrc = item.videoUrl || (hasVideo ? item.mediaSrc : null);
+        const imgSrc = item.mediaSrc || item.thumbnailUrl || item.imageUrl || item.creativeUrl;
+
         return (
           <button 
             type="button"
             onClick={() => setActiveCreativePreview({
-              id: item.id,
-              title: `${item.name} — Anúncio`,
-              mediaSrc: item.mediaSrc || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=80',
-              videoUrl: item.videoUrl || 'https://assets.mixkit.co/videos/preview/mixkit-woman-posing-for-a-fashion-photoshoot-40291-large.mp4',
-              type: 'video'
+              videoUrl: videoSrc,
+              imageUrl: imgSrc,
+              isVideo: Boolean(videoSrc)
             })}
             title="Ver criativo"
             className="p-1.5 rounded-lg border border-white/10 hover:border-[#1A6DFF] hover:bg-[#12223D] text-zinc-400 hover:text-[#5C9BFF] transition-all cursor-pointer inline-flex items-center justify-center"
@@ -851,6 +884,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             <Eye className="w-3.5 h-3.5" />
           </button>
         );
+      }
 
       case 'budget':
         if (subTab === 'Conjuntos') {
@@ -884,6 +918,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         );
 
       case 'bid': {
+        // Lance só aparece em Conjuntos
+        if (subTab !== 'Conjuntos') {
+          return <span className="text-zinc-600 font-mono text-xs">—</span>;
+        }
+
         const hasBidCap = Boolean(item.bidCap);
         const bidVal = item.bidCap ? Number(item.bidCap).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '11,02';
         const strategyLabel = item.bidStrategy === 'COST_CAP' 
@@ -933,6 +972,17 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         return (
           <span className={`font-extrabold font-mono ${rVal >= 1 ? 'text-[#38bdf8]' : 'text-red-400'}`}>
             {rVal.toFixed(2)}
+          </span>
+        );
+      }
+
+      case 'roi': {
+        const sp = Number(item.spend || 0);
+        const prof = Number(item.profit !== undefined ? item.profit : (Number(item.revenue || 0) - sp));
+        const roiVal = sp > 0 ? (prof / sp) : 0;
+        return (
+          <span className={`font-extrabold font-mono ${roiVal >= 0 ? 'text-[#38bdf8]' : 'text-red-400'}`}>
+            {roiVal.toFixed(2)}
           </span>
         );
       }
@@ -1024,6 +1074,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             {t.roas.toFixed(2)}
           </span>
         );
+      case 'roi':
+        return (
+          <span className={`font-extrabold font-mono ${t.roi >= 0 ? 'text-[#38bdf8]' : 'text-red-400'}`}>
+            {t.roi.toFixed(2)}
+          </span>
+        );
       case 'margin': {
         const marginPct = t.revenue > 0 ? ((t.profit / t.revenue) * 100).toFixed(1) + '%' : '0.0%';
         return <span className="font-mono text-zinc-300">{marginPct}</span>;
@@ -1085,32 +1141,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
             Campanhas
           </h1>
-          <button className="text-zinc-400 hover:text-white transition-colors ml-0.5">
-            <Eye className="w-4 h-4" />
-          </button>
-          {activeAdAccount && (
-            <span className="px-2.5 py-0.5 rounded-full bg-[#1A6DFF]/15 border border-[#1A6DFF]/30 text-[#5C9BFF] text-[11px] font-mono font-bold flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span>Conta: {activeAdAccount.name}</span>
-            </span>
-          )}
-          <span className="px-2 py-0.5 rounded-full bg-[#1A6DFF]/20 border border-[#1A6DFF]/40 text-[#5C9BFF] font-mono text-[11px] font-bold">
-            {filteredCampaigns.filter(c => c.status).length} Ativas
-          </span>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-mono text-zinc-400 flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-            <span>{filteredCampaigns.length} campanhas, {adsList.length} anúncios atualizados</span>
-          </span>
-          <button 
-            onClick={() => window.open('https://adsmanager.facebook.com', '_blank')}
-            className="px-4 py-2 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-brand/30 transition-all cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Criar Campanha</span>
-          </button>
         </div>
       </div>
 
@@ -1247,30 +1277,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           </button>
 
           <button 
-            type="button"
-            className="px-3 py-1.5 rounded-xl bg-[#0A1426] border border-[#13233E] text-zinc-400 hover:text-zinc-300 flex items-center gap-1.5 cursor-pointer transition-colors opacity-80"
-            title="Cores personalizadas das métricas"
-          >
-            <Palette className="w-3.5 h-3.5 text-amber-400" />
-            <span>Cores</span>
-            <Lock className="w-3 h-3 text-zinc-500" />
-          </button>
-
-          <button 
             onClick={handleSyncNow}
             className="px-3 py-1.5 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-bold flex items-center gap-1.5 cursor-pointer shadow-md shadow-brand/20 transition-all"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
             <span>Atualizar</span>
-          </button>
-
-          <button 
-            onClick={handleExportCSV}
-            className="px-3 py-1.5 rounded-xl bg-[#0A1426] border border-[#13233E] text-zinc-300 hover:text-white flex items-center gap-1.5 cursor-pointer transition-colors"
-            title="Exportar dados da tabela para CSV"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Exportar</span>
           </button>
         </div>
       </div>
@@ -1647,50 +1658,63 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       {/* ── MODAL DE PREVIEW DO CRIATIVO REAL (APENAS VÍDEO OU IMAGEM) ── */}
       {activeCreativePreview && (
         <div 
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in"
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in cursor-pointer"
           onClick={() => setActiveCreativePreview(null)}
         >
-          <div 
-            className="relative max-w-xl w-full flex flex-col items-center justify-center"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Top Bar with Title and Close */}
-            <div className="w-full flex items-center justify-between pb-3 text-white">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="font-bold text-sm truncate max-w-[400px]">
-                  {activeCreativePreview.title || 'Criativo do Anúncio'}
-                </span>
-              </div>
+          {activeCreativePreview.isVideo && activeCreativePreview.videoUrl ? (
+            /* Container vertical para Vídeo */
+            <div 
+              className="relative w-[360px] max-w-[90vw] aspect-[9/16] max-h-[82vh] flex items-center justify-center cursor-default bg-black rounded-2xl border border-white/20 shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
               <button
                 type="button"
                 onClick={() => setActiveCreativePreview(null)}
-                className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                className="absolute top-3 right-3 z-30 p-2 rounded-full bg-black/70 hover:bg-black text-white/90 hover:text-white transition-all cursor-pointer shadow-lg backdrop-blur-md"
                 title="Fechar"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
-            </div>
 
-            {/* Visual Media Only - Video or Image */}
-            <div className="relative w-full max-h-[80vh] flex items-center justify-center bg-black/80 rounded-2xl overflow-hidden border border-white/15 shadow-2xl">
-              {activeCreativePreview.type === 'video' || activeCreativePreview.videoUrl ? (
-                <video 
-                  src={activeCreativePreview.videoUrl || activeCreativePreview.mediaSrc} 
-                  controls 
-                  autoPlay 
-                  loop
-                  className="max-h-[78vh] w-auto max-w-full rounded-2xl object-contain shadow-2xl"
-                />
-              ) : (
-                <img 
-                  src={activeCreativePreview.mediaSrc} 
-                  alt={activeCreativePreview.title}
-                  className="max-h-[78vh] w-auto max-w-full rounded-2xl object-contain shadow-2xl"
-                />
-              )}
+              <video 
+                src={activeCreativePreview.videoUrl} 
+                poster={activeCreativePreview.imageUrl}
+                controls 
+                autoPlay 
+                playsInline
+                loop
+                className="w-full h-full object-cover bg-black"
+                onLoadedMetadata={(e) => {
+                  e.target.play().catch(() => {
+                    // Se o navegador bloquear autoplay com som, inicia muted e permite desmutar pelo controle
+                    e.target.muted = true;
+                    e.target.play();
+                  });
+                }}
+              />
             </div>
-          </div>
+          ) : (
+            /* Container adaptável ao tamanho original da Imagem */
+            <div 
+              className="relative max-w-2xl max-h-[85vh] flex items-center justify-center cursor-default bg-black/40 rounded-2xl border border-white/15 shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => setActiveCreativePreview(null)}
+                className="absolute top-3 right-3 z-30 p-2 rounded-full bg-black/70 hover:bg-black text-white/90 hover:text-white transition-all cursor-pointer shadow-lg backdrop-blur-md"
+                title="Fechar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <img 
+                src={activeCreativePreview.imageUrl || activeCreativePreview.mediaSrc} 
+                alt=""
+                className="max-h-[82vh] w-auto max-w-[90vw] object-contain rounded-2xl"
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -1707,8 +1731,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             {/* Header */}
             <div className="flex items-start justify-between pb-3 border-b border-[#13233E]/80">
               <div>
-                <h3 className="font-bold text-white text-base tracking-tight">Personalizar colunas</h3>
-                <p className="text-zinc-400 text-xs mt-0.5">Escolha quais métricas exibir na tabela</p>
+                <h3 className="font-bold text-white text-base tracking-tight flex items-center gap-2">
+                  <span>Personalizar colunas</span>
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-brand/20 text-[#5C9BFF] border border-brand/30">
+                    {subTab}
+                  </span>
+                </h3>
+                <p className="text-zinc-400 text-xs mt-0.5">Defina as colunas e posições exclusivas para {subTab.toLowerCase()}</p>
               </div>
               <button
                 type="button"

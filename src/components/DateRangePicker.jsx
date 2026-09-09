@@ -18,9 +18,15 @@ export default function DateRangePicker({
   currentPeriod, 
   customRange, 
   onSelectPeriod, 
-  onApplyCustomRange 
+  onApplyCustomRange,
+  isOpen: controlledIsOpen,
+  onOpenChange,
+  hideTriggerButton = false
 }) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
+  const setIsOpen = onOpenChange || setInternalIsOpen;
+
   const popoverRef = useRef(null);
 
   // Hoje no fuso local
@@ -43,14 +49,22 @@ export default function DateRangePicker({
   useEffect(() => {
     function handleClickOutside(e) {
       if (popoverRef.current && !popoverRef.current.contains(e.target)) {
-        setIsOpen(false);
+        if (typeof setIsOpen === 'function') {
+          setIsOpen(false);
+        }
       }
     }
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      // Delay pequeno para não fechar no mesmo clique do select
+      const timer = setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside);
+      }, 50);
+      return () => {
+        clearTimeout(timer);
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
     }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
+  }, [isOpen, setIsOpen]);
 
   const prevMonth = () => {
     setViewDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
@@ -213,24 +227,26 @@ export default function DateRangePicker({
     : 'Personalizado';
 
   return (
-    <div className="relative inline-block" ref={popoverRef}>
+    <div className={hideTriggerButton ? "relative w-full" : "relative inline-block"} ref={popoverRef}>
       {/* Botão Gatilho Personalizado */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={`px-3 py-1 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer border ${
-          isCustomActive || isOpen
-            ? 'bg-[#12223D] border-[#1A6DFF] text-[#5C9BFF] font-bold shadow-md shadow-blue-500/20'
-            : 'bg-[#0A1426] border-[#13233E] text-zinc-300 hover:text-white hover:bg-[#12223D]'
-        }`}
-      >
-        <CalendarIcon className="w-3.5 h-3.5 text-[#5C9BFF]" />
-        <span>{displayLabel}</span>
-      </button>
+      {!hideTriggerButton && (
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className={`px-3 py-1 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer border ${
+            isCustomActive || isOpen
+              ? 'bg-[#12223D] border-[#1A6DFF] text-[#5C9BFF] font-bold shadow-md shadow-blue-500/20'
+              : 'bg-[#0A1426] border-[#13233E] text-zinc-300 hover:text-white hover:bg-[#12223D]'
+          }`}
+        >
+          <CalendarIcon className="w-3.5 h-3.5 text-[#5C9BFF]" />
+          <span>{displayLabel}</span>
+        </button>
+      )}
 
       {/* Popover idêntico ao da UTMify */}
       {isOpen && (
-        <div className="absolute right-0 sm:right-auto sm:left-0 mt-2 z-50 w-[310px] sm:w-[560px] bg-[#070D1A] border border-[#13233E] rounded-2xl p-4 shadow-2xl animate-in fade-in zoom-in-95">
+        <div className="absolute left-0 top-full mt-2 z-50 w-[310px] sm:w-[560px] bg-[#070D1A] border border-[#13233E] rounded-2xl p-4 shadow-2xl animate-in fade-in zoom-in-95">
           {/* Top Quick Presets */}
           <div className="flex flex-wrap items-center gap-1.5 pb-3.5 mb-3.5 border-b border-[#13233E]">
             {['Hoje', 'Ontem', '7 dias', '15 dias', '30 dias', 'Este mês'].map((p) => (

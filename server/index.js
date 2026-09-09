@@ -1855,6 +1855,33 @@ app.post('/api/auth/update-password', async (req, res) => {
   }
 });
 
+// 4. Atualização de Perfil (Nome do Usuário)
+app.post('/api/auth/update-profile', async (req, res) => {
+  try {
+    const { email, name } = req.body;
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanName = (name || '').trim();
+
+    if (!cleanEmail || !cleanName) {
+      return res.status(400).json({ success: false, error: 'Nome inválido.' });
+    }
+
+    const { error: updateErr } = await supabaseAdmin
+      .from('users')
+      .update({ name: cleanName })
+      .eq('email', cleanEmail);
+
+    if (updateErr) {
+      console.error('Erro ao atualizar perfil no Supabase:', updateErr);
+    }
+
+    return res.json({ success: true, name: cleanName });
+  } catch (err) {
+    console.error('Erro ao atualizar perfil:', err);
+    res.status(500).json({ success: false, error: 'Erro interno ao atualizar perfil.' });
+  }
+});
+
 /**
  * 6. Rota para Testar / Verificar se o Pixel está instalado na Página de Vendas
  */

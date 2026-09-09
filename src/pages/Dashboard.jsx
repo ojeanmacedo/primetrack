@@ -17,6 +17,7 @@ import {
   Move
 } from 'lucide-react';
 import DateRangePicker from '../components/DateRangePicker';
+import { getTaxSettings } from './Taxes';
 
 function FunnelGauge({ percentage, strokeColor = '#0066FF', isFull = false }) {
   const radius = 24;
@@ -85,6 +86,7 @@ export default function Dashboard() {
 
   const [period, setPeriod] = useState('Hoje');
   const [customRange, setCustomRange] = useState(null);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [minsAgo, setMinsAgo] = useState(0);
 
@@ -278,6 +280,16 @@ export default function Dashboard() {
     }
     return { pageViews: 0, initiateCheckouts: 0, totalEvents: 0 };
   });
+
+  const [taxSettings, setTaxSettings] = useState(getTaxSettings);
+
+  useEffect(() => {
+    const handleTaxUpdate = () => {
+      setTaxSettings(getTaxSettings());
+    };
+    window.addEventListener('primetrack_tax_settings_updated', handleTaxUpdate);
+    return () => window.removeEventListener('primetrack_tax_settings_updated', handleTaxUpdate);
+  }, []);
 
   const periodToPreset = {
     'Hoje': 'today',
@@ -541,7 +553,12 @@ export default function Dashboard() {
       const diffHours = (now - d) / (1000 * 60 * 60);
 
       // Filtro de data
-      if (period === 'Hoje') {
+      if (period === 'Personalizado' && customRange?.since) {
+        const orderDateStr = d.toISOString().split('T')[0];
+        const since = customRange.since;
+        const until = customRange.until || customRange.since;
+        if (orderDateStr < since || orderDateStr > until) return false;
+      } else if (period === 'Hoje') {
         const isSameDay = d.toDateString() === now.toDateString();
         if (!isSameDay && !(diffHours >= -1 && diffHours <= 24)) return false;
       } else if (period === 'Ontem') {
@@ -552,6 +569,9 @@ export default function Dashboard() {
         if (diffHours > 24 * 14) return false;
       } else if (period === '30 dias') {
         if (diffHours > 24 * 30) return false;
+      } else if (period === 'Este mês') {
+        const isThisMonth = d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        if (!isThisMonth) return false;
       }
 
       // Filtro de fonte
@@ -585,14 +605,19 @@ export default function Dashboard() {
 
   // Gastos com anúncios reais
   const realSpend = filteredCampaigns.reduce((acc, c) => acc + Number(c.spend || 0), 0);
-  const realProfit = realApprovedRevenue - realSpend;
-  const realRoas = realSpend > 0 ? (realApprovedRevenue / realSpend).toFixed(2) : '0.00';
-  const realRoi = realSpend > 0 ? ((realApprovedRevenue - realSpend) / realSpend).toFixed(2) : (realApprovedRevenue > 0 ? '0.00' : '-0.12');
-  const realMargin = realApprovedRevenue > 0 ? `${(((realApprovedRevenue - realSpend) / realApprovedRevenue) * 100).toFixed(1)}%` : 'N/A';
+  
+  // Impostos calculados com base na alíquota configurada em Taxas (ex: 12% para BR ou 0% para EUA)
+  const metaTaxPercent = Number(taxSettings?.metaTaxRate || 0);
+  const impostoMetaValue = realSpend > 0 && metaTaxPercent > 0 ? (realSpend * (metaTaxPercent / 100)) : 0;
+  const impostoMetaAds = impostoMetaValue.toFixed(2);
+  const impostoTotal = impostoMetaValue.toFixed(2);
 
-  // Impostos e despesas
-  const impostoMetaAds = realSpend > 0 ? (realSpend * 0.12).toFixed(2) : '0,00';
-  const impostoTotal = realSpend > 0 ? (realSpend * 0.12).toFixed(2) : '0,00';
+  // Lucro, ROI e Margem considerando impostos e gastos
+  const totalCost = realSpend + impostoMetaValue;
+  const realProfit = realApprovedRevenue - totalCost;
+  const realRoas = realSpend > 0 ? (realApprovedRevenue / realSpend).toFixed(2) : '0.00';
+  const realRoi = totalCost > 0 ? ((realApprovedRevenue - totalCost) / totalCost).toFixed(2) : (realApprovedRevenue > 0 ? '0.00' : '-0.12');
+  const realMargin = realApprovedRevenue > 0 ? `${(((realApprovedRevenue - totalCost) / realApprovedRevenue) * 100).toFixed(1)}%` : 'N/A';
 
   // Vendas agrupadas por produto com quantidade e porcentagem
   const productsMap = useMemo(() => {
@@ -774,7 +799,7 @@ export default function Dashboard() {
       label: 'Lucro',
       value: `R$ ${realProfit.toFixed(2).replace('.', ',')}`,
       subtitle: realProfit >= 0 ? 'Resultado positivo' : 'Abaixo da meta',
-      valueColor: realProfit < 0 ? 'text-[#EF4444]' : 'text-white'
+      valueColor: realProfit < 0 ? 'text-[#EF4444]' : 'text-emerald-400'
     },
     pendentes: {
       id: 'pendentes',
@@ -788,7 +813,7 @@ export default function Dashboard() {
       label: 'ROI',
       value: realRoi,
       subtitle: 'Retorno sobre investimento',
-      valueColor: Number(realRoi) < 0 ? 'text-[#EF4444]' : 'text-white'
+      valueColor: Number(realRoi) < 0 ? 'text-[#EF4444]' : 'text-emerald-400'
     },
     margem: {
       id: 'margem',
@@ -809,7 +834,7 @@ export default function Dashboard() {
       <span className="text-zinc-500 text-[11px] cursor-help">ⓘ</span>
     );
 
-    const baseContainerClass = `bg-[#141C2E] border ${
+    const baseContainerClass = (heightClass = 'h-[195px]') => `bg-[#141C2E] border ${
       isDraggingThis
         ? 'border-dashed border-blue-500 opacity-30 scale-[0.98] shadow-2xl ring-2 ring-blue-500/30'
         : isOverThis
@@ -817,7 +842,7 @@ export default function Dashboard() {
           : isEditingLayout
             ? 'border-blue-500/50 ring-1 ring-blue-500/30 hover:border-blue-400 cursor-grab active:cursor-grabbing'
             : 'border-[#1E293B]'
-    } rounded-xl p-3.5 sm:p-4 flex flex-col justify-between shadow-md h-[240px] transition-all duration-200 relative select-none`;
+    } rounded-xl p-3 sm:p-3.5 flex flex-col justify-between shadow-md ${heightClass} transition-all duration-200 relative select-none`;
 
     const dropOverlay = isOverThis && (
       <div className="absolute inset-0 bg-[#0066FF]/20 backdrop-blur-[1px] border-2 border-[#0066FF] rounded-xl flex flex-col items-center justify-center z-30 pointer-events-none">
@@ -838,21 +863,21 @@ export default function Dashboard() {
           onDragLeave={() => handleDragLeave('analysis', slotIndex)}
           onDrop={(e) => handleDrop(e, 'analysis', slotIndex)}
           onDragEnd={handleDragEnd}
-          className={baseContainerClass}
+          className={baseContainerClass('h-[195px]')}
         >
           {dropOverlay}
           <div className="w-full">
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-3">
+            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2.5">
               <span className="text-white font-semibold">Vendas por Produto</span>
               {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Vendas agrupadas por produto">ⓘ</span>}
             </div>
 
             {productsMap.length === 0 ? (
-              <div className="h-32 flex items-center justify-center text-zinc-500 text-xs font-sans">
+              <div className="h-24 flex items-center justify-center text-zinc-500 text-xs font-sans">
                 Nenhuma venda por aqui
               </div>
             ) : (
-              <div className="space-y-3 py-1 max-h-[185px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-[#1E293B]">
+              <div className="space-y-2.5 py-0.5 max-h-[140px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-[#1E293B]">
                 {productsMap.map((prod, i) => {
                   const validPct = Math.min(100, Math.max(0, prod.percentage || 0));
                   const circumference = 56.55; // 2 * pi * 9
@@ -932,7 +957,7 @@ export default function Dashboard() {
           onDragLeave={() => handleDragLeave('analysis', slotIndex)}
           onDrop={(e) => handleDrop(e, 'analysis', slotIndex)}
           onDragEnd={handleDragEnd}
-          className={baseContainerClass}
+          className={baseContainerClass('h-[220px]')}
         >
           {dropOverlay}
           <div>
@@ -942,8 +967,8 @@ export default function Dashboard() {
             </div>
 
             {/* Gráfico Donut com Total no centro */}
-            <div className="my-1.5 flex flex-col items-center justify-center relative">
-              <div className="w-22 h-22 sm:w-24 sm:h-24 relative flex items-center justify-center">
+            <div className="my-1 flex flex-col items-center justify-center relative">
+              <div className="w-20 h-20 sm:w-22 sm:h-22 relative flex items-center justify-center">
                 <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
                   <path
                     className="text-[#0D1424]"
@@ -966,7 +991,7 @@ export default function Dashboard() {
                 </svg>
                 <div className="absolute flex flex-col items-center text-center">
                   <span className="text-[9px] text-zinc-400 font-medium">Total</span>
-                  <span className="text-lg font-bold text-white font-sans">{realApprovedSales}</span>
+                  <span className="text-base font-bold text-white font-sans">{realApprovedSales}</span>
                 </div>
               </div>
             </div>
@@ -1005,21 +1030,21 @@ export default function Dashboard() {
           onDragLeave={() => handleDragLeave('analysis', slotIndex)}
           onDrop={(e) => handleDrop(e, 'analysis', slotIndex)}
           onDragEnd={handleDragEnd}
-          className={baseContainerClass}
+          className={baseContainerClass('h-[195px]')}
         >
           {dropOverlay}
           <div className="w-full">
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-3">
+            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2.5">
               <span className="text-white font-semibold">Vendas por Fonte</span>
               {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Origem de tráfego das vendas">ⓘ</span>}
             </div>
 
             {sourcesMap.length === 0 ? (
-              <div className="h-32 flex items-center justify-center text-zinc-500 text-xs font-sans">
+              <div className="h-24 flex items-center justify-center text-zinc-500 text-xs font-sans">
                 Nenhuma venda por aqui
               </div>
             ) : (
-              <div className="space-y-3 py-1 max-h-[185px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-[#1E293B]">
+              <div className="space-y-2.5 py-0.5 max-h-[140px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-[#1E293B]">
                 {sourcesMap.map((src, i) => {
                   const validPct = Math.min(100, Math.max(0, src.percentage || 0));
                   const circumference = 56.55; // 2 * pi * 9
@@ -1090,16 +1115,16 @@ export default function Dashboard() {
           onDragLeave={() => handleDragLeave('analysis', slotIndex)}
           onDrop={(e) => handleDrop(e, 'analysis', slotIndex)}
           onDragEnd={handleDragEnd}
-          className={baseContainerClass}
+          className={baseContainerClass('h-[195px]')}
         >
           {dropOverlay}
           <div className="w-full">
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-3 sm:mb-3.5">
+            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2.5">
               <span className="text-white font-semibold">Taxa de Aprovação</span>
               {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Percentual de pedidos aprovados por meio">ⓘ</span>}
             </div>
 
-            <div className="space-y-3.5 sm:space-y-4 py-1">
+            <div className="space-y-2.5 py-0.5">
               {approvalRates.map((method, i) => {
                 const validPct = method.hasData ? Math.min(100, Math.max(0, method.pct)) : 0;
                 const circumference = 56.55; // 2 * pi * 9
@@ -1185,7 +1210,7 @@ export default function Dashboard() {
           onDragLeave={() => handleDragLeave('analysis', slotIndex)}
           onDrop={(e) => handleDrop(e, 'analysis', slotIndex)}
           onDragEnd={handleDragEnd}
-          className={baseContainerClass}
+          className={baseContainerClass('h-[220px]')}
         >
           {dropOverlay}
           <div className="w-full flex flex-col justify-between h-full">
@@ -1454,7 +1479,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 text-xs">
           
           {/* 1. Período de Visualização */}
-          <div>
+          <div className="relative">
             <label className="text-[10px] text-zinc-400 mb-1 flex items-center gap-1 font-medium">
               <span>Período de Visualização</span>
               <span className="text-zinc-500 text-[10px] cursor-help" title="Filtro de período de análise">ⓘ</span>
@@ -1462,7 +1487,17 @@ export default function Dashboard() {
             <div className="relative">
               <select
                 value={period}
-                onChange={(e) => setPeriod(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setPeriod(val);
+                  if (val === 'Personalizado') {
+                    setIsCalendarOpen(true);
+                  } else {
+                    setCustomRange(null);
+                    setIsCalendarOpen(false);
+                    loadDashboardData(val, null);
+                  }
+                }}
                 className="w-full appearance-none bg-[#0F1728] border border-[#1E293B] rounded-lg px-2.5 py-1.5 text-zinc-200 focus:outline-none focus:border-[#0066FF] text-xs cursor-pointer font-medium"
               >
                 <option value="Hoje">Hoje</option>
@@ -1471,9 +1506,34 @@ export default function Dashboard() {
                 <option value="14 dias">14 dias</option>
                 <option value="30 dias">30 dias</option>
                 <option value="Este mês">Este mês</option>
+                <option value="Personalizado">
+                  {period === 'Personalizado' && customRange?.since && customRange?.until
+                    ? `Personalizado (${customRange.since.split('-').reverse().slice(0, 2).join('/')} - ${customRange.until.split('-').reverse().slice(0, 2).join('/')})`
+                    : 'Personalizado'}
+                </option>
               </select>
               <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
+
+            <DateRangePicker
+              currentPeriod={period}
+              customRange={customRange}
+              isOpen={isCalendarOpen}
+              onOpenChange={setIsCalendarOpen}
+              hideTriggerButton={true}
+              onSelectPeriod={(p) => {
+                setPeriod(p);
+                setCustomRange(null);
+                setIsCalendarOpen(false);
+                loadDashboardData(p, null);
+              }}
+              onApplyCustomRange={(range) => {
+                setPeriod('Personalizado');
+                setCustomRange(range);
+                setIsCalendarOpen(false);
+                loadDashboardData('Personalizado', range);
+              }}
+            />
           </div>
 
           {/* 2. Conta de Anúncio */}

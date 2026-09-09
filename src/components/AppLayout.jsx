@@ -4,18 +4,25 @@ import Sidebar from './Sidebar';
 import { getCurrentUser } from '../utils/auth';
 import { 
   Eye, 
-  EyeOff,
-  RotateCw, 
+  EyeOff, 
   Edit3, 
-  Trophy, 
   HelpCircle 
 } from 'lucide-react';
 
 export default function AppLayout() {
-  const user = getCurrentUser();
+  const [user, setUser] = useState(getCurrentUser());
   const location = useLocation();
   const [totalFaturado, setTotalFaturado] = useState(0);
   const [showValues, setShowValues] = useState(true);
+
+  // Sincroniza usuário quando o perfil é alterado em Minha Conta
+  useEffect(() => {
+    const handleProfileSync = () => {
+      setUser(getCurrentUser());
+    };
+    window.addEventListener('primetrack_profile_sync', handleProfileSync);
+    return () => window.removeEventListener('primetrack_profile_sync', handleProfileSync);
+  }, []);
 
   // Bloqueio de rota não autenticada: redireciona para /login
   if (!user) {
@@ -91,13 +98,6 @@ export default function AppLayout() {
                 {!showValues ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               </button>
               <button 
-                onClick={() => window.dispatchEvent(new Event('primetrack_profile_sync'))}
-                className="p-1.5 rounded-lg hover:text-white transition-colors cursor-pointer" 
-                title="Sincronizar dados"
-              >
-                <RotateCw className="w-3.5 h-3.5" />
-              </button>
-              <button 
                 onClick={handleToggleEdit}
                 className={`p-1.5 rounded-lg transition-all cursor-pointer ${
                   isEditingLayout 
@@ -111,22 +111,9 @@ export default function AppLayout() {
             </div>
           </div>
 
-          {/* Right: Language, Prêmios, Goal & User profile */}
+          {/* Right: Goal & User profile */}
           <div className="flex items-center gap-4 sm:gap-6">
             
-            {/* Language Selector */}
-            <div className="hidden sm:flex items-center gap-1.5 text-xs text-zinc-300 font-medium">
-              <span className="text-sm">🇧🇷</span>
-              <span className="text-[11px] font-mono">PT-BR</span>
-            </div>
-
-            {/* Prêmios */}
-            <div className="hidden md:flex items-center gap-1.5 text-xs text-[#1877F2] font-semibold cursor-pointer hover:underline">
-              <Trophy className="w-3.5 h-3.5 text-[#1877F2]" />
-              <span>Prêmios</span>
-              <span className="text-zinc-500 text-[10px]">ⓘ</span>
-            </div>
-
             {/* Goal progress */}
             <div className="hidden lg:flex items-center text-xs font-mono font-bold text-zinc-300">
               <span>R$ {totalFaturado.toFixed(2).replace('.', ',')}</span>
