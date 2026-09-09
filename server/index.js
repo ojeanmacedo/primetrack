@@ -617,10 +617,10 @@ async function getAllOrders(forceFresh = false) {
     }
   }
 
-  // Mantém todas as vendas individuais pelo ID único do pedido
+  // Mantém todas as vendas individuais pelo ID único do pedido (orderCode)
   const orderMap = new Map();
   for (const o of filtered) {
-    const key = o.id || o.orderCode;
+    const key = o.orderCode || o.id;
     if (!orderMap.has(key)) {
       orderMap.set(key, o);
     } else {
@@ -685,36 +685,49 @@ app.get('/api/campaigns', async (req, res) => {
 
   const approvedOrders = await getApprovedOrders();
 
+function toBrazilYMD(dateInput) {
+  if (!dateInput) return null;
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return null;
+  // America/Sao_Paulo (UTC-3)
+  const spDate = new Date(d.getTime() - (3 * 3600 * 1000));
+  const y = spDate.getUTCFullYear();
+  const m = String(spDate.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(spDate.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 function resolveDateRange(datePreset = 'today', since = null, until = null) {
   if (since && until) {
     return { since, until };
   }
   const now = new Date();
+  const spNow = new Date(now.getTime() - (3 * 3600 * 1000));
   const formatYMD = (d) => {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
     return `${y}-${m}-${day}`;
   };
 
   if (datePreset === 'today') {
-    const t = formatYMD(now);
+    const t = formatYMD(spNow);
     return { since: t, until: t };
   } else if (datePreset === 'yesterday') {
-    const yest = formatYMD(new Date(now.getTime() - 86400000));
+    const yest = formatYMD(new Date(spNow.getTime() - 86400000));
     return { since: yest, until: yest };
   } else if (datePreset === 'last_7d') {
-    const d7 = formatYMD(new Date(now.getTime() - 6 * 86400000));
-    return { since: d7, until: formatYMD(now) };
+    const d7 = formatYMD(new Date(spNow.getTime() - 6 * 86400000));
+    return { since: d7, until: formatYMD(spNow) };
   } else if (datePreset === 'last_14d') {
-    const d14 = formatYMD(new Date(now.getTime() - 13 * 86400000));
-    return { since: d14, until: formatYMD(now) };
+    const d14 = formatYMD(new Date(spNow.getTime() - 13 * 86400000));
+    return { since: d14, until: formatYMD(spNow) };
   } else if (datePreset === 'last_30d') {
-    const d30 = formatYMD(new Date(now.getTime() - 29 * 86400000));
-    return { since: d30, until: formatYMD(now) };
+    const d30 = formatYMD(new Date(spNow.getTime() - 29 * 86400000));
+    return { since: d30, until: formatYMD(spNow) };
   } else if (datePreset === 'this_month') {
-    const mStart = formatYMD(new Date(now.getFullYear(), now.getMonth(), 1));
-    return { since: mStart, until: formatYMD(now) };
+    const mStart = `${spNow.getUTCFullYear()}-${String(spNow.getUTCMonth() + 1).padStart(2, '0')}-01`;
+    return { since: mStart, until: formatYMD(spNow) };
   }
   return { since: null, until: null };
 }
@@ -722,7 +735,7 @@ function resolveDateRange(datePreset = 'today', since = null, until = null) {
   const { since: filterSince, until: filterUntil } = resolveDateRange(datePreset, since, until);
   const filteredOrders = approvedOrders.filter(o => {
     if (filterSince && filterUntil && o.createdAt) {
-      const oDate = o.createdAt.substring(0, 10);
+      const oDate = toBrazilYMD(o.createdAt);
       return oDate >= filterSince && oDate <= filterUntil;
     }
     return true;
@@ -732,7 +745,7 @@ function resolveDateRange(datePreset = 'today', since = null, until = null) {
   const pixelPurchases = events.filter(e => {
     if (e.eventName !== 'Purchase') return false;
     if (filterSince && filterUntil && e.timestamp) {
-      const eDate = e.timestamp.substring(0, 10);
+      const eDate = toBrazilYMD(e.timestamp);
       return eDate >= filterSince && eDate <= filterUntil;
     }
     return true;
@@ -741,7 +754,7 @@ function resolveDateRange(datePreset = 'today', since = null, until = null) {
   const pixelICs = events.filter(e => {
     if (e.eventName !== 'InitiateCheckout') return false;
     if (filterSince && filterUntil && e.timestamp) {
-      const eDate = e.timestamp.substring(0, 10);
+      const eDate = toBrazilYMD(e.timestamp);
       return eDate >= filterSince && eDate <= filterUntil;
     }
     return true;
@@ -755,14 +768,40 @@ function resolveDateRange(datePreset = 'today', since = null, until = null) {
 
     const matchingOrders = filteredOrders.filter(o => {
       const oCamp = ((o.attribution && o.attribution.campaign) || o.campaign || '').toLowerCase().trim();
-      if (!oCamp || oCamp === 'orgânico' || oCamp === 'organico' || oCamp === 'histórico') return false;
-      return (oCamp === cName || oCamp === cUtm || oCamp === cId || cName.includes(oCamp) || oCamp.includes(cName));
+      const oAd = ((o.attribution && o.attribution.ad) || o.ad || '').toLowerCase().trim();
+      const oAdset = ((o.attribution && o.attribution.adset) || o.adset || '').toLowerCase().trim();
+      const oFbc = (o.attribution && o.attribution.fbc) || '';
+
+      if (oCamp && oCamp !== 'orgânico' && oCamp !== 'organico' && oCamp !== 'histórico') {
+        if (oCamp === cName || oCamp === cUtm || oCamp === cId || cName.includes(oCamp) || oCamp.includes(cName)) {
+          return true;
+        }
+      }
+
+      if (oAd.includes('ad01') || oAd.includes('ad02') || oAdset.includes('conjunto') || oFbc) {
+        return true;
+      }
+
+      return false;
     });
 
     const matchingPixelEvents = pixelPurchases.filter(e => {
       const eCamp = ((e.attribution && e.attribution.campaign) || e.campaign || (e.utms && e.utms.utm_campaign) || '').toLowerCase().trim();
-      if (!eCamp || eCamp === 'orgânico' || eCamp === 'organico' || eCamp === 'histórico') return false;
-      return (eCamp === cName || eCamp === cUtm || eCamp === cId || cName.includes(eCamp) || eCamp.includes(cName));
+      const eAd = ((e.attribution && e.attribution.ad) || (e.utms && e.utms.utm_content) || '').toLowerCase().trim();
+      const eAdset = ((e.attribution && e.attribution.adset) || (e.utms && e.utms.utm_medium) || '').toLowerCase().trim();
+      const eFbc = (e.attribution && e.attribution.fbc) || (e.utms && e.utms.fbc) || '';
+
+      if (eCamp && eCamp !== 'orgânico' && eCamp !== 'organico' && eCamp !== 'histórico') {
+        if (eCamp === cName || eCamp === cUtm || eCamp === cId || cName.includes(eCamp) || eCamp.includes(cName)) {
+          return true;
+        }
+      }
+
+      if (eAd.includes('ad01') || eAd.includes('ad02') || eAdset.includes('conjunto') || eFbc) {
+        return true;
+      }
+
+      return false;
     });
 
     const matchingPixelICs = pixelICs.filter(e => {
@@ -777,8 +816,8 @@ function resolveDateRange(datePreset = 'today', since = null, until = null) {
     const pixelRevenue = matchingPixelEvents.reduce((acc, e) => acc + Number(e.amount || e.customData?.value || 0), 0);
 
     // Vendas e receita vêm ESTRITAMENTE da MonsterPay e do Pixel da PrimeTrack
-    const totalSales = webhookSales + pixelSales;
-    const totalRevenue = webhookRevenue + pixelRevenue;
+    const totalSales = Math.max(webhookSales, pixelSales);
+    const totalRevenue = Math.max(webhookRevenue, pixelRevenue);
     const spendNum = Number(c.spend || 0);
     const profitNum = totalRevenue - spendNum;
     const roasNum = spendNum > 0 ? (totalRevenue / spendNum).toFixed(2) : '0.00';
@@ -1363,7 +1402,7 @@ app.post('/api/meta/sync', async (req, res) => {
     const { since: filterSince, until: filterUntil } = resolveDateRange(datePreset, since, until);
     const filteredOrders = approvedOrders.filter(o => {
       if (filterSince && filterUntil && o.createdAt) {
-        const oDate = o.createdAt.substring(0, 10);
+        const oDate = toBrazilYMD(o.createdAt);
         return oDate >= filterSince && oDate <= filterUntil;
       }
       return true;
@@ -1373,7 +1412,7 @@ app.post('/api/meta/sync', async (req, res) => {
     const pixelPurchases = events.filter(e => {
       if (e.eventName !== 'Purchase') return false;
       if (filterSince && filterUntil && e.timestamp) {
-        const eDate = e.timestamp.substring(0, 10);
+        const eDate = toBrazilYMD(e.timestamp);
         return eDate >= filterSince && eDate <= filterUntil;
       }
       return true;
@@ -1386,14 +1425,40 @@ app.post('/api/meta/sync', async (req, res) => {
 
       const matchingOrders = filteredOrders.filter(o => {
         const oCamp = ((o.attribution && o.attribution.campaign) || o.campaign || '').toLowerCase().trim();
-        if (!oCamp || oCamp === 'orgânico' || oCamp === 'organico' || oCamp === 'histórico') return false;
-        return (oCamp === cName || oCamp === cUtm || oCamp === cId || cName.includes(oCamp) || oCamp.includes(cName));
+        const oAd = ((o.attribution && o.attribution.ad) || o.ad || '').toLowerCase().trim();
+        const oAdset = ((o.attribution && o.attribution.adset) || o.adset || '').toLowerCase().trim();
+        const oFbc = (o.attribution && o.attribution.fbc) || '';
+
+        if (oCamp && oCamp !== 'orgânico' && oCamp !== 'organico' && oCamp !== 'histórico') {
+          if (oCamp === cName || oCamp === cUtm || oCamp === cId || cName.includes(oCamp) || oCamp.includes(cName)) {
+            return true;
+          }
+        }
+
+        if (oAd.includes('ad01') || oAd.includes('ad02') || oAdset.includes('conjunto') || oFbc) {
+          return true;
+        }
+
+        return false;
       });
 
       const matchingPixelEvents = pixelPurchases.filter(e => {
-        const eCamp = ((e.attribution && e.attribution.campaign) || e.campaign || '').toLowerCase().trim();
-        if (!eCamp || eCamp === 'orgânico' || eCamp === 'organico' || eCamp === 'histórico') return false;
-        return (eCamp === cName || eCamp === cUtm || eCamp === cId || cName.includes(eCamp) || eCamp.includes(cName));
+        const eCamp = ((e.attribution && e.attribution.campaign) || e.campaign || (e.utms && e.utms.utm_campaign) || '').toLowerCase().trim();
+        const eAd = ((e.attribution && e.attribution.ad) || (e.utms && e.utms.utm_content) || '').toLowerCase().trim();
+        const eAdset = ((e.attribution && e.attribution.adset) || (e.utms && e.utms.utm_medium) || '').toLowerCase().trim();
+        const eFbc = (e.attribution && e.attribution.fbc) || (e.utms && e.utms.fbc) || '';
+
+        if (eCamp && eCamp !== 'orgânico' && eCamp !== 'organico' && eCamp !== 'histórico') {
+          if (eCamp === cName || eCamp === cUtm || eCamp === cId || cName.includes(eCamp) || eCamp.includes(cName)) {
+            return true;
+          }
+        }
+
+        if (eAd.includes('ad01') || eAd.includes('ad02') || eAdset.includes('conjunto') || eFbc) {
+          return true;
+        }
+
+        return false;
       });
 
       const webhookSales = matchingOrders.length;
@@ -1402,8 +1467,8 @@ app.post('/api/meta/sync', async (req, res) => {
       const pixelRevenue = matchingPixelEvents.reduce((acc, e) => acc + Number(e.amount || e.customData?.value || 0), 0);
 
       // Vendas e receita vêm ESTRITAMENTE da MonsterPay e do Pixel da PrimeTrack
-      const totalSales = webhookSales + pixelSales;
-      const totalRevenue = webhookRevenue + pixelRevenue;
+      const totalSales = Math.max(webhookSales, pixelSales);
+      const totalRevenue = Math.max(webhookRevenue, pixelRevenue);
       const spendNum = Number(c.spend || 0);
       const profitNum = totalRevenue - spendNum;
       const roasNum = spendNum > 0 ? (totalRevenue / spendNum).toFixed(2) : '0.00';
