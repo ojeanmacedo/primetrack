@@ -49,14 +49,18 @@ export async function subscribeUserToPush() {
 
   const convertedVapidKey = urlBase64ToUint8Array(publicKey);
 
-  // 3. Obtém ou cria inscrição PushManager
+  // 3. Força a renovação da inscrição com a chave VAPID atual da Apple
   let subscription = await registration.pushManager.getSubscription();
-  if (!subscription) {
-    subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: convertedVapidKey
-    });
+  if (subscription) {
+    try {
+      await subscription.unsubscribe();
+    } catch(e){}
   }
+
+  subscription = await registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: convertedVapidKey
+  });
 
   // 4. Envia subscription para o backend
   const subRes = await fetch('/api/push/subscribe', {
