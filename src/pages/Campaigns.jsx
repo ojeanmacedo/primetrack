@@ -508,8 +508,32 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setSavingEdit(false);
   };
 
-  const isNoAccountActive = adAccountsList.length === 0 && campaignsList.length === 0;
-  const activeAdAccount = adAccountsList.length > 0 ? adAccountsList[0] : null;
+  const [selectedItemIds, setSelectedItemIds] = useState(new Set());
+
+  // Limpa/ajusta seleção ao trocar de subTab ou filtros
+  useEffect(() => {
+    setSelectedItemIds(new Set());
+  }, [subTab, statusFilter, periodFilter, accountFilter]);
+
+  const handleToggleSelectAll = () => {
+    if (selectedItemIds.size === currentItems.length && currentItems.length > 0) {
+      setSelectedItemIds(new Set());
+    } else {
+      setSelectedItemIds(new Set(currentItems.map(i => i.id)));
+    }
+  };
+
+  const handleToggleSelectItem = (id) => {
+    setSelectedItemIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   // Filtragem - se campaignsList já possui dados, exibe imediatamente
   const filteredCampaigns = campaignsList.filter(c => {
@@ -1384,7 +1408,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         </div>
 
         {/* Action Toolbar */}
-        <div className="flex items-center gap-2 self-end lg:self-auto">
+        <div className="flex flex-wrap items-center gap-2 self-end lg:self-auto">
+          {selectedItemIds.size > 0 && (
+            <div className="px-2.5 py-1 rounded-xl bg-[#1A6DFF]/20 border border-[#1A6DFF]/40 text-[#5C9BFF] font-mono font-bold text-xs flex items-center gap-1.5 animate-in fade-in duration-200">
+              <span className="w-2 h-2 rounded-full bg-[#1A6DFF] animate-pulse" />
+              <span>{selectedItemIds.size} selecionada{selectedItemIds.size > 1 ? 's' : ''}</span>
+            </div>
+          )}
+
           <button 
             onClick={() => window.open('https://adsmanager.facebook.com', '_blank')}
             className="px-3 py-1.5 rounded-xl bg-[#0A1426] border border-[#13233E] text-zinc-300 hover:text-white flex items-center gap-1.5 cursor-pointer transition-colors"
@@ -1525,7 +1556,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   <tr>
                     {/* Checkbox fixo */}
                     <th className="py-3 px-3 w-8">
-                      <input type="checkbox" className="rounded bg-[#03060D] border-white/10" defaultChecked />
+                      <input 
+                        type="checkbox" 
+                        className="rounded bg-[#03060D] border-white/10 cursor-pointer accent-[#1A6DFF]" 
+                        checked={currentItems.length > 0 && selectedItemIds.size === currentItems.length}
+                        onChange={handleToggleSelectAll}
+                        title={selectedItemIds.size === currentItems.length ? "Desmarcar todas" : "Selecionar todas"}
+                      />
                     </th>
 
                     {/* Status fixo */}
@@ -1559,10 +1596,15 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
                 <tbody className="divide-y divide-[#13233E]/60 font-mono">
                   {currentItems.map((item, idx) => (
-                    <tr key={item.id || idx} className="hover:bg-white/[0.02] transition-colors">
+                    <tr key={item.id || idx} className={`hover:bg-white/[0.02] transition-colors ${selectedItemIds.has(item.id) ? 'bg-[#1A6DFF]/5' : ''}`}>
                       {/* Checkbox */}
                       <td className="py-4 px-3">
-                        <input type="checkbox" className="rounded bg-[#03060D] border-white/10" defaultChecked />
+                        <input 
+                          type="checkbox" 
+                          className="rounded bg-[#03060D] border-white/10 cursor-pointer accent-[#1A6DFF]" 
+                          checked={selectedItemIds.has(item.id)}
+                          onChange={() => handleToggleSelectItem(item.id)}
+                        />
                       </td>
 
                       {/* Status Toggle */}
