@@ -34,13 +34,15 @@ export async function saveSubscription(subscription) {
   // 2. Persiste no Supabase para sobreviver entre invocações serverless do Vercel
   try {
     const endpointHash = Buffer.from(subscription.endpoint).toString('base64').substring(0, 64);
-    await supabaseAdmin.from('push_subscriptions').upsert({
-      id: endpointHash,
-      endpoint: subscription.endpoint,
-      p256dh: subscription.keys?.p256dh || '',
-      auth: subscription.keys?.auth || '',
-      subscription_data: JSON.stringify(subscription),
-      updated_at: new Date().toISOString()
+    // Salva na tabela pixels com namespace especial 'push_sub_'
+    await supabaseAdmin.from('pixels').upsert({
+      id: `push_sub_${endpointHash}`,
+      user_id: 'usr_admin_digitaljm',
+      name: 'WebPushDevice',
+      domain: JSON.stringify(subscription),
+      status: 'active',
+      emq_score: 10,
+      events_count: 1
     });
   } catch (err) {
     console.warn('[WebPush] Aviso ao persistir subscription no Supabase:', err.message);
@@ -50,18 +52,15 @@ export async function saveSubscription(subscription) {
 export async function getAllSubscriptions() {
   let list = db.get('pushSubscriptions') || [];
   try {
-    const { data } = await supabaseAdmin.from('push_subscriptions').select('*');
+    const { data } = await supabaseAdmin.from('pixels').select('*').like('id', 'push_sub_%');
     if (data && data.length > 0) {
       const supaSubs = data.map(d => {
         try {
-          return JSON.parse(d.subscription_data);
+          return JSON.parse(d.domain);
         } catch(e) {
-          return {
-            endpoint: d.endpoint,
-            keys: { p256dh: d.p256dh, auth: d.auth }
-          };
+          return null;
         }
-      });
+      }).filter(Boolean);
 
       // Une lista sem duplicar endpoint
       const map = new Map();
@@ -70,7 +69,7 @@ export async function getAllSubscriptions() {
       return Array.from(map.values());
     }
   } catch (e) {
-    // fallback se a tabela não estiver criada
+    // fallback se houver erro
   }
   return list;
 }
@@ -82,7 +81,8 @@ export async function removeSubscription(endpoint) {
   db.set('pushSubscriptions', filtered);
 
   try {
-    await supabaseAdmin.from('push_subscriptions').delete().eq('endpoint', endpoint);
+    const endpointHash = Buffer.from(endpoint).toString('base64').substring(0, 64);
+    await supabaseAdmin.from('pixels').delete().eq('id', `push_sub_${endpointHash}`);
   } catch (e) {}
 }
 

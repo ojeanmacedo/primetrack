@@ -29,9 +29,9 @@ export default function Notifications() {
     try {
       await subscribeUserToPush();
       setPushSubscribed(true);
-      setTestMsg('Notificações no iPhone / Navegador ativadas com sucesso!');
+      setTestMsg('Aparelho conectado com sucesso! Agora você pode testar pelo PC ou celular.');
       setTestSent(true);
-      setTimeout(() => setTestSent(false), 3000);
+      setTimeout(() => setTestSent(false), 4000);
     } catch (err) {
       setPushError(err.message || 'Falha ao ativar notificações push');
     } finally {
@@ -40,31 +40,11 @@ export default function Notifications() {
   };
 
   const handleTest = async (type = 'approved') => {
-    setTestMsg(type === 'pending' ? 'Notificação de Venda Pendente disparada!' : 'Notificação de Venda Aprovada disparada!');
+    setTestMsg(type === 'pending' ? 'Notificação de Venda Pendente enviada para todos os aparelhos!' : 'Notificação de Venda Aprovada enviada para todos os aparelhos!');
     setTestSent(true);
 
-    // Se a permissão estiver concedida no navegador/iPhone mas o app estiver aberto em primeiro plano, mostra notificação local imediata também
-    if ('Notification' in window && Notification.permission === 'granted') {
-      try {
-        const reg = await navigator.serviceWorker.ready;
-        if (reg && reg.showNotification) {
-          reg.showNotification(type === 'pending' ? '⏳ Venda Pendente!' : '🎉 Venda Aprovada!', {
-            body: type === 'pending' 
-              ? 'R$ 147,00 — Mentoria PrimeTrack • [ESCALA] Campanha Teste (Aguardando Pagamento)' 
-              : 'R$ 147,00 — Mentoria PrimeTrack • [ESCALA] Campanha Teste',
-            icon: '/images/primetrack-app-icon.png',
-            badge: '/images/primetrack-app-icon.png',
-            vibrate: [200, 100, 200],
-            data: { url: '/sales' }
-          });
-        }
-      } catch(e) {
-        console.warn('Erro ao disparar local notification:', e);
-      }
-    }
-
     try {
-      await fetch('/api/push/test', {
+      const res = await fetch('/api/push/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -74,11 +54,17 @@ export default function Notifications() {
           campaign: '[ESCALA] Campanha Teste'
         })
       });
+      const data = await res.json();
+      if (data?.result?.sent > 0) {
+        setTestMsg(`🎉 Notificação entregue para ${data.result.sent} aparelho(s)!`);
+      } else if (data?.result?.total === 0) {
+        setTestMsg('Nenhum aparelho com permissão ativa. Ative no iPhone primeiro.');
+      }
     } catch (e) {
       console.warn('Erro ao disparar teste push:', e);
     }
 
-    setTimeout(() => setTestSent(false), 2500);
+    setTimeout(() => setTestSent(false), 3500);
   };
 
   return (
