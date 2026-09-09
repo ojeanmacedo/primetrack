@@ -45,19 +45,29 @@ export async function subscribeUserToPush() {
   const convertedVapidKey = urlBase64ToUint8Array(publicKey);
 
   let subscription = await registration.pushManager.getSubscription();
-  if (!subscription) {
-    subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: convertedVapidKey
-    });
+  
+  // Se já havia uma antiga ou com outra chave, renova
+  if (subscription) {
+    try {
+      await subscription.unsubscribe();
+    } catch(e){}
   }
 
+  subscription = await registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: convertedVapidKey
+  });
+
   // Envia subscription para o backend
-  await fetch('/api/push/subscribe', {
+  const subRes = await fetch('/api/push/subscribe', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(subscription)
   });
+
+  if (!subRes.ok) {
+    throw new Error('Servidor não conseguiu registrar a inscrição push.');
+  }
 
   return subscription;
 }

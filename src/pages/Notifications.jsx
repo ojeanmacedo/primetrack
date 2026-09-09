@@ -43,6 +43,26 @@ export default function Notifications() {
     setTestMsg(type === 'pending' ? 'Notificação de Venda Pendente disparada!' : 'Notificação de Venda Aprovada disparada!');
     setTestSent(true);
 
+    // Se a permissão estiver concedida no navegador/iPhone mas o app estiver aberto em primeiro plano, mostra notificação local imediata também
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        if (reg && reg.showNotification) {
+          reg.showNotification(type === 'pending' ? '⏳ Venda Pendente!' : '🎉 Venda Aprovada!', {
+            body: type === 'pending' 
+              ? 'R$ 147,00 — Mentoria PrimeTrack • [ESCALA] Campanha Teste (Aguardando Pagamento)' 
+              : 'R$ 147,00 — Mentoria PrimeTrack • [ESCALA] Campanha Teste',
+            icon: '/images/primetrack-app-icon.png',
+            badge: '/images/primetrack-app-icon.png',
+            vibrate: [200, 100, 200],
+            data: { url: '/sales' }
+          });
+        }
+      } catch(e) {
+        console.warn('Erro ao disparar local notification:', e);
+      }
+    }
+
     try {
       await fetch('/api/push/test', {
         method: 'POST',
