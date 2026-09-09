@@ -270,6 +270,7 @@ app.post('/api/track/event', async (req, res) => {
     if (!session && sessionId) {
       session = {
         sessionId: sessionId,
+        pixelId: pixelId || null,
         ip: clientIp,
         city: geo.city,
         state: geo.state,
@@ -286,6 +287,7 @@ app.post('/api/track/event', async (req, res) => {
       if (sessions.length > 500) sessions.pop();
     } else if (session) {
       session.lastSeen = new Date().toISOString();
+      if (pixelId && !session.pixelId) session.pixelId = pixelId;
       if (!session.city && geo.city) session.city = geo.city;
       if (!session.state && geo.state) session.state = geo.state;
       if (fbc && !session.fbc) session.fbc = fbc;
@@ -404,7 +406,7 @@ app.all([
     parsed.customer.city = resolvedCity;
     parsed.customer.state = resolvedState;
 
-    // 3. Envia evento Purchase enriquecido para Meta CAPI para todos os Pixels ativos cadastrados
+    // 3. Envia evento Purchase enriquecido para Meta CAPI (Isolamento Estrito por Pixel/Campanha/Domínio)
     const settings = db.get('settings') || {};
     let pixels = [];
 
@@ -418,6 +420,7 @@ app.all([
             id: p.id,
             pixelId: p.id,
             name: p.name,
+            domain: extra.domain || '*',
             metaPixelId: extra.metaPixelId || '',
             capiToken: extra.capiToken || extra.capiTokenRaw || '',
             capiTokenRaw: extra.capiTokenRaw || extra.capiToken || ''
@@ -430,19 +433,25 @@ app.all([
       pixels = db.get('pixels') || [];
     }
 
-    // Identifica todos os pixels com MetaPixelId e Token válidos
-    const activeCapiPixels = pixels.filter(p => {
+    // Identifica o pixel exato atrelado à sessão do visitante, ao domínio ou ao tracking
+    const orderDomain = (attribution.landingUrl || '').toLowerCase();
+    const specificPixel = pixels.find(p => {
+      if (attribution.pixelId && (p.pixelId === attribution.pixelId || p.id === attribution.pixelId || p.metaPixelId === attribution.pixelId)) return true;
+      if (p.domain && p.domain !== '*' && orderDomain.includes(p.domain.toLowerCase())) return true;
+      return false;
+    }) || pixels.find(p => {
       const token = p.capiTokenRaw || p.capiToken || '';
       return (p.metaPixelId || p.pixelId) && token.startsWith('EAA') && token.length > 30;
-    });
+    }) || pixels[0] || {};
 
     let capiResult = { success: false, emq: { score: 7.3 }, response: null };
 
-    if (activeCapiPixels.length > 0) {
-      for (const px of activeCapiPixels) {
-        const pxId = px.metaPixelId || px.pixelId;
-        const pxToken = px.capiTokenRaw || px.capiToken;
-        const resCapi = await sendCapiEvent({
+    if (specificPixel && (specificPixel.metaPixelId || specificPixel.pixelId)) {
+      const pxId = specificPixel.metaPixelId || specificPixel.pixelId;
+      const pxToken = specificPixel.capiTokenRaw || specificPixel.capiToken || settings.metaAccessToken;
+
+      if (pxToken && pxToken.startsWith('EAA')) {
+        capiResult = await sendCapiEvent({
           pixelId: pxId,
           accessToken: pxToken,
           eventName: 'Purchase',
@@ -467,10 +476,6 @@ app.all([
           },
           testEventCode: settings.testEventCode
         });
-
-        if (resCapi && resCapi.success) {
-          capiResult = resCapi;
-        }
       }
     }
 

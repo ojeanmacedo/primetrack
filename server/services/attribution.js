@@ -102,6 +102,7 @@ function cleanTrackingValue(val) {
     matchType,
     fbp,
     fbc,
+    pixelId: (matchedSession && matchedSession.pixelId) || tracking.pixelId || null,
     city: (matchedSession && matchedSession.city) || null,
     state: (matchedSession && matchedSession.state) || null,
     ip: (matchedSession && matchedSession.ip) || clientIp || null,
