@@ -452,11 +452,20 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
     // Dispara sincronização direta com a API do Meta Ads
     try {
-      await fetch('/api/campaigns/status', {
+      const res = await fetch('/api/campaigns/status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: itemId, status: nextStatus })
       });
+      const data = await res.json();
+      if (data && data.metaSynced) {
+        setSaveSuccessMsg(nextStatus ? '🟢 Campanha ligada com sucesso no Gerenciador Meta!' : '⚪ Campanha pausada com sucesso no Gerenciador Meta!');
+      } else if (data && data.metaError) {
+        setSaveSuccessMsg(`⚠️ Erro na Meta: ${data.metaError}`);
+      } else {
+        setSaveSuccessMsg('Status atualizado na PrimeTrack!');
+      }
+      setTimeout(() => setSaveSuccessMsg(null), 4000);
     } catch (e) {
       console.warn('Erro ao sincronizar status com a Meta:', e);
     }
