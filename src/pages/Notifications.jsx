@@ -241,7 +241,7 @@ export default function Notifications() {
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-white font-medium block">Ocultar nome do produto</span>
-                  <span className="text-[10px] text-zinc-500 font-mono">Ex: "Venda Aprovada! Valor: R$ 14,00"</span>
+                  <span className="text-[10px] text-zinc-500 font-mono">Ex: "Venda Aprovada! Comissão: R$ 14,00"</span>
                 </div>
                 <button
                   type="button"
@@ -260,7 +260,7 @@ export default function Notifications() {
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-white font-medium block">Mostrar nome da campanha</span>
-                  <span className="text-[10px] text-zinc-500 font-mono">Ex: "Venda Aprovada! Valor: R$ 14,00 — [ESCALA] BF Criativo 03"</span>
+                  <span className="text-[10px] text-zinc-500 font-mono">Ex: "Venda Aprovada! Comissão: R$ 14,00 — [ESCALA] BF Criativo 03"</span>
                 </div>
                 <button
                   type="button"
