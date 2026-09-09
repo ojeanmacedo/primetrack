@@ -511,23 +511,42 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const isNoAccountActive = adAccountsList.length === 0 && campaignsList.length === 0;
   const activeAdAccount = adAccountsList.length > 0 ? adAccountsList[0] : null;
 
-  const [selectedItemIds, setSelectedItemIds] = useState(new Set());
+  // Seleção independente por nível (Campanhas, Conjuntos, Anúncios)
+  const [selectedCampaignIds, setSelectedCampaignIds] = useState(new Set());
+  const [selectedAdsetIds, setSelectedAdsetIds] = useState(new Set());
+  const [selectedAdIds, setSelectedAdIds] = useState(new Set());
 
-  // Limpa/ajusta seleção ao trocar de subTab ou filtros
+  // Limpa seleções ao trocar de filtros globais
   useEffect(() => {
-    setSelectedItemIds(new Set());
-  }, [subTab, statusFilter, periodFilter, accountFilter]);
+    setSelectedCampaignIds(new Set());
+    setSelectedAdsetIds(new Set());
+    setSelectedAdIds(new Set());
+  }, [statusFilter, periodFilter, accountFilter]);
+
+  const activeSelectedSet = subTab === 'Campanhas' 
+    ? selectedCampaignIds 
+    : (subTab === 'Conjuntos' ? selectedAdsetIds : selectedAdIds);
+
+  const setActiveSelectedSet = (newValOrFn) => {
+    if (subTab === 'Campanhas') {
+      setSelectedCampaignIds(newValOrFn);
+    } else if (subTab === 'Conjuntos') {
+      setSelectedAdsetIds(newValOrFn);
+    } else {
+      setSelectedAdIds(newValOrFn);
+    }
+  };
 
   const handleToggleSelectAll = () => {
-    if (selectedItemIds.size === currentItems.length && currentItems.length > 0) {
-      setSelectedItemIds(new Set());
+    if (activeSelectedSet.size === currentItems.length && currentItems.length > 0) {
+      setActiveSelectedSet(new Set());
     } else {
-      setSelectedItemIds(new Set(currentItems.map(i => i.id)));
+      setActiveSelectedSet(new Set(currentItems.map(i => i.id)));
     }
   };
 
   const handleToggleSelectItem = (id) => {
-    setSelectedItemIds(prev => {
+    setActiveSelectedSet(prev => {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
@@ -557,8 +576,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   });
 
   // Derivação de conjuntos vindos diretamente do Gerenciador de Anúncios da Meta
+  // Se houver campanhas selecionadas na aba Campanhas, filtra apenas os conjuntos dessas campanhas
   const adsetsList = React.useMemo(() => {
-    return filteredCampaigns.flatMap(camp => {
+    const parentCampaigns = (selectedCampaignIds.size > 0)
+      ? filteredCampaigns.filter(c => selectedCampaignIds.has(c.id))
+      : filteredCampaigns;
+
+    return parentCampaigns.flatMap(camp => {
       if (camp.adsets && camp.adsets.length > 0) {
         return camp.adsets.map(a => ({
           ...a,
@@ -598,11 +622,17 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         updatedAt: 'N/A'
       }];
     });
-  }, [filteredCampaigns, itemNamesOverride]);
+  }, [filteredCampaigns, selectedCampaignIds, itemNamesOverride]);
 
   // Derivação de anúncios reais vindos diretamente do Gerenciador de Anúncios da Meta
+  // Se houver conjuntos selecionados filtra por eles; senão se houver campanhas selecionadas filtra por elas
   const adsList = React.useMemo(() => {
-    return filteredCampaigns.flatMap(camp => {
+    let parentCampaigns = filteredCampaigns;
+    if (selectedCampaignIds.size > 0) {
+      parentCampaigns = parentCampaigns.filter(c => selectedCampaignIds.has(c.id));
+    }
+
+    const allAdsExtracted = parentCampaigns.flatMap(camp => {
       if (camp.ads && camp.ads.length > 0) {
         return camp.ads.map(ad => ({
           ...ad,
@@ -649,6 +679,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           id: '52604662342655',
           adId: '52604662342655',
           campaignId: camp.id,
+          adsetId: camp.id === '52604661655655' ? '52604661655855' : `${camp.id}_adset_1`,
           name: itemNamesOverride['52604662342655'] || 'AD02',
           accountName: camp.accountName || 'CA01',
           status: true,
@@ -676,6 +707,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           id: '52604662342855',
           adId: '52604662342855',
           campaignId: camp.id,
+          adsetId: camp.id === '52604661655655' ? '52604661655855' : `${camp.id}_adset_1`,
           name: itemNamesOverride['52604662342855'] || 'AD03',
           accountName: camp.accountName || 'CA01',
           status: false,
@@ -703,6 +735,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           id: '52604661656055',
           adId: '52604661656055',
           campaignId: camp.id,
+          adsetId: camp.id === '52604661655655' ? '52604661655855' : `${camp.id}_adset_1`,
           name: itemNamesOverride['52604661656055'] || 'AD01',
           accountName: camp.accountName || 'CA01',
           status: true,
@@ -728,7 +761,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         }
       ];
     });
-  }, [filteredCampaigns, itemNamesOverride]);
+
+    if (selectedAdsetIds.size > 0) {
+      return allAdsExtracted.filter(ad => selectedAdsetIds.has(ad.adsetId || ad.id));
+    }
+
+    return allAdsExtracted;
+  }, [filteredCampaigns, selectedCampaignIds, selectedAdsetIds, itemNamesOverride]);
 
   // Itens da sub-aba ativa
   const currentItems = subTab === 'Campanhas' ? filteredCampaigns : (subTab === 'Conjuntos' ? adsetsList : adsList);
