@@ -199,6 +199,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     return () => clearInterval(timer);
   }, []);
 
+  const [editingItem, setEditingItem] = useState(null);
   const [editingField, setEditingField] = useState(null); // 'budget' | 'bid' | 'name'
   const [editingCampaign, setEditingCampaign] = useState(null);
   const [editName, setEditName] = useState('');
@@ -210,6 +211,29 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   const subTabs = ['Contas', 'Campanhas', 'Conjuntos', 'Anúncios'];
   const isFirstMount = React.useRef(true);
+
+  // Sobrescrita de nomes locais para conjuntos e anúncios
+  const [itemNamesOverride, setItemNamesOverride] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('primetrack_custom_item_names');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {}
+      }
+    }
+    return {};
+  });
+
+  const saveItemNameOverride = (id, newName) => {
+    setItemNamesOverride(prev => {
+      const updated = { ...prev, [id]: newName };
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('primetrack_custom_item_names', JSON.stringify(updated));
+      }
+      return updated;
+    });
+  };
 
   const loadData = async (customPreset = periodFilter, customRangeObj = customRange) => {
     const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
@@ -409,11 +433,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   // Abre modal direto para edição do valor selecionado
   const handleOpenEdit = (item, field = 'budget') => {
     const parentCamp = campaignsList.find(c => c.id === item.id || c.id === item.campaignId) || item;
+    setEditingItem(item);
     setEditingCampaign(parentCamp);
     setEditingField(field);
-    setEditName(parentCamp.name || item.name || 'TESTE MI');
+    setEditName(item.name || parentCamp.name || 'TESTE MI');
     setEditBudget(parentCamp.budget || item.budget || '256.99');
-    setEditBidCap(parentCamp.bidCap || item.bidCap || '11.02');
+    setEditBidCap(item.bidCap || parentCamp.bidCap || '11.02');
     setEditStrategy(parentCamp.bidStrategy || 'LOWEST_COST_WITH_BID_CAP');
   };
 
@@ -422,14 +447,32 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     e.preventDefault();
     setSavingEdit(true);
 
+    const targetId = editingItem?.id || editingCampaign.id;
+
+    // Se estiver editando nome de Conjunto ou Anúncio
+    if (editingField === 'name' && subTab !== 'Campanhas') {
+      saveItemNameOverride(targetId, editName);
+      setSaveSuccessMsg('Nome atualizado com sucesso na PrimeTrack!');
+      setTimeout(() => setSaveSuccessMsg(null), 4000);
+      setEditingCampaign(null);
+      setEditingItem(null);
+      setSavingEdit(false);
+      return;
+    }
+
+    // Se estiver editando Campanha ou Orçamento/Lance
+    if (subTab === 'Campanhas' && editingField === 'name') {
+      saveItemNameOverride(editingCampaign.id, editName);
+    }
+
     // Atualiza imediatamente na tabela
     setCampaignsList(prev => prev.map(c => {
       if (c.id === editingCampaign.id || c.name === editingCampaign.name) {
         return {
           ...c,
-          name: editName,
-          budget: editBudget,
-          bidCap: editBidCap,
+          name: editingField === 'name' ? editName : c.name,
+          budget: editingField === 'budget' ? editBudget : c.budget,
+          bidCap: editingField === 'bid' ? editBidCap : c.bidCap,
           bidStrategy: editStrategy
         };
       }
@@ -443,7 +486,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: editingCampaign.id,
-          name: editName,
+          name: editingField === 'name' ? editName : editingCampaign.name,
           budget: editBudget,
           bidCap: editBidCap,
           bidStrategy: editStrategy,
@@ -451,13 +494,15 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         })
       });
       const data = await res.json();
-      setSaveSuccessMsg(data.message || 'Campanha atualizada na PrimeTrack!');
+      setSaveSuccessMsg(data.message || 'Atualizado na PrimeTrack com sucesso!');
       setTimeout(() => setSaveSuccessMsg(null), 5000);
       setEditingCampaign(null);
+      setEditingItem(null);
     } catch (err) {
       setSaveSuccessMsg('Salvo na PrimeTrack com sucesso! (Modo de Proteção Backup Ativo).');
       setTimeout(() => setSaveSuccessMsg(null), 5000);
       setEditingCampaign(null);
+      setEditingItem(null);
     }
     setSavingEdit(false);
   };
@@ -486,12 +531,20 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   // Derivação de conjuntos vindos diretamente do Gerenciador de Anúncios da Meta
   const adsetsList = React.useMemo(() => {
     return filteredCampaigns.flatMap(camp => {
-      if (camp.adsets && camp.adsets.length > 0) return camp.adsets;
+      if (camp.adsets && camp.adsets.length > 0) {
+        return camp.adsets.map(a => ({
+          ...a,
+          name: itemNamesOverride[a.id] || a.name
+        }));
+      }
+      const adsetId = camp.id === '52604661655655' ? '52604661655855' : `${camp.id}_adset_1`;
+      const defaultName = (camp.name.includes('TESTE MI') || camp.id === '52604661655655') ? 'Novo conjunto de anúncios de Vendas' : `${camp.name} — Conjunto 01`;
+
       return [{
-        id: camp.id === '52604661655655' ? '52604661655855' : `${camp.id}_adset_1`,
+        id: adsetId,
         campaignId: camp.id,
-        adsetId: camp.id === '52604661655655' ? '52604661655855' : `${camp.id}_adset_1`,
-        name: (camp.name.includes('TESTE MI') || camp.id === '52604661655655') ? 'Novo conjunto de anúncios de Vendas' : `${camp.name} — Conjunto 01`,
+        adsetId: adsetId,
+        name: itemNamesOverride[adsetId] || defaultName,
         accountName: camp.accountName || 'CA01',
         status: camp.status,
         budget: camp.budget,
@@ -517,12 +570,17 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         updatedAt: 'N/A'
       }];
     });
-  }, [filteredCampaigns]);
+  }, [filteredCampaigns, itemNamesOverride]);
 
   // Derivação de anúncios reais vindos diretamente do Gerenciador de Anúncios da Meta
   const adsList = React.useMemo(() => {
     return filteredCampaigns.flatMap(camp => {
-      if (camp.ads && camp.ads.length > 0) return camp.ads;
+      if (camp.ads && camp.ads.length > 0) {
+        return camp.ads.map(ad => ({
+          ...ad,
+          name: itemNamesOverride[ad.id] || ad.name
+        }));
+      }
       const totalSpend = Number(camp.spend || 0);
       const totalSales = Number(camp.sales || 0);
       const totalPending = Number(camp.pendingSales || 0);
@@ -563,7 +621,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           id: '52604662342655',
           adId: '52604662342655',
           campaignId: camp.id,
-          name: 'AD02',
+          name: itemNamesOverride['52604662342655'] || 'AD02',
           accountName: camp.accountName || 'CA01',
           status: true,
           updatedAt: 'N/A',
@@ -590,7 +648,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           id: '52604662342855',
           adId: '52604662342855',
           campaignId: camp.id,
-          name: 'AD03',
+          name: itemNamesOverride['52604662342855'] || 'AD03',
           accountName: camp.accountName || 'CA01',
           status: false,
           updatedAt: 'N/A',
@@ -617,7 +675,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           id: '52604661656055',
           adId: '52604661656055',
           campaignId: camp.id,
-          name: 'AD01',
+          name: itemNamesOverride['52604661656055'] || 'AD01',
           accountName: camp.accountName || 'CA01',
           status: true,
           updatedAt: 'N/A',
@@ -642,7 +700,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         }
       ];
     });
-  }, [filteredCampaigns]);
+  }, [filteredCampaigns, itemNamesOverride]);
 
   // Itens da sub-aba ativa
   const currentItems = subTab === 'Campanhas' ? filteredCampaigns : (subTab === 'Conjuntos' ? adsetsList : adsList);
