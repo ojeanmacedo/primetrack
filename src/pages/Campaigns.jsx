@@ -558,21 +558,20 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       saveItemNameOverride(editingCampaign.id, editName);
     }
 
-    // Atualiza imediatamente na tabela (formato exibição com vírgula ou float padronizado)
+    // Atualiza imediatamente na tabela APENAS o campo específico que foi editado
     setCampaignsList(prev => prev.map(c => {
       if (c.id === editingCampaign.id || c.name === editingCampaign.name) {
         return {
           ...c,
-          name: editingField === 'name' ? editName : c.name,
-          budget: editingField === 'budget' ? normalizedBudget : c.budget,
-          bidCap: editingField === 'bid' ? normalizedBidCap : c.bidCap,
-          bidStrategy: editStrategy
+          ...(editingField === 'name' ? { name: editName } : {}),
+          ...(editingField === 'budget' ? { budget: normalizedBudget } : {}),
+          ...(editingField === 'bid' ? { bidCap: normalizedBidCap, bidStrategy: editStrategy } : {})
         };
       }
       return c;
     }));
 
-    // Envia ao servidor apenas o campo que o usuário está realmente alterando
+    // Envia ao servidor estritamente o campo isolado que você alterou
     try {
       const payload = {
         id: editingCampaign.id,
