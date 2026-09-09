@@ -516,6 +516,17 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const [selectedAdsetIds, setSelectedAdsetIds] = useState(new Set());
   const [selectedAdIds, setSelectedAdIds] = useState(new Set());
 
+  // Limpa seleções de níveis inferiores quando a seleção de campanhas mudar
+  useEffect(() => {
+    setSelectedAdsetIds(new Set());
+    setSelectedAdIds(new Set());
+  }, [selectedCampaignIds]);
+
+  // Limpa seleções de anúncios quando a seleção de conjuntos mudar
+  useEffect(() => {
+    setSelectedAdIds(new Set());
+  }, [selectedAdsetIds]);
+
   // Limpa seleções ao trocar de filtros globais
   useEffect(() => {
     setSelectedCampaignIds(new Set());
