@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Bell, Check } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bell, Check, Smartphone, AlertTriangle } from 'lucide-react';
+import { subscribeUserToPush } from '../utils/pushNotifications';
 
 export default function Notifications() {
   const [vendasAprovadas, setVendasAprovadas] = useState(true);
@@ -11,29 +12,97 @@ export default function Notifications() {
   const [mostrarBruto, setMostrarBruto] = useState(false);
 
   const [testSent, setTestSent] = useState(false);
+  const [testMsg, setTestMsg] = useState('');
+  const [pushSubscribed, setPushSubscribed] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushError, setPushError] = useState(null);
 
-  const handleTest = () => {
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      setPushSubscribed(true);
+    }
+  }, []);
+
+  const handleSubscribePush = async () => {
+    setPushLoading(true);
+    setPushError(null);
+    try {
+      await subscribeUserToPush();
+      setPushSubscribed(true);
+      setTestMsg('Notificações no iPhone / Navegador ativadas com sucesso!');
+      setTestSent(true);
+      setTimeout(() => setTestSent(false), 3000);
+    } catch (err) {
+      setPushError(err.message || 'Falha ao ativar notificações push');
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
+  const handleTest = async (type = 'approved') => {
+    setTestMsg(type === 'pending' ? 'Notificação de Venda Pendente disparada!' : 'Notificação de Venda Aprovada disparada!');
     setTestSent(true);
-    setTimeout(() => setTestSent(false), 2000);
+
+    try {
+      await fetch('/api/push/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type,
+          amount: 'R$ 147,00',
+          productName: 'Mentoria PrimeTrack',
+          campaign: '[ESCALA] Campanha Teste'
+        })
+      });
+    } catch (e) {
+      console.warn('Erro ao disparar teste push:', e);
+    }
+
+    setTimeout(() => setTestSent(false), 2500);
   };
 
   return (
     <div className="space-y-6 pb-16">
       
       {/* Top Header */}
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-          Notificações
-        </h1>
-        <p className="text-xs text-zinc-400 font-sans mt-0.5">
-          Configure quais notificações deseja receber
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+            Notificações
+          </h1>
+          <p className="text-xs text-zinc-400 font-sans mt-0.5">
+            Configure quais notificações e alertas deseja receber no seu iPhone e navegador
+          </p>
+        </div>
+
+        {/* Botão de Ativação do Web Push iOS */}
+        <div>
+          <button
+            onClick={handleSubscribePush}
+            disabled={pushLoading || pushSubscribed}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold font-sans flex items-center gap-2 transition-all shadow-lg ${
+              pushSubscribed
+                ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 cursor-default'
+                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/20'
+            }`}
+          >
+            <Smartphone className="w-4 h-4" />
+            <span>{pushLoading ? 'Ativando...' : pushSubscribed ? 'Notificações Ativadas no Aparelho' : 'Ativar no iPhone / Safari'}</span>
+          </button>
+        </div>
       </div>
 
       {testSent && (
         <div className="p-3 bg-emerald-500/15 border border-emerald-500/30 rounded-xl text-xs text-emerald-300 font-mono flex items-center gap-2">
           <Check className="w-4 h-4" />
-          <span>Notificação de teste disparada com sucesso!</span>
+          <span>{testMsg}</span>
+        </div>
+      )}
+
+      {pushError && (
+        <div className="p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl text-xs text-rose-300 font-mono flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4" />
+          <span>{pushError} (No iPhone, adicione primeiro o site à Tela de Início via Safari)</span>
         </div>
       )}
 
@@ -57,7 +126,7 @@ export default function Notifications() {
               <span className="text-white font-medium">Vendas aprovadas</span>
               <div className="flex items-center gap-3">
                 <button 
-                  onClick={handleTest}
+                  onClick={() => handleTest('approved')}
                   className="px-2.5 py-1 rounded-lg bg-[#070D1A] border border-white/10 hover:border-brand text-zinc-300 text-[11px] flex items-center gap-1.5"
                 >
                   <Bell className="w-3 h-3 text-amber-400" />
@@ -82,7 +151,7 @@ export default function Notifications() {
               <span className="text-white font-medium">Vendas pendentes</span>
               <div className="flex items-center gap-3">
                 <button 
-                  onClick={handleTest}
+                  onClick={() => handleTest('pending')}
                   className="px-2.5 py-1 rounded-lg bg-[#070D1A] border border-white/10 hover:border-brand text-zinc-300 text-[11px] flex items-center gap-1.5"
                 >
                   <Bell className="w-3 h-3 text-amber-400" />

@@ -7,6 +7,7 @@ import { sendCapiEvent } from './services/capi.js';
 import { parseWebhook } from './services/webhooks.js';
 import { attributeOrder } from './services/attribution.js';
 import { resolveIpLocation } from './services/geoService.js';
+import { getVapidPublicKey, saveSubscription, sendSalesNotification } from './services/pushService.js';
 import { 
   getAuthorizationUrl, 
   exchangeCodeForLongLivedToken, 
@@ -563,6 +564,33 @@ app.all([
     }
 
     console.log(`[Venda Registrada] R$ ${parsed.amount} via ${parsed.gateway} atribuída ao anúncio: ${attribution.ad}`);
+
+    // Disparo de Web Push para iOS Safari & Navegadores
+    try {
+      const isPaid = parsed.status === 'paid' || parsed.status === 'approved';
+      const isPending = parsed.status === 'waiting_payment' || parsed.status === 'pending';
+      
+      const formattedAmount = (parsed.amount || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      const campaignPart = attribution?.campaign ? ` • ${attribution.campaign}` : '';
+
+      if (isPaid) {
+        sendSalesNotification({
+          title: '🎉 Venda Aprovada!',
+          body: `${formattedAmount} — ${parsed.productName || 'Produto'}${campaignPart}`,
+          icon: '/images/primetrack-app-icon.png',
+          data: { url: '/sales', orderCode: parsed.orderCode }
+        });
+      } else if (isPending) {
+        sendSalesNotification({
+          title: '⏳ Venda Pendente!',
+          body: `${formattedAmount} — ${parsed.productName || 'Produto'}${campaignPart} (Aguardando Pagamento)`,
+          icon: '/images/primetrack-app-icon.png',
+          data: { url: '/sales', orderCode: parsed.orderCode }
+        });
+      }
+    } catch (pushErr) {
+      console.warn('[WebPush] Falha ao enviar notificação de webhook:', pushErr.message);
+    }
 
     res.json({
       success: true,
@@ -2291,6 +2319,39 @@ app.post('/api/pixel/verify', async (req, res) => {
       message: 'Não foi possível conectar ao site para verificar o script. Verifique se a URL está correta e acessível publicamente.'
     });
   }
+});
+
+// Endpoints de Web Push (Safari iOS & Desktop)
+app.get('/api/push/vapid-public-key', (req, res) => {
+  res.json({ publicKey: getVapidPublicKey() });
+});
+
+app.post('/api/push/subscribe', (req, res) => {
+  const subscription = req.body;
+  if (!subscription || !subscription.endpoint) {
+    return res.status(400).json({ error: 'Subscription inválida' });
+  }
+  saveSubscription(subscription);
+  res.json({ success: true });
+});
+
+app.post('/api/push/test', async (req, res) => {
+  const { type, amount, productName, campaign } = req.body;
+  const isPending = type === 'pending';
+  const val = amount || 'R$ 147,00';
+  const prod = productName || 'Produto Exemplo';
+  const camp = campaign ? ` • ${campaign}` : '';
+
+  const result = await sendSalesNotification({
+    title: isPending ? '⏳ Venda Pendente!' : '🎉 Venda Aprovada!',
+    body: isPending 
+      ? `${val} — ${prod}${camp} (Aguardando Pagamento)`
+      : `${val} — ${prod}${camp}`,
+    icon: '/images/primetrack-app-icon.png',
+    data: { url: '/sales' }
+  });
+
+  res.json({ success: true, result });
 });
 
 if (process.env.VERCEL !== '1') {
