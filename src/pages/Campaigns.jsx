@@ -853,26 +853,32 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   const renderCell = (colId, item) => {
     switch (colId) {
-      case 'updatedAt':
-        if (subTab === 'Campanhas') {
-          return (
-            <div className="text-[10px] leading-tight space-y-0.5 text-left font-sans">
-              <div className="text-zinc-300 font-mono">
-                Orç: R$ {item.budget || '256.99'} ↑ R$ {(Number(item.budget || 256.99) * 1.99).toFixed(2)}
-              </div>
-              <div className="text-zinc-400">
-                Gasto: R$ 0,00 | Lucro: R$ 0,00
-              </div>
-              <div className="text-zinc-400">
-                Vendas: 0 | CPA: R$ -- | ROI: 0,00
-              </div>
-              <div className="text-zinc-500 font-mono flex items-center gap-1">
-                <span>🗓</span> <span>{new Date().toLocaleDateString('pt-BR')} 00:04</span>
-              </div>
+      case 'updatedAt': {
+        const itemBudget = Number(item.budget || 0);
+        const itemSpend = Number(item.spend || 0);
+        const itemProfit = Number(item.profit !== undefined ? item.profit : ((Number(item.revenue || 0)) - itemSpend));
+        const itemSales = Number(item.sales || 0);
+        const itemCpa = Number(item.cpa || 0);
+        const itemRoi = itemSpend > 0 ? (itemProfit / itemSpend) : 0;
+        const nowFormatted = new Date().toLocaleDateString('pt-BR');
+
+        return (
+          <div className="text-[10px] leading-tight space-y-0.5 text-left font-sans min-w-[130px]">
+            <div className="text-zinc-300 font-mono">
+              Orç: R$ {itemBudget.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {itemBudget > 0 ? `↑ R$ ${(itemBudget * 1.85).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}
             </div>
-          );
-        }
-        return <span className="text-zinc-500 font-mono text-[11px]">N/A</span>;
+            <div className="text-zinc-400 font-mono">
+              Gasto: R$ {itemSpend.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} | Lucro: <span className={itemProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}>R$ {itemProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+            <div className="text-zinc-400 font-mono">
+              Vendas: {itemSales} | CPA: R$ {itemCpa.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} | ROI: <span className={itemRoi >= 0 ? 'text-emerald-400' : 'text-red-400'}>{itemRoi.toFixed(2)}</span>
+            </div>
+            <div className="text-zinc-500 font-mono flex items-center gap-1">
+              <span>🗓</span> <span>{item.updatedAt && item.updatedAt !== 'N/A' ? item.updatedAt : `${nowFormatted} 00:04`}</span>
+            </div>
+          </div>
+        );
+      }
 
       case 'preview': {
         // Verifica se o anúncio tem vídeo real cadastrado ou se é vídeo pelo tipo/url
