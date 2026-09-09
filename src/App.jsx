@@ -112,8 +112,14 @@ export default function App() {
               <Route path="/docs/webhook" element={<DocsWebhook />} />
               <Route path="/documentacao" element={<DocsWebhook />} />
 
-              {/* Rota 1: Landing Page Pública */}
-              <Route path="/" element={<LandingPage />} />
+              {/* Rota 1: Landing Page Pública (Redireciona para login no app standalone) */}
+              <Route path="/" element={
+                (typeof window !== 'undefined' && (
+                  window.matchMedia('(display-mode: standalone)').matches || 
+                  window.navigator.standalone === true ||
+                  window.location.hostname.startsWith('app.')
+                )) ? <Navigate to="/login" replace /> : <LandingPage />
+              } />
 
               {/* Políticas e Termos exigidos pelo Facebook / Meta Review */}
               <Route path="/privacidade" element={<PrivacyPolicy />} />

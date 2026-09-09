@@ -2,7 +2,7 @@
   "name": "PrimeTrack",
   "short_name": "PrimeTrack",
   "description": "Rastreador Inteligente de Vendas e Atribuição CAPI",
-  "start_url": "/",
+  "start_url": "/login",
   "display": "standalone",
   "background_color": "#03060D",
   "theme_color": "#03060D",
