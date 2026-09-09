@@ -601,8 +601,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   // Filtragem - se campaignsList já possui dados, exibe imediatamente
   const filteredCampaigns = campaignsList.filter(c => {
+    // Filtro por status
     if (statusFilter === 'Ativo' && !c.status) return false;
-    if ((statusFilter === 'Desativadas' || statusFilter === 'Pausado' || statusFilter === 'Inativo') && c.status) return false;
+    if (statusFilter === 'Desativadas' && c.status) return false;
+
     const cAdId = String(c.adAccountId || '').replace('act_', '');
     if (accountFilter !== 'Todas') {
       const selectedAcc = adAccountsList.find(a => a.name === accountFilter || a.id === accountFilter);
@@ -624,7 +626,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       ? filteredCampaigns.filter(c => selectedCampaignIds.has(c.id))
       : filteredCampaigns;
 
-    return parentCampaigns.flatMap(camp => {
+    const allAdsets = parentCampaigns.flatMap(camp => {
       if (camp.adsets && camp.adsets.length > 0) {
         return camp.adsets.map(a => ({
           ...a,
@@ -664,7 +666,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         updatedAt: 'N/A'
       }];
     });
-  }, [filteredCampaigns, selectedCampaignIds, itemNamesOverride]);
+
+    return allAdsets.filter(as => {
+      if (statusFilter === 'Ativo' && !as.status) return false;
+      if (statusFilter === 'Desativadas' && as.status) return false;
+      return true;
+    });
+  }, [filteredCampaigns, selectedCampaignIds, statusFilter, itemNamesOverride]);
 
   // Derivação de anúncios reais vindos diretamente do Gerenciador de Anúncios da Meta
   // Se houver conjuntos selecionados filtra por eles; senão se houver campanhas selecionadas filtra por elas
@@ -804,12 +812,17 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       ];
     });
 
+    let result = allAdsExtracted;
     if (selectedAdsetIds.size > 0) {
-      return allAdsExtracted.filter(ad => selectedAdsetIds.has(ad.adsetId || ad.id));
+      result = result.filter(ad => selectedAdsetIds.has(ad.adsetId || ad.id));
     }
 
-    return allAdsExtracted;
-  }, [filteredCampaigns, selectedCampaignIds, selectedAdsetIds, itemNamesOverride]);
+    return result.filter(ad => {
+      if (statusFilter === 'Ativo' && !ad.status) return false;
+      if (statusFilter === 'Desativadas' && ad.status) return false;
+      return true;
+    });
+  }, [filteredCampaigns, selectedCampaignIds, selectedAdsetIds, statusFilter, itemNamesOverride]);
 
   // Itens da sub-aba ativa
   const currentItems = subTab === 'Campanhas' ? filteredCampaigns : (subTab === 'Conjuntos' ? adsetsList : adsList);
