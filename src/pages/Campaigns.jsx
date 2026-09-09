@@ -501,6 +501,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     }
   };
 
+  // Formata valor monetário BRL ao digitar (ex: "60" -> "60,00", "6050" -> "60,50")
+  const formatCurrencyInput = (val) => {
+    const digitsOnly = String(val || '').replace(/\D/g, '');
+    if (!digitsOnly) return '';
+    const num = Number(digitsOnly) / 100;
+    return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
   // Abre modal direto para edição do valor selecionado
   const handleOpenEdit = (item, field = 'budget') => {
     const parentCamp = campaignsList.find(c => c.id === item.id || c.id === item.campaignId) || item;
@@ -509,12 +517,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setEditingField(field);
     setEditName(item.name || parentCamp.name || 'TESTE MI');
 
-    // Converte ponto para vírgula para exibição no padrão brasileiro
-    const rawBudget = String(parentCamp.budget || item.budget || '256,99').replace('.', ',');
-    const rawBidCap = String(item.bidCap || parentCamp.bidCap || '11,02').replace('.', ',');
+    // Converte valor numérico para padrão monetário brasileiro (ex: 60 -> 60,00)
+    const rawBudgetNum = Number(parentCamp.budget || item.budget || 256.99);
+    const rawBidCapNum = Number(item.bidCap || parentCamp.bidCap || 11.02);
     
-    setEditBudget(rawBudget);
-    setEditBidCap(rawBidCap);
+    setEditBudget(isNaN(rawBudgetNum) ? '60,00' : rawBudgetNum.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    setEditBidCap(isNaN(rawBidCapNum) ? '11,02' : rawBidCapNum.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
     setEditStrategy(parentCamp.bidStrategy || 'LOWEST_COST_WITH_BID_CAP');
   };
 
@@ -525,9 +533,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
     const targetId = editingItem?.id || editingCampaign.id;
 
-    // Normaliza valores numéricos trocando vírgula por ponto para o backend
-    const normalizedBudget = String(editBudget).trim().replace(',', '.');
-    const normalizedBidCap = String(editBidCap).trim().replace(',', '.');
+    // Normaliza valores numéricos trocando separador de milhar e vírgula por ponto para o backend
+    const cleanNumber = (val) => {
+      if (!val) return '0.00';
+      const clean = String(val).replace(/\./g, '').replace(',', '.');
+      return isNaN(Number(clean)) ? '0.00' : clean;
+    };
+    const normalizedBudget = cleanNumber(editBudget);
+    const normalizedBidCap = cleanNumber(editBidCap);
 
     // Se estiver editando nome de Conjunto ou Anúncio
     if (editingField === 'name' && subTab !== 'Campanhas') {
@@ -1882,9 +1895,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       type="text"
                       autoFocus
                       value={editBudget}
-                      onChange={e => setEditBudget(e.target.value)}
+                      onChange={e => setEditBudget(formatCurrencyInput(e.target.value))}
                       className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white focus:outline-none focus:border-[#1A6DFF] font-mono font-bold text-sm"
-                      placeholder="99,51"
+                      placeholder="60,00"
                       required
                     />
                   </div>
@@ -1902,7 +1915,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       type="text"
                       autoFocus
                       value={editBidCap}
-                      onChange={e => setEditBidCap(e.target.value)}
+                      onChange={e => setEditBidCap(formatCurrencyInput(e.target.value))}
                       className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-amber-300 focus:outline-none focus:border-amber-400 font-mono font-bold text-sm"
                       placeholder="15,00"
                       required
