@@ -1565,7 +1565,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   };
 
   return (
-    <div className="space-y-5 pb-16">
+    <div className="space-y-5 pb-4">
 
       {/* Alerta de Nenhuma Conta Ativa */}
       {isNoAccountActive && (
@@ -1947,7 +1947,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-320px)] sm:max-h-[calc(100vh-270px)] scrollbar-thin scrollbar-thumb-[#1A6DFF]/40 scrollbar-track-[#070D1A]">
+            <div className="overflow-x-auto overflow-y-auto max-h-[min(calc(100vh-380px),520px)] scrollbar-thin scrollbar-thumb-[#1A6DFF]/40 scrollbar-track-[#070D1A]">
               <table className="w-full text-left text-xs font-sans whitespace-nowrap border-collapse">
                 <thead className="bg-[#0A1426] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E] sticky top-0 z-20 shadow-md">
                   <tr>
