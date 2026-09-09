@@ -559,19 +559,27 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       return c;
     }));
 
-    // Envia ao servidor com permissão de escrita/alteração
+    // Envia ao servidor apenas o campo que o usuário está realmente alterando
     try {
+      const payload = {
+        id: editingCampaign.id,
+        itemType: subTab === 'Conjuntos' ? 'adset' : (subTab === 'Anúncios' ? 'ad' : 'campaign'),
+        profileType: 'standard'
+      };
+
+      if (editingField === 'name') {
+        payload.name = editName;
+      } else if (editingField === 'budget') {
+        payload.budget = normalizedBudget;
+      } else if (editingField === 'bid') {
+        payload.bidCap = normalizedBidCap;
+        payload.bidStrategy = editStrategy;
+      }
+
       const res = await fetch('/api/campaigns/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: editingCampaign.id,
-          name: editingField === 'name' ? editName : editingCampaign.name,
-          budget: normalizedBudget,
-          bidCap: normalizedBidCap,
-          bidStrategy: editStrategy,
-          profileType: 'standard'
-        })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (data.metaError) {
