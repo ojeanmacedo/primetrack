@@ -508,6 +508,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setSavingEdit(false);
   };
 
+  const isNoAccountActive = adAccountsList.length === 0 && campaignsList.length === 0;
+  const activeAdAccount = adAccountsList.length > 0 ? adAccountsList[0] : null;
+
   const [selectedItemIds, setSelectedItemIds] = useState(new Set());
 
   // Limpa/ajusta seleção ao trocar de subTab ou filtros
