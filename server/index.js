@@ -2192,6 +2192,50 @@ app.post('/api/pixel/verify', async (req, res) => {
 });
 
 if (process.env.VERCEL !== '1') {
+  // Inicialização local: sincroniza automaticamente dados do Supabase na inicialização do localhost
+  (async () => {
+    try {
+      const { data: supaConns } = await supabaseAdmin.from('facebook_connections').select('*');
+      const { data: supaAccs } = await supabaseAdmin.from('ad_accounts').select('*');
+      if (supaConns && supaConns.length > 0) {
+        db.set('facebook_connections', supaConns.map(c => ({
+          id: c.id,
+          name: c.name,
+          email: c.email,
+          avatarUrl: c.avatar_url,
+          accessToken: c.access_token,
+          accountsCount: c.accounts_count,
+          connectedAt: c.connected_at
+        })));
+
+        let activeSet = new Set();
+        if (supaConns[0] && supaConns[0].email) {
+          try {
+            const parsed = JSON.parse(supaConns[0].email);
+            if (parsed.activeAccounts) activeSet = new Set(parsed.activeAccounts);
+          } catch(e){}
+        }
+
+        if (supaAccs && supaAccs.length > 0) {
+          db.set('ad_accounts', supaAccs.map(a => ({
+            id: a.id,
+            accountId: (a.id || '').replace('act_', ''),
+            name: a.name,
+            businessName: a.bm_name,
+            currency: a.currency,
+            status: a.status,
+            amountSpent: String(a.amount_spent || '0.00'),
+            balance: String(a.balance || '0.00'),
+            syncActive: activeSet.has((a.id || '').replace('act_', ''))
+          })));
+        }
+        console.log('[PrimeTrack Local] Conexões e contas sincronizadas com Supabase com sucesso!');
+      }
+    } catch (err) {
+      console.warn('[PrimeTrack Local Init] Aviso ao sincronizar com Supabase:', err.message);
+    }
+  })();
+
   const server = app.listen(PORT, () => {
     console.log(`[PrimeTrack Server] Rodando na porta ${PORT}`);
     console.log(`[Pixel Script] Disponível em http://localhost:${PORT}/pixel.js`);

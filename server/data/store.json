@@ -14,8 +14,96 @@
   "events": [],
   "orders": [],
   "rules": [],
-  "facebook_connections": [],
-  "ad_accounts": [],
+  "facebook_connections": [
+    {
+      "id": "122109599696599930",
+      "name": "Angel Kerry",
+      "email": "{\"activeAccounts\":[\"1101817232408751\"]}",
+      "avatarUrl": "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=122109599696599930&height=200&width=200&ext=1791572987&hash=Afu7dsDxqPn2Q_HHC77RXNyK",
+      "accessToken": "EAAXc4rzj1ukBSTHg9NGky6bggD9MzJKsljdYr8EmhqoxtyCdIclP8LRMd4fEp23D1M8qWS7jQQyHvO6k971D18lZA3jBxxnHB2FEkZACN9MQPZAx2dtvPeTVW6UaLm6dVhGwLVWpwfVD2BhnpgFVqi8i4WTyYLtH0lR3DmFMzWxMMHJOdgz39ei7X1mpnWZBq5uZAAXXCYlttzOaQ",
+      "accountsCount": 7,
+      "connectedAt": "2026-09-09T19:09:47.871+00:00"
+    }
+  ],
+  "ad_accounts": [
+    {
+      "id": "act_1095793299643643",
+      "accountId": "1095793299643643",
+      "name": "CA03",
+      "businessName": "DIGITAL JM SOLUCOES LTDA",
+      "currency": "BRL",
+      "status": "Bloqueada",
+      "amountSpent": "321.27",
+      "balance": "0.00",
+      "syncActive": false
+    },
+    {
+      "id": "act_2013649985959956",
+      "accountId": "2013649985959956",
+      "name": "CA03 JEFFREY",
+      "businessName": "DIGITAL MEI",
+      "currency": "USD",
+      "status": "Ativa",
+      "amountSpent": "0.00",
+      "balance": "0.00",
+      "syncActive": false
+    },
+    {
+      "id": "act_719933136445425",
+      "accountId": "719933136445425",
+      "name": "CA01",
+      "businessName": "DIGITAL JM SOLUCOES LTDA",
+      "currency": "BRL",
+      "status": "Ativa",
+      "amountSpent": "329.47",
+      "balance": "0.00",
+      "syncActive": false
+    },
+    {
+      "id": "act_4357287371268652",
+      "accountId": "4357287371268652",
+      "name": "CA02",
+      "businessName": "DIGITAL JM SOLUCOES LTDA",
+      "currency": "BRL",
+      "status": "Ativa",
+      "amountSpent": "74.15",
+      "balance": "0.00",
+      "syncActive": false
+    },
+    {
+      "id": "act_1101817232408751",
+      "accountId": "1101817232408751",
+      "name": "CA02 JEFFREY",
+      "businessName": "DIGITAL MEI",
+      "currency": "USD",
+      "status": "Ativa",
+      "amountSpent": "374.41",
+      "balance": "0.00",
+      "syncActive": true
+    },
+    {
+      "id": "act_1588922422580250",
+      "accountId": "1588922422580250",
+      "name": "CA01 JEFFREY",
+      "businessName": "DIGITAL MEI",
+      "currency": "USD",
+      "status": "Ativa",
+      "amountSpent": "23.36",
+      "balance": "0.00",
+      "syncActive": false
+    },
+    {
+      "id": "act_1387392810034708",
+      "accountId": "1387392810034708",
+      "name": "Angel Kerry",
+      "businessName": "BM Principal",
+      "currency": "USD",
+      "status": "Ativa",
+      "amountSpent": "0.00",
+      "balance": "0.00",
+      "syncActive": false
+    }
+  ],
   "meta_ads": [],
   "webhook_tokens": [
     {
