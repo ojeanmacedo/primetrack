@@ -1260,6 +1260,21 @@ app.get('/api/auth/facebook/callback', async (req, res) => {
 
     db.set('facebook_connections', updatedConnections);
 
+    // Salva também no Supabase para persistir em produção (Vercel Serverless não mantém store.json em disco)
+    try {
+      await supabaseAdmin.from('facebook_connections').upsert({
+        id: userProfile.id,
+        name: userProfile.name,
+        email: userProfile.email || null,
+        avatar_url: userProfile.avatarUrl || null,
+        access_token: accessToken,
+        accounts_count: adAccounts.length,
+        connected_at: new Date().toISOString()
+      });
+    } catch (supaErr) {
+      console.warn('[Supabase Conexão Meta] Aviso ao persistir no Supabase:', supaErr.message);
+    }
+
     // Salva as contas de anúncios no Banco de Dados (sempre desativadas por padrão ao conectar)
     const existingAccounts = db.get('ad_accounts') || [];
     const accountsWithProfile = adAccounts.map(acc => ({
@@ -1274,6 +1289,24 @@ app.get('/api/auth/facebook/callback', async (req, res) => {
     const mergedAccounts = [...otherAccounts, ...accountsWithProfile];
     db.set('ad_accounts', mergedAccounts);
 
+    // Persiste contas no Supabase
+    try {
+      if (adAccounts.length > 0) {
+        const rows = adAccounts.map(acc => ({
+          id: acc.id || `act_${acc.accountId}`,
+          name: acc.name || 'Conta de Anúncio',
+          bm_name: acc.businessName || null,
+          currency: acc.currency || acc.rawCurrency || 'BRL',
+          status: acc.status || 'ACTIVE',
+          amount_spent: Number(acc.amountSpent || 0),
+          balance: Number(acc.balance || 0)
+        }));
+        await supabaseAdmin.from('ad_accounts').upsert(rows);
+      }
+    } catch (supaAccErr) {
+      console.warn('[Supabase Contas Meta] Aviso:', supaAccErr.message);
+    }
+
     console.log(`[Meta OAuth Sucesso!] Perfil ${userProfile.name} conectado com ${adAccounts.length} contas de anúncio (todas desativadas por padrão)!`);
 
     return res.redirect(`${baseUrl}/integracoes?connected=true&name=${encodeURIComponent(userProfile.name)}`);
@@ -1284,10 +1317,44 @@ app.get('/api/auth/facebook/callback', async (req, res) => {
 });
 
 // C. Status das contas conectadas
-app.get('/api/meta/status', (req, res) => {
+app.get('/api/meta/status', async (req, res) => {
   try {
-    const connections = db.get('facebook_connections') || [];
-    const adAccounts = db.get('ad_accounts') || [];
+    let connections = db.get('facebook_connections') || [];
+    let adAccounts = db.get('ad_accounts') || [];
+
+    // Em produção (Vercel Serverless), busca do Supabase se o store local estiver vazio
+    if (connections.length === 0) {
+      try {
+        const { data: supaConn } = await supabaseAdmin.from('facebook_connections').select('*');
+        if (supaConn && supaConn.length > 0) {
+          connections = supaConn.map(c => ({
+            id: c.id,
+            name: c.name,
+            email: c.email,
+            avatarUrl: c.avatar_url,
+            accessToken: c.access_token,
+            accountsCount: c.accounts_count,
+            connectedAt: c.connected_at
+          }));
+        }
+        const { data: supaAccs } = await supabaseAdmin.from('ad_accounts').select('*');
+        if (supaAccs && supaAccs.length > 0) {
+          adAccounts = supaAccs.map(a => ({
+            id: a.id,
+            accountId: (a.id || '').replace('act_', ''),
+            name: a.name,
+            businessName: a.bm_name,
+            currency: a.currency,
+            status: a.status,
+            amountSpent: String(a.amount_spent || '0.00'),
+            balance: String(a.balance || '0.00'),
+            syncActive: false
+          }));
+        }
+      } catch (supaReadErr) {
+        console.warn('[Supabase Read Status] Aviso:', supaReadErr.message);
+      }
+    }
 
     // Oculta o token completo por segurança
     const sanitizedConnections = connections.map(c => ({
@@ -1560,7 +1627,7 @@ app.post('/api/meta/accounts/sync-status', (req, res) => {
 });
 
 // E. Desconectar Perfil do Facebook e Contas
-app.post('/api/meta/disconnect', (req, res) => {
+app.post('/api/meta/disconnect', async (req, res) => {
   try {
     const { profileId } = req.body || {};
     if (profileId) {
@@ -1572,6 +1639,10 @@ app.post('/api/meta/disconnect', (req, res) => {
       const remainingAccounts = adAccounts.filter(a => String(a.profileId) !== String(profileId));
       db.set('ad_accounts', remainingAccounts);
 
+      try {
+        await supabaseAdmin.from('facebook_connections').delete().eq('id', profileId);
+      } catch (e) {}
+
       if (filtered.length === 0) {
         db.set('ad_accounts', []);
         db.set('campaigns', []);
@@ -1580,6 +1651,10 @@ app.post('/api/meta/disconnect', (req, res) => {
         settings.metaAccessToken = '';
         settings.connectedProfile = null;
         db.set('settings', settings);
+        try {
+          await supabaseAdmin.from('facebook_connections').delete().neq('id', '0');
+          await supabaseAdmin.from('ad_accounts').delete().neq('id', '0');
+        } catch (e) {}
       }
     } else {
       db.set('facebook_connections', []);
@@ -1590,6 +1665,10 @@ app.post('/api/meta/disconnect', (req, res) => {
       settings.metaAccessToken = '';
       settings.connectedProfile = null;
       db.set('settings', settings);
+      try {
+        await supabaseAdmin.from('facebook_connections').delete().neq('id', '0');
+        await supabaseAdmin.from('ad_accounts').delete().neq('id', '0');
+      } catch (e) {}
     }
 
     res.json({ success: true, message: 'Perfil, contas de anúncios e campanhas desconectados com sucesso.' });
