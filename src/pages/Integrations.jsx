@@ -162,23 +162,23 @@ export default function Integrations() {
   const [isConnecting, setIsConnecting] = useState(false);
 
   const [connectedProfiles, setConnectedProfiles] = useState(() => {
-    // Clientes normais começam com 0 conexões
-    if (!isAdmin || (typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true')) {
+    // Se o usuário marcou como desconectado
+    if (typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true') {
       return [];
     }
     const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_connected_profiles') : null;
     if (saved) {
       try { return JSON.parse(saved); } catch (e) {}
     }
-    return [
-      { id: '9132253187299', name: 'Rafaelli Ribeiro', initial: 'R', accountsCount: 2, isNew: false },
-      { id: '172109315470598810', name: 'Angel Kerry', initial: 'A', accountsCount: 7, isNew: false }
-    ];
+    return [];
   });
 
   const tabs = INTEGRATION_TABS;
 
   const [adAccounts, setAdAccounts] = useState(() => {
+    if (typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true') {
+      return [];
+    }
     if (typeof window !== 'undefined') {
       try {
         const cached = localStorage.getItem('primetrack_ad_accounts');
@@ -201,17 +201,7 @@ export default function Integrations() {
         }
       } catch (e) {}
     }
-    return [
-      { name: 'CA01', id: '1092137896602979', bm: 'Marinhos Dog', currency: 'USD', status: 'Ativa', sync: false },
-      { name: 'Rafaelli Ribeiro', id: '988187735672553', bm: '—', currency: 'BRL', status: 'Ativa', sync: false },
-      { name: 'CA03', id: '1095793299643643', bm: 'DIGITAL JM SOLUCOES LTDA', currency: 'BRL', status: 'Ativa', sync: false },
-      { name: 'CA02 JEFFREY', id: '1101817232408751', bm: 'DIGITAL MEI', currency: 'BRL', status: 'Ativa', sync: false },
-      { name: 'Angel Kerry', id: '1387392810834788', bm: '—', currency: 'BRL', status: 'Ativa', sync: false },
-      { name: 'CA01 JEFFREY', id: '1588922422538250', bm: 'DIGITAL MEI', currency: 'BRL', status: 'Ativa', sync: false },
-      { name: 'CA03 JEFFREY', id: '2013649985959956', bm: 'DIGITAL MEI', currency: 'BRL', status: 'Ativa', sync: false },
-      { name: 'CA02', id: '4157287571263652', bm: 'DIGITAL JM SOLUCOES LTDA', currency: 'BRL', status: 'Ativa', sync: false },
-      { name: 'CA01', id: '719933136445425', bm: 'DIGITAL JM SOLUCOES LTDA', currency: 'BRL', status: 'Ativa', sync: false },
-    ];
+    return [];
   });
 
   const handleUpdatePassword = async (e) => {
@@ -966,12 +956,7 @@ export default function Integrations() {
               </h3>
               {adAccounts.length > 0 && (
                 <button 
-                  onClick={() => {
-                    setAdAccounts([]);
-                    setConnectedProfiles([]);
-                    setDisconnectToast('Todas as contas de anúncio e perfis foram desconectados.');
-                    setTimeout(() => setDisconnectToast(null), 4000);
-                  }}
+                  onClick={handleDisconnectAll}
                   className="text-red-400 hover:text-red-300 text-xs font-medium cursor-pointer"
                 >
                   Desconectar Todas

@@ -1565,29 +1565,32 @@ app.post('/api/meta/disconnect', (req, res) => {
     const { profileId } = req.body || {};
     if (profileId) {
       const connections = db.get('facebook_connections') || [];
-      const filtered = connections.filter(c => c.id !== profileId);
+      const filtered = connections.filter(c => String(c.id) !== String(profileId));
       db.set('facebook_connections', filtered);
       
       const adAccounts = db.get('ad_accounts') || [];
-      const remainingAccounts = adAccounts.filter(a => a.profileId !== profileId);
+      const remainingAccounts = adAccounts.filter(a => String(a.profileId) !== String(profileId));
       db.set('ad_accounts', remainingAccounts);
 
       if (filtered.length === 0) {
         db.set('ad_accounts', []);
         db.set('campaigns', []);
         db.set('meta_ads', []);
+        const settings = db.get('settings') || {};
+        settings.metaAccessToken = '';
+        settings.connectedProfile = null;
+        db.set('settings', settings);
       }
     } else {
       db.set('facebook_connections', []);
       db.set('ad_accounts', []);
       db.set('campaigns', []);
       db.set('meta_ads', []);
+      const settings = db.get('settings') || {};
+      settings.metaAccessToken = '';
+      settings.connectedProfile = null;
+      db.set('settings', settings);
     }
-    
-    const settings = db.get('settings') || {};
-    settings.metaAccessToken = '';
-    settings.connectedProfile = null;
-    db.set('settings', settings);
 
     res.json({ success: true, message: 'Perfil, contas de anúncios e campanhas desconectados com sucesso.' });
   } catch (err) {
