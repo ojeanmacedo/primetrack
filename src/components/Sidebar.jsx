@@ -28,8 +28,17 @@ export default function Sidebar() {
   const navItems = [
     { to: '/dashboard', label: 'Resumo', icon: FileText, exact: true },
     { to: '/campanhas', label: 'Meta', icon: ({ className }) => (
-      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 7.2c-2.4 0-4.3 1.6-5.4 3.7C5.4 9 3.5 7.6 1.8 7.6.8 7.6 0 8.4 0 9.4c0 2.2 2.6 6.3 5.4 6.3 1.8 0 3.3-1.1 4.4-2.8 1.1 1.7 2.6 2.8 4.4 2.8 2.8 0 5.4-4.1 5.4-6.3 0-1-.8-1.8-1.8-1.8-1.7 0-3.6 1.4-4.8 3.3-1.1-2.1-3-3.7-5.4-3.7zm-6.6 6.7c-1.6 0-3.6-2.9-3.6-4.5 0-.3.2-.5.5-.5 1.1 0 2.5 1.1 3.5 2.7-.2.9-.3 1.8-.4 2.3zm13.2 0c-.1-.5-.2-1.4-.4-2.3 1-1.6 2.4-2.7 3.5-2.7.3 0 .5.2.5.5 0 1.6-2 4.5-3.6 4.5z"/>
+      <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        className={`feather feather-facebook ${className}`}
+      >
+        <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
       </svg>
     )},
     { to: '/vendas', label: 'Vendas', icon: ShoppingBag },
@@ -44,13 +53,13 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className={`h-screen bg-[#0A0F1D] border-r border-[#182238] flex flex-col justify-between transition-all duration-300 z-40 select-none ${
+    <aside className={`h-screen bg-[#0D1424] border-r border-[#182238] flex flex-col justify-between transition-all duration-300 z-40 select-none ${
       collapsed ? 'w-18' : 'w-60'
     }`}>
       
       {/* Top Brand Header */}
       <div className="flex flex-col h-full overflow-hidden">
-        <div className="h-16 flex items-center justify-between px-5 border-b border-[#182238] shrink-0">
+        <div className="h-16 flex items-center justify-between px-5 border-b border-[#182238] shrink-0 bg-[#0D1424]">
           <NavLink to="/" className="flex items-center gap-2.5 overflow-hidden">
             <img 
               src="/images/logo-primetrack.png" 
@@ -75,7 +84,7 @@ export default function Sidebar() {
         </div>
 
         {/* Navigation Items (Scrollable exactly like UTMify) */}
-        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1 scrollbar-thin">
+        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1 scrollbar-thin bg-[#0D1424]">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = item.exact 
