@@ -186,6 +186,18 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   });
   const [syncing, setSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState('Agora');
+  const [currentTime, setCurrentTime] = useState(() => {
+    const d = new Date();
+    return `${d.toLocaleDateString('pt-BR')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+  });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const d = new Date();
+      setCurrentTime(`${d.toLocaleDateString('pt-BR')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`);
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   const [editingCampaign, setEditingCampaign] = useState(null);
   const [editName, setEditName] = useState('');
@@ -860,7 +872,20 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         const itemSales = Number(item.sales || 0);
         const itemCpa = Number(item.cpa || 0);
         const itemRoi = itemSpend > 0 ? (itemProfit / itemSpend) : 0;
-        const nowFormatted = new Date().toLocaleDateString('pt-BR');
+        
+        let displayDate = currentTime;
+        if (item.updatedAt && item.updatedAt !== 'N/A') {
+          try {
+            const parsed = new Date(item.updatedAt);
+            if (!isNaN(parsed.getTime())) {
+              displayDate = `${parsed.toLocaleDateString('pt-BR')} ${parsed.getHours().toString().padStart(2, '0')}:${parsed.getMinutes().toString().padStart(2, '0')}`;
+            } else {
+              displayDate = item.updatedAt;
+            }
+          } catch (e) {
+            displayDate = item.updatedAt;
+          }
+        }
 
         return (
           <div className="text-[10px] leading-tight space-y-0.5 text-left font-sans min-w-[130px]">
@@ -874,7 +899,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               Vendas: {itemSales} | CPA: R$ {itemCpa.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} | ROI: <span className={itemRoi >= 0 ? 'text-emerald-400' : 'text-red-400'}>{itemRoi.toFixed(2)}</span>
             </div>
             <div className="text-zinc-500 font-mono flex items-center gap-1">
-              <span>🗓</span> <span>{item.updatedAt && item.updatedAt !== 'N/A' ? item.updatedAt : `${nowFormatted} 00:04`}</span>
+              <span>🗓</span> <span>{displayDate}</span>
             </div>
           </div>
         );
