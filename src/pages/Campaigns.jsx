@@ -1446,13 +1446,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
         {/* Action Toolbar */}
         <div className="flex flex-wrap items-center gap-2 self-end lg:self-auto">
-          {activeSelectedSet.size > 0 && (
-            <div className="px-2.5 py-1 rounded-xl bg-[#1A6DFF]/20 border border-[#1A6DFF]/40 text-[#5C9BFF] font-mono font-bold text-xs flex items-center gap-1.5 animate-in fade-in duration-200">
-              <span className="w-2 h-2 rounded-full bg-[#1A6DFF] animate-pulse" />
-              <span>{activeSelectedSet.size} selecionada{activeSelectedSet.size > 1 ? 's' : ''}</span>
-            </div>
-          )}
-
           <button 
             onClick={() => window.open('https://adsmanager.facebook.com', '_blank')}
             className="px-3 py-1.5 rounded-xl bg-[#0A1426] border border-[#13233E] text-zinc-300 hover:text-white flex items-center gap-1.5 cursor-pointer transition-colors"
