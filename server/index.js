@@ -816,6 +816,52 @@ function resolveDateRange(datePreset = 'today', since = null, until = null) {
     const totalICs = Math.max(Number(c.initCheckouts || 0), matchingPixelICs.length);
     const costPerIc = totalICs > 0 ? (spendNum / totalICs).toFixed(2) : '0.00';
 
+    const enrichedAdsets = (c.adsets || []).map(as => {
+      const asSpend = Number(as.spend || 0);
+      const share = spendNum > 0 ? (asSpend / spendNum) : (1 / (c.adsets.length || 1));
+      const asSales = (c.adsets.length === 1) ? totalSales : Math.round(totalSales * share);
+      const asPending = (c.adsets.length === 1) ? matchingPendingOrders.length : Math.round(matchingPendingOrders.length * share);
+      const asRevenue = (c.adsets.length === 1) ? totalRevenue : (totalRevenue * share);
+      const asProfit = asRevenue - asSpend;
+      const asRoas = asSpend > 0 ? (asRevenue / asSpend).toFixed(2) : '0.00';
+      const asCpa = asSales > 0 ? (asSpend / asSales).toFixed(2) : '0.00';
+      const asArpu = asSales > 0 ? (asRevenue / asSales).toFixed(2) : '0.00';
+
+      return {
+        ...as,
+        sales: asSales,
+        pendingSales: asPending,
+        revenue: asRevenue.toFixed(2),
+        profit: asProfit.toFixed(2),
+        roas: asRoas,
+        cpa: asCpa,
+        arpu: asArpu
+      };
+    });
+
+    const enrichedAds = (c.ads || []).map(ad => {
+      const adSpend = Number(ad.spend || 0);
+      const share = spendNum > 0 ? (adSpend / spendNum) : 0;
+      const adSales = Math.round(totalSales * share);
+      const adPending = Math.round(matchingPendingOrders.length * share);
+      const adRevenue = totalRevenue * share;
+      const adProfit = adRevenue - adSpend;
+      const adRoas = adSpend > 0 ? (adRevenue / adSpend).toFixed(2) : '0.00';
+      const adCpa = adSales > 0 ? (adSpend / adSales).toFixed(2) : '0.00';
+      const adArpu = adSales > 0 ? (adRevenue / adSales).toFixed(2) : '0.00';
+
+      return {
+        ...ad,
+        sales: adSales,
+        pendingSales: adPending,
+        revenue: adRevenue.toFixed(2),
+        profit: adProfit.toFixed(2),
+        roas: adRoas,
+        cpa: adCpa,
+        arpu: adArpu
+      };
+    });
+
     return {
       ...c,
       sales: totalSales,
@@ -825,7 +871,9 @@ function resolveDateRange(datePreset = 'today', since = null, until = null) {
       roas: roasNum,
       cpa: cpaNum,
       initCheckouts: totalICs,
-      costPerIc: costPerIc
+      costPerIc: costPerIc,
+      adsets: enrichedAdsets,
+      ads: enrichedAds
     };
   });
 
@@ -1303,7 +1351,7 @@ async function executeMetaSync({ datePreset = 'today', timeRange = null, account
 
       return { 
         campaigns, 
-        ads: [], 
+        ads: campaigns.flatMap(c => c.ads || []), 
         error: null, 
         accId: acc.id,
         liveBalance,

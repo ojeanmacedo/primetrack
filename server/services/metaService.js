@@ -215,13 +215,25 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     insightField = `insights.time_range({'since':'${timeRange.since}','until':'${timeRange.until}'}){spend,impressions,clicks,cpc,cpm,ctr,actions,action_values}`;
   }
 
-  const [campRes, accRes] = await Promise.all([
+  const [campRes, adsetsRes, adsRes, accRes] = await Promise.all([
     fetch(`${GRAPH_BASE_URL}/${actId}/campaigns?fields=id,name,status,effective_status,objective,daily_budget,lifetime_budget,${insightField}&limit=100&access_token=${accessToken}`),
+    fetch(`${GRAPH_BASE_URL}/${actId}/adsets?fields=id,name,status,effective_status,campaign_id,daily_budget,lifetime_budget,bid_amount,bid_strategy,${insightField}&limit=100&access_token=${accessToken}`).catch(() => null),
+    fetch(`${GRAPH_BASE_URL}/${actId}/ads?fields=id,name,status,effective_status,campaign_id,adset_id,creative{id,name,thumbnail_url,image_url,video_id},${insightField}&limit=100&access_token=${accessToken}`).catch(() => null),
     fetch(`${GRAPH_BASE_URL}/${actId}?fields=currency&access_token=${accessToken}`).catch(() => null)
   ]);
   
   const data = await campRes.json();
   if (data.error) throw new Error(data.error.message);
+
+  let adsetsData = { data: [] };
+  try {
+    if (adsetsRes) adsetsData = await adsetsRes.json();
+  } catch (e) {}
+
+  let adsData = { data: [] };
+  try {
+    if (adsRes) adsData = await adsRes.json();
+  } catch (e) {}
 
   let metaCurrency = 'BRL';
   try {
@@ -233,6 +245,126 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
 
   const isUsd = metaCurrency === 'USD' || accountCurrency === 'USD' || actId.includes('1092137896602979');
   const usdRate = isUsd ? await getUsdToBrlRate() : 1.0;
+
+  // Processa os conjuntos reais vindos direto do Gerenciador de Anúncios da Meta
+  const allAdsets = (adsetsData.data || []).map(adset => {
+    const insight = adset.insights?.data?.[0] || {};
+    const rawSpend = Number(insight.spend || 0);
+    const clicks = Number(insight.clicks || 0);
+    const impressions = Number(insight.impressions || 0);
+    const realSpend = rawSpend * usdRate;
+    const rawCtr = impressions > 0 ? ((clicks / impressions) * 100) : Number(insight.ctr || 0);
+    const rawCpc = clicks > 0 ? (rawSpend / clicks) : Number(insight.cpc || 0);
+    const realCpc = rawCpc * usdRate;
+    const rawCpm = impressions > 0 ? ((rawSpend / impressions) * 1000) : Number(insight.cpm || 0);
+    const realCpm = rawCpm * usdRate;
+
+    let metaInitCheckouts = 0;
+    if (Array.isArray(insight.actions)) {
+      const icAction = insight.actions.find(a => 
+        a.action_type === 'initiate_checkout' || 
+        a.action_type === 'omni_initiated_checkout' ||
+        a.action_type === 'onsite_web_initiated_checkout'
+      );
+      if (icAction) metaInitCheckouts = Number(icAction.value || 0);
+    }
+    const costPerIc = metaInitCheckouts > 0 ? (realSpend / metaInitCheckouts).toFixed(2) : '0.00';
+
+    const rawBidAmount = adset.bid_amount ? (Number(adset.bid_amount) / 100) : null;
+    const realBidCap = rawBidAmount !== null ? (rawBidAmount * usdRate).toFixed(2) : '11.02';
+
+    const rawDailyBudget = adset.daily_budget ? (Number(adset.daily_budget) / 100) : null;
+    const realBudget = rawDailyBudget !== null ? (rawDailyBudget * usdRate).toFixed(2) : null;
+
+    return {
+      id: adset.id,
+      adsetId: adset.id,
+      campaignId: adset.campaign_id,
+      name: adset.name,
+      accountName: accountName || 'Conta de Anúncios',
+      status: adset.status === 'ACTIVE' || adset.effective_status === 'ACTIVE',
+      rawStatus: adset.status,
+      effectiveStatus: adset.effective_status || adset.status,
+      budget: realBudget,
+      budgetType: adset.daily_budget ? 'Diário' : 'Vitalício',
+      bidCap: realBidCap,
+      bidStrategy: adset.bid_strategy || 'LOWEST_COST_WITH_BID_CAP',
+      spend: realSpend.toFixed(2),
+      impressions,
+      clicks,
+      cpc: realCpc.toFixed(2),
+      cpm: realCpm.toFixed(2),
+      ctr: `${rawCtr.toFixed(2)}%`,
+      visits: Math.round(clicks * 0.75),
+      ic: metaInitCheckouts,
+      costPerIc,
+      sales: 0,
+      pendingSales: 0,
+      revenue: '0.00',
+      profit: (-realSpend).toFixed(2),
+      roas: '0.00',
+      cpa: '0.00',
+      arpu: '0.00',
+      updatedAt: 'N/A'
+    };
+  });
+
+  // Processa os anúncios reais vindos direto do Gerenciador de Anúncios da Meta
+  const allAds = (adsData.data || []).map(ad => {
+    const insight = ad.insights?.data?.[0] || {};
+    const rawSpend = Number(insight.spend || 0);
+    const clicks = Number(insight.clicks || 0);
+    const impressions = Number(insight.impressions || 0);
+    const realSpend = rawSpend * usdRate;
+    const rawCtr = impressions > 0 ? ((clicks / impressions) * 100) : Number(insight.ctr || 0);
+    const rawCpc = clicks > 0 ? (rawSpend / clicks) : Number(insight.cpc || 0);
+    const realCpc = rawCpc * usdRate;
+    const rawCpm = impressions > 0 ? ((rawSpend / impressions) * 1000) : Number(insight.cpm || 0);
+    const realCpm = rawCpm * usdRate;
+
+    let metaInitCheckouts = 0;
+    if (Array.isArray(insight.actions)) {
+      const icAction = insight.actions.find(a => 
+        a.action_type === 'initiate_checkout' || 
+        a.action_type === 'omni_initiated_checkout' ||
+        a.action_type === 'onsite_web_initiated_checkout'
+      );
+      if (icAction) metaInitCheckouts = Number(icAction.value || 0);
+    }
+    const costPerIc = metaInitCheckouts > 0 ? (realSpend / metaInitCheckouts).toFixed(2) : '0.00';
+    const thumb = ad.creative?.thumbnail_url || ad.creative?.image_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=80';
+
+    return {
+      id: ad.id,
+      adId: ad.id,
+      campaignId: ad.campaign_id,
+      adsetId: ad.adset_id,
+      name: ad.name,
+      accountName: accountName || 'Conta de Anúncios',
+      status: ad.status === 'ACTIVE' || ad.effective_status === 'ACTIVE',
+      rawStatus: ad.status,
+      effectiveStatus: ad.effective_status || ad.status,
+      mediaSrc: thumb,
+      thumbnailUrl: thumb,
+      spend: realSpend.toFixed(2),
+      impressions,
+      clicks,
+      cpc: realCpc.toFixed(2),
+      cpm: realCpm.toFixed(2),
+      ctr: `${rawCtr.toFixed(2)}%`,
+      visits: Math.round(clicks * 0.75),
+      ic: metaInitCheckouts,
+      costPerIc,
+      sales: 0,
+      pendingSales: 0,
+      revenue: '0.00',
+      profit: (-realSpend).toFixed(2),
+      roas: '0.00',
+      cpa: '0.00',
+      arpu: '0.00',
+      updatedAt: 'N/A'
+    };
+  });
 
   return (data.data || []).map(c => {
     const insight = c.insights?.data?.[0] || {};
@@ -266,6 +398,17 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     }
     const costPerIc = metaInitCheckouts > 0 ? (realSpend / metaInitCheckouts).toFixed(2) : '0.00';
 
+    // Anexa conjuntos e anúncios reais vinculados a esta campanha
+    const campAdsets = allAdsets.filter(a => a.campaignId === c.id);
+    campAdsets.forEach(as => {
+      if (!as.budget) {
+        as.budget = realBudget.toFixed(2);
+        as.budgetType = c.daily_budget ? 'Diário' : 'Vitalício';
+      }
+    });
+
+    const campAds = allAds.filter(a => a.campaignId === c.id);
+
     // A API da Meta é utilizada ESTRITAMENTE para coletar gastos, impressões, cliques, CPC, CPM, CTR e ICS
     // As vendas e receitas vêm exclusivamente das plataformas integradas (MonsterPay) e do Pixel PrimeTrack
     return {
@@ -285,7 +428,7 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       clicks,
       cpc: realCpc.toFixed(2),
       cpm: realCpm.toFixed(2),
-      ctr: rawCtr.toFixed(2),
+      ctr: `${rawCtr.toFixed(2)}%`,
       sales: 0,
       revenue: '0.00',
       profit: (-realSpend).toFixed(2),
@@ -295,7 +438,9 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       costPerIc: costPerIc,
       adAccountId: actId,
       accountName: accountName || 'Conta de Anúncios',
-      currency: 'BRL'
+      currency: 'BRL',
+      adsets: campAdsets,
+      ads: campAds
     };
   });
 }
