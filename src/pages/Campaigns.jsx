@@ -1949,7 +1949,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 <thead className="bg-[#070D1A] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E] sticky top-0 z-20 shadow-md">
                   <tr>
                     {/* Checkbox fixo na lateral esquerda */}
-                    <th className="py-3 pl-4 pr-3 w-10 bg-[#070D1A] sticky left-0 z-30">
+                    <th className="py-3 pl-4 pr-4 w-12 bg-[#070D1A] sticky left-0 z-30">
                       <input 
                         type="checkbox" 
                         className="rounded bg-[#03060D] border-white/10 cursor-pointer accent-[#1A6DFF]" 
@@ -1960,10 +1960,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     </th>
 
                     {/* Status fixo na lateral esquerda */}
-                    <th className="py-3 pl-3 pr-4 bg-[#070D1A] sticky left-10 z-30">STATUS</th>
+                    <th className="py-3 pl-4 pr-5 bg-[#070D1A] sticky left-12 z-30">STATUS</th>
 
                     {/* Nome (Campanha / Conjunto / Anúncio) fixo na lateral esquerda */}
-                    <th className="py-3 px-4 bg-[#070D1A] sticky left-[102px] z-30 border-r border-[#13233E] min-w-[220px] max-w-[320px] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
+                    <th className="py-3 px-4 bg-[#070D1A] sticky left-[122px] z-30 border-r border-[#13233E] min-w-[220px] max-w-[320px] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
                       {subTab === 'Campanhas' ? 'CAMPANHA' : (subTab === 'Conjuntos' ? 'CONJUNTO' : 'ANÚNCIO')}
                     </th>
 
@@ -1992,7 +1992,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   {currentItems.map((item, idx) => (
                     <tr key={item.id || idx} className={`hover:bg-white/[0.02] transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#1A6DFF]/5' : ''}`}>
                       {/* Checkbox fixo na lateral */}
-                      <td className="py-4 pl-4 pr-3 bg-[#0A1426] sticky left-0 z-10">
+                      <td className="py-4 pl-4 pr-4 bg-[#0A1426] sticky left-0 z-10">
                         <input 
                           type="checkbox" 
                           className="rounded bg-[#03060D] border-white/10 cursor-pointer accent-[#1A6DFF]" 
@@ -2002,7 +2002,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       </td>
 
                       {/* Status Toggle fixo na lateral */}
-                      <td className="py-4 pl-3 pr-4 bg-[#0A1426] sticky left-10 z-10">
+                      <td className="py-4 pl-4 pr-5 bg-[#0A1426] sticky left-12 z-10">
                         <button
                           type="button"
                           onClick={() => handleToggleStatus(item.id || item.campaignId || item.adsetId || item.adId)}
@@ -2017,7 +2017,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       </td>
 
                       {/* Nome do Item fixo na lateral */}
-                      <td className="py-4 px-4 font-sans bg-[#0A1426] sticky left-[102px] z-10 border-r border-[#13233E] min-w-[220px] max-w-[320px] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
+                      <td className="py-4 px-4 font-sans bg-[#0A1426] sticky left-[122px] z-10 border-r border-[#13233E] min-w-[220px] max-w-[320px] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
                         <div className="truncate">
                           <div 
                             onClick={() => handleOpenEdit(item, 'name')}
@@ -2053,9 +2053,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 {/* Rodapé com totais reais sticky embaixo */}
                 <tfoot className="bg-[#070D1A] font-bold border-t border-[#13233E] text-xs font-mono sticky bottom-0 z-20 shadow-lg">
                   <tr>
-                    <td className="py-3.5 pl-4 pr-3 bg-[#070D1A] sticky left-0 z-30"></td>
-                    <td className="py-3.5 pl-3 pr-4 bg-[#070D1A] sticky left-10 z-30"></td>
-                    <td className="py-3.5 px-4 font-sans text-white uppercase text-[11px] bg-[#070D1A] sticky left-[102px] z-30 border-r border-[#13233E] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
+                    <td className="py-3.5 pl-4 pr-4 bg-[#070D1A] sticky left-0 z-30"></td>
+                    <td className="py-3.5 pl-4 pr-5 bg-[#070D1A] sticky left-12 z-30"></td>
+                    <td className="py-3.5 px-4 font-sans text-white uppercase text-[11px] bg-[#070D1A] sticky left-[122px] z-30 border-r border-[#13233E] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
                       {currentItems.length} {
                         subTab === 'Campanhas' 
                           ? (currentItems.length === 1 ? 'CAMPANHA' : 'CAMPANHAS')
