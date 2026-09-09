@@ -398,9 +398,31 @@ app.all([
 
     // 3. Envia evento Purchase enriquecido para Meta CAPI com os dados reais de geolocalização do pixel
     const settings = db.get('settings') || {};
-    const pixels = db.get('pixels') || [];
+    let pixels = db.get('pixels') || [];
+
+    // Busca pixels atualizados no Supabase se não houver no db local
+    if (pixels.length === 0) {
+      try {
+        const { data: supaPixels } = await supabaseAdmin.from('pixels').select('*');
+        if (Array.isArray(supaPixels) && supaPixels.length > 0) {
+          pixels = supaPixels.map(p => {
+            let extra = {};
+            try { extra = JSON.parse(p.domain); } catch(e){}
+            return {
+              id: p.id,
+              pixelId: p.id,
+              name: p.name,
+              metaPixelId: extra.metaPixelId || '',
+              capiToken: extra.capiToken || extra.capiTokenRaw || '',
+              capiTokenRaw: extra.capiTokenRaw || extra.capiToken || ''
+            };
+          });
+        }
+      } catch (errSup) {}
+    }
+
     const primaryPixel = pixels.find(p => (p.capiToken || p.capiTokenRaw) && (p.metaPixelId || p.pixelId)) || pixels[0] || {};
-    const targetPixelId = primaryPixel.metaPixelId || primaryPixel.pixelId || settings.metaPixelId;
+    const targetPixelId = primaryPixel.metaPixelId || primaryPixel.pixelId || settings.metaPixelId || '1056706567239394';
     const targetCapiToken = primaryPixel.capiToken || primaryPixel.capiTokenRaw || settings.metaAccessToken;
 
     const capiResult = await sendCapiEvent({
