@@ -1185,7 +1185,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       </div>
 
       {/* Filter Controls Bar matching LowTrack */}
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs">
         <div className="flex flex-wrap items-center gap-2">
           
           {/* Status Dropdown */}
@@ -1202,9 +1202,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             </select>
           </div>
 
-          {/* Period Filter */}
-          <div className="flex items-center gap-1 bg-[#0A1426] border border-[#13233E] rounded-xl p-1 text-xs">
-            <span className="text-zinc-500 font-mono text-[10px] uppercase px-2">Período:</span>
+          {/* Period Filter (Scrollable em telas pequenas) */}
+          <div className="flex items-center gap-1 bg-[#0A1426] border border-[#13233E] rounded-xl p-1 text-xs overflow-x-auto max-w-full scrollbar-none">
+            <span className="text-zinc-500 font-mono text-[10px] uppercase px-1 sm:px-2 shrink-0">Período:</span>
             {['Hoje', 'Ontem', '7 dias', '15 dias', '30 dias'].map(p => (
               <button
                 key={p}
@@ -1214,7 +1214,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   setCustomRange(null);
                   loadData(p, null);
                 }}
-                className={`px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+                className={`px-2 sm:px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer shrink-0 ${
                   periodFilter === p && !customRange
                     ? 'bg-[#12223D] text-[#5C9BFF] font-bold shadow-sm'
                     : 'text-zinc-400 hover:text-white'
@@ -1245,7 +1245,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             <select
               value={accountFilter}
               onChange={e => setAccountFilter(e.target.value)}
-              className="bg-transparent text-white font-semibold text-xs focus:outline-none cursor-pointer max-w-[180px] truncate"
+              className="bg-transparent text-white font-semibold text-xs focus:outline-none cursor-pointer max-w-[160px] sm:max-w-[180px] truncate"
             >
               <option value="Todas" className="bg-[#0A1426] text-white">Todas as Contas ({adAccountsList.length})</option>
               {adAccountsList.map(acc => (
@@ -1259,7 +1259,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         </div>
 
         {/* Action Toolbar */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2 self-end lg:self-auto">
           <button 
             onClick={() => window.open('https://adsmanager.facebook.com', '_blank')}
             className="px-3 py-1.5 rounded-xl bg-[#0A1426] border border-[#13233E] text-zinc-300 hover:text-white flex items-center gap-1.5 cursor-pointer transition-colors"

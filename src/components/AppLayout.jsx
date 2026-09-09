@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet, Navigate, useLocation } from 'react-router-dom';
+import { Outlet, Navigate, useLocation, NavLink } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { getCurrentUser } from '../utils/auth';
 import { 
   Eye, 
   EyeOff, 
   Edit3, 
-  HelpCircle 
+  HelpCircle,
+  Menu,
+  FileText,
+  ShoppingBag,
+  SlidersHorizontal,
+  Link2
 } from 'lucide-react';
 
 export default function AppLayout() {
@@ -14,6 +19,7 @@ export default function AppLayout() {
   const location = useLocation();
   const [totalFaturado, setTotalFaturado] = useState(0);
   const [showValues, setShowValues] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Sincroniza usuário quando o perfil é alterado em Minha Conta
   useEffect(() => {
@@ -74,20 +80,31 @@ export default function AppLayout() {
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-[#0D1424] text-[#EDF2FF] flex font-sans">
-      {/* Left Sidebar */}
-      <Sidebar />
+      {/* Left Sidebar (Desktop + Mobile Drawer) */}
+      <Sidebar 
+        mobileOpen={mobileMenuOpen} 
+        onMobileClose={() => setMobileMenuOpen(false)} 
+      />
 
       {/* Main Container */}
       <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#0D1424]">
         
         {/* Topbar matching UTMify */}
-        <header className="h-16 bg-[#0D1424] border-b border-[#182238] px-6 flex items-center justify-between shrink-0 select-none z-30">
-          {/* Left: Page title and action icons */}
-          <div className="flex items-center gap-3">
-            <h1 className="text-sm sm:text-base font-bold text-white tracking-tight">
+        <header className="h-14 sm:h-16 bg-[#0D1424] border-b border-[#182238] px-3 sm:px-6 flex items-center justify-between shrink-0 select-none z-30">
+          {/* Left: Mobile Menu Button + Page title and action icons */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="lg:hidden p-1.5 rounded-lg border border-white/10 text-zinc-300 hover:text-white hover:bg-white/5 cursor-pointer"
+              title="Abrir menu lateral"
+            >
+              <Menu className="w-4 h-4" />
+            </button>
+
+            <h1 className="text-xs sm:text-base font-bold text-white tracking-tight truncate max-w-[140px] sm:max-w-none">
               Dashboard – Principal
             </h1>
-            <div className="flex items-center gap-1.5 text-zinc-400">
+            <div className="flex items-center gap-1 sm:gap-1.5 text-zinc-400">
               <button 
                 onClick={handleToggleShowValues}
                 className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
@@ -112,17 +129,17 @@ export default function AppLayout() {
           </div>
 
           {/* Right: Goal & User profile */}
-          <div className="flex items-center gap-4 sm:gap-6">
+          <div className="flex items-center gap-2.5 sm:gap-6">
             
             {/* Goal progress */}
-            <div className="hidden lg:flex items-center text-xs font-mono font-bold text-zinc-300">
+            <div className="hidden md:flex items-center text-xs font-mono font-bold text-zinc-300">
               <span>R$ {totalFaturado.toFixed(2).replace('.', ',')}</span>
               <span className="text-zinc-500 mx-1">/</span>
               <span className="text-zinc-400">R$ 1M</span>
             </div>
 
             {/* User Profile */}
-            <div className="flex items-center gap-2.5 pl-2 border-l border-[#182238]">
+            <div className="flex items-center gap-2 sm:gap-2.5 pl-2 border-l border-[#182238]">
               <div className="text-right hidden sm:block">
                 <div className="text-xs font-bold text-white leading-tight">
                   {userName}
@@ -131,7 +148,7 @@ export default function AppLayout() {
                   Usuário
                 </div>
               </div>
-              <div className="w-8 h-8 rounded-full bg-[#1877F2] text-white font-bold text-xs flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#1877F2] text-white font-bold text-xs flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0">
                 {userInitials}
               </div>
             </div>
@@ -139,12 +156,74 @@ export default function AppLayout() {
           </div>
         </header>
 
-        {/* Dynamic Route Content */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-6 scrollbar-thin">
+        {/* Dynamic Route Content (with padding bottom on mobile for safe area) */}
+        <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6 pb-20 lg:pb-6 scrollbar-thin">
           <div className="w-full max-w-[1600px] mx-auto">
             <Outlet />
           </div>
         </main>
+
+        {/* Bottom Mobile Navigation Bar (Estilo App Nativo iOS / Android) */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-14 bg-[#0A0F1D]/95 backdrop-blur-md border-t border-[#182238] flex items-center justify-around px-2 z-40">
+          <NavLink
+            to="/dashboard"
+            className={({ isActive }) => `flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-medium transition-colors ${
+              isActive ? 'text-[#1877F2] font-bold' : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <FileText className="w-4 h-4 mb-0.5" />
+            <span>Resumo</span>
+          </NavLink>
+
+          <NavLink
+            to="/campanhas"
+            className={({ isActive }) => `flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-medium transition-colors ${
+              isActive ? 'text-[#1877F2] font-bold' : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              className="w-4 h-4 mb-0.5 feather feather-facebook"
+            >
+              <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+            </svg>
+            <span>Meta</span>
+          </NavLink>
+
+          <NavLink
+            to="/vendas"
+            className={({ isActive }) => `flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-medium transition-colors ${
+              isActive ? 'text-[#1877F2] font-bold' : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <ShoppingBag className="w-4 h-4 mb-0.5" />
+            <span>Vendas</span>
+          </NavLink>
+
+          <NavLink
+            to="/integracoes"
+            className={({ isActive }) => `flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-medium transition-colors ${
+              isActive ? 'text-[#1877F2] font-bold' : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <Link2 className="w-4 h-4 mb-0.5" />
+            <span>Integrações</span>
+          </NavLink>
+
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-medium text-zinc-400 hover:text-white cursor-pointer"
+          >
+            <Menu className="w-4 h-4 mb-0.5" />
+            <span>Mais</span>
+          </button>
+        </nav>
       </div>
     </div>
   );

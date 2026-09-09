@@ -17,12 +17,17 @@ import {
   LogOut
 } from 'lucide-react';
 
-export default function Sidebar() {
+export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }) {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const user = getCurrentUser();
   const trialStatus = getTrialStatus(user);
+
+  useEffect(() => {
+    // Fecha o menu mobile ao navegar
+    onMobileClose();
+  }, [location.pathname]);
 
   // Menu items do PrimeTrack com estética UTMify
   const navItems = [
@@ -53,81 +58,105 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className={`h-screen bg-[#0D1424] border-r border-[#182238] flex flex-col justify-between transition-all duration-300 z-40 select-none ${
-      collapsed ? 'w-18' : 'w-60'
-    }`}>
-      
-      {/* Top Brand Header */}
-      <div className="flex flex-col h-full overflow-hidden">
-        <div className="h-16 flex items-center justify-between px-5 border-b border-[#182238] shrink-0 bg-[#0D1424]">
-          <NavLink to="/" className="flex items-center gap-2.5 overflow-hidden">
-            <img 
-              src="/images/logo-primetrack.png" 
-              alt="PrimeTrack" 
-              className="w-8 h-8 rounded-lg object-contain shadow-md shadow-blue-500/20 shrink-0" 
-            />
-            {!collapsed && (
-              <span className="text-lg font-bold tracking-tight text-white font-sans flex items-center">
-                <span>Prime</span>
-                <span className="text-[#1877F2]">Track</span>
-              </span>
-            )}
-          </NavLink>
+    <>
+      {/* Overlay Backdrop para Mobile */}
+      {mobileOpen && (
+        <div 
+          onClick={onMobileClose}
+          className="fixed inset-0 bg-black/70 backdrop-blur-xs z-40 lg:hidden animate-fadeIn"
+        />
+      )}
 
-          <button 
-            onClick={() => setCollapsed(!collapsed)}
-            className="w-6 h-6 rounded-lg border border-white/10 hover:border-[#1877F2] text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
-            title={collapsed ? "Expandir menu" : "Recolher menu"}
-          >
-            {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
-          </button>
-        </div>
+      <aside className={`h-screen bg-[#0D1424] border-r border-[#182238] flex flex-col justify-between transition-all duration-300 z-50 select-none ${
+        /* No mobile: gaveta fixa com slide. No desktop: posição normal inline */
+        mobileOpen 
+          ? 'fixed inset-y-0 left-0 w-64 shadow-2xl flex translate-x-0' 
+          : 'fixed inset-y-0 left-0 -translate-x-full lg:translate-x-0 lg:static ' + (collapsed ? 'lg:w-18' : 'lg:w-60')
+      }`}>
+        
+        {/* Top Brand Header */}
+        <div className="flex flex-col h-full overflow-hidden">
+          <div className="h-16 flex items-center justify-between px-5 border-b border-[#182238] shrink-0 bg-[#0D1424]">
+            <NavLink to="/" className="flex items-center gap-2.5 overflow-hidden">
+              <img 
+                src="/images/logo-primetrack.png" 
+                alt="PrimeTrack" 
+                className="w-8 h-8 rounded-lg object-contain shadow-md shadow-blue-500/20 shrink-0" 
+              />
+              {(!collapsed || mobileOpen) && (
+                <span className="text-lg font-bold tracking-tight text-white font-sans flex items-center">
+                  <span>Prime</span>
+                  <span className="text-[#1877F2]">Track</span>
+                </span>
+              )}
+            </NavLink>
 
-        {/* Navigation Items (Scrollable exactly like UTMify) */}
-        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1 scrollbar-thin bg-[#0D1424]">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = item.exact 
-              ? (location.pathname === '/dashboard' || location.pathname === '/')
-              : location.pathname === item.to || (item.to.includes('?') && location.pathname + location.search === item.to);
-
-            return (
-              <NavLink
-                key={item.label}
-                to={item.to}
-                title={collapsed ? item.label : undefined}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                  isActive
-                    ? 'bg-[#1877F2] text-white font-semibold shadow-sm shadow-blue-500/25'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
-                }`}
+            {/* Botão fechar no mobile / recolher no desktop */}
+            <div className="flex items-center">
+              <button 
+                onClick={onMobileClose}
+                className="lg:hidden p-1.5 rounded-lg border border-white/10 text-zinc-400 hover:text-white cursor-pointer"
+                title="Fechar menu"
               >
-                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-zinc-400'}`} />
-                {!collapsed && (
-                  <span className="truncate">{item.label}</span>
-                )}
-              </NavLink>
-            );
-          })}
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              <button 
+                onClick={() => setCollapsed(!collapsed)}
+                className="hidden lg:flex w-6 h-6 rounded-lg border border-white/10 hover:border-[#1877F2] text-zinc-400 hover:text-white items-center justify-center transition-colors cursor-pointer"
+                title={collapsed ? "Expandir menu" : "Recolher menu"}
+              >
+                {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Navigation Items (Scrollable exactly like UTMify) */}
+          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1 scrollbar-thin bg-[#0D1424]">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = item.exact 
+                ? (location.pathname === '/dashboard' || location.pathname === '/')
+                : location.pathname === item.to || (item.to.includes('?') && location.pathname + location.search === item.to);
+
+              return (
+                <NavLink
+                  key={item.label}
+                  to={item.to}
+                  title={collapsed && !mobileOpen ? item.label : undefined}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                    isActive
+                      ? 'bg-[#1877F2] text-white font-semibold shadow-sm shadow-blue-500/25'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-zinc-400'}`} />
+                  {(!collapsed || mobileOpen) && (
+                    <span className="truncate">{item.label}</span>
+                  )}
+                </NavLink>
+              );
+            })}
+          </div>
+
+          {/* Footer with logout option */}
+          <div className="p-3 border-t border-[#182238] shrink-0">
+            <button 
+              type="button"
+              onClick={async () => {
+                await logoutUser();
+                navigate('/login', { replace: true });
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+            >
+              <LogOut className="w-4 h-4 shrink-0" />
+              {(!collapsed || mobileOpen) && <span>Sair da conta</span>}
+            </button>
+          </div>
+
         </div>
 
-        {/* Footer with logout option */}
-        <div className="p-3 border-t border-[#182238] shrink-0">
-          <button 
-            type="button"
-            onClick={async () => {
-              await logoutUser();
-              navigate('/login', { replace: true });
-            }}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
-          >
-            <LogOut className="w-4 h-4 shrink-0" />
-            {!collapsed && <span>Sair da conta</span>}
-          </button>
-        </div>
-
-      </div>
-
-    </aside>
+      </aside>
+    </>
   );
 }
