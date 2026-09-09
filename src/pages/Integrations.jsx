@@ -900,43 +900,55 @@ export default function Integrations() {
               </div>
             ) : (
               <div className="space-y-3">
-                {connectedProfiles.map((prof) => (
-                  <div key={prof.id} className="p-4 rounded-xl bg-[#070D1A] border border-[#13233E] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-[#1A6DFF] text-white font-bold text-sm flex items-center justify-center font-mono shrink-0 shadow-md">
-                        {prof.initial}
+                {connectedProfiles.map((prof) => {
+                  const isMuriloBackup = (prof.name || '').toLowerCase().includes('murilo');
+                  return (
+                    <div key={prof.id} className="p-4 rounded-xl bg-[#070D1A] border border-[#13233E] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-[#1A6DFF] text-white font-bold text-sm flex items-center justify-center font-mono shrink-0 shadow-md">
+                          {prof.initial}
+                        </div>
+                        <div>
+                          <div className="font-bold text-white text-xs flex items-center gap-2 flex-wrap">
+                            <span>{prof.name}</span>
+                            {isMuriloBackup && (
+                              <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-mono font-bold flex items-center gap-1">
+                                <ShieldAlert className="w-3 h-3 text-amber-400" />
+                                <span>Perfil Backup (Seguro)</span>
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] font-mono text-zinc-400 mt-0.5">
+                            ID: {prof.id} · {prof.accountsCount} conta(s) de anúncio
+                          </div>
+                          {isMuriloBackup ? (
+                            <div className="text-[10px] text-zinc-500 mt-1 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                              <span>Modo Leitura e Sincronização Seguro: Nenhuma escrita no Meta é disparada através deste perfil backup.</span>
+                            </div>
+                          ) : (
+                            <div className="text-[10px] text-emerald-400 mt-1 flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                              <span>Acesso Total: Permissão para leitura, edição de orçamento, duplicação e gerenciamento de campanhas.</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-bold text-white text-xs flex items-center gap-2 flex-wrap">
-                          <span>{prof.name}</span>
-                          <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-mono font-bold flex items-center gap-1">
-                            <ShieldAlert className="w-3 h-3 text-amber-400" />
-                            <span>Perfil Backup (Seguro)</span>
-                          </span>
-                        </div>
-                        <div className="text-[11px] font-mono text-zinc-400 mt-0.5">
-                          ID: {prof.id} · {prof.accountsCount} conta(s) de anúncio
-                        </div>
-                        <div className="text-[10px] text-zinc-500 mt-1 flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                          <span>Modo Leitura e Sincronização Seguro: Nenhuma escrita no Meta é disparada através desta conta.</span>
-                        </div>
-                      </div>
-                    </div>
 
-                    <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
-                      <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold">
-                        ● Conectado
-                      </span>
-                      <button 
-                        onClick={() => handleDisconnect(prof.id)}
-                        className="px-3 py-1 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 text-xs font-semibold transition-all cursor-pointer"
-                      >
-                        Desconectar
-                      </button>
+                      <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+                        <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold">
+                          ● Conectado
+                        </span>
+                        <button 
+                          onClick={() => handleDisconnect(prof.id)}
+                          className="px-3 py-1 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/20 text-xs font-semibold transition-all cursor-pointer"
+                        >
+                          Desconectar
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

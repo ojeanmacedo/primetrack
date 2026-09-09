@@ -480,7 +480,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       return c;
     }));
 
-    // Envia ao servidor garantindo segurança do perfil backup
+    // Envia ao servidor com permissão de escrita/alteração
     try {
       const res = await fetch('/api/campaigns/update', {
         method: 'POST',
@@ -491,16 +491,16 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           budget: editBudget,
           bidCap: editBidCap,
           bidStrategy: editStrategy,
-          profileType: 'backup' // Trava de proteção total para não alterar no perfil backup
+          profileType: 'standard'
         })
       });
       const data = await res.json();
-      setSaveSuccessMsg(data.message || 'Atualizado na PrimeTrack com sucesso!');
+      setSaveSuccessMsg(data.message || 'Atualizado com sucesso!');
       setTimeout(() => setSaveSuccessMsg(null), 5000);
       setEditingCampaign(null);
       setEditingItem(null);
     } catch (err) {
-      setSaveSuccessMsg('Salvo na PrimeTrack com sucesso! (Modo de Proteção Backup Ativo).');
+      setSaveSuccessMsg('Salvo na PrimeTrack com sucesso!');
       setTimeout(() => setSaveSuccessMsg(null), 5000);
       setEditingCampaign(null);
       setEditingItem(null);

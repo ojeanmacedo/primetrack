@@ -1726,10 +1726,10 @@ app.post('/api/meta/disconnect', async (req, res) => {
   }
 });
 
-// F. Atualizar Campanha, Orçamento e Bid Cap (com Trava de Perfil Backup)
+// F. Atualizar Campanha, Orçamento e Bid Cap
 app.post('/api/campaigns/update', (req, res) => {
   try {
-    const { id, name, budget, bidCap, bidStrategy, profileType = 'backup' } = req.body;
+    const { id, name, budget, bidCap, bidStrategy, profileType } = req.body;
     const campaigns = db.get('campaigns') || [];
     const index = campaigns.findIndex(c => c.id === id || c.name === 'TESTE MI');
 
@@ -1761,10 +1761,9 @@ app.post('/api/campaigns/update', (req, res) => {
     }
     db.set('campaigns', campaigns);
 
-    // SEGURANÇA: Se o perfil for backup, NUNCA executa escrita na Graph API do Meta
-    const isBackupProfile = profileType === 'backup' || true;
+    const isBackupProfile = profileType === 'backup';
     const message = isBackupProfile 
-      ? '🛡️ Trava de Segurança: Perfil conectado é BACKUP. O valor foi atualizado na PrimeTrack com sucesso. Nenhuma alteração foi enviada para o Meta Ads através deste perfil para proteger seu ativo contra bloqueios.'
+      ? '🛡️ Trava de Segurança: Perfil conectado é BACKUP. O valor foi atualizado na PrimeTrack com sucesso.'
       : 'Alteração salva e sincronizada com sucesso no Meta Ads.';
 
     res.json({
