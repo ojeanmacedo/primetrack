@@ -892,12 +892,16 @@ app.get('/api/campaigns', async (req, res) => {
       .map(a => String(a.accountId || a.id).replace('act_', ''))
   );
 
-  const activeOnlyCampaigns = activeAccountIds.size > 0 
+  let activeOnlyCampaigns = activeAccountIds.size > 0 
     ? allCampaigns.filter(c => {
         const cAdId = String(c.adAccountId || '').replace('act_', '');
         return activeAccountIds.has(cAdId);
       })
     : allCampaigns;
+
+  if (activeOnlyCampaigns.length === 0 && allCampaigns.length > 0) {
+    activeOnlyCampaigns = allCampaigns;
+  }
 
   const allOrders = await getAllOrders();
   const approvedOrders = allOrders.filter(o => o.status === 'approved' || o.status === 'paid' || o.status === 'pago');
@@ -1484,16 +1488,18 @@ app.get('/api/meta/status', async (req, res) => {
         }));
       }
 
-      // Lê contas ativas salvas
+      // Lê contas ativas salvas em todas as conexões
       let activeSet = new Set();
-      if (connections[0] && connections[0].email) {
-        try {
-          const parsedMeta = JSON.parse(connections[0].email);
-          if (parsedMeta && Array.isArray(parsedMeta.activeAccounts)) {
-            activeSet = new Set(parsedMeta.activeAccounts);
-          }
-        } catch (e) {}
-      }
+      connections.forEach(c => {
+        if (c.email) {
+          try {
+            const parsedMeta = JSON.parse(c.email);
+            if (parsedMeta && Array.isArray(parsedMeta.activeAccounts)) {
+              parsedMeta.activeAccounts.forEach(acc => activeSet.add(String(acc).replace('act_', '')));
+            }
+          } catch (e) {}
+        }
+      });
 
       const { data: supaAccs } = await supabaseAdmin.from('ad_accounts').select('*');
       if (supaAccs && supaAccs.length > 0) {
@@ -1508,7 +1514,7 @@ app.get('/api/meta/status', async (req, res) => {
             status: a.status,
             amountSpent: String(a.amount_spent || '0.00'),
             balance: String(a.balance || '0.00'),
-            syncActive: activeSet.has(cleanId)
+            syncActive: activeSet.size === 0 ? true : activeSet.has(cleanId)
           };
         });
       }
@@ -1521,6 +1527,41 @@ app.get('/api/meta/status', async (req, res) => {
     }
     if (adAccounts.length === 0) {
       adAccounts = db.get('ad_accounts') || [];
+    }
+
+    // Busca contas diretamente da Meta para cada conexão caso alguma BM nova tenha sido vinculada
+    if (connections.length > 0) {
+      const knownIds = new Set(adAccounts.map(a => (a.accountId || a.id || '').replace('act_', '')));
+      await Promise.all(
+        connections.map(async (conn) => {
+          const token = conn.accessToken || conn.access_token;
+          if (token) {
+            try {
+              const liveAccs = await fetchAdAccounts(token);
+              if (Array.isArray(liveAccs)) {
+                liveAccs.forEach(acc => {
+                  const clean = (acc.accountId || acc.id || '').replace('act_', '');
+                  if (!knownIds.has(clean)) {
+                    knownIds.add(clean);
+                    adAccounts.push({
+                      id: acc.id || `act_${clean}`,
+                      accountId: clean,
+                      name: acc.name,
+                      businessName: acc.businessName,
+                      currency: acc.currency,
+                      status: acc.status,
+                      amountSpent: String(acc.amountSpent || '0.00'),
+                      balance: String(acc.balance || '0.00'),
+                      syncActive: true
+                    });
+                  }
+                });
+              }
+            } catch (e) {}
+          }
+        })
+      );
+      db.set('ad_accounts', adAccounts);
     }
 
     // Oculta o token completo por segurança
@@ -1656,7 +1697,7 @@ async function executeMetaSync({ datePreset = 'today', timeRange = null, account
     return { success: false, error: 'Nenhum perfil do Facebook conectado ainda.', syncedCampaigns: 0 };
   }
 
-  // Mapeia todas as contas para seus respectivos tokens de conexão
+  // Mapeia todas as contas para seus respectivos tokens de conexão e descobre contas novas
   const accountTokenMap = new Map(); // cleanId/act_Id -> token
   await Promise.all(
     connections.map(async (conn) => {
@@ -1669,12 +1710,28 @@ async function executeMetaSync({ datePreset = 'today', timeRange = null, account
               const clean = (acc.accountId || acc.id || '').replace('act_', '');
               accountTokenMap.set(clean, token);
               accountTokenMap.set(`act_${clean}`, token);
+
+              // Garante que a conta conste em allAdAccounts
+              if (!allAdAccounts.some(a => (a.accountId || a.id || '').replace('act_', '') === clean)) {
+                allAdAccounts.push({
+                  id: acc.id || `act_${clean}`,
+                  accountId: clean,
+                  name: acc.name,
+                  businessName: acc.businessName,
+                  currency: acc.currency,
+                  status: acc.status,
+                  amountSpent: String(acc.amountSpent || '0.00'),
+                  balance: String(acc.balance || '0.00'),
+                  syncActive: true
+                });
+              }
             });
           }
         } catch (e) {}
       }
     })
   );
+  db.set('ad_accounts', allAdAccounts);
 
   const fallbackToken = connections[0]?.accessToken || connections[0]?.access_token;
 
@@ -1691,9 +1748,14 @@ async function executeMetaSync({ datePreset = 'today', timeRange = null, account
     targetAccounts = allAdAccounts.filter(a => a.syncActive === true);
   }
 
-  // Fallback de segurança: Se nenhuma conta está marcada com syncActive, mas temos contas disponíveis, usa as contas ativas do status da Meta
+  // Fallback de segurança: Se nenhuma conta está marcada com syncActive, usa todas as contas ativas do status da Meta
   if (targetAccounts.length === 0 && allAdAccounts.length > 0) {
     targetAccounts = allAdAccounts.filter(a => a.status === 'Ativa' || a.status === 'ACTIVE');
+  }
+
+  // Se ainda estiver vazio, usa todas as contas disponíveis
+  if (targetAccounts.length === 0 && allAdAccounts.length > 0) {
+    targetAccounts = allAdAccounts;
   }
 
   // Se nenhuma conta estiver ativa nas integrações, não puxa nada
@@ -1816,10 +1878,14 @@ app.post('/api/meta/sync', async (req, res) => {
         .map(a => String(a.accountId || a.id).replace('act_', ''))
     );
 
-    const activeOnlyCampaigns = (result.campaigns || []).filter(c => {
+    let activeOnlyCampaigns = (result.campaigns || []).filter(c => {
       const cAdId = String(c.adAccountId || '').replace('act_', '');
       return activeAccountIds.has(cAdId);
     });
+
+    if (activeOnlyCampaigns.length === 0 && (result.campaigns || []).length > 0) {
+      activeOnlyCampaigns = result.campaigns;
+    }
 
     const approvedOrders = await getApprovedOrders();
 

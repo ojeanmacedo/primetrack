@@ -996,9 +996,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       }
       return c.accountName === accountFilter || cAdId === accountFilter;
     }
-    if (adAccountsList.length > 0) {
-      return adAccountsList.some(acc => cAdId === String(acc.id));
-    }
+    // Quando 'Todas as Contas' está selecionado, exibe todas as campanhas retornadas da Meta
     return true;
   });
 
