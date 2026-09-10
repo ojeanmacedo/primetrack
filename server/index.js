@@ -180,25 +180,27 @@ app.get('/api/pixels', async (req, res) => {
   try {
     const { data } = await supabaseAdmin.from('pixels').select('*');
     if (data && data.length > 0) {
-      const mapped = data.map(p => {
-        let extra = {};
-        try { extra = JSON.parse(p.domain); } catch(e){}
-        return {
-          id: p.id,
-          pixelId: p.id,
-          name: p.name,
-          domains: extra.domain || '*',
-          metaPixelId: extra.metaPixelId || '',
-          metaPixels: extra.metaPixels || [],
-          capiToken: extra.capiToken || '',
-          capiTokenRaw: extra.capiTokenRaw || extra.capiToken || '',
-          icType: extra.icType || 'css',
-          icValue: extra.icValue || '',
-          icRule: extra.icRule || '',
-          status: p.status === 'active' ? 'Ativo' : p.status,
-          createdAt: p.created_at
-        };
-      });
+      const mapped = data
+        .filter(p => !p.id.startsWith('push_sub_')) // Filtra tokens de push da Apple/Chrome
+        .map(p => {
+          let extra = {};
+          try { extra = JSON.parse(p.domain); } catch(e){}
+          return {
+            id: p.id,
+            pixelId: p.id,
+            name: p.name,
+            domains: extra.domain || '*',
+            metaPixelId: extra.metaPixelId || '',
+            metaPixels: extra.metaPixels || [],
+            capiToken: extra.capiToken || '',
+            capiTokenRaw: extra.capiTokenRaw || extra.capiToken || '',
+            icType: extra.icType || 'css',
+            icValue: extra.icValue || '',
+            icRule: extra.icRule || '',
+            status: p.status === 'active' ? 'Ativo' : p.status,
+            createdAt: p.created_at
+          };
+        });
       return res.json(mapped);
     }
   } catch (e) {}
