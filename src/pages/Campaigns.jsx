@@ -2792,44 +2792,47 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         </div>
       )}
 
-      {/* ── MODAL DE CONFIRMAÇÃO DE EXCLUSÃO (IN-APP) ── */}
+      {/* ── MODAL DE CONFIRMAÇÃO DE EXCLUSÃO (IN-APP PRIMETRACK AZUL) ── */}
       {showDeleteConfirmModal && (
         <div 
-          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in"
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in"
           onClick={() => !bulkProcessing && setShowDeleteConfirmModal(false)}
         >
           <div 
-            className="relative w-full max-w-[420px] bg-[#0A1426] border border-red-500/30 rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 text-zinc-200"
+            className="relative w-full max-w-[440px] bg-[#0A1426] border border-[#13233E] rounded-3xl p-6 shadow-2xl shadow-blue-950/40 animate-in zoom-in-95 text-zinc-200 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header com Ícone de Alerta */}
-            <div className="flex items-start gap-3.5 mb-4">
-              <div className="w-10 h-10 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0">
-                <Trash2 className="w-5 h-5" />
+            {/* Efeito Glow Azul de Fundo */}
+            <div className="absolute top-0 right-0 w-36 h-36 bg-[#0066FF]/10 rounded-full blur-3xl pointer-events-none" />
+
+            {/* Header com Ícone Azul da PrimeTrack */}
+            <div className="flex items-start gap-4 mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-[#0066FF]/15 border border-[#0066FF]/30 flex items-center justify-center text-[#0066FF] shrink-0 shadow-lg shadow-[#0066FF]/10">
+                <Trash2 className="w-6 h-6" />
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-white text-base">
+                <h3 className="font-bold text-white text-lg leading-tight">
                   Excluir {activeSelectedSet.size} {subTab.toLowerCase()}?
                 </h3>
-                <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-                  Esta ação excluirá permanentemente os itens selecionados do seu <strong className="text-white font-semibold">Gerenciador de Anúncios da Meta</strong> e do painel da PrimeTrack.
+                <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">
+                  Os itens selecionados serão excluídos no <strong className="text-white font-medium">Gerenciador de Anúncios da Meta</strong> e na plataforma PrimeTrack.
                 </p>
               </div>
             </div>
 
-            {/* Caixa de Aviso */}
-            <div className="p-3 rounded-2xl bg-[#070D1A] border border-[#13233E] text-[11px] text-zinc-400 mb-5 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>Essa operação é irreversível e não poderá ser desfeita.</span>
+            {/* Caixa Informativa no Padrão do Painel */}
+            <div className="p-3.5 rounded-2xl bg-[#070D1A] border border-[#13233E] text-xs text-zinc-300 mb-6 flex items-center gap-2.5">
+              <AlertCircle className="w-4 h-4 text-[#0066FF] shrink-0" />
+              <span>Esta operação é definitiva e não poderá ser revertida.</span>
             </div>
 
             {/* Botões de Ação */}
-            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#13233E]">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#13233E]/80">
               <button
                 type="button"
                 disabled={bulkProcessing}
                 onClick={() => setShowDeleteConfirmModal(false)}
-                className="px-4 py-2 rounded-xl border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer text-xs font-semibold"
+                className="px-4 py-2.5 rounded-xl border border-white/10 hover:border-white/20 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-all cursor-pointer text-xs font-semibold"
               >
                 Cancelar
               </button>
@@ -2837,7 +2840,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 type="button"
                 disabled={bulkProcessing}
                 onClick={handleExecuteBulkDelete}
-                className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold transition-all shadow-lg shadow-red-600/30 cursor-pointer disabled:opacity-50 text-xs flex items-center gap-2"
+                className="px-5 py-2.5 rounded-xl bg-[#0066FF] hover:bg-[#0052cc] text-white font-bold transition-all shadow-lg shadow-[#0066FF]/30 hover:shadow-[#0066FF]/50 cursor-pointer disabled:opacity-50 text-xs flex items-center gap-2"
               >
                 {bulkProcessing ? (
                   <>
