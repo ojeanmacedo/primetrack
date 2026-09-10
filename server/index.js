@@ -129,12 +129,14 @@ app.get('/api/pixel/config', async (req, res) => {
         let metaPixelId = '';
         let icRule = null;
         let icType = 'css';
+        let metaPixels = [];
 
         try {
           const parsed = JSON.parse(data.domain);
           metaPixelId = parsed.metaPixelId || '';
           icRule = parsed.icValue || parsed.icRule || null;
           icType = parsed.icType || 'css';
+          metaPixels = parsed.metaPixels || [];
         } catch (e) {
           metaPixelId = data.domain || '';
         }
@@ -142,6 +144,7 @@ app.get('/api/pixel/config', async (req, res) => {
         foundPixel = {
           pixelId: data.id,
           metaPixelId,
+          metaPixels,
           icRule,
           icType
         };
@@ -156,9 +159,18 @@ app.get('/api/pixel/config', async (req, res) => {
     ? foundPixel.metaPixelId 
     : (/^\d{10,25}$/.test(id) ? id : (settings.metaPixelId || defaultMetaPixel));
 
+  // Extrai lista de todos os Meta Pixel IDs configurados
+  let metaPixelIds = [];
+  if (foundPixel && Array.isArray(foundPixel.metaPixels) && foundPixel.metaPixels.length > 0) {
+    metaPixelIds = foundPixel.metaPixels.map(m => m.metaPixelId).filter(Boolean);
+  } else if (resolvedMetaPixelId) {
+    metaPixelIds = [resolvedMetaPixelId];
+  }
+
   res.json({
     pixelId: id,
     metaPixelId: resolvedMetaPixelId,
+    metaPixelIds: metaPixelIds,
     icRule: foundPixel ? (foundPixel.icValue || foundPixel.icRule) : '.btn-checkout',
     icType: foundPixel ? (foundPixel.icType || 'css') : 'css'
   });
@@ -177,6 +189,7 @@ app.get('/api/pixels', async (req, res) => {
           name: p.name,
           domains: extra.domain || '*',
           metaPixelId: extra.metaPixelId || '',
+          metaPixels: extra.metaPixels || [],
           capiToken: extra.capiToken || '',
           capiTokenRaw: extra.capiTokenRaw || extra.capiToken || '',
           icType: extra.icType || 'css',
@@ -208,6 +221,7 @@ app.post('/api/pixels', async (req, res) => {
         const configJson = JSON.stringify({
           domain: px.domains || '*',
           metaPixelId: px.metaPixelId || '',
+          metaPixels: px.metaPixels || [],
           capiToken: px.capiToken || px.capiTokenRaw || '',
           capiTokenRaw: px.capiTokenRaw || px.capiToken || '',
           icType: px.icType || 'css',
@@ -463,12 +477,31 @@ app.all([
 
     let capiResult = { success: false, emq: { score: 7.3 }, response: null };
 
-    if (specificPixel && (specificPixel.metaPixelId || specificPixel.pixelId)) {
-      const pxId = specificPixel.metaPixelId || specificPixel.pixelId;
-      const pxToken = specificPixel.capiTokenRaw || specificPixel.capiToken || settings.metaAccessToken;
+    // Monta a lista de todos os Pixels Meta que devem receber o CAPI
+    const metaPixelsToSend = [];
+    if (Array.isArray(specificPixel.metaPixels) && specificPixel.metaPixels.length > 0) {
+      specificPixel.metaPixels.forEach(mp => {
+        if (mp.metaPixelId) {
+          metaPixelsToSend.push({
+            pixelId: mp.metaPixelId,
+            accessToken: mp.capiToken || specificPixel.capiTokenRaw || specificPixel.capiToken || settings.metaAccessToken
+          });
+        }
+      });
+    } else if (specificPixel.metaPixelId || specificPixel.pixelId) {
+      metaPixelsToSend.push({
+        pixelId: specificPixel.metaPixelId || specificPixel.pixelId,
+        accessToken: specificPixel.capiTokenRaw || specificPixel.capiToken || settings.metaAccessToken
+      });
+    }
+
+    // Dispara CAPI para todos os Pixels Meta vinculados a esta configuração
+    for (const targetMeta of metaPixelsToSend) {
+      const pxId = targetMeta.pixelId;
+      const pxToken = targetMeta.accessToken;
 
       if (pxToken && pxToken.startsWith('EAA')) {
-        capiResult = await sendCapiEvent({
+        const singleCapi = await sendCapiEvent({
           pixelId: pxId,
           accessToken: pxToken,
           eventName: 'Purchase',
@@ -496,6 +529,9 @@ app.all([
           },
           testEventCode: settings.testEventCode
         });
+        if (singleCapi && singleCapi.success) {
+          capiResult = singleCapi;
+        }
       }
     }
 

@@ -73,7 +73,7 @@
   var configuredIcType = 'css';
   var configuredIcRule = null;
   var lastIcTime = 0;
-  var metaPixelId = null;
+  var metaPixelIdsList = [];
 
   function getCookie(name) {
     var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
@@ -222,10 +222,14 @@
       });
     }
 
-    if (window.fbq && metaPixelId) {
-      try {
-        window.fbq('track', 'InitiateCheckout', {}, { eventID: icEventId });
-      } catch (e) {}
+    if (window.fbq && metaPixelIdsList.length > 0) {
+      for (var m = 0; m < metaPixelIdsList.length; m++) {
+        try {
+          window.fbq('trackSingle', metaPixelIdsList[m], 'InitiateCheckout', {}, { eventID: icEventId });
+        } catch (e) {
+          try { window.fbq('track', 'InitiateCheckout', {}, { eventID: icEventId }); } catch (err) {}
+        }
+      }
     }
 
     if (callback) setTimeout(callback, 150);
@@ -378,7 +382,10 @@
   function initFbq(fbId) {
     if (!fbId || !/^\d{10,25}$/.test(String(fbId))) return;
     try {
-      metaPixelId = String(fbId);
+      var strFbId = String(fbId);
+      if (metaPixelIdsList.indexOf(strFbId) === -1) {
+        metaPixelIdsList.push(strFbId);
+      }
       var w = window, d = document, s = 'script';
       if (!w.fbq) {
         var fb = w.fbq = function() {
@@ -395,8 +402,8 @@
         var firstScript = d.getElementsByTagName(s)[0];
         firstScript.parentNode.insertBefore(el, firstScript);
       }
-      w.fbq('init', metaPixelId);
-      w.fbq('track', 'PageView', {}, { eventID: pvEventId });
+      w.fbq('init', strFbId);
+      w.fbq('trackSingle', strFbId, 'PageView', {}, { eventID: pvEventId });
     } catch (e) {}
   }
 
@@ -441,7 +448,13 @@
               var cfg = JSON.parse(xhr.responseText);
               if (cfg.icRule) configuredIcRule = cfg.icRule;
               if (cfg.icType) configuredIcType = cfg.icType;
-              if (cfg.metaPixelId) initFbq(cfg.metaPixelId);
+              if (Array.isArray(cfg.metaPixelIds) && cfg.metaPixelIds.length > 0) {
+                for (var m = 0; m < cfg.metaPixelIds.length; m++) {
+                  initFbq(cfg.metaPixelIds[m]);
+                }
+              } else if (cfg.metaPixelId) {
+                initFbq(cfg.metaPixelId);
+              }
             } catch (e) {}
             injectParametersIntoCheckoutLinks();
           }
