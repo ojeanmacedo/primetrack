@@ -782,23 +782,53 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, targe
                         }
                       }
 
-                      // Se for cross-account, hashes de imagem da conta de origem não existem na conta de destino
-                      // Convertemos para picture / image_url para o Facebook importar a mídia automaticamente
+                      // Se for cross-account, mídias (video_id e image_hash) da conta de origem não existem na conta de destino
+                      // Se o criativo tiver video_id privado, busca a URL do vídeo (source) e faz o upload/criação do vídeo na conta de destino
                       if (isCrossAccount) {
-                        const fallbackImgUrl = ad.creative.image_url || ad.creative.thumbnail_url;
+                        if (specCopy.video_data) {
+                          const oldVideoId = specCopy.video_data.video_id || ad.creative.video_id;
+                          if (oldVideoId) {
+                            try {
+                              // Busca a URL pública do vídeo MP4 na conta de origem
+                              const srcVidRes = await fetch(`${GRAPH_BASE_URL}/${oldVideoId}?fields=source,picture&access_token=${accessToken}`);
+                              const srcVidData = await srcVidRes.json();
+                              const directVideoUrl = srcVidData.source;
+
+                              if (directVideoUrl) {
+                                // Cria o vídeo na conta de destino usando destToken
+                                const advVideoRes = await fetch(`${GRAPH_BASE_URL}/${formattedActId}/advideos`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                                  body: new URLSearchParams({
+                                    access_token: destToken,
+                                    file_url: directVideoUrl
+                                  }).toString()
+                                });
+                                const advVideoData = await advVideoRes.json();
+                                if (advVideoData.id) {
+                                  specCopy.video_data.video_id = advVideoData.id;
+                                }
+                              }
+                            } catch (vidTransErr) {
+                              console.warn(`[Video Transfer Error]:`, vidTransErr.message);
+                            }
+                          }
+
+                          const fallbackImgUrl = ad.creative.image_url || ad.creative.thumbnail_url;
+                          if (fallbackImgUrl && !specCopy.video_data.image_url) {
+                            specCopy.video_data.image_url = fallbackImgUrl;
+                          }
+                          // Remove image_hash do thumbnail da conta antiga
+                          delete specCopy.video_data.image_hash;
+                        }
+
                         if (specCopy.link_data) {
+                          const fallbackImgUrl = ad.creative.image_url || ad.creative.thumbnail_url;
                           if (fallbackImgUrl && !specCopy.link_data.picture) {
                             specCopy.link_data.picture = fallbackImgUrl;
                           }
                           // Remove image_hash local da conta antiga
                           delete specCopy.link_data.image_hash;
-                        }
-                        if (specCopy.video_data) {
-                          if (fallbackImgUrl && !specCopy.video_data.image_url) {
-                            specCopy.video_data.image_url = fallbackImgUrl;
-                          }
-                          // Remove image_hash do thumbnail do vídeo da conta antiga
-                          delete specCopy.video_data.image_hash;
                         }
                       }
 
