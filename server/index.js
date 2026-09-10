@@ -723,6 +723,9 @@ app.get('/api/stats', (req, res) => {
 const campaignsCache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
 
+// Deduplicação de alertas de perfil bloqueado: avisa apenas 1 vez por perfil
+const notifiedBlockedProfiles = new Set();
+
 function sanitizeAttribution(rawAttr) {
   const attr = { ...(rawAttr || {}) };
   let camp = attr.campaign || '';
@@ -1577,15 +1580,21 @@ app.post('/api/meta/refresh-accounts', async (req, res) => {
           // Verifica se o perfil continua válido na Graph API
           const profileCheck = await fetchUserProfile(conn.access_token).catch(() => null);
           if (!profileCheck) {
-            // Perfil bloqueado ou token revogado pela Meta!
-            await sendSalesNotification({
-              title: '🚨 PERFIL BLOQUEADO!',
-              body: `O perfil ${conn.name || 'do Facebook'} foi bloqueado ou perdeu acesso ao Meta Ads. Conecte outro perfil para manter seu gerenciamento!`,
-              icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
-              tag: `profile_blocked_${conn.id}`,
-              data: { url: '/integracoes' }
-            });
+            // Perfil bloqueado ou token revogado pela Meta! Notifica apenas 1 vez por perfil
+            if (!notifiedBlockedProfiles.has(conn.id)) {
+              notifiedBlockedProfiles.add(conn.id);
+              await sendSalesNotification({
+                title: '🚨 PERFIL BLOQUEADO!',
+                body: `O perfil ${conn.name || 'do Facebook'} foi bloqueado ou perdeu acesso ao Meta Ads. Conecte outro perfil para manter seu gerenciamento!`,
+                icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
+                tag: `profile_blocked_${conn.id}`,
+                data: { url: '/integracoes' }
+              });
+            }
             continue;
+          } else {
+            // Se o perfil voltou a funcionar, reseta o alerta
+            notifiedBlockedProfiles.delete(conn.id);
           }
 
           const fresh = await fetchAdAccounts(conn.access_token);
@@ -3013,13 +3022,18 @@ if (process.env.VERCEL !== '1') {
               const profileCheck = await fetchUserProfile(token).catch(err => ({ error: err.message }));
               if (profileCheck && profileCheck.error) {
                 console.warn(`[Meta Monitor] 🚨 Perfil ${conn.name} bloqueado ou token revogado!`);
-                await sendSalesNotification({
-                  title: '🚨 PERFIL BLOQUEADO!',
-                  body: `O perfil ${conn.name || 'do Facebook'} foi bloqueado ou perdeu acesso ao Meta Ads. Conecte outro perfil para manter seu gerenciamento!`,
-                  icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
-                  tag: `profile_blocked_${conn.id}`,
-                  data: { url: '/integracoes' }
-                });
+                if (!notifiedBlockedProfiles.has(conn.id)) {
+                  notifiedBlockedProfiles.add(conn.id);
+                  await sendSalesNotification({
+                    title: '🚨 PERFIL BLOQUEADO!',
+                    body: `O perfil ${conn.name || 'do Facebook'} foi bloqueado ou perdeu acesso ao Meta Ads. Conecte outro perfil para manter seu gerenciamento!`,
+                    icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
+                    tag: `profile_blocked_${conn.id}`,
+                    data: { url: '/integracoes' }
+                  });
+                }
+              } else if (profileCheck && !profileCheck.error) {
+                notifiedBlockedProfiles.delete(conn.id);
               }
             } catch (pErr) {}
           }
