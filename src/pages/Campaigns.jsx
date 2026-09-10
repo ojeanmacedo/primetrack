@@ -822,6 +822,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   };
 
   // Carrega perfis e contas para duplicação
+  const [loadingTargets, setLoadingTargets] = useState(false);
   const handleOpenDuplicateModal = async () => {
     setBulkMenuOpen(false);
     setShowDuplicateModal(true);
@@ -830,6 +831,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setSelectedTargetAdAccount(null);
     setSelectedTargetPixelId('');
     setSelectedTargetPageId('');
+    setLoadingTargets(true);
 
     // Carregamento inicial de fallback pelo cache local salvo de contas
     const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
@@ -844,7 +846,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             businessName: a.bm || 'BM Principal',
             currency: a.currency || 'BRL',
             status: a.status || 'Ativa',
-            pixels: []
+            pixels: [],
+            pages: []
           })));
         }
       } catch (e) {}
@@ -864,6 +867,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       }
     } catch (e) {
       console.warn('Erro ao carregar contas de destino:', e);
+    } finally {
+      setLoadingTargets(false);
     }
   };
 
@@ -2507,11 +2512,17 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     // Mesma conta: busca os pixels da conta ativa
                     const currentActId = (adAccountsList[0]?.id || '').replace('act_', '');
                     const foundAcc = availableAccounts.find(a => String(a.id).replace('act_', '') === currentActId);
-                    if (foundAcc && foundAcc.pixels) {
+                    if (foundAcc && foundAcc.pixels && foundAcc.pixels.length > 0) {
                       relevantPixels = foundAcc.pixels;
                     } else {
-                      // Coleta todos os pixels disponíveis das contas
-                      relevantPixels = availableAccounts.flatMap(a => a.pixels || []);
+                      // Coleta todos os pixels disponíveis de todas as contas conectadas
+                      const pixelMap = new Map();
+                      availableAccounts.forEach(a => {
+                        (a.pixels || []).forEach(px => {
+                          if (px.id && !pixelMap.has(px.id)) pixelMap.set(px.id, px);
+                        });
+                      });
+                      relevantPixels = Array.from(pixelMap.values());
                     }
                   }
 
@@ -2567,7 +2578,18 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     const profile = availableProfiles.find(p => p.id === selectedTargetAdAccount.profileId);
                     relevantPages = profile?.pages || selectedTargetAdAccount.pages || [];
                   } else {
-                    relevantPages = availableProfiles.flatMap(p => p.pages || []);
+                    const pageMap = new Map();
+                    availableProfiles.forEach(p => {
+                      (p.pages || []).forEach(pg => {
+                        if (pg.id && !pageMap.has(pg.id)) pageMap.set(pg.id, pg);
+                      });
+                    });
+                    availableAccounts.forEach(a => {
+                      (a.pages || []).forEach(pg => {
+                        if (pg.id && !pageMap.has(pg.id)) pageMap.set(pg.id, pg);
+                      });
+                    });
+                    relevantPages = Array.from(pageMap.values());
                   }
 
                   return (

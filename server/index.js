@@ -2151,16 +2151,16 @@ app.get('/api/campaigns/duplicate-targets', async (req, res) => {
     const profilesWithAccounts = await Promise.all(
       connections.map(async (conn) => {
         let profileAccounts = [];
+        let profilePages = [];
         const token = conn.access_token || conn.accessToken;
         
         if (token) {
           try {
-            // Busca páginas do perfil (me/accounts) e páginas através das contas
-            let profilePages = [];
+            // 1. Tenta buscar páginas do perfil (me/accounts)
             try {
               const pagesRes = await fetch(`https://graph.facebook.com/v19.0/me/accounts?fields=id,name,category,is_published&limit=50&access_token=${token}`);
               const pagesData = await pagesRes.json();
-              if (pagesData && Array.isArray(pagesData.data)) {
+              if (pagesData && Array.isArray(pagesData.data) && pagesData.data.length > 0) {
                 profilePages = pagesData.data.map(p => ({
                   id: p.id,
                   name: p.name,
@@ -2172,14 +2172,18 @@ app.get('/api/campaigns/duplicate-targets', async (req, res) => {
               console.warn(`[duplicate-targets] Erro ao buscar páginas do perfil ${conn.name}:`, pgErr.message);
             }
 
+            // 2. Busca contas de anúncio
             const freshAccs = await fetchAdAccounts(token);
             if (Array.isArray(freshAccs) && freshAccs.length > 0) {
-              // Carrega pixels de cada conta em paralelo
+              // Carrega pixels e páginas de cada conta em paralelo
+              const discoveredPageMap = new Map();
+
               profileAccounts = await Promise.all(
                 freshAccs.map(async (a) => {
                   const cleanAccId = String(a.accountId || (a.id || '').replace('act_', ''));
                   const actId = a.id?.startsWith('act_') ? a.id : `act_${a.accountId}`;
                   
+                  // Busca pixels
                   let pixels = [];
                   try {
                     const pxRes = await fetch(`https://graph.facebook.com/v19.0/${actId}/adspixels?fields=id,name,is_unavailable&access_token=${token}`);
@@ -2195,6 +2199,30 @@ app.get('/api/campaigns/duplicate-targets', async (req, res) => {
                     console.warn(`[duplicate-targets] Erro ao buscar pixels da conta ${actId}:`, pxErr.message);
                   }
 
+                  // Busca páginas ativas associadas aos criativos desta conta
+                  let accountPages = [];
+                  try {
+                    const crRes = await fetch(`https://graph.facebook.com/v19.0/${actId}/adcreatives?fields=object_story_spec,actor_id&limit=25&access_token=${token}`);
+                    const crData = await crRes.json();
+                    if (crData && Array.isArray(crData.data)) {
+                      for (const cr of crData.data) {
+                        const pid = cr.object_story_spec?.page_id || cr.actor_id;
+                        if (pid && !discoveredPageMap.has(pid)) {
+                          const pageObj = {
+                            id: pid,
+                            name: `Página ${pid}`,
+                            category: 'Página do Facebook',
+                            isPublished: true
+                          };
+                          discoveredPageMap.set(pid, pageObj);
+                          accountPages.push(pageObj);
+                        } else if (pid && discoveredPageMap.has(pid)) {
+                          accountPages.push(discoveredPageMap.get(pid));
+                        }
+                      }
+                    }
+                  } catch (crErr) {}
+
                   return {
                     id: cleanAccId,
                     actId: actId,
@@ -2205,10 +2233,15 @@ app.get('/api/campaigns/duplicate-targets', async (req, res) => {
                     profileId: String(conn.id),
                     profileName: conn.name,
                     pixels: pixels,
-                    pages: profilePages
+                    pages: accountPages
                   };
                 })
               );
+
+              // Agrega páginas descobertas se me/accounts não retornou nada
+              if (profilePages.length === 0 && discoveredPageMap.size > 0) {
+                profilePages = Array.from(discoveredPageMap.values());
+              }
             }
           } catch (fetchErr) {
             console.warn(`[duplicate-targets] Erro ao buscar contas do perfil ${conn.name}:`, fetchErr.message);
@@ -2239,7 +2272,8 @@ app.get('/api/campaigns/duplicate-targets', async (req, res) => {
           name: conn.name,
           avatarUrl: conn.avatar_url || conn.avatarUrl,
           accountsCount: profileAccounts.length,
-          accounts: profileAccounts
+          accounts: profileAccounts,
+          pages: profilePages
         };
       })
     );

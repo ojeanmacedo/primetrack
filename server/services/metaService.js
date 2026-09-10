@@ -844,8 +844,3 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, targe
 
   return { success: true, count: results.length, copiedCampaigns: results };
 }
-    }
-  }
-
-  return { success: true, count: results.length, copiedCampaigns: results };
-}
