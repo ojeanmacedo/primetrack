@@ -2143,16 +2143,40 @@ app.get('/api/campaigns/duplicate-targets', async (req, res) => {
           try {
             const freshAccs = await fetchAdAccounts(token);
             if (Array.isArray(freshAccs) && freshAccs.length > 0) {
-              profileAccounts = freshAccs.map(a => ({
-                id: String(a.accountId || (a.id || '').replace('act_', '')),
-                actId: a.id?.startsWith('act_') ? a.id : `act_${a.accountId}`,
-                name: a.name || `Conta ${a.accountId}`,
-                businessName: a.businessName || 'BM Principal',
-                currency: a.currency || 'BRL',
-                status: a.status === 'ACTIVE' || a.status === 'Ativa' ? 'Ativa' : (a.status || 'Ativa'),
-                profileId: String(conn.id),
-                profileName: conn.name
-              }));
+              // Carrega pixels de cada conta em paralelo
+              profileAccounts = await Promise.all(
+                freshAccs.map(async (a) => {
+                  const cleanAccId = String(a.accountId || (a.id || '').replace('act_', ''));
+                  const actId = a.id?.startsWith('act_') ? a.id : `act_${a.accountId}`;
+                  
+                  let pixels = [];
+                  try {
+                    const pxRes = await fetch(`https://graph.facebook.com/v19.0/${actId}/adspixels?fields=id,name,is_unavailable&access_token=${token}`);
+                    const pxData = await pxRes.json();
+                    if (pxData && Array.isArray(pxData.data)) {
+                      pixels = pxData.data.map(px => ({
+                        id: px.id,
+                        name: px.name || `Pixel ${px.id}`,
+                        isUnavailable: Boolean(px.is_unavailable)
+                      }));
+                    }
+                  } catch (pxErr) {
+                    console.warn(`[duplicate-targets] Erro ao buscar pixels da conta ${actId}:`, pxErr.message);
+                  }
+
+                  return {
+                    id: cleanAccId,
+                    actId: actId,
+                    name: a.name || `Conta ${a.accountId}`,
+                    businessName: a.businessName || 'BM Principal',
+                    currency: a.currency || 'BRL',
+                    status: a.status === 'ACTIVE' || a.status === 'Ativa' ? 'Ativa' : (a.status || 'Ativa'),
+                    profileId: String(conn.id),
+                    profileName: conn.name,
+                    pixels: pixels
+                  };
+                })
+              );
             }
           } catch (fetchErr) {
             console.warn(`[duplicate-targets] Erro ao buscar contas do perfil ${conn.name}:`, fetchErr.message);
@@ -2171,7 +2195,8 @@ app.get('/api/campaigns/duplicate-targets', async (req, res) => {
               currency: a.currency || 'BRL',
               status: a.status === 'ACTIVE' || a.status === 'Ativa' ? 'Ativa' : (a.status || 'Ativa'),
               profileId: String(conn.id),
-              profileName: conn.name
+              profileName: conn.name,
+              pixels: []
             };
           });
         }
@@ -2202,7 +2227,7 @@ app.get('/api/campaigns/duplicate-targets', async (req, res) => {
 
 app.post('/api/campaigns/duplicate', async (req, res) => {
   try {
-    const { campaignIds, targetAccountId, copiesCount = 1, destinationType = 'same_account' } = req.body;
+    const { campaignIds, targetAccountId, copiesCount = 1, destinationType = 'same_account', targetPixelId } = req.body;
     if (!Array.isArray(campaignIds) || campaignIds.length === 0) {
       return res.status(400).json({ success: false, error: 'Nenhuma campanha selecionada para duplicação.' });
     }
@@ -2224,6 +2249,7 @@ app.post('/api/campaigns/duplicate', async (req, res) => {
     }
 
     const cleanTargetAcc = destinationType === 'other_account' && targetAccountId ? targetAccountId.replace('act_', '').trim() : null;
+    const cleanTargetPixel = targetPixelId ? String(targetPixelId).trim() : null;
     const duplicatedResults = [];
 
     for (const cId of campaignIds) {
@@ -2235,6 +2261,7 @@ app.post('/api/campaigns/duplicate', async (req, res) => {
         try {
           const resDup = await duplicateMetaCampaign(cId, {
             targetAccountId: cleanTargetAcc,
+            targetPixelId: cleanTargetPixel,
             copiesCount: Number(copiesCount) || 1
           }, token);
           duplicatedResults.push({ campaignId: cId, ...resDup });

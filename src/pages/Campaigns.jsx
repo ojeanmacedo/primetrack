@@ -240,6 +240,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const [availableProfiles, setAvailableProfiles] = useState([]);
   const [availableAccounts, setAvailableAccounts] = useState([]);
   const [selectedTargetAdAccount, setSelectedTargetAdAccount] = useState(null);
+  const [selectedTargetPixelId, setSelectedTargetPixelId] = useState(''); // '' | pixel_id
   const [searchAccountQuery, setSearchAccountQuery] = useState('');
   const [expandedProfileId, setExpandedProfileId] = useState(null);
   const [duplicatingLoading, setDuplicatingLoading] = useState(false);
@@ -826,6 +827,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setDuplicateTargetType('same_account');
     setDuplicateCopiesCount(1);
     setSelectedTargetAdAccount(null);
+    setSelectedTargetPixelId('');
 
     // Carregamento inicial de fallback pelo cache local salvo de contas
     const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
@@ -839,7 +841,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             name: a.name || 'Conta de Anúncio',
             businessName: a.bm || 'BM Principal',
             currency: a.currency || 'BRL',
-            status: a.status || 'Ativa'
+            status: a.status || 'Ativa',
+            pixels: []
           })));
         }
       } catch (e) {}
@@ -877,6 +880,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         campaignIds: ids,
         destinationType: duplicateTargetType,
         targetAccountId: duplicateTargetType === 'other_account' ? selectedTargetAdAccount.id : null,
+        targetPixelId: selectedTargetPixelId || null,
         copiesCount: Number(duplicateCopiesCount) || 1
       };
 
@@ -2483,6 +2487,68 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     )}
                   </div>
                 </label>
+              </div>
+
+              {/* Seleção do Pixel (Mesma Conta ou Outra Conta) */}
+              <div className="pt-2">
+                <label className="block text-zinc-300 font-bold mb-1.5 flex items-center justify-between">
+                  <span>Pixel de Rastreamento (Meta Ads)</span>
+                  <span className="text-[10px] text-zinc-400 font-normal">Opcional: manter original ou trocar</span>
+                </label>
+                {(() => {
+                  // Descobre quais pixels estão disponíveis para a conta selecionada
+                  let relevantPixels = [];
+                  if (duplicateTargetType === 'other_account' && selectedTargetAdAccount) {
+                    relevantPixels = selectedTargetAdAccount.pixels || [];
+                  } else {
+                    // Mesma conta: busca os pixels da conta ativa
+                    const currentActId = (adAccountsList[0]?.id || '').replace('act_', '');
+                    const foundAcc = availableAccounts.find(a => String(a.id).replace('act_', '') === currentActId);
+                    if (foundAcc && foundAcc.pixels) {
+                      relevantPixels = foundAcc.pixels;
+                    } else {
+                      // Coleta todos os pixels disponíveis das contas
+                      relevantPixels = availableAccounts.flatMap(a => a.pixels || []);
+                    }
+                  }
+
+                  return (
+                    <div className="space-y-2">
+                      <select
+                        value={selectedTargetPixelId}
+                        onChange={(e) => setSelectedTargetPixelId(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white text-xs focus:outline-none focus:border-[#1A6DFF] cursor-pointer"
+                      >
+                        <option value="">🎯 Manter Pixel Original da Campanha</option>
+                        {relevantPixels.map((px) => (
+                          <option key={px.id} value={px.id}>
+                            {px.name} (ID: {px.id}){px.isUnavailable ? ' ⚠️ Inativo' : ' ✅ Ativo'}
+                          </option>
+                        ))}
+                      </select>
+
+                      {/* Se o usuário quiser inserir manualmente o Pixel ID da BM de destino */}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          placeholder="Ou digite o ID do Pixel manualmente..."
+                          value={selectedTargetPixelId}
+                          onChange={(e) => setSelectedTargetPixelId(e.target.value.replace(/\D/g, ''))}
+                          className="flex-1 px-3 py-1.5 rounded-lg bg-[#070D1A]/80 border border-[#13233E] text-white text-[11px] font-mono focus:outline-none focus:border-[#1A6DFF]"
+                        />
+                        {selectedTargetPixelId && (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedTargetPixelId('')}
+                            className="px-2 py-1 text-[10px] rounded-md bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white"
+                          >
+                            Limpar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Quantidade de Cópias */}

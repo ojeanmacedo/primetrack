@@ -589,10 +589,11 @@ export async function deleteMetaItem(itemId, accessToken) {
 /**
  * 9. Duplica campanha no Gerenciador da Meta Ads (na mesma conta ou em outra conta)
  * Clona a campanha e todos os seus conjuntos e anúncios/criativos,
- * garantindo que toda a árvore de veiculação seja replicada fielmente.
+ * permitindo definir um pixel específico (targetPixelId) para a nova conta/campanha.
  */
-export async function duplicateMetaCampaign(campaignId, { targetAccountId, copiesCount = 1, status = 'ACTIVE' }, accessToken) {
+export async function duplicateMetaCampaign(campaignId, { targetAccountId, targetPixelId, copiesCount = 1, status = 'ACTIVE' }, accessToken) {
   const cleanTargetAcc = (targetAccountId || '').replace('act_', '').trim();
+  const cleanTargetPixel = targetPixelId ? String(targetPixelId).trim() : null;
   const results = [];
 
   // Obtém informações da campanha de origem uma vez antes do loop para economizar chamadas
@@ -605,10 +606,11 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, copie
     }
   } catch (e) {}
 
-  // Obtém os conjuntos originais e seus anúncios
+  // Obtém os conjuntos originais com suas configurações completas e seus anúncios
   let originalAdsetsWithAds = [];
   try {
-    const adsetsRes = await fetch(`${GRAPH_BASE_URL}/${campaignId}/adsets?fields=id,name,status,ads{id,name,status,creative{id},tracking_specs}&limit=50&access_token=${accessToken}`);
+    const adsetFields = 'id,name,status,daily_budget,lifetime_budget,bid_amount,bid_strategy,billing_event,optimization_goal,targeting,promoted_object,destination_type,ads{id,name,status,creative{id},tracking_specs}';
+    const adsetsRes = await fetch(`${GRAPH_BASE_URL}/${campaignId}/adsets?fields=${adsetFields}&limit=50&access_token=${accessToken}`);
     const adsetsData = await adsetsRes.json();
     if (adsetsData && adsetsData.data) {
       originalAdsetsWithAds = adsetsData.data;
@@ -650,19 +652,68 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, copie
       if (originalAdsetsWithAds.length > 0) {
         for (const adset of originalAdsetsWithAds) {
           try {
-            const adsetCopyParams = new URLSearchParams();
-            adsetCopyParams.append('access_token', accessToken);
-            adsetCopyParams.append('deep_copy', 'false');
-            adsetCopyParams.append('status_option', status || 'ACTIVE');
-            adsetCopyParams.append('campaign_id', newCampaignId);
+            let newAdsetId = null;
 
-            const adsetCopyRes = await fetch(`${GRAPH_BASE_URL}/${adset.id}/copies`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-              body: adsetCopyParams.toString()
-            });
-            const copiedAdsetData = await adsetCopyRes.json();
-            const newAdsetId = copiedAdsetData.copied_adset_id || copiedAdsetData.id;
+            // Se o usuário especificou um Pixel diferente (ex: ao duplicar para outra BM/conta ou trocar pixel),
+            // criamos o conjunto diretamente com o novo Pixel no promoted_object
+            if (cleanTargetPixel && formattedActId) {
+              try {
+                const customPromotedObj = {
+                  pixel_id: cleanTargetPixel,
+                  custom_event_type: adset.promoted_object?.custom_event_type || 'PURCHASE'
+                };
+
+                const createAdsetBody = {
+                  access_token: accessToken,
+                  name: adset.name ? `${adset.name} — Cópia` : 'Conjunto Duplicado',
+                  campaign_id: newCampaignId,
+                  status: status || 'ACTIVE',
+                  billing_event: adset.billing_event || 'IMPRESSIONS',
+                  optimization_goal: adset.optimization_goal || 'OFFSITE_CONVERSIONS',
+                  promoted_object: JSON.stringify(customPromotedObj)
+                };
+
+                if (adset.targeting) {
+                  createAdsetBody.targeting = typeof adset.targeting === 'object' ? JSON.stringify(adset.targeting) : adset.targeting;
+                }
+                if (adset.daily_budget) createAdsetBody.daily_budget = adset.daily_budget;
+                if (adset.lifetime_budget) createAdsetBody.lifetime_budget = adset.lifetime_budget;
+                if (adset.bid_amount) createAdsetBody.bid_amount = adset.bid_amount;
+                if (adset.bid_strategy) createAdsetBody.bid_strategy = adset.bid_strategy;
+                if (adset.destination_type) createAdsetBody.destination_type = adset.destination_type;
+
+                const createAdsetRes = await fetch(`${GRAPH_BASE_URL}/${formattedActId}/adsets`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                  body: new URLSearchParams(createAdsetBody).toString()
+                });
+                const createAdsetData = await createAdsetRes.json();
+                if (createAdsetData.id) {
+                  newAdsetId = createAdsetData.id;
+                } else {
+                  console.warn(`[duplicateMetaCampaign] Fallback para cópia nativa de adset:`, createAdsetData.error?.message);
+                }
+              } catch (customErr) {
+                console.warn(`[duplicateMetaCampaign] Falha ao criar adset com pixel customizado:`, customErr.message);
+              }
+            }
+
+            // Se não especificou novo pixel ou se a criação customizada falhou, usa a duplicação nativa
+            if (!newAdsetId) {
+              const adsetCopyParams = new URLSearchParams();
+              adsetCopyParams.append('access_token', accessToken);
+              adsetCopyParams.append('deep_copy', 'false');
+              adsetCopyParams.append('status_option', status || 'ACTIVE');
+              adsetCopyParams.append('campaign_id', newCampaignId);
+
+              const adsetCopyRes = await fetch(`${GRAPH_BASE_URL}/${adset.id}/copies`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: adsetCopyParams.toString()
+              });
+              const copiedAdsetData = await adsetCopyRes.json();
+              newAdsetId = copiedAdsetData.copied_adset_id || copiedAdsetData.id;
+            }
 
             // 3. Clona os anúncios para dentro do novo conjunto
             if (newAdsetId && formattedActId && adset.ads?.data?.length > 0) {
@@ -676,7 +727,13 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, copie
                     adParams.append('creative', JSON.stringify({ creative_id: ad.creative.id }));
                     adParams.append('status', status || 'ACTIVE');
 
-                    if (ad.tracking_specs) {
+                    // Ajusta tracking_specs para o novo pixel se fornecido
+                    if (cleanTargetPixel) {
+                      const updatedTracking = [
+                        { 'action.type': ['offsite_conversion'], fb_pixel: [cleanTargetPixel] }
+                      ];
+                      adParams.append('tracking_specs', JSON.stringify(updatedTracking));
+                    } else if (ad.tracking_specs) {
                       adParams.append('tracking_specs', JSON.stringify(ad.tracking_specs));
                     }
 
