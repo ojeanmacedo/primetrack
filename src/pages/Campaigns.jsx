@@ -232,6 +232,18 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [onlySelectedFilter, setOnlySelectedFilter] = useState(false);
 
+  // Estados do Modal de Duplicar Campanhas (Estilo Utmify)
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicateTargetType, setDuplicateTargetType] = useState('same_account'); // 'same_account' | 'other_account'
+  const [duplicateCopiesCount, setDuplicateCopiesCount] = useState(1);
+  const [showAccountPickerModal, setShowAccountPickerModal] = useState(false);
+  const [availableProfiles, setAvailableProfiles] = useState([]);
+  const [availableAccounts, setAvailableAccounts] = useState([]);
+  const [selectedTargetAdAccount, setSelectedTargetAdAccount] = useState(null);
+  const [searchAccountQuery, setSearchAccountQuery] = useState('');
+  const [expandedProfileId, setExpandedProfileId] = useState(null);
+  const [duplicatingLoading, setDuplicatingLoading] = useState(false);
+
   const subTabs = ['Contas', 'Campanhas', 'Conjuntos', 'Anúncios'];
   const isFirstMount = React.useRef(true);
 
@@ -752,6 +764,91 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setTimeout(() => setSaveSuccessMsg(null), 6000);
     setBulkModalAction(null);
     setBulkProcessing(false);
+  };
+
+  // Carrega perfis e contas para duplicação
+  const handleOpenDuplicateModal = async () => {
+    setBulkMenuOpen(false);
+    setShowDuplicateModal(true);
+    setDuplicateTargetType('same_account');
+    setDuplicateCopiesCount(1);
+    setSelectedTargetAdAccount(null);
+
+    // Carregamento inicial de fallback pelo cache local salvo de contas
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setAvailableAccounts(parsed.map(a => ({
+            id: a.id,
+            actId: a.id?.startsWith('act_') ? a.id : `act_${a.id}`,
+            name: a.name || 'Conta de Anúncio',
+            businessName: a.bm || 'BM Principal',
+            currency: a.currency || 'BRL',
+            status: a.status || 'Ativa'
+          })));
+        }
+      } catch (e) {}
+    }
+
+    try {
+      const res = await fetch('/api/campaigns/duplicate-targets');
+      const data = await res.json();
+      if (data.success) {
+        if (data.profiles && data.profiles.length > 0) {
+          setAvailableProfiles(data.profiles);
+          setExpandedProfileId(data.profiles[0].id);
+        }
+        if (data.accounts && data.accounts.length > 0) {
+          setAvailableAccounts(data.accounts);
+        }
+      }
+    } catch (e) {
+      console.warn('Erro ao carregar contas de destino:', e);
+    }
+  };
+
+  const handleExecuteDuplicate = async () => {
+    const ids = Array.from(activeSelectedSet);
+    if (ids.length === 0) return;
+
+    if (duplicateTargetType === 'other_account' && !selectedTargetAdAccount) {
+      alert('Por favor, selecione a conta de anúncio de destino.');
+      return;
+    }
+
+    setDuplicatingLoading(true);
+    try {
+      const payload = {
+        campaignIds: ids,
+        destinationType: duplicateTargetType,
+        targetAccountId: duplicateTargetType === 'other_account' ? selectedTargetAdAccount.id : null,
+        copiesCount: Number(duplicateCopiesCount) || 1
+      };
+
+      const res = await fetch('/api/campaigns/duplicate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setSaveSuccessMsg(`🎉 ${data.duplicatedCount || ids.length} campanha(s) duplicada(s) com sucesso na Meta!`);
+        setShowDuplicateModal(false);
+        setActiveSelectedSet(new Set());
+        // Recarrega os dados para exibir as novas campanhas
+        loadData();
+      } else {
+        setSaveSuccessMsg(`⚠️ Erro ao duplicar: ${data.error || 'Falha na Meta Ads'}`);
+      }
+    } catch (err) {
+      setSaveSuccessMsg(`⚠️ Erro ao duplicar: ${err.message}`);
+    } finally {
+      setDuplicatingLoading(false);
+      setTimeout(() => setSaveSuccessMsg(null), 6000);
+    }
   };
 
   const isNoAccountActive = adAccountsList.length === 0 && campaignsList.length === 0;
@@ -1811,6 +1908,20 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
                   <div className="h-px bg-[#13233E]/60 my-1" />
 
+                  {/* Opção de Duplicar Campanhas (Estilo Utmify) */}
+                  <button
+                    type="button"
+                    onClick={handleOpenDuplicateModal}
+                    disabled={activeSelectedSet.size === 0 || subTab !== 'Campanhas'}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-zinc-200 hover:text-white hover:bg-[#12223D] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    title={subTab !== 'Campanhas' ? 'A duplicação é aplicada na aba Campanhas' : ''}
+                  >
+                    <Copy className="w-4 h-4 text-[#5C9BFF]" />
+                    <span>Duplicar campanhas</span>
+                  </button>
+
+                  <div className="h-px bg-[#13233E]/60 my-1" />
+
                   <button
                     type="button"
                     onClick={() => handleOpenBulkModal('budget')}
@@ -2189,6 +2300,344 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         <div className="fixed bottom-6 right-6 z-50 p-4 rounded-2xl bg-[#0A1426] border border-[#1A6DFF] text-white text-xs font-semibold shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5">
           <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0" />
           <span>{saveSuccessMsg}</span>
+        </div>
+      )}
+
+      {/* ── MODAL 1: DUPLIQUE SUA CAMPANHA (ESTILO UTMIFY) ── */}
+      {showDuplicateModal && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in"
+          onClick={() => !duplicatingLoading && setShowDuplicateModal(false)}
+        >
+          <div 
+            className="relative w-full max-w-[480px] bg-[#0A1426] border border-[#13233E] rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 text-zinc-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-[#13233E] mb-5">
+              <div>
+                <h3 className="font-bold text-white text-base">Duplique sua campanha</h3>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Selecione onde e quantas cópias deseja criar para as {activeSelectedSet.size} campanha(s) selecionada(s).
+                </p>
+              </div>
+              <button 
+                type="button"
+                disabled={duplicatingLoading}
+                onClick={() => setShowDuplicateModal(false)}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-40"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Opções de Destino */}
+            <div className="space-y-4 text-xs">
+              <div className="space-y-2.5">
+                {/* Opção Mesma Conta */}
+                <label 
+                  onClick={() => setDuplicateTargetType('same_account')}
+                  className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ${
+                    duplicateTargetType === 'same_account'
+                      ? 'bg-[#12223D] border-[#1A6DFF] text-white shadow-md shadow-brand/10'
+                      : 'bg-[#070D1A] border-[#13233E] text-zinc-300 hover:border-zinc-700'
+                  }`}
+                >
+                  <input 
+                    type="radio"
+                    name="duplicateTarget"
+                    checked={duplicateTargetType === 'same_account'}
+                    onChange={() => setDuplicateTargetType('same_account')}
+                    className="mt-0.5 text-[#1A6DFF] focus:ring-0 cursor-pointer"
+                  />
+                  <div className="flex-1">
+                    <div className="font-bold text-sm text-white">Mesma Conta</div>
+                    <div className="text-zinc-400 text-[11px] mt-0.5">
+                      As cópias serão criadas diretamente na mesma conta de anúncio original da campanha.
+                    </div>
+                  </div>
+                </label>
+
+                {/* Opção Outra Conta */}
+                <label 
+                  onClick={() => setDuplicateTargetType('other_account')}
+                  className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ${
+                    duplicateTargetType === 'other_account'
+                      ? 'bg-[#12223D] border-[#1A6DFF] text-white shadow-md shadow-brand/10'
+                      : 'bg-[#070D1A] border-[#13233E] text-zinc-300 hover:border-zinc-700'
+                  }`}
+                >
+                  <input 
+                    type="radio"
+                    name="duplicateTarget"
+                    checked={duplicateTargetType === 'other_account'}
+                    onChange={() => setDuplicateTargetType('other_account')}
+                    className="mt-0.5 text-[#1A6DFF] focus:ring-0 cursor-pointer"
+                  />
+                  <div className="flex-1">
+                    <div className="font-bold text-sm text-white">Outra Conta de Anúncio</div>
+                    <div className="text-zinc-400 text-[11px] mt-0.5">
+                      Copie suas campanhas para qualquer outra conta conectada aos seus perfis do Meta Ads.
+                    </div>
+
+                    {duplicateTargetType === 'other_account' && (
+                      <div className="mt-3 pt-3 border-t border-[#13233E]/60">
+                        {selectedTargetAdAccount ? (
+                          <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#0A1426] border border-[#1A6DFF]/50">
+                            <div>
+                              <div className="font-bold text-white text-xs">{selectedTargetAdAccount.name}</div>
+                              <div className="text-[10px] text-zinc-400 font-mono">ID: {selectedTargetAdAccount.id} • {selectedTargetAdAccount.businessName}</div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowAccountPickerModal(true);
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-[#12223D] border border-[#1A6DFF] text-[#5C9BFF] hover:text-white font-semibold text-[11px] transition-colors cursor-pointer"
+                            >
+                              Trocar
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowAccountPickerModal(true);
+                            }}
+                            className="w-full py-2.5 px-3 rounded-xl bg-[#1A6DFF]/15 border border-[#1A6DFF] text-[#5C9BFF] hover:bg-[#1A6DFF]/25 font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                          >
+                            <span>Escolha a Conta de Anúncio de Destino</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </label>
+              </div>
+
+              {/* Quantidade de Cópias */}
+              <div className="pt-2">
+                <label className="block text-zinc-300 font-bold mb-1.5">
+                  Quantidade de cópias por campanha
+                </label>
+                <div className="flex items-center gap-3">
+                  <input 
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={duplicateCopiesCount}
+                    onChange={(e) => setDuplicateCopiesCount(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-24 px-3 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white font-mono font-bold text-center focus:outline-none focus:border-[#1A6DFF]"
+                  />
+                  <span className="text-[11px] text-zinc-400">
+                    Total: <strong className="text-white font-mono">{activeSelectedSet.size * duplicateCopiesCount}</strong> nova(s) campanha(s) duplicada(s)
+                  </span>
+                </div>
+              </div>
+
+              {/* Actions Footer */}
+              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#13233E]">
+                <button
+                  type="button"
+                  disabled={duplicatingLoading}
+                  onClick={() => setShowDuplicateModal(false)}
+                  className="px-4 py-2 rounded-xl border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={duplicatingLoading || (duplicateTargetType === 'other_account' && !selectedTargetAdAccount)}
+                  onClick={handleExecuteDuplicate}
+                  className="px-5 py-2 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-bold transition-all shadow-lg shadow-brand/30 cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                >
+                  {duplicatingLoading ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Duplicando na Meta...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      <span>Duplicar ({activeSelectedSet.size})</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL 2: ESCOLHA A CONTA DE ANÚNCIO (ESTILO UTMIFY) ── */}
+      {showAccountPickerModal && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in"
+          onClick={() => setShowAccountPickerModal(false)}
+        >
+          <div 
+            className="relative w-full max-w-[560px] max-h-[85vh] flex flex-col bg-[#0A1426] border border-[#13233E] rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 text-zinc-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-[#13233E]">
+              <div>
+                <h3 className="font-bold text-white text-base">Escolha a Conta de Anúncio</h3>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Selecione o perfil e a conta de anúncio onde as cópias serão criadas
+                </p>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setShowAccountPickerModal(false)}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Barra de Busca de Contas */}
+            <div className="py-3.5">
+              <div className="relative">
+                <Filter className="w-4 h-4 absolute left-3.5 top-3 text-zinc-500" />
+                <input 
+                  type="text"
+                  value={searchAccountQuery}
+                  onChange={(e) => setSearchAccountQuery(e.target.value)}
+                  placeholder="Pesquise por nome da conta, ID ou BM..."
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#070D1A] border border-[#13233E] text-white text-xs placeholder:text-zinc-500 focus:outline-none focus:border-[#1A6DFF]"
+                />
+              </div>
+            </div>
+
+            {/* Lista de Perfis e Contas em Acordeão / Accordion */}
+            <div className="flex-1 overflow-y-auto space-y-3 pr-1 py-1 custom-scrollbar">
+              {availableProfiles.length === 0 ? (
+                <div className="text-center py-8 text-zinc-500 text-xs">
+                  Nenhum perfil do Meta Ads conectado. Conecte um perfil em Integrações.
+                </div>
+              ) : (
+                availableProfiles.map(profile => {
+                  const isExpanded = expandedProfileId === profile.id || Boolean(searchAccountQuery);
+                  const profileAccs = (profile.accounts && profile.accounts.length > 0)
+                    ? profile.accounts
+                    : availableAccounts;
+
+                  const filteredAccs = profileAccs.filter(acc => {
+                    if (!searchAccountQuery) return true;
+                    const q = searchAccountQuery.toLowerCase();
+                    return acc.name.toLowerCase().includes(q) || 
+                           acc.id.toLowerCase().includes(q) || 
+                           (acc.businessName && acc.businessName.toLowerCase().includes(q));
+                  });
+
+                  return (
+                    <div key={profile.id} className="rounded-2xl border border-[#13233E] bg-[#070D1A] overflow-hidden">
+                      {/* Header do Perfil */}
+                      <button
+                        type="button"
+                        onClick={() => setExpandedProfileId(prev => prev === profile.id ? null : profile.id)}
+                        className="w-full p-3.5 flex items-center justify-between hover:bg-[#12223D]/50 transition-colors text-left cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3">
+                          {profile.avatarUrl ? (
+                            <img 
+                              src={profile.avatarUrl} 
+                              alt={profile.name} 
+                              className="w-9 h-9 rounded-full border border-[#1A6DFF]/40 object-cover shrink-0" 
+                            />
+                          ) : (
+                            <div className="w-9 h-9 rounded-full bg-[#12223D] border border-[#1A6DFF]/40 flex items-center justify-center text-xs font-bold text-[#5C9BFF] shrink-0">
+                              {profile.name?.charAt(0) || 'F'}
+                            </div>
+                          )}
+                          <div>
+                            <div className="font-bold text-white text-xs flex items-center gap-1.5">
+                              <span>{profile.name}</span>
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold">Conectado</span>
+                            </div>
+                            <div className="text-[10px] text-zinc-400 font-mono">
+                              {profile.accountsCount || filteredAccs.length} conta(s) sincronizada(s)
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-zinc-500 font-medium">
+                            {isExpanded ? 'Ocultar contas' : 'Ver contas'}
+                          </span>
+                          <ChevronDown className={`w-4 h-4 text-zinc-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                        </div>
+                      </button>
+
+                      {/* Lista de Contas sob o Perfil */}
+                      {isExpanded && (
+                        <div className="border-t border-[#13233E] p-2 space-y-1.5 bg-[#0A1426]/60">
+                          {filteredAccs.length === 0 ? (
+                            <div className="p-3 text-center text-zinc-500 text-[11px]">
+                              Nenhuma conta encontrada para este perfil.
+                            </div>
+                          ) : (
+                            filteredAccs.map(acc => {
+                              const isSelected = selectedTargetAdAccount?.id === acc.id;
+                              return (
+                                <div
+                                  key={`${profile.id}_${acc.id}`}
+                                  onClick={() => {
+                                    setSelectedTargetAdAccount(acc);
+                                    setShowAccountPickerModal(false);
+                                  }}
+                                  className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                                    isSelected 
+                                      ? 'bg-[#12223D] border-[#1A6DFF] text-white shadow-md'
+                                      : 'bg-[#070D1A] border-[#13233E]/80 hover:bg-[#12223D]/40 hover:border-zinc-700 text-zinc-300'
+                                  }`}
+                                >
+                                  <div>
+                                    <div className="font-bold text-xs text-white flex items-center gap-2">
+                                      <span>{acc.name}</span>
+                                      <span className="text-[10px] font-mono text-zinc-500">ID: {acc.id}</span>
+                                    </div>
+                                    <div className="text-[10px] text-zinc-400 mt-0.5">
+                                      BM: {acc.businessName} • Moeda: {acc.currency}
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                                      acc.status === 'Ativa' || acc.status === 'ACTIVE'
+                                        ? 'bg-emerald-500/10 text-emerald-400'
+                                        : 'bg-red-500/10 text-red-400'
+                                    }`}>
+                                      {acc.status}
+                                    </span>
+                                    {isSelected && <CheckCircle2 className="w-4 h-4 text-[#5C9BFF]" />}
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end pt-3 border-t border-[#13233E] mt-3">
+              <button
+                type="button"
+                onClick={() => setShowAccountPickerModal(false)}
+                className="px-4 py-2 rounded-xl border border-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer text-xs"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

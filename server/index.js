@@ -2114,6 +2114,141 @@ app.post('/api/campaigns/update', async (req, res) => {
   }
 });
 
+// F3. Duplicar Campanhas no Gerenciador Meta Ads (Na mesma conta ou em outra conta de anúncio)
+app.get('/api/campaigns/duplicate-targets', async (req, res) => {
+  try {
+    let connections = [];
+
+    try {
+      const { data: supaConns } = await supabaseAdmin.from('facebook_connections').select('*').order('connected_at', { ascending: false });
+      if (supaConns && supaConns.length > 0) connections = supaConns;
+    } catch (e) {}
+
+    if (connections.length === 0) connections = db.get('facebook_connections') || [];
+
+    if (connections.length === 0) {
+      return res.json({ success: true, profiles: [], accounts: [] });
+    }
+
+    // Busca as contas de cada perfil diretamente da Meta Graph API e do banco
+    const storeAccounts = db.get('ad_accounts') || [];
+    const profilesWithAccounts = await Promise.all(
+      connections.map(async (conn) => {
+        let profileAccounts = [];
+        const token = conn.access_token || conn.accessToken;
+        
+        if (token) {
+          try {
+            const freshAccs = await fetchAdAccounts(token);
+            if (Array.isArray(freshAccs) && freshAccs.length > 0) {
+              profileAccounts = freshAccs.map(a => ({
+                id: String(a.accountId || (a.id || '').replace('act_', '')),
+                actId: a.id?.startsWith('act_') ? a.id : `act_${a.accountId}`,
+                name: a.name || `Conta ${a.accountId}`,
+                businessName: a.businessName || 'BM Principal',
+                currency: a.currency || 'BRL',
+                status: a.status === 'ACTIVE' || a.status === 'Ativa' ? 'Ativa' : (a.status || 'Ativa'),
+                profileId: String(conn.id),
+                profileName: conn.name
+              }));
+            }
+          } catch (fetchErr) {
+            console.warn(`[duplicate-targets] Erro ao buscar contas do perfil ${conn.name}:`, fetchErr.message);
+          }
+        }
+
+        // Se a Graph API falhar ou estiver sem internet temporária, usa as contas em cache
+        if (profileAccounts.length === 0) {
+          profileAccounts = storeAccounts.map(a => {
+            const cleanId = (a.id || '').replace('act_', '');
+            return {
+              id: cleanId,
+              actId: a.id?.startsWith('act_') ? a.id : `act_${cleanId}`,
+              name: a.name || 'Conta de Anúncio',
+              businessName: a.bm_name || a.businessName || 'BM Principal',
+              currency: a.currency || 'BRL',
+              status: a.status === 'ACTIVE' || a.status === 'Ativa' ? 'Ativa' : (a.status || 'Ativa'),
+              profileId: String(conn.id),
+              profileName: conn.name
+            };
+          });
+        }
+
+        return {
+          id: String(conn.id),
+          name: conn.name,
+          avatarUrl: conn.avatar_url || conn.avatarUrl,
+          accountsCount: profileAccounts.length,
+          accounts: profileAccounts
+        };
+      })
+    );
+
+    // Lista plana de todas as contas combinadas de todos os perfis
+    const allAccounts = profilesWithAccounts.flatMap(p => p.accounts);
+
+    res.json({ 
+      success: true, 
+      profiles: profilesWithAccounts, 
+      accounts: allAccounts 
+    });
+  } catch (err) {
+    console.error('[duplicate-targets] Erro:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/campaigns/duplicate', async (req, res) => {
+  try {
+    const { campaignIds, targetAccountId, copiesCount = 1, destinationType = 'same_account' } = req.body;
+    if (!Array.isArray(campaignIds) || campaignIds.length === 0) {
+      return res.status(400).json({ success: false, error: 'Nenhuma campanha selecionada para duplicação.' });
+    }
+
+    let connections = db.get('facebook_connections') || [];
+    if (connections.length === 0) {
+      try {
+        const { data: supaConns } = await supabaseAdmin.from('facebook_connections').select('*');
+        if (supaConns && supaConns.length > 0) connections = supaConns;
+      } catch (e) {}
+    }
+
+    const token = connections[0]?.access_token || connections[0]?.accessToken;
+    if (!token) {
+      return res.status(400).json({ success: false, error: 'Nenhuma conta do Facebook conectada para duplicar campanhas.' });
+    }
+
+    const cleanTargetAcc = destinationType === 'other_account' && targetAccountId ? targetAccountId.replace('act_', '') : null;
+    const duplicatedResults = [];
+
+    for (const cId of campaignIds) {
+      try {
+        const resDup = await duplicateMetaCampaign(cId, {
+          targetAccountId: cleanTargetAcc,
+          copiesCount: Number(copiesCount) || 1
+        }, token);
+        duplicatedResults.push({ campaignId: cId, ...resDup });
+      } catch (err) {
+        console.warn(`[Duplicate Error for ${cId}]:`, err.message);
+        duplicatedResults.push({ campaignId: cId, success: false, error: err.message });
+      }
+    }
+
+    // Invalida cache de campanhas para recarregar com as novas
+    campaignsCache.clear();
+
+    const successCount = duplicatedResults.filter(r => r.success).length;
+    res.json({
+      success: true,
+      duplicatedCount: successCount,
+      results: duplicatedResults,
+      message: `${successCount} campanha(s) duplicada(s) com sucesso na Meta!`
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 /**
  * ── ROTAS DE AUTENTICAÇÃO SEGURA (Com bypass de RLS via Supabase Service Role) ──
  */

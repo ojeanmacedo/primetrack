@@ -574,3 +574,44 @@ export async function updateMetaItemDetails(itemId, { name, budget, bidCap, bidS
   if (data.error) throw new Error(data.error.message);
   return data;
 }
+
+/**
+ * 9. Duplica campanha no Gerenciador da Meta Ads (na mesma conta ou em outra conta)
+ */
+export async function duplicateMetaCampaign(campaignId, { targetAccountId, copiesCount = 1, status = 'PAUSED' }, accessToken) {
+  const cleanTargetAcc = (targetAccountId || '').replace('act_', '');
+  const url = `${GRAPH_BASE_URL}/${campaignId}/copies?access_token=${accessToken}`;
+  
+  const body = {
+    deep_copy: true,
+    status_option: status,
+    rename_options: {
+      rename_strategy: 'AUTORENAME'
+    }
+  };
+
+  if (cleanTargetAcc) {
+    body.target_account_id = cleanTargetAcc;
+  }
+
+  const results = [];
+  for (let i = 0; i < copiesCount; i++) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (data.error) {
+        throw new Error(data.error.message);
+      }
+      results.push(data);
+    } catch (err) {
+      console.warn(`[Duplicate Meta Campaign ${i + 1}/${copiesCount} Error]:`, err.message);
+      throw err;
+    }
+  }
+
+  return { success: true, count: results.length, copiedCampaigns: results };
+}
