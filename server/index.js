@@ -1499,6 +1499,20 @@ app.post('/api/meta/refresh-accounts', async (req, res) => {
     for (const conn of supaConns) {
       if (conn.access_token) {
         try {
+          // Verifica se o perfil continua válido na Graph API
+          const profileCheck = await fetchUserProfile(conn.access_token).catch(() => null);
+          if (!profileCheck) {
+            // Perfil bloqueado ou token revogado pela Meta!
+            await sendSalesNotification({
+              title: '🚨 PERFIL DO FACEBOOK BLOQUEADO!',
+              body: `O perfil "${conn.name}" foi bloqueado ou perdeu acesso ao Meta Ads. Conecte outro perfil para manter suas campanhas ativas!`,
+              icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
+              tag: `profile_blocked_${conn.id}`,
+              data: { url: '/integracoes' }
+            });
+            continue;
+          }
+
           const fresh = await fetchAdAccounts(conn.access_token);
           if (Array.isArray(fresh)) {
             const mapped = fresh.map(a => ({
@@ -2500,11 +2514,36 @@ if (process.env.VERCEL !== '1') {
     console.log(`[Webhooks] Escutando em http://localhost:${PORT}/api/webhooks/:gateway`);
   });
 
-  // Sincronização automática em segundo plano a cada 5 minutos das contas ativas conectadas ao Meta Ads
+  // Sincronização automática em segundo plano a cada 5 minutos das contas ativas e monitoramento de bloqueio
   setInterval(async () => {
     try {
-      const connections = db.get('facebook_connections') || [];
+      let connections = db.get('facebook_connections') || [];
+      if (connections.length === 0) {
+        const { data: supaConn } = await supabaseAdmin.from('facebook_connections').select('*');
+        if (supaConn && supaConn.length > 0) connections = supaConn;
+      }
+
       if (connections.length > 0) {
+        // 1. Checa se algum perfil foi bloqueado / token invalidado pela Meta
+        for (const conn of connections) {
+          if (conn.accessToken || conn.access_token) {
+            const token = conn.accessToken || conn.access_token;
+            try {
+              const profileCheck = await fetchUserProfile(token).catch(err => ({ error: err.message }));
+              if (profileCheck && profileCheck.error) {
+                console.warn(`[Meta Monitor] 🚨 Perfil ${conn.name} bloqueado ou token revogado!`);
+                await sendSalesNotification({
+                  title: '🚨 PERFIL DO FACEBOOK BLOQUEADO!',
+                  body: `O perfil "${conn.name}" foi bloqueado ou perdeu acesso ao Meta Ads. Conecte outro perfil para manter suas campanhas ativas!`,
+                  icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
+                  tag: `profile_blocked_${conn.id}`,
+                  data: { url: '/integracoes' }
+                });
+              }
+            } catch (pErr) {}
+          }
+        }
+
         console.log('[Auto-Sync Meta] Atualizando métricas e gastos reais das campanhas em segundo plano...');
         await executeMetaSync({ datePreset: 'today' });
       }
