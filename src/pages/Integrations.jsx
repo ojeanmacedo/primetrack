@@ -842,6 +842,19 @@ export default function Integrations() {
       })
       .catch(e => console.log('Backend offline ou usando cache local'));
 
+    // Sincroniza pixels cadastrados com o banco de dados / backend
+    fetch('/api/pixels')
+      .then(res => res.json())
+      .then(pixels => {
+        if (Array.isArray(pixels) && pixels.length > 0) {
+          setTrackingPixels(pixels);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('primetrack_pixels', JSON.stringify(pixels));
+          }
+        }
+      })
+      .catch(() => {});
+
     // Sincroniza tokens de Webhook API com o servidor
     fetch('/api/webhook/tokens')
       .then(res => res.json())
