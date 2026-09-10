@@ -1487,6 +1487,49 @@ app.get('/api/meta/status', async (req, res) => {
   }
 });
 
+// Endpoint para recarregar contas novas criadas no Facebook sem precisar reconectar
+app.post('/api/meta/refresh-accounts', async (req, res) => {
+  try {
+    const { data: supaConns } = await supabaseAdmin.from('facebook_connections').select('*').order('connected_at', { ascending: false });
+    if (!supaConns || supaConns.length === 0) {
+      return res.status(400).json({ success: false, error: 'Nenhum perfil conectado para atualizar contas.' });
+    }
+
+    let allFreshAccounts = [];
+    for (const conn of supaConns) {
+      if (conn.access_token) {
+        try {
+          const fresh = await fetchAdAccounts(conn.access_token);
+          if (Array.isArray(fresh)) {
+            const mapped = fresh.map(a => ({
+              id: a.id || `act_${a.accountId}`,
+              name: a.name || 'Conta de Anúncio',
+              bm_name: a.businessName || 'BM Principal',
+              currency: a.currency || a.rawCurrency || 'BRL',
+              status: a.status || 'ACTIVE',
+              amount_spent: Number(a.amountSpent || 0),
+              balance: Number(a.balance || 0)
+            }));
+            await supabaseAdmin.from('ad_accounts').upsert(mapped);
+            allFreshAccounts.push(...fresh);
+
+            // Atualiza contagem no perfil
+            await supabaseAdmin.from('facebook_connections').update({
+              accounts_count: fresh.length
+            }).eq('id', conn.id);
+          }
+        } catch (err) {
+          console.warn(`[Refresh Accounts] Erro no perfil ${conn.name}:`, err.message);
+        }
+      }
+    }
+
+    res.json({ success: true, message: 'Contas sincronizadas com sucesso da Meta!', count: allFreshAccounts.length });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // D. Função central para sincronizar campanhas e saldos reais das contas ativas em integrações
 async function executeMetaSync({ datePreset = 'today', timeRange = null, accountIds = null, accountId = null } = {}) {
   let connections = db.get('facebook_connections') || [];

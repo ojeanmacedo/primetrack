@@ -159,6 +159,8 @@ export default function Integrations() {
   // Facebook Connection Flow States
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [copiedAuthLink, setCopiedAuthLink] = useState(false);
+  const [isRefreshingAccounts, setIsRefreshingAccounts] = useState(false);
+  const [refreshAccountsToast, setRefreshAccountsToast] = useState(null);
   const [showFacebookOAuth, setShowFacebookOAuth] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
 
@@ -956,7 +958,7 @@ export default function Integrations() {
 
           {/* Contas de Anúncio Table matching Screenshot 4 */}
           <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl overflow-hidden shadow-xl">
-            <div className="p-4 border-b border-[#13233E] flex items-center justify-between">
+            <div className="p-4 border-b border-[#13233E] flex items-center justify-between flex-wrap gap-2">
               <h3 className="font-bold text-white text-sm flex items-center gap-2">
                 <span>Contas de Anúncio ({adAccounts.length})</span>
                 {trialStatus.isTrial && (
@@ -965,15 +967,63 @@ export default function Integrations() {
                   </span>
                 )}
               </h3>
-              {adAccounts.length > 0 && (
+              <div className="flex items-center gap-3">
                 <button 
-                  onClick={handleDisconnectAll}
-                  className="text-red-400 hover:text-red-300 text-xs font-medium cursor-pointer"
+                  onClick={async () => {
+                    setIsRefreshingAccounts(true);
+                    try {
+                      const res = await fetch('/api/meta/refresh-accounts', { method: 'POST' });
+                      const d = await res.json();
+                      if (d.success) {
+                        setRefreshAccountsToast(`✨ ${d.count} conta(s) atualizadas diretamente da Meta!`);
+                        setTimeout(() => setRefreshAccountsToast(null), 4000);
+                        // Recarrega status
+                        const statusRes = await fetch('/api/meta/status');
+                        const statusData = await statusRes.json();
+                        if (statusData.adAccounts) {
+                          setAdAccounts(statusData.adAccounts.map(a => ({
+                            name: a.name || 'Conta',
+                            id: (a.accountId || a.id || '').replace('act_', ''),
+                            bm: a.businessName || 'BM Principal',
+                            currency: a.currency || 'BRL',
+                            status: a.status === 'ACTIVE' || a.status === 'Ativa' ? 'Ativa' : 'Bloqueada',
+                            balance: a.balance || '0,00',
+                            sync: a.syncActive === true
+                          })));
+                        }
+                      }
+                    } catch (e) {
+                      console.error(e);
+                    } finally {
+                      setIsRefreshingAccounts(false);
+                    }
+                  }}
+                  disabled={isRefreshingAccounts}
+                  className="px-2.5 py-1 rounded-lg bg-[#0F1D38] hover:bg-[#162A4F] text-blue-400 hover:text-blue-300 border border-blue-500/20 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                  title="Buscar novas contas criadas no perfil conectado"
                 >
-                  Desconectar Todas
+                  <RefreshCw className={`w-3 h-3 ${isRefreshingAccounts ? 'animate-spin text-blue-400' : ''}`} />
+                  <span>{isRefreshingAccounts ? 'Buscando contas...' : 'Atualizar Novas Contas'}</span>
                 </button>
-              )}
+
+                {adAccounts.length > 0 && (
+                  <button 
+                    onClick={handleDisconnectAll}
+                    className="text-red-400 hover:text-red-300 text-xs font-medium cursor-pointer"
+                  >
+                    Desconectar Todas
+                  </button>
+                )}
+              </div>
             </div>
+
+            {/* Toast de Atualização de Novas Contas */}
+            {refreshAccountsToast && (
+              <div className="p-3 bg-blue-500/10 border-b border-blue-500/20 text-blue-300 text-xs font-semibold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-blue-400" />
+                <span>{refreshAccountsToast}</span>
+              </div>
+            )}
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs font-sans whitespace-nowrap">
