@@ -18,6 +18,7 @@ import {
   fetchAdsWithCreatives,
   updateMetaItemStatus,
   updateMetaItemDetails,
+  duplicateMetaCampaign,
   getUsdToBrlRate
 } from './services/metaService.js';
 import { supabaseAdmin } from './supabase.js';
