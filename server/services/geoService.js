@@ -20,12 +20,12 @@ export function cleanIp(ip) {
 }
 
 /**
- * Resolve o IP real para Cidade e Estado (ex.: { city: 'Rio de Janeiro', state: 'RJ' })
+ * Resolve o IP real para Cidade, Estado, CEP aproximado e País
  */
 export async function resolveIpLocation(rawIp) {
   const ip = cleanIp(rawIp);
   if (!ip || LOCAL_IPS.has(ip)) {
-    return { city: 'São Paulo', state: 'SP', country: 'BR' };
+    return { city: 'São Paulo', state: 'SP', country: 'BR', zip: '01001000' };
   }
 
   if (geoCache.has(ip)) {
@@ -36,7 +36,7 @@ export async function resolveIpLocation(rawIp) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2000);
 
-    const res = await fetch(`http://ip-api.com/json/${ip}?fields=status,countryCode,region,city`, {
+    const res = await fetch(`http://ip-api.com/json/${ip}?fields=status,countryCode,region,city,zip`, {
       signal: controller.signal
     });
     clearTimeout(timeoutId);
@@ -47,7 +47,8 @@ export async function resolveIpLocation(rawIp) {
         const result = {
           city: data.city,
           state: data.region,
-          country: data.countryCode || 'BR'
+          country: data.countryCode || 'BR',
+          zip: data.zip ? String(data.zip).replace(/\D/g, '') : ''
         };
         geoCache.set(ip, result);
         if (geoCache.size > 2000) {
@@ -61,6 +62,6 @@ export async function resolveIpLocation(rawIp) {
     // Ignora erro e usa fallback
   }
 
-  const fallback = { city: 'São Paulo', state: 'SP', country: 'BR' };
+  const fallback = { city: 'São Paulo', state: 'SP', country: 'BR', zip: '' };
   return fallback;
 }

@@ -199,11 +199,14 @@
     var fbc = getFbc();
 
     var targetPixels = pixelIds.length > 0 ? pixelIds : ['pt_px_default'];
+    var icEventId = 'ev_ic_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+
     for (var i = 0; i < targetPixels.length; i++) {
       sendEvent({
         pixel_id: targetPixels[i],
         click_id: clickId,
         event_name: 'InitiateCheckout',
+        event_id: icEventId,
         page: window.location.href,
         referrer: document.referrer || '',
         fbp: fbp,
@@ -221,7 +224,7 @@
 
     if (window.fbq && metaPixelId) {
       try {
-        window.fbq('track', 'InitiateCheckout', {}, { eventID: 'ev_ic_' + Date.now() });
+        window.fbq('track', 'InitiateCheckout', {}, { eventID: icEventId });
       } catch (e) {}
     }
 
@@ -393,7 +396,7 @@
         firstScript.parentNode.insertBefore(el, firstScript);
       }
       w.fbq('init', metaPixelId);
-      w.fbq('track', 'PageView', {}, { eventID: 'ev_pv_' + Date.now() });
+      w.fbq('track', 'PageView', {}, { eventID: pvEventId });
     } catch (e) {}
   }
 
@@ -402,6 +405,7 @@
   var utms = getUtms();
   var fbp = getFbp();
   var fbc = getFbc();
+  var pvEventId = 'ev_pv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
 
   var initialPixels = pixelIds.length > 0 ? pixelIds : ['pt_px_default'];
   for (var p = 0; p < initialPixels.length; p++) {
@@ -409,6 +413,7 @@
       pixel_id: initialPixels[p],
       click_id: clickId,
       event_name: 'PageView',
+      event_id: pvEventId,
       page: window.location.href,
       referrer: document.referrer || '',
       fbp: fbp,

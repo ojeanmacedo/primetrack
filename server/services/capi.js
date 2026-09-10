@@ -37,6 +37,20 @@ export function formatState(state) {
   return clean.slice(0, 2);
 }
 
+export function formatZip(zip) {
+  if (!zip) return undefined;
+  const digits = String(zip).replace(/\D/g, '').trim();
+  if (!digits) return undefined;
+  // Formata CEP brasileiro para 8 dígitos se tiver até 8, ou corta/completa
+  return digits;
+}
+
+export function formatCountry(country) {
+  if (!country) return 'br';
+  const clean = String(country).trim().toLowerCase();
+  return clean.length === 2 ? clean : 'br';
+}
+
 /**
  * Calcula a Nota do Pixel / EMQ (Event Match Quality) de 0 a 10
  */
@@ -49,36 +63,51 @@ export function calculateEmq(userData) {
     fbc: false,
     ip: false,
     userAgent: false,
-    location: false
+    location: false,
+    zip: false,
+    country: false,
+    externalId: false
   };
 
   if (userData.em || userData.email) {
-    score += 2.6;
+    score += 2.5;
     breakdown.email = true;
   }
   if (userData.ph || userData.phone) {
-    score += 2.4;
+    score += 2.2;
     breakdown.phone = true;
   }
   if (userData.fbp) {
-    score += 1.8;
+    score += 1.4;
     breakdown.fbp = true;
   }
   if (userData.fbc) {
-    score += 1.3;
+    score += 1.2;
     breakdown.fbc = true;
   }
   if (userData.client_ip_address || userData.ip) {
-    score += 0.7;
+    score += 0.6;
     breakdown.ip = true;
   }
   if (userData.client_user_agent || userData.userAgent) {
-    score += 0.5;
+    score += 0.4;
     breakdown.userAgent = true;
   }
   if (userData.ct || userData.st || userData.city || userData.state) {
     score += 0.4;
     breakdown.location = true;
+  }
+  if (userData.zp || userData.zip) {
+    score += 0.4;
+    breakdown.zip = true;
+  }
+  if (userData.country) {
+    score += 0.3;
+    breakdown.country = true;
+  }
+  if (userData.external_id || userData.externalId) {
+    score += 0.5;
+    breakdown.externalId = true;
   }
 
   // Cap at 9.8 max realistic
@@ -100,13 +129,18 @@ export async function sendCapiEvent({
   customData = {},
   testEventCode
 }) {
+  const externalIdValue = userData.external_id || userData.externalId || (userData.email ? sha256(userData.email) : undefined);
+
   const formattedUserData = {
     em: userData.em ? (Array.isArray(userData.em) ? userData.em : [userData.em]) : (userData.email ? [sha256(userData.email)] : undefined),
     ph: userData.ph ? (Array.isArray(userData.ph) ? userData.ph : [userData.ph]) : (userData.phone ? [sha256(formatPhone(userData.phone))] : undefined),
-    fn: userData.fn ? [userData.fn] : (userData.name ? [sha256(userData.name.split(' ')[0])] : undefined),
-    ln: userData.ln ? [userData.ln] : (userData.name && userData.name.split(' ').length > 1 ? [sha256(userData.name.split(' ').slice(1).join(' '))] : undefined),
+    fn: userData.fn ? [userData.fn] : (userData.name ? [sha256(userData.name.trim().split(' ')[0])] : undefined),
+    ln: userData.ln ? [userData.ln] : (userData.name && userData.name.trim().split(' ').length > 1 ? [sha256(userData.name.trim().split(' ').slice(1).join(' '))] : undefined),
     ct: userData.ct ? [userData.ct] : (userData.city ? [sha256(formatCity(userData.city))] : undefined),
     st: userData.st ? [userData.st] : (userData.state ? [sha256(formatState(userData.state))] : undefined),
+    zp: userData.zp ? [userData.zp] : (userData.zip || userData.cep ? [sha256(formatZip(userData.zip || userData.cep))] : undefined),
+    country: userData.country ? (Array.isArray(userData.country) ? userData.country : [sha256(formatCountry(userData.country))]) : [sha256('br')],
+    external_id: externalIdValue ? (Array.isArray(externalIdValue) ? externalIdValue : [externalIdValue]) : undefined,
     fbp: userData.fbp || undefined,
     fbc: userData.fbc || undefined,
     client_ip_address: userData.client_ip_address || userData.ip || undefined,

@@ -48,7 +48,9 @@ function parseKiwify(body) {
       email: customer.email || '',
       phone: customer.mobile || customer.phone || '',
       city: customer.city || (customer.address && customer.address.city) || '',
-      state: customer.state || (customer.address && customer.address.state) || ''
+      state: customer.state || (customer.address && customer.address.state) || '',
+      zip: customer.zipcode || customer.zip || (customer.address && (customer.address.zipcode || customer.address.zip || customer.address.cep)) || '',
+      country: customer.country || (customer.address && customer.address.country) || 'BR'
     },
     tracking: {
       utm_source: tracking.utm_source || tracking.src || body.utm_source,
@@ -88,7 +90,9 @@ function parseHotmart(body) {
       email: buyer.email || '',
       phone: (buyer.checkout_phone) || (buyer.phone) || '',
       city: (buyer.address && buyer.address.city) || '',
-      state: (buyer.address && buyer.address.state) || ''
+      state: (buyer.address && buyer.address.state) || '',
+      zip: (buyer.address && (buyer.address.zipcode || buyer.address.zip || buyer.address.cep)) || '',
+      country: (buyer.address && buyer.address.country_iso) || 'BR'
     },
     tracking: {
       utm_source: (purchase.origin && purchase.origin.utm_source) || (purchase.tracking && purchase.tracking.source) || body.utm_source,
@@ -123,7 +127,9 @@ function parseEduzz(body) {
       email: customer.email || body.client_email || '',
       phone: customer.cellphone || body.client_cellphone || '',
       city: customer.city || body.client_city || '',
-      state: customer.state || body.client_state || ''
+      state: customer.state || body.client_state || '',
+      zip: customer.zip_code || body.client_zip_code || '',
+      country: customer.country || 'BR'
     },
     tracking: {
       utm_source: body.utm_source || body.src,
@@ -153,8 +159,10 @@ function parseCakto(body) {
       name: customer.name || 'Cliente Cakto',
       email: customer.email || '',
       phone: customer.phone || '',
-      city: customer.city || '',
-      state: customer.state || ''
+      city: customer.city || (customer.address && customer.address.city) || '',
+      state: customer.state || (customer.address && customer.address.state) || '',
+      zip: customer.zip || customer.zipcode || customer.cep || (customer.address && customer.address.zipcode) || '',
+      country: customer.country || 'BR'
     },
     tracking: {
       utm_source: body.utm_source || (body.metadata && body.metadata.utm_source),
@@ -184,8 +192,10 @@ function parseKirvano(body) {
       name: customer.name || 'Cliente Kirvano',
       email: customer.email || '',
       phone: customer.phone_number || customer.phone || '',
-      city: customer.city || '',
-      state: customer.state || ''
+      city: customer.city || (customer.address && customer.address.city) || '',
+      state: customer.state || (customer.address && customer.address.state) || '',
+      zip: customer.zip || customer.zipcode || customer.cep || (customer.address && customer.address.zipcode) || '',
+      country: customer.country || 'BR'
     },
     tracking: {
       utm_source: body.utm_source,
@@ -215,7 +225,9 @@ function parsePerfectPay(body) {
       email: customer.customer_email || '',
       phone: customer.customer_phone || '',
       city: customer.customer_city || '',
-      state: customer.customer_state || ''
+      state: customer.customer_state || '',
+      zip: customer.customer_zip || customer.customer_cep || '',
+      country: 'BR'
     },
     tracking: {
       utm_source: body.utm_source || body.src,
@@ -245,7 +257,9 @@ function parseBraip(body) {
       email: client.client_email || '',
       phone: client.client_telephone || '',
       city: client.client_city || '',
-      state: client.client_state || ''
+      state: client.client_state || '',
+      zip: client.client_zip_code || client.client_cep || '',
+      country: 'BR'
     },
     tracking: {
       utm_source: body.utm_source || body.src,
@@ -294,7 +308,9 @@ function parseMonsterPay(body) {
       email: customer.email || body.email || body.data?.email || '',
       phone: customer.phone || customer.mobile || customer.cellphone || body.phone || '',
       city: customer.city || (customer.address && customer.address.city) || '',
-      state: customer.state || (customer.address && customer.address.state) || ''
+      state: customer.state || (customer.address && customer.address.state) || '',
+      zip: customer.zip || customer.zipcode || customer.cep || (customer.address && (customer.address.zipcode || customer.address.zip || customer.address.cep)) || '',
+      country: customer.country || (customer.address && customer.address.country) || 'BR'
     },
     tracking: {
       utm_source: tracking.utm_source || body.utm_source || tracking.src || body.src,

@@ -317,6 +317,8 @@ app.post('/api/track/event', async (req, res) => {
         fbc,
         city: geo.city,
         state: geo.state,
+        country: 'BR',
+        external_id: sessionId || undefined,
         client_ip_address: clientIp,
         client_user_agent: clientUserAgent
       },
@@ -393,19 +395,25 @@ app.all([
     // 2. Executa atribuição cross-session inteligente (recupera IP, cidade e estado do Pixel)
     const attribution = attributeOrder(parsed, clientIp);
 
-    // Resolução da Cidade e Estado reais do Pixel CAPI
+    // Resolução de Cidade, Estado, CEP e País reais pelo Pixel CAPI e IP
     const effectiveIp = attribution.ip || clientIp || '189.40.122.45';
     let resolvedCity = parsed.customer.city || attribution.city;
     let resolvedState = parsed.customer.state || attribution.state;
+    let resolvedZip = parsed.customer.zip || '';
+    let resolvedCountry = parsed.customer.country || 'BR';
 
-    if (!resolvedCity || !resolvedState) {
+    if (!resolvedCity || !resolvedState || !resolvedZip) {
       const geo = await resolveIpLocation(effectiveIp);
       if (!resolvedCity) resolvedCity = geo.city;
       if (!resolvedState) resolvedState = geo.state;
+      if (!resolvedZip && geo.zip) resolvedZip = geo.zip;
+      if (!resolvedCountry && geo.country) resolvedCountry = geo.country;
     }
 
     parsed.customer.city = resolvedCity;
     parsed.customer.state = resolvedState;
+    parsed.customer.zip = resolvedZip;
+    parsed.customer.country = resolvedCountry;
 
     // 3. Envia evento Purchase enriquecido para Meta CAPI (Isolamento Estrito por Pixel/Campanha/Domínio)
     const settings = db.get('settings') || {};
@@ -464,6 +472,9 @@ app.all([
             name: parsed.customer.name,
             city: resolvedCity || 'São Paulo',
             state: resolvedState || 'SP',
+            zip: resolvedZip || '',
+            country: resolvedCountry || 'BR',
+            external_id: parsed.customer.email || parsed.orderCode,
             fbp: attribution.fbp,
             fbc: attribution.fbc,
             client_ip_address: effectiveIp,
