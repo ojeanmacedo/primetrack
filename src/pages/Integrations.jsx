@@ -932,7 +932,7 @@ export default function Integrations() {
                           ) : (
                             <div className="text-[10px] text-emerald-400 mt-1 flex items-center gap-1">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                              <span>Acesso Total: Permissão para leitura, edição de orçamento, duplicação e gerenciamento de campanhas.</span>
+                              <span>Acesso Total: Edição de orçamento, duplicação e gerenciamento de campanhas.</span>
                             </div>
                           )}
                         </div>
