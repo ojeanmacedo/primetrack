@@ -244,6 +244,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const [expandedProfileId, setExpandedProfileId] = useState(null);
   const [duplicatingLoading, setDuplicatingLoading] = useState(false);
 
+  // Modal de Confirmação de Exclusão (In-App)
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+
   const subTabs = ['Contas', 'Campanhas', 'Conjuntos', 'Anúncios'];
   const isFirstMount = React.useRef(true);
 
@@ -692,15 +695,20 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setBulkProcessing(false);
   };
 
-  // Exclusão em massa de itens selecionados (Campanhas, Conjuntos ou Anúncios)
-  const handleBulkDelete = async () => {
+  // Abertura do modal customizado de exclusão
+  const handleOpenBulkDeleteModal = () => {
+    const ids = Array.from(activeSelectedSet);
+    if (ids.length === 0) return;
+    setBulkMenuOpen(false);
+    setShowDeleteConfirmModal(true);
+  };
+
+  // Execução da exclusão confirmada no modal
+  const handleExecuteBulkDelete = async () => {
     const ids = Array.from(activeSelectedSet);
     if (ids.length === 0) return;
 
-    const confirmMsg = `Tem certeza que deseja EXCLUIR definitivamente ${ids.length} ${subTab.toLowerCase()} selecionada(s) do Gerenciador de Anúncios e da PrimeTrack?`;
-    if (!window.confirm(confirmMsg)) return;
-
-    setBulkMenuOpen(false);
+    setShowDeleteConfirmModal(false);
     setBulkProcessing(true);
     setSaveSuccessMsg(`Excluindo ${ids.length} ${subTab.toLowerCase()}...`);
 
@@ -735,6 +743,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       setBulkProcessing(false);
       setTimeout(() => setSaveSuccessMsg(null), 6000);
     }
+  };
   };
 
   const handleOpenBulkModal = (action) => {
@@ -2011,7 +2020,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   {/* Opção de Excluir em Massa */}
                   <button
                     type="button"
-                    onClick={handleBulkDelete}
+                    onClick={handleOpenBulkDeleteModal}
                     disabled={activeSelectedSet.size === 0 || bulkProcessing}
                     className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   >
@@ -2779,6 +2788,70 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL DE CONFIRMAÇÃO DE EXCLUSÃO (IN-APP) ── */}
+      {showDeleteConfirmModal && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in"
+          onClick={() => !bulkProcessing && setShowDeleteConfirmModal(false)}
+        >
+          <div 
+            className="relative w-full max-w-[420px] bg-[#0A1426] border border-red-500/30 rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 text-zinc-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header com Ícone de Alerta */}
+            <div className="flex items-start gap-3.5 mb-4">
+              <div className="w-10 h-10 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-white text-base">
+                  Excluir {activeSelectedSet.size} {subTab.toLowerCase()}?
+                </h3>
+                <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                  Esta ação excluirá permanentemente os itens selecionados do seu <strong className="text-white font-semibold">Gerenciador de Anúncios da Meta</strong> e do painel da PrimeTrack.
+                </p>
+              </div>
+            </div>
+
+            {/* Caixa de Aviso */}
+            <div className="p-3 rounded-2xl bg-[#070D1A] border border-[#13233E] text-[11px] text-zinc-400 mb-5 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>Essa operação é irreversível e não poderá ser desfeita.</span>
+            </div>
+
+            {/* Botões de Ação */}
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#13233E]">
+              <button
+                type="button"
+                disabled={bulkProcessing}
+                onClick={() => setShowDeleteConfirmModal(false)}
+                className="px-4 py-2 rounded-xl border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer text-xs font-semibold"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={bulkProcessing}
+                onClick={handleExecuteBulkDelete}
+                className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold transition-all shadow-lg shadow-red-600/30 cursor-pointer disabled:opacity-50 text-xs flex items-center gap-2"
+              >
+                {bulkProcessing ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Excluindo na Meta...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Confirmar Exclusão</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
