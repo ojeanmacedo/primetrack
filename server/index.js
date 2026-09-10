@@ -939,34 +939,44 @@ app.get('/api/campaigns', async (req, res) => {
     return true;
   });
 
+  // Função auxiliar para checagem exata e desambiguação de campanhas
+  const isMatchCampaign = (campaignNameOrId, camp) => {
+    if (!campaignNameOrId) return false;
+    const target = String(campaignNameOrId).toLowerCase().trim();
+    if (!target || target === 'orgânico' || target === 'organico' || target === 'histórico') return false;
+
+    const cName = (camp.name || '').toLowerCase().trim();
+    const cUtm = (camp.utm_campaign || '').toLowerCase().trim();
+    const cId = String(camp.id || '').trim();
+
+    // Match exato por ID da campanha na Meta ou UTM campaign
+    if (target === cId || (cUtm && target === cUtm) || target === cName) {
+      return true;
+    }
+
+    return false;
+  };
+
   // Calcula vendas, receita e ICs EXCLUSIVAMENTE da MonsterPay e do Pixel da PrimeTrack
   const enrichedCampaigns = activeOnlyCampaigns.map(c => {
-    const cName = (c.name || '').toLowerCase();
-    const cUtm = (c.utm_campaign || '').toLowerCase();
-    const cId = String(c.id || '');
-
     const matchingOrders = filteredOrders.filter(o => {
       const oCamp = ((o.attribution && o.attribution.campaign) || o.campaign || '').toLowerCase().trim();
-      if (!oCamp || oCamp === 'orgânico' || oCamp === 'organico' || oCamp === 'histórico') return false;
-      return (oCamp === cName || oCamp === cUtm || oCamp === cId || cName.includes(oCamp) || oCamp.includes(cName));
+      return isMatchCampaign(oCamp, c);
     });
 
     const matchingPendingOrders = filteredPendingOrders.filter(o => {
       const oCamp = ((o.attribution && o.attribution.campaign) || o.campaign || '').toLowerCase().trim();
-      if (!oCamp || oCamp === 'orgânico' || oCamp === 'organico' || oCamp === 'histórico') return false;
-      return (oCamp === cName || oCamp === cUtm || oCamp === cId || cName.includes(oCamp) || oCamp.includes(cName));
+      return isMatchCampaign(oCamp, c);
     });
 
     const matchingPixelEvents = pixelPurchases.filter(e => {
       const eCamp = ((e.attribution && e.attribution.campaign) || e.campaign || (e.utms && e.utms.utm_campaign) || '').toLowerCase().trim();
-      if (!eCamp || eCamp === 'orgânico' || eCamp === 'organico' || eCamp === 'histórico') return false;
-      return (eCamp === cName || eCamp === cUtm || eCamp === cId || cName.includes(eCamp) || eCamp.includes(cName));
+      return isMatchCampaign(eCamp, c);
     });
 
     const matchingPixelICs = pixelICs.filter(e => {
       const eCamp = ((e.attribution && e.attribution.campaign) || e.campaign || (e.utms && e.utms.utm_campaign) || '').toLowerCase().trim();
-      if (!eCamp || eCamp === 'orgânico' || eCamp === 'organico' || eCamp === 'histórico') return false;
-      return (eCamp === cName || eCamp === cUtm || eCamp === cId || cName.includes(eCamp) || eCamp.includes(cName));
+      return isMatchCampaign(eCamp, c);
     });
 
     const webhookSales = matchingOrders.length;
@@ -1809,21 +1819,25 @@ app.post('/api/meta/sync', async (req, res) => {
       return true;
     });
 
-    const enrichedCampaigns = activeOnlyCampaigns.map(c => {
-      const cName = (c.name || '').toLowerCase();
-      const cUtm = (c.utm_campaign || '').toLowerCase();
-      const cId = String(c.id || '');
+    const isMatchCampaign = (campaignNameOrId, camp) => {
+      if (!campaignNameOrId) return false;
+      const target = String(campaignNameOrId).toLowerCase().trim();
+      if (!target || target === 'orgânico' || target === 'organico' || target === 'histórico') return false;
+      const cName = (camp.name || '').toLowerCase().trim();
+      const cUtm = (camp.utm_campaign || '').toLowerCase().trim();
+      const cId = String(camp.id || '').trim();
+      return (target === cId || (cUtm && target === cUtm) || target === cName);
+    };
 
+    const enrichedCampaigns = activeOnlyCampaigns.map(c => {
       const matchingOrders = filteredOrders.filter(o => {
         const oCamp = ((o.attribution && o.attribution.campaign) || o.campaign || '').toLowerCase().trim();
-        if (!oCamp || oCamp === 'orgânico' || oCamp === 'organico' || oCamp === 'histórico') return false;
-        return (oCamp === cName || oCamp === cUtm || oCamp === cId || cName.includes(oCamp) || oCamp.includes(cName));
+        return isMatchCampaign(oCamp, c);
       });
 
       const matchingPixelEvents = pixelPurchases.filter(e => {
         const eCamp = ((e.attribution && e.attribution.campaign) || e.campaign || (e.utms && e.utms.utm_campaign) || '').toLowerCase().trim();
-        if (!eCamp || eCamp === 'orgânico' || eCamp === 'organico' || eCamp === 'histórico') return false;
-        return (eCamp === cName || eCamp === cUtm || eCamp === cId || cName.includes(eCamp) || eCamp.includes(cName));
+        return isMatchCampaign(eCamp, c);
       });
 
       const webhookSales = matchingOrders.length;
