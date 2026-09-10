@@ -779,6 +779,26 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, targe
                         }
                       }
 
+                      // Se for cross-account, hashes de imagem da conta de origem não existem na conta de destino
+                      // Convertemos para picture / image_url para o Facebook importar a mídia automaticamente
+                      if (isCrossAccount) {
+                        const fallbackImgUrl = ad.creative.image_url || ad.creative.thumbnail_url;
+                        if (specCopy.link_data) {
+                          if (fallbackImgUrl && !specCopy.link_data.picture) {
+                            specCopy.link_data.picture = fallbackImgUrl;
+                          }
+                          // Remove image_hash local da conta antiga
+                          delete specCopy.link_data.image_hash;
+                        }
+                        if (specCopy.video_data) {
+                          if (fallbackImgUrl && !specCopy.video_data.image_url) {
+                            specCopy.video_data.image_url = fallbackImgUrl;
+                          }
+                          // Remove image_hash do thumbnail do vídeo da conta antiga
+                          delete specCopy.video_data.image_hash;
+                        }
+                      }
+
                       const createCreativeBody = new URLSearchParams({
                         access_token: destToken,
                         name: ad.creative.name || ad.name || 'Criativo Duplicado',
@@ -793,6 +813,8 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, targe
                       const createCrData = await createCrRes.json();
                       if (createCrData.id) {
                         creativeIdToUse = createCrData.id;
+                      } else {
+                        console.warn(`[Create AdCreative Warning]:`, createCrData.error?.message);
                       }
                     } catch (crErr) {
                       console.warn(`[Create AdCreative Error]:`, crErr.message);
