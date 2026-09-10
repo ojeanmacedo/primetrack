@@ -2252,6 +2252,20 @@ app.post('/api/campaigns/duplicate', async (req, res) => {
     const cleanTargetPixel = targetPixelId ? String(targetPixelId).trim() : null;
     const duplicatedResults = [];
 
+    // Busca o token do perfil de destino (se for duplicar para outra conta)
+    let targetProfileToken = null;
+    if (cleanTargetAcc) {
+      // Localiza qual conexão tem a conta de destino
+      const allAdAccs = db.get('ad_accounts') || [];
+      const destAcc = allAdAccs.find(a => String(a.accountId || a.id).replace('act_', '') === cleanTargetAcc);
+      if (destAcc && destAcc.profileId) {
+        const matchingConn = connections.find(c => String(c.id) === String(destAcc.profileId));
+        if (matchingConn) {
+          targetProfileToken = matchingConn.access_token || matchingConn.accessToken;
+        }
+      }
+    }
+
     for (const cId of campaignIds) {
       let succeeded = false;
       let lastError = null;
@@ -2262,6 +2276,7 @@ app.post('/api/campaigns/duplicate', async (req, res) => {
           const resDup = await duplicateMetaCampaign(cId, {
             targetAccountId: cleanTargetAcc,
             targetPixelId: cleanTargetPixel,
+            targetToken: targetProfileToken,
             copiesCount: Number(copiesCount) || 1
           }, token);
           duplicatedResults.push({ campaignId: cId, ...resDup });

@@ -591,25 +591,30 @@ export async function deleteMetaItem(itemId, accessToken) {
  * Clona a campanha e todos os seus conjuntos e anúncios/criativos,
  * permitindo definir um pixel específico (targetPixelId) para a nova conta/campanha.
  */
-export async function duplicateMetaCampaign(campaignId, { targetAccountId, targetPixelId, copiesCount = 1, status = 'ACTIVE' }, accessToken) {
+export async function duplicateMetaCampaign(campaignId, { targetAccountId, targetPixelId, targetToken, copiesCount = 1, status = 'ACTIVE' }, accessToken) {
   const cleanTargetAcc = (targetAccountId || '').replace('act_', '').trim();
   const cleanTargetPixel = targetPixelId ? String(targetPixelId).trim() : null;
   const results = [];
 
-  // Obtém informações da campanha de origem uma vez antes do loop para economizar chamadas
+  // Token para operar na conta de destino (se fornecido, usa o targetToken; caso contrário usa o accessToken original)
+  const destToken = targetToken || accessToken;
+
+  // Obtém informações da campanha de origem
   let sourceAccountId = cleanTargetAcc;
+  let sourceCampData = null;
   try {
-    const cInfoRes = await fetch(`${GRAPH_BASE_URL}/${campaignId}?fields=account_id&access_token=${accessToken}`);
+    const cInfoRes = await fetch(`${GRAPH_BASE_URL}/${campaignId}?fields=id,name,objective,daily_budget,lifetime_budget,special_ad_categories,buying_type,account_id&access_token=${accessToken}`);
     const cInfo = await cInfoRes.json();
-    if (cInfo.account_id) {
-      sourceAccountId = cInfo.account_id;
+    if (cInfo && !cInfo.error) {
+      sourceCampData = cInfo;
+      if (cInfo.account_id) sourceAccountId = cInfo.account_id;
     }
   } catch (e) {}
 
   // Obtém os conjuntos originais com suas configurações completas e seus anúncios
   let originalAdsetsWithAds = [];
   try {
-    const adsetFields = 'id,name,status,daily_budget,lifetime_budget,bid_amount,bid_strategy,billing_event,optimization_goal,targeting,promoted_object,destination_type,ads{id,name,status,creative{id},tracking_specs}';
+    const adsetFields = 'id,name,status,daily_budget,lifetime_budget,bid_amount,bid_strategy,billing_event,optimization_goal,targeting,promoted_object,destination_type,ads{id,name,status,creative{id,name,object_story_spec,asset_feed_spec,image_url,video_id,body,title,call_to_action_type,link_url},tracking_specs}';
     const adsetsRes = await fetch(`${GRAPH_BASE_URL}/${campaignId}/adsets?fields=${adsetFields}&limit=50&access_token=${accessToken}`);
     const adsetsData = await adsetsRes.json();
     if (adsetsData && adsetsData.data) {
@@ -621,63 +626,102 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, targe
 
   const effectiveAccountId = cleanTargetAcc || sourceAccountId;
   const formattedActId = effectiveAccountId ? (effectiveAccountId.startsWith('act_') ? effectiveAccountId : `act_${effectiveAccountId}`) : null;
+  const isCrossAccount = Boolean(cleanTargetAcc && cleanTargetAcc !== sourceAccountId);
 
   for (let i = 0; i < copiesCount; i++) {
     try {
-      // 1. Clona a campanha (nível raiz)
-      const copyUrl = `${GRAPH_BASE_URL}/${campaignId}/copies`;
-      const params = new URLSearchParams();
-      params.append('access_token', accessToken);
-      params.append('deep_copy', 'false');
-      params.append('status_option', status || 'ACTIVE');
+      let newCampaignId = null;
+      let rootCopyData = null;
 
-      if (cleanTargetAcc) {
-        params.append('target_account_id', cleanTargetAcc);
+      // Se for duplicação entre contas diferentes ou BMs diferentes com perfis distintos:
+      if (isCrossAccount && destToken && sourceCampData) {
+        const createCampBody = new URLSearchParams({
+          access_token: destToken,
+          name: sourceCampData.name ? `${sourceCampData.name} — Cópia` : 'Campanha Duplicada',
+          objective: sourceCampData.objective || 'OUTCOME_SALES',
+          status: status || 'ACTIVE',
+          special_ad_categories: JSON.stringify(sourceCampData.special_ad_categories || [])
+        });
+        if (sourceCampData.daily_budget) createCampBody.append('daily_budget', sourceCampData.daily_budget);
+        if (sourceCampData.lifetime_budget) createCampBody.append('lifetime_budget', sourceCampData.lifetime_budget);
+
+        const createCampRes = await fetch(`${GRAPH_BASE_URL}/${formattedActId}/campaigns`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: createCampBody.toString()
+        });
+        const createdCampData = await createCampRes.json();
+        if (createdCampData.id) {
+          newCampaignId = createdCampData.id;
+          rootCopyData = { copied_campaign_id: newCampaignId, id: newCampaignId };
+        } else {
+          throw new Error(createdCampData.error?.message || 'Falha ao criar campanha na conta de destino');
+        }
+      } else {
+        // Duplicação nativa na mesma conta/perfil
+        const copyUrl = `${GRAPH_BASE_URL}/${campaignId}/copies`;
+        const params = new URLSearchParams();
+        params.append('access_token', accessToken);
+        params.append('deep_copy', 'false');
+        params.append('status_option', status || 'ACTIVE');
+
+        if (cleanTargetAcc) {
+          params.append('target_account_id', cleanTargetAcc);
+        }
+
+        const res = await fetch(copyUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: params.toString()
+        });
+        const data = await res.json();
+
+        if (data.error) {
+          throw new Error(data.error.message || `Meta Graph API Error [${data.error.code || 'Desconhecido'}]`);
+        }
+
+        newCampaignId = data.copied_campaign_id || data.id;
+        rootCopyData = data;
       }
-
-      const res = await fetch(copyUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: params.toString()
-      });
-      const data = await res.json();
-
-      if (data.error) {
-        throw new Error(data.error.message || `Meta Graph API Error [${data.error.code || 'Desconhecido'}]`);
-      }
-
-      const newCampaignId = data.copied_campaign_id || data.id;
 
       // 2. Clona cada conjunto de anúncio para a nova campanha
-      if (originalAdsetsWithAds.length > 0) {
+      if (originalAdsetsWithAds.length > 0 && newCampaignId) {
         for (const adset of originalAdsetsWithAds) {
           try {
             let newAdsetId = null;
 
-            // Se o usuário especificou um Pixel diferente (ex: ao duplicar para outra BM/conta ou trocar pixel),
-            // criamos o conjunto diretamente com o novo Pixel no promoted_object
-            if (cleanTargetPixel && formattedActId) {
+            // Se for cross-account OU se especificou novo pixel, cria o adset diretamente na conta de destino
+            if ((isCrossAccount || cleanTargetPixel) && formattedActId) {
               try {
-                const customPromotedObj = {
-                  pixel_id: cleanTargetPixel,
+                const targetPixelToUse = cleanTargetPixel || adset.promoted_object?.pixel_id;
+                const customPromotedObj = targetPixelToUse ? {
+                  pixel_id: targetPixelToUse,
                   custom_event_type: adset.promoted_object?.custom_event_type || 'PURCHASE'
-                };
+                } : null;
 
                 const createAdsetBody = {
-                  access_token: accessToken,
+                  access_token: destToken,
                   name: adset.name ? `${adset.name} — Cópia` : 'Conjunto Duplicado',
                   campaign_id: newCampaignId,
                   status: status || 'ACTIVE',
                   billing_event: adset.billing_event || 'IMPRESSIONS',
-                  optimization_goal: adset.optimization_goal || 'OFFSITE_CONVERSIONS',
-                  promoted_object: JSON.stringify(customPromotedObj)
+                  optimization_goal: adset.optimization_goal || 'OFFSITE_CONVERSIONS'
                 };
+
+                if (customPromotedObj) {
+                  createAdsetBody.promoted_object = JSON.stringify(customPromotedObj);
+                }
 
                 if (adset.targeting) {
                   createAdsetBody.targeting = typeof adset.targeting === 'object' ? JSON.stringify(adset.targeting) : adset.targeting;
                 }
-                if (adset.daily_budget) createAdsetBody.daily_budget = adset.daily_budget;
-                if (adset.lifetime_budget) createAdsetBody.lifetime_budget = adset.lifetime_budget;
+                // Só inclui orçamento de conjunto se a campanha de origem NÃO tiver orçamento no nível de campanha (CBO)
+                const hasCampBudget = Boolean(sourceCampData?.daily_budget || sourceCampData?.lifetime_budget);
+                if (!hasCampBudget) {
+                  if (adset.daily_budget) createAdsetBody.daily_budget = adset.daily_budget;
+                  if (adset.lifetime_budget) createAdsetBody.lifetime_budget = adset.lifetime_budget;
+                }
+
                 if (adset.bid_amount) createAdsetBody.bid_amount = adset.bid_amount;
                 if (adset.bid_strategy) createAdsetBody.bid_strategy = adset.bid_strategy;
                 if (adset.destination_type) createAdsetBody.destination_type = adset.destination_type;
@@ -691,15 +735,15 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, targe
                 if (createAdsetData.id) {
                   newAdsetId = createAdsetData.id;
                 } else {
-                  console.warn(`[duplicateMetaCampaign] Fallback para cópia nativa de adset:`, createAdsetData.error?.message);
+                  console.warn(`[duplicateMetaCampaign] Falha ao criar adset customizado:`, createAdsetData.error?.message);
                 }
               } catch (customErr) {
-                console.warn(`[duplicateMetaCampaign] Falha ao criar adset com pixel customizado:`, customErr.message);
+                console.warn(`[duplicateMetaCampaign] Erro ao criar adset:`, customErr.message);
               }
             }
 
-            // Se não especificou novo pixel ou se a criação customizada falhou, usa a duplicação nativa
-            if (!newAdsetId) {
+            // Fallback para cópia nativa de adset se for na mesma conta/perfil
+            if (!newAdsetId && !isCrossAccount) {
               const adsetCopyParams = new URLSearchParams();
               adsetCopyParams.append('access_token', accessToken);
               adsetCopyParams.append('deep_copy', 'false');
@@ -718,19 +762,44 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, targe
             // 3. Clona os anúncios para dentro do novo conjunto
             if (newAdsetId && formattedActId && adset.ads?.data?.length > 0) {
               for (const ad of adset.ads.data) {
-                if (ad.creative?.id) {
-                  try {
+                try {
+                  let creativeIdToUse = ad.creative?.id;
+
+                  // Se for cross-account, cria o criativo na conta de destino usando destToken
+                  if (isCrossAccount && ad.creative?.object_story_spec) {
+                    try {
+                      const createCreativeBody = new URLSearchParams({
+                        access_token: destToken,
+                        name: ad.creative.name || ad.name || 'Criativo Duplicado',
+                        object_story_spec: JSON.stringify(ad.creative.object_story_spec)
+                      });
+                      const createCrRes = await fetch(`${GRAPH_BASE_URL}/${formattedActId}/adcreatives`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: createCreativeBody.toString()
+                      });
+                      const createCrData = await createCrRes.json();
+                      if (createCrData.id) {
+                        creativeIdToUse = createCrData.id;
+                      }
+                    } catch (crErr) {
+                      console.warn(`[Create AdCreative Cross-Account Error]:`, crErr.message);
+                    }
+                  }
+
+                  if (creativeIdToUse) {
                     const adParams = new URLSearchParams();
-                    adParams.append('access_token', accessToken);
+                    adParams.append('access_token', destToken);
                     adParams.append('name', ad.name || 'Anúncio Duplicado');
                     adParams.append('adset_id', newAdsetId);
-                    adParams.append('creative', JSON.stringify({ creative_id: ad.creative.id }));
+                    adParams.append('creative', JSON.stringify({ creative_id: creativeIdToUse }));
                     adParams.append('status', status || 'ACTIVE');
 
                     // Ajusta tracking_specs para o novo pixel se fornecido
-                    if (cleanTargetPixel) {
+                    const pixelForTracking = cleanTargetPixel || adset.promoted_object?.pixel_id;
+                    if (pixelForTracking) {
                       const updatedTracking = [
-                        { 'action.type': ['offsite_conversion'], fb_pixel: [cleanTargetPixel] }
+                        { 'action.type': ['offsite_conversion'], fb_pixel: [pixelForTracking] }
                       ];
                       adParams.append('tracking_specs', JSON.stringify(updatedTracking));
                     } else if (ad.tracking_specs) {
@@ -742,9 +811,9 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, targe
                       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                       body: adParams.toString()
                     });
-                  } catch (adErr) {
-                    console.warn(`[Clone Ad Error for ${ad.id}]:`, adErr.message);
                   }
+                } catch (adErr) {
+                  console.warn(`[Clone Ad Error for ${ad.id}]:`, adErr.message);
                 }
               }
             }
@@ -754,10 +823,15 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, targe
         }
       }
 
-      results.push(data);
+      results.push(rootCopyData || { id: newCampaignId });
     } catch (err) {
       console.warn(`[Duplicate Meta Campaign ${campaignId} (#${i + 1}/${copiesCount}) Error]:`, err.message);
       throw err;
+    }
+  }
+
+  return { success: true, count: results.length, copiedCampaigns: results };
+}
     }
   }
 
