@@ -2602,7 +2602,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                         <option value="">📄 Manter Página Original da Campanha</option>
                         {relevantPages.map((pg) => (
                           <option key={pg.id} value={pg.id}>
-                            {pg.name} (ID: {pg.id})
+                            {pg.name} {pg.profileName ? `(${pg.profileName})` : ''}
                           </option>
                         ))}
                       </select>
