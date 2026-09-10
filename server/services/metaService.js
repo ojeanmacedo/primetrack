@@ -589,11 +589,12 @@ export async function deleteMetaItem(itemId, accessToken) {
 /**
  * 9. Duplica campanha no Gerenciador da Meta Ads (na mesma conta ou em outra conta)
  * Clona a campanha e todos os seus conjuntos e anúncios/criativos,
- * permitindo definir um pixel específico (targetPixelId) para a nova conta/campanha.
+ * permitindo definir um pixel específico (targetPixelId) e uma página específica (targetPageId) para a nova conta/campanha.
  */
-export async function duplicateMetaCampaign(campaignId, { targetAccountId, targetPixelId, targetToken, copiesCount = 1, status = 'ACTIVE' }, accessToken) {
+export async function duplicateMetaCampaign(campaignId, { targetAccountId, targetPixelId, targetPageId, targetToken, copiesCount = 1, status = 'ACTIVE' }, accessToken) {
   const cleanTargetAcc = (targetAccountId || '').replace('act_', '').trim();
   const cleanTargetPixel = targetPixelId ? String(targetPixelId).trim() : null;
+  const cleanTargetPage = targetPageId ? String(targetPageId).trim() : null;
   const results = [];
 
   // Token para operar na conta de destino (se fornecido, usa o targetToken; caso contrário usa o accessToken original)
@@ -765,14 +766,25 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, targe
                 try {
                   let creativeIdToUse = ad.creative?.id;
 
-                  // Se for cross-account, cria o criativo na conta de destino usando destToken
-                  if (isCrossAccount && ad.creative?.object_story_spec) {
+                  // Se for cross-account OU se especificou nova página (targetPageId), cria o criativo na conta de destino usando destToken
+                  if ((isCrossAccount || cleanTargetPage) && ad.creative?.object_story_spec) {
                     try {
+                      const specCopy = JSON.parse(JSON.stringify(ad.creative.object_story_spec));
+                      
+                      // Substitui para a nova página se fornecida
+                      if (cleanTargetPage) {
+                        specCopy.page_id = cleanTargetPage;
+                        if (specCopy.instagram_user_id) {
+                          delete specCopy.instagram_user_id; // evita erro de permissão cruzada com conta do IG antiga
+                        }
+                      }
+
                       const createCreativeBody = new URLSearchParams({
                         access_token: destToken,
                         name: ad.creative.name || ad.name || 'Criativo Duplicado',
-                        object_story_spec: JSON.stringify(ad.creative.object_story_spec)
+                        object_story_spec: JSON.stringify(specCopy)
                       });
+
                       const createCrRes = await fetch(`${GRAPH_BASE_URL}/${formattedActId}/adcreatives`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -783,7 +795,7 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, targe
                         creativeIdToUse = createCrData.id;
                       }
                     } catch (crErr) {
-                      console.warn(`[Create AdCreative Cross-Account Error]:`, crErr.message);
+                      console.warn(`[Create AdCreative Error]:`, crErr.message);
                     }
                   }
 

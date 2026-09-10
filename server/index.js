@@ -2141,6 +2141,23 @@ app.get('/api/campaigns/duplicate-targets', async (req, res) => {
         
         if (token) {
           try {
+            // Busca páginas do perfil (me/accounts) e páginas através das contas
+            let profilePages = [];
+            try {
+              const pagesRes = await fetch(`https://graph.facebook.com/v19.0/me/accounts?fields=id,name,category,is_published&limit=50&access_token=${token}`);
+              const pagesData = await pagesRes.json();
+              if (pagesData && Array.isArray(pagesData.data)) {
+                profilePages = pagesData.data.map(p => ({
+                  id: p.id,
+                  name: p.name,
+                  category: p.category || 'Página',
+                  isPublished: p.is_published !== false
+                }));
+              }
+            } catch (pgErr) {
+              console.warn(`[duplicate-targets] Erro ao buscar páginas do perfil ${conn.name}:`, pgErr.message);
+            }
+
             const freshAccs = await fetchAdAccounts(token);
             if (Array.isArray(freshAccs) && freshAccs.length > 0) {
               // Carrega pixels de cada conta em paralelo
@@ -2173,7 +2190,8 @@ app.get('/api/campaigns/duplicate-targets', async (req, res) => {
                     status: a.status === 'ACTIVE' || a.status === 'Ativa' ? 'Ativa' : (a.status || 'Ativa'),
                     profileId: String(conn.id),
                     profileName: conn.name,
-                    pixels: pixels
+                    pixels: pixels,
+                    pages: profilePages
                   };
                 })
               );
@@ -2196,7 +2214,8 @@ app.get('/api/campaigns/duplicate-targets', async (req, res) => {
               status: a.status === 'ACTIVE' || a.status === 'Ativa' ? 'Ativa' : (a.status || 'Ativa'),
               profileId: String(conn.id),
               profileName: conn.name,
-              pixels: []
+              pixels: [],
+              pages: []
             };
           });
         }
@@ -2227,7 +2246,7 @@ app.get('/api/campaigns/duplicate-targets', async (req, res) => {
 
 app.post('/api/campaigns/duplicate', async (req, res) => {
   try {
-    const { campaignIds, targetAccountId, copiesCount = 1, destinationType = 'same_account', targetPixelId } = req.body;
+    const { campaignIds, targetAccountId, copiesCount = 1, destinationType = 'same_account', targetPixelId, targetPageId } = req.body;
     if (!Array.isArray(campaignIds) || campaignIds.length === 0) {
       return res.status(400).json({ success: false, error: 'Nenhuma campanha selecionada para duplicação.' });
     }
@@ -2250,6 +2269,7 @@ app.post('/api/campaigns/duplicate', async (req, res) => {
 
     const cleanTargetAcc = destinationType === 'other_account' && targetAccountId ? targetAccountId.replace('act_', '').trim() : null;
     const cleanTargetPixel = targetPixelId ? String(targetPixelId).trim() : null;
+    const cleanTargetPage = targetPageId ? String(targetPageId).trim() : null;
     const duplicatedResults = [];
 
     // Busca o token do perfil de destino (se for duplicar para outra conta)
@@ -2276,6 +2296,7 @@ app.post('/api/campaigns/duplicate', async (req, res) => {
           const resDup = await duplicateMetaCampaign(cId, {
             targetAccountId: cleanTargetAcc,
             targetPixelId: cleanTargetPixel,
+            targetPageId: cleanTargetPage,
             targetToken: targetProfileToken,
             copiesCount: Number(copiesCount) || 1
           }, token);

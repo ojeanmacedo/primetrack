@@ -241,6 +241,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const [availableAccounts, setAvailableAccounts] = useState([]);
   const [selectedTargetAdAccount, setSelectedTargetAdAccount] = useState(null);
   const [selectedTargetPixelId, setSelectedTargetPixelId] = useState(''); // '' | pixel_id
+  const [selectedTargetPageId, setSelectedTargetPageId] = useState(''); // '' | page_id
   const [searchAccountQuery, setSearchAccountQuery] = useState('');
   const [expandedProfileId, setExpandedProfileId] = useState(null);
   const [duplicatingLoading, setDuplicatingLoading] = useState(false);
@@ -828,6 +829,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setDuplicateCopiesCount(1);
     setSelectedTargetAdAccount(null);
     setSelectedTargetPixelId('');
+    setSelectedTargetPageId('');
 
     // Carregamento inicial de fallback pelo cache local salvo de contas
     const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
@@ -881,6 +883,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         destinationType: duplicateTargetType,
         targetAccountId: duplicateTargetType === 'other_account' ? selectedTargetAdAccount.id : null,
         targetPixelId: selectedTargetPixelId || null,
+        targetPageId: selectedTargetPageId || null,
         copiesCount: Number(duplicateCopiesCount) || 1
       };
 
@@ -2540,6 +2543,61 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                           <button
                             type="button"
                             onClick={() => setSelectedTargetPixelId('')}
+                            className="px-2 py-1 text-[10px] rounded-md bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white"
+                          >
+                            Limpar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Seleção de Página do Facebook (Fanpage) */}
+              <div className="pt-2">
+                <label className="block text-zinc-300 font-bold mb-1.5 flex items-center justify-between">
+                  <span>Página do Facebook (Criativo)</span>
+                  <span className="text-[10px] text-zinc-400 font-normal">Páginas ativas sem restrição</span>
+                </label>
+                {(() => {
+                  // Descobre quais páginas estão disponíveis para o perfil/conta
+                  let relevantPages = [];
+                  if (duplicateTargetType === 'other_account' && selectedTargetAdAccount) {
+                    const profile = availableProfiles.find(p => p.id === selectedTargetAdAccount.profileId);
+                    relevantPages = profile?.pages || selectedTargetAdAccount.pages || [];
+                  } else {
+                    relevantPages = availableProfiles.flatMap(p => p.pages || []);
+                  }
+
+                  return (
+                    <div className="space-y-2">
+                      <select
+                        value={selectedTargetPageId}
+                        onChange={(e) => setSelectedTargetPageId(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white text-xs focus:outline-none focus:border-[#1A6DFF] cursor-pointer"
+                      >
+                        <option value="">📄 Manter Página Original da Campanha</option>
+                        {relevantPages.map((pg) => (
+                          <option key={pg.id} value={pg.id}>
+                            {pg.name} (ID: {pg.id})
+                          </option>
+                        ))}
+                      </select>
+
+                      {/* Inserção manual de ID de Página se necessário */}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          placeholder="Ou digite o ID da Página (Fanpage) manualmente..."
+                          value={selectedTargetPageId}
+                          onChange={(e) => setSelectedTargetPageId(e.target.value.replace(/\D/g, ''))}
+                          className="flex-1 px-3 py-1.5 rounded-lg bg-[#070D1A]/80 border border-[#13233E] text-white text-[11px] font-mono focus:outline-none focus:border-[#1A6DFF]"
+                        />
+                        {selectedTargetPageId && (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedTargetPageId('')}
                             className="px-2 py-1 text-[10px] rounded-md bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white"
                           >
                             Limpar
