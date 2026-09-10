@@ -2527,40 +2527,18 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   }
 
                   return (
-                    <div className="space-y-2">
-                      <select
-                        value={selectedTargetPixelId}
-                        onChange={(e) => setSelectedTargetPixelId(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white text-xs focus:outline-none focus:border-[#1A6DFF] cursor-pointer"
-                      >
-                        <option value="">🎯 Manter Pixel Original da Campanha</option>
-                        {relevantPixels.map((px) => (
-                          <option key={px.id} value={px.id}>
-                            {px.name} (ID: {px.id}){px.isUnavailable ? ' ⚠️ Inativo' : ' ✅ Ativo'}
-                          </option>
-                        ))}
-                      </select>
-
-                      {/* Se o usuário quiser inserir manualmente o Pixel ID da BM de destino */}
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          placeholder="Ou digite o ID do Pixel manualmente..."
-                          value={selectedTargetPixelId}
-                          onChange={(e) => setSelectedTargetPixelId(e.target.value.replace(/\D/g, ''))}
-                          className="flex-1 px-3 py-1.5 rounded-lg bg-[#070D1A]/80 border border-[#13233E] text-white text-[11px] font-mono focus:outline-none focus:border-[#1A6DFF]"
-                        />
-                        {selectedTargetPixelId && (
-                          <button
-                            type="button"
-                            onClick={() => setSelectedTargetPixelId('')}
-                            className="px-2 py-1 text-[10px] rounded-md bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white"
-                          >
-                            Limpar
-                          </button>
-                        )}
-                      </div>
-                    </div>
+                    <select
+                      value={selectedTargetPixelId}
+                      onChange={(e) => setSelectedTargetPixelId(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white text-xs focus:outline-none focus:border-[#1A6DFF] cursor-pointer"
+                    >
+                      <option value="">🎯 Manter Pixel Original da Campanha</option>
+                      {relevantPixels.map((px) => (
+                        <option key={px.id} value={px.id}>
+                          {px.name} (ID: {px.id}){px.isUnavailable ? ' ⚠️ Inativo' : ' ✅ Ativo'}
+                        </option>
+                      ))}
+                    </select>
                   );
                 })()}
               </div>
@@ -2593,40 +2571,18 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   }
 
                   return (
-                    <div className="space-y-2">
-                      <select
-                        value={selectedTargetPageId}
-                        onChange={(e) => setSelectedTargetPageId(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white text-xs focus:outline-none focus:border-[#1A6DFF] cursor-pointer"
-                      >
-                        <option value="">📄 Manter Página Original da Campanha</option>
-                        {relevantPages.map((pg) => (
-                          <option key={pg.id} value={pg.id}>
-                            Página {pg.id}
-                          </option>
-                        ))}
-                      </select>
-
-                      {/* Inserção manual de ID de Página se necessário */}
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          placeholder="Ou digite o ID da Página (Fanpage) manualmente..."
-                          value={selectedTargetPageId}
-                          onChange={(e) => setSelectedTargetPageId(e.target.value.replace(/\D/g, ''))}
-                          className="flex-1 px-3 py-1.5 rounded-lg bg-[#070D1A]/80 border border-[#13233E] text-white text-[11px] font-mono focus:outline-none focus:border-[#1A6DFF]"
-                        />
-                        {selectedTargetPageId && (
-                          <button
-                            type="button"
-                            onClick={() => setSelectedTargetPageId('')}
-                            className="px-2 py-1 text-[10px] rounded-md bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white"
-                          >
-                            Limpar
-                          </button>
-                        )}
-                      </div>
-                    </div>
+                    <select
+                      value={selectedTargetPageId}
+                      onChange={(e) => setSelectedTargetPageId(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white text-xs focus:outline-none focus:border-[#1A6DFF] cursor-pointer"
+                    >
+                      <option value="">📄 Manter Página Original da Campanha</option>
+                      {relevantPages.map((pg) => (
+                        <option key={pg.id} value={pg.id}>
+                          Página {pg.id}
+                        </option>
+                      ))}
+                    </select>
                   );
                 })()}
               </div>
