@@ -18,6 +18,7 @@ import {
   fetchAdsWithCreatives,
   updateMetaItemStatus,
   updateMetaItemDetails,
+  deleteMetaItem,
   duplicateMetaCampaign,
   getUsdToBrlRate
 } from './services/metaService.js';
@@ -2263,6 +2264,67 @@ app.post('/api/campaigns/duplicate', async (req, res) => {
         : `Erro ao duplicar na Meta: ${duplicatedResults[0]?.error || 'Verifique as permissões do perfil'}`
     });
   } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Rota de exclusão em massa de campanhas, conjuntos ou anúncios
+app.post('/api/campaigns/delete-bulk', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, error: 'Nenhum item selecionado para exclusão.' });
+    }
+
+    let connections = db.get('facebook_connections') || [];
+    if (connections.length === 0) {
+      try {
+        const { data: supaConns } = await supabaseAdmin.from('facebook_connections').select('*');
+        if (supaConns && supaConns.length > 0) connections = supaConns;
+      } catch (e) {}
+    }
+
+    const validTokens = connections
+      .map(c => c.access_token || c.accessToken)
+      .filter(t => Boolean(t) && typeof t === 'string' && t.trim().length > 0);
+
+    const deleteResults = [];
+
+    // Exclui no Meta Ads tentando os tokens disponíveis
+    for (const itemId of ids) {
+      let deletedOnMeta = false;
+      for (const token of validTokens) {
+        try {
+          await deleteMetaItem(itemId, token);
+          deletedOnMeta = true;
+          break;
+        } catch (err) {
+          // Continua tentando outros tokens
+        }
+      }
+      deleteResults.push({ id: itemId, deletedOnMeta });
+    }
+
+    // Remove do banco de dados local
+    let currentCampaigns = db.get('campaigns') || [];
+    currentCampaigns = currentCampaigns
+      .filter(c => !ids.includes(c.id))
+      .map(c => {
+        const newAdsets = c.adsets ? c.adsets.filter(as => !ids.includes(as.id) && !ids.includes(as.adsetId)) : [];
+        const newAds = c.ads ? c.ads.filter(ad => !ids.includes(ad.id) && !ids.includes(ad.adId)) : [];
+        return { ...c, adsets: newAdsets, ads: newAds };
+      });
+
+    db.set('campaigns', currentCampaigns);
+    campaignsCache.clear();
+
+    res.json({
+      success: true,
+      deletedCount: ids.length,
+      message: `${ids.length} item(ns) excluído(s) com sucesso!`
+    });
+  } catch (err) {
+    console.error('[delete-bulk] Erro:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

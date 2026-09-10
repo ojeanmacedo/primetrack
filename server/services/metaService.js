@@ -576,6 +576,17 @@ export async function updateMetaItemDetails(itemId, { name, budget, bidCap, bidS
 }
 
 /**
+ * 8.5. Exclui Campanha, Conjunto ou Anúncio no Meta Ads
+ */
+export async function deleteMetaItem(itemId, accessToken) {
+  const url = `${GRAPH_BASE_URL}/${itemId}?access_token=${accessToken}`;
+  const res = await fetch(url, { method: 'DELETE' });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message || 'Erro ao excluir item no Meta Ads');
+  return data;
+}
+
+/**
  * 9. Duplica campanha no Gerenciador da Meta Ads (na mesma conta ou em outra conta)
  * Clona a campanha com deep_copy total ou por réplica de estrutura de conjuntos + anúncios/criativos,
  * garantindo que todos os criativos, segmentações, orçamentos e anúncios entrem com status ACTIVE.

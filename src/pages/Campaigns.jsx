@@ -692,6 +692,51 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setBulkProcessing(false);
   };
 
+  // Exclusão em massa de itens selecionados (Campanhas, Conjuntos ou Anúncios)
+  const handleBulkDelete = async () => {
+    const ids = Array.from(activeSelectedSet);
+    if (ids.length === 0) return;
+
+    const confirmMsg = `Tem certeza que deseja EXCLUIR definitivamente ${ids.length} ${subTab.toLowerCase()} selecionada(s) do Gerenciador de Anúncios e da PrimeTrack?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    setBulkMenuOpen(false);
+    setBulkProcessing(true);
+    setSaveSuccessMsg(`Excluindo ${ids.length} ${subTab.toLowerCase()}...`);
+
+    // Atualização otimista imediata na tabela
+    setCampaignsList(prev => prev
+      .filter(c => !ids.includes(c.id))
+      .map(c => {
+        const newAdsets = c.adsets ? c.adsets.filter(as => !ids.includes(as.id) && !ids.includes(as.adsetId)) : [];
+        const newAds = c.ads ? c.ads.filter(ad => !ids.includes(ad.id) && !ids.includes(ad.adId)) : [];
+        return { ...c, adsets: newAdsets, ads: newAds };
+      })
+    );
+
+    try {
+      const res = await fetch('/api/campaigns/delete-bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setSaveSuccessMsg(`🗑️ ${data.deletedCount || ids.length} ${subTab.toLowerCase()} excluída(s) com sucesso!`);
+        setActiveSelectedSet(new Set());
+        loadData();
+      } else {
+        setSaveSuccessMsg(`⚠️ Erro ao excluir: ${data.error || 'Falha na exclusão'}`);
+      }
+    } catch (err) {
+      setSaveSuccessMsg(`⚠️ Erro ao excluir: ${err.message}`);
+    } finally {
+      setBulkProcessing(false);
+      setTimeout(() => setSaveSuccessMsg(null), 6000);
+    }
+  };
+
   const handleOpenBulkModal = (action) => {
     setBulkMenuOpen(false);
     setBulkModalAction(action);
@@ -1959,6 +2004,19 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   >
                     <Copy className="w-4 h-4 text-zinc-400" />
                     <span>Copiar IDs</span>
+                  </button>
+
+                  <div className="h-px bg-[#13233E]/60 my-1" />
+
+                  {/* Opção de Excluir em Massa */}
+                  <button
+                    type="button"
+                    onClick={handleBulkDelete}
+                    disabled={activeSelectedSet.size === 0 || bulkProcessing}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Trash2 className="w-4 h-4 text-red-400" />
+                    <span>Excluir selecionadas</span>
                   </button>
 
                   <button
