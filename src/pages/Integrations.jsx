@@ -1005,15 +1005,6 @@ export default function Integrations() {
                   <RefreshCw className={`w-3 h-3 ${isRefreshingAccounts ? 'animate-spin text-blue-400' : ''}`} />
                   <span>{isRefreshingAccounts ? 'Buscando contas...' : 'Atualizar Novas Contas'}</span>
                 </button>
-
-                {adAccounts.length > 0 && (
-                  <button 
-                    onClick={handleDisconnectAll}
-                    className="text-red-400 hover:text-red-300 text-xs font-medium cursor-pointer"
-                  >
-                    Desconectar Todas
-                  </button>
-                )}
               </div>
             </div>
 
