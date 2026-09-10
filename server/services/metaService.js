@@ -615,7 +615,7 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, targe
   // Obtém os conjuntos originais com suas configurações completas e seus anúncios
   let originalAdsetsWithAds = [];
   try {
-    const adsetFields = 'id,name,status,daily_budget,lifetime_budget,bid_amount,bid_strategy,billing_event,optimization_goal,targeting,promoted_object,destination_type,ads{id,name,status,creative{id,name,object_story_spec,asset_feed_spec,image_url,video_id,body,title,call_to_action_type,link_url},tracking_specs}';
+    const adsetFields = 'id,name,status,daily_budget,lifetime_budget,bid_amount,bid_strategy,billing_event,optimization_goal,targeting,promoted_object,destination_type,ads{id,name,status,url_tags,creative{id,name,url_tags,use_page_actor_override,object_story_spec,asset_feed_spec,image_url,image_hash,thumbnail_url,video_id,body,title,call_to_action_type,link_url},tracking_specs}';
     const adsetsRes = await fetch(`${GRAPH_BASE_URL}/${campaignId}/adsets?fields=${adsetFields}&limit=50&access_token=${accessToken}`);
     const adsetsData = await adsetsRes.json();
     if (adsetsData && adsetsData.data) {
@@ -799,11 +799,20 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, targe
                         }
                       }
 
-                      const createCreativeBody = new URLSearchParams({
+                      const creativeParams = {
                         access_token: destToken,
                         name: ad.creative.name || ad.name || 'Criativo Duplicado',
-                        object_story_spec: JSON.stringify(specCopy)
-                      });
+                        object_story_spec: JSON.stringify(specCopy),
+                        use_page_actor_override: 'true' // Marca automaticamente para usar a Página no lugar do Instagram
+                      };
+
+                      // Preserva parâmetros UTM (url_tags) no nível do criativo se existirem
+                      const utmTags = ad.creative.url_tags || ad.url_tags;
+                      if (utmTags) {
+                        creativeParams.url_tags = utmTags;
+                      }
+
+                      const createCreativeBody = new URLSearchParams(creativeParams);
 
                       const createCrRes = await fetch(`${GRAPH_BASE_URL}/${formattedActId}/adcreatives`, {
                         method: 'POST',
@@ -828,6 +837,12 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, targe
                     adParams.append('adset_id', newAdsetId);
                     adParams.append('creative', JSON.stringify({ creative_id: creativeIdToUse }));
                     adParams.append('status', status || 'ACTIVE');
+
+                    // Preserva parâmetros UTM (url_tags) no nível do anúncio
+                    const adUtmTags = ad.url_tags || ad.creative?.url_tags;
+                    if (adUtmTags) {
+                      adParams.append('url_tags', adUtmTags);
+                    }
 
                     // Ajusta tracking_specs para o novo pixel se fornecido
                     const pixelForTracking = cleanTargetPixel || adset.promoted_object?.pixel_id;
