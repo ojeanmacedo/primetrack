@@ -615,7 +615,7 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, targe
   // Obtém os conjuntos originais com suas configurações completas e seus anúncios
   let originalAdsetsWithAds = [];
   try {
-    const adsetFields = 'id,name,status,daily_budget,lifetime_budget,bid_amount,bid_strategy,billing_event,optimization_goal,targeting,promoted_object,destination_type,ads{id,name,status,url_tags,creative{id,name,url_tags,use_page_actor_override,object_story_spec,asset_feed_spec,image_url,image_hash,thumbnail_url,video_id,body,title,call_to_action_type,link_url},tracking_specs}';
+    const adsetFields = 'id,name,status,daily_budget,lifetime_budget,bid_amount,bid_strategy,billing_event,optimization_goal,targeting,promoted_object,destination_type,ads{id,name,status,url_tags,creative{id,name,url_tags,object_story_id,effective_object_story_id,use_page_actor_override,object_story_spec,asset_feed_spec,image_url,image_hash,thumbnail_url,video_id,body,title,call_to_action_type,link_url},tracking_specs}';
     const adsetsRes = await fetch(`${GRAPH_BASE_URL}/${campaignId}/adsets?fields=${adsetFields}&limit=50&access_token=${accessToken}`);
     const adsetsData = await adsetsRes.json();
     if (adsetsData && adsetsData.data) {
@@ -770,32 +770,54 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, targe
                   let creativeIdToUse = ad.creative?.id;
 
                   // Se for cross-account OU se especificou nova página (targetPageId), cria o criativo na conta de destino usando destToken
-                  if ((isCrossAccount || cleanTargetPage) && ad.creative?.object_story_spec) {
+                  if (isCrossAccount || cleanTargetPage) {
                     try {
-                      const specCopy = JSON.parse(JSON.stringify(ad.creative.object_story_spec));
-                      
-                      // Substitui para a nova página se fornecida
-                      if (cleanTargetPage) {
-                        specCopy.page_id = cleanTargetPage;
-                        if (specCopy.instagram_user_id) {
-                          delete specCopy.instagram_user_id; // evita erro de permissão cruzada com conta do IG antiga
+                      // 1. Prioridade Máxima: se o criativo tem um post existente (effective_object_story_id ou object_story_id)
+                      const existingStoryId = ad.creative?.effective_object_story_id || ad.creative?.object_story_id;
+                      if (existingStoryId && !cleanTargetPage) {
+                        try {
+                          const createCrRes = await fetch(`${GRAPH_BASE_URL}/${formattedActId}/adcreatives`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: new URLSearchParams({
+                              access_token: destToken,
+                              name: ad.creative?.name || ad.name || 'Criativo Duplicado',
+                              object_story_id: existingStoryId
+                            }).toString()
+                          });
+                          const createCrData = await createCrRes.json();
+                          if (createCrData.id) {
+                            creativeIdToUse = createCrData.id;
+                          } else {
+                            console.warn(`[Create AdCreative with StoryId Warning]:`, createCrData.error?.message);
+                          }
+                        } catch (stErr) {
+                          console.warn(`[Create AdCreative with StoryId Error]:`, stErr.message);
                         }
                       }
 
-                      // Se for cross-account, mídias (video_id e image_hash) da conta de origem não existem na conta de destino
-                      // Se o criativo tiver video_id privado, busca a URL do vídeo (source) e faz o upload/criação do vídeo na conta de destino
-                      if (isCrossAccount) {
+                      // 2. Se não conseguiu por object_story_id e temos object_story_spec
+                      if (!creativeIdToUse && ad.creative?.object_story_spec) {
+                        const specCopy = JSON.parse(JSON.stringify(ad.creative.object_story_spec));
+                        
+                        // Substitui para a nova página se fornecida
+                        if (cleanTargetPage) {
+                          specCopy.page_id = cleanTargetPage;
+                          if (specCopy.instagram_user_id) {
+                            delete specCopy.instagram_user_id; // evita erro de permissão cruzada com conta do IG antiga
+                          }
+                        }
+
+                        // Tratamento de vídeo e imagem para evitar erro ObjectStorySpecRedundant
                         if (specCopy.video_data) {
                           const oldVideoId = specCopy.video_data.video_id || ad.creative.video_id;
-                          if (oldVideoId) {
+                          if (oldVideoId && isCrossAccount) {
                             try {
-                              // Busca a URL pública do vídeo MP4 na conta de origem
                               const srcVidRes = await fetch(`${GRAPH_BASE_URL}/${oldVideoId}?fields=source,picture&access_token=${accessToken}`);
                               const srcVidData = await srcVidRes.json();
                               const directVideoUrl = srcVidData.source;
 
                               if (directVideoUrl) {
-                                // Cria o vídeo na conta de destino usando destToken
                                 const advVideoRes = await fetch(`${GRAPH_BASE_URL}/${formattedActId}/advideos`, {
                                   method: 'POST',
                                   headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -814,49 +836,41 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, targe
                             }
                           }
 
-                          const fallbackImgUrl = ad.creative.image_url || ad.creative.thumbnail_url;
-                          if (fallbackImgUrl && !specCopy.video_data.image_url) {
-                            specCopy.video_data.image_url = fallbackImgUrl;
+                          // Meta proíbe enviar image_url e image_hash juntos no video_data
+                          if (specCopy.video_data.image_hash && specCopy.video_data.image_url) {
+                            delete specCopy.video_data.image_url;
                           }
-                          // Remove image_hash do thumbnail da conta antiga
-                          delete specCopy.video_data.image_hash;
                         }
 
                         if (specCopy.link_data) {
-                          const fallbackImgUrl = ad.creative.image_url || ad.creative.thumbnail_url;
-                          if (fallbackImgUrl && !specCopy.link_data.picture) {
-                            specCopy.link_data.picture = fallbackImgUrl;
+                          if (specCopy.link_data.image_hash && specCopy.link_data.picture) {
+                            delete specCopy.link_data.picture;
                           }
-                          // Remove image_hash local da conta antiga
-                          delete specCopy.link_data.image_hash;
                         }
-                      }
 
-                      const creativeParams = {
-                        access_token: destToken,
-                        name: ad.creative.name || ad.name || 'Criativo Duplicado',
-                        object_story_spec: JSON.stringify(specCopy),
-                        use_page_actor_override: 'true' // Marca automaticamente para usar a Página no lugar do Instagram
-                      };
+                        const creativeParams = {
+                          access_token: destToken,
+                          name: ad.creative.name || ad.name || 'Criativo Duplicado',
+                          object_story_spec: JSON.stringify(specCopy),
+                          use_page_actor_override: 'true'
+                        };
 
-                      // Preserva parâmetros UTM (url_tags) no nível do criativo se existirem
-                      const utmTags = ad.creative.url_tags || ad.url_tags;
-                      if (utmTags) {
-                        creativeParams.url_tags = utmTags;
-                      }
+                        const utmTags = ad.creative.url_tags || ad.url_tags;
+                        if (utmTags) {
+                          creativeParams.url_tags = utmTags;
+                        }
 
-                      const createCreativeBody = new URLSearchParams(creativeParams);
-
-                      const createCrRes = await fetch(`${GRAPH_BASE_URL}/${formattedActId}/adcreatives`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: createCreativeBody.toString()
-                      });
-                      const createCrData = await createCrRes.json();
-                      if (createCrData.id) {
-                        creativeIdToUse = createCrData.id;
-                      } else {
-                        console.warn(`[Create AdCreative Warning]:`, createCrData.error?.message);
+                        const createCrRes = await fetch(`${GRAPH_BASE_URL}/${formattedActId}/adcreatives`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                          body: new URLSearchParams(creativeParams).toString()
+                        });
+                        const createCrData = await createCrRes.json();
+                        if (createCrData.id) {
+                          creativeIdToUse = createCrData.id;
+                        } else {
+                          console.warn(`[Create AdCreative Spec Warning]:`, createCrData.error?.message);
+                        }
                       }
                     } catch (crErr) {
                       console.warn(`[Create AdCreative Error]:`, crErr.message);
