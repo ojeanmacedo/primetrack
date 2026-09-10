@@ -588,16 +588,41 @@ export async function deleteMetaItem(itemId, accessToken) {
 
 /**
  * 9. Duplica campanha no Gerenciador da Meta Ads (na mesma conta ou em outra conta)
- * Clona a campanha com deep_copy total ou por réplica de estrutura de conjuntos + anúncios/criativos,
- * garantindo que todos os criativos, segmentações, orçamentos e anúncios entrem com status ACTIVE.
+ * Clona a campanha e todos os seus conjuntos e anúncios/criativos,
+ * garantindo que toda a árvore de veiculação seja replicada fielmente.
  */
 export async function duplicateMetaCampaign(campaignId, { targetAccountId, copiesCount = 1, status = 'ACTIVE' }, accessToken) {
   const cleanTargetAcc = (targetAccountId || '').replace('act_', '').trim();
   const results = [];
 
+  // Obtém informações da campanha de origem uma vez antes do loop para economizar chamadas
+  let sourceAccountId = cleanTargetAcc;
+  try {
+    const cInfoRes = await fetch(`${GRAPH_BASE_URL}/${campaignId}?fields=account_id&access_token=${accessToken}`);
+    const cInfo = await cInfoRes.json();
+    if (cInfo.account_id) {
+      sourceAccountId = cInfo.account_id;
+    }
+  } catch (e) {}
+
+  // Obtém os conjuntos originais e seus anúncios
+  let originalAdsetsWithAds = [];
+  try {
+    const adsetsRes = await fetch(`${GRAPH_BASE_URL}/${campaignId}/adsets?fields=id,name,status,ads{id,name,status,creative{id},tracking_specs}&limit=50&access_token=${accessToken}`);
+    const adsetsData = await adsetsRes.json();
+    if (adsetsData && adsetsData.data) {
+      originalAdsetsWithAds = adsetsData.data;
+    }
+  } catch (e) {
+    console.warn(`[duplicateMetaCampaign] Falha ao pré-carregar adsets da campanha ${campaignId}:`, e.message);
+  }
+
+  const effectiveAccountId = cleanTargetAcc || sourceAccountId;
+  const formattedActId = effectiveAccountId ? (effectiveAccountId.startsWith('act_') ? effectiveAccountId : `act_${effectiveAccountId}`) : null;
+
   for (let i = 0; i < copiesCount; i++) {
     try {
-      // 1. Tenta duplicação nativa direta da campanha via endpoint /copies
+      // 1. Clona a campanha (nível raiz)
       const copyUrl = `${GRAPH_BASE_URL}/${campaignId}/copies`;
       const params = new URLSearchParams();
       params.append('access_token', accessToken);
@@ -621,15 +646,10 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, copie
 
       const newCampaignId = data.copied_campaign_id || data.id;
 
-      // 2. Clona os conjuntos de anúncios (adsets) da campanha original para a nova campanha
-      try {
-        const adsetsRes = await fetch(`${GRAPH_BASE_URL}/${campaignId}/adsets?fields=id,name,status,daily_budget,lifetime_budget,bid_amount,bid_strategy&limit=50&access_token=${accessToken}`);
-        const adsetsData = await adsetsRes.json();
-        const originalAdsets = adsetsData.data || [];
-
-        for (const adset of originalAdsets) {
+      // 2. Clona cada conjunto de anúncio para a nova campanha
+      if (originalAdsetsWithAds.length > 0) {
+        for (const adset of originalAdsetsWithAds) {
           try {
-            // Clona o adset para a nova campanha
             const adsetCopyParams = new URLSearchParams();
             adsetCopyParams.append('access_token', accessToken);
             adsetCopyParams.append('deep_copy', 'false');
@@ -644,41 +664,29 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, copie
             const copiedAdsetData = await adsetCopyRes.json();
             const newAdsetId = copiedAdsetData.copied_adset_id || copiedAdsetData.id;
 
-            if (newAdsetId) {
-              // 3. Busca anúncios do adset original e recria no novo adset com o criativo original
-              const adsRes = await fetch(`${GRAPH_BASE_URL}/${adset.id}/ads?fields=id,name,status,creative{id}&limit=50&access_token=${accessToken}`);
-              const adsData = await adsRes.json();
-              const originalAds = adsData.data || [];
+            // 3. Clona os anúncios para dentro do novo conjunto
+            if (newAdsetId && formattedActId && adset.ads?.data?.length > 0) {
+              for (const ad of adset.ads.data) {
+                if (ad.creative?.id) {
+                  try {
+                    const adParams = new URLSearchParams();
+                    adParams.append('access_token', accessToken);
+                    adParams.append('name', ad.name || 'Anúncio Duplicado');
+                    adParams.append('adset_id', newAdsetId);
+                    adParams.append('creative', JSON.stringify({ creative_id: ad.creative.id }));
+                    adParams.append('status', status || 'ACTIVE');
 
-              // Determina o ID da conta de anúncios
-              let actId = cleanTargetAcc;
-              if (!actId) {
-                // Se mesma conta, obtém da campanha original ou usa a conta do token
-                const cInfoRes = await fetch(`${GRAPH_BASE_URL}/${campaignId}?fields=account_id&access_token=${accessToken}`);
-                const cInfo = await cInfoRes.json();
-                actId = cInfo.account_id;
-              }
-
-              if (actId && originalAds.length > 0) {
-                const formattedActId = actId.startsWith('act_') ? actId : `act_${actId}`;
-                for (const ad of originalAds) {
-                  if (ad.creative?.id) {
-                    try {
-                      const adParams = new URLSearchParams();
-                      adParams.append('access_token', accessToken);
-                      adParams.append('name', ad.name || 'Anúncio Duplicado');
-                      adParams.append('adset_id', newAdsetId);
-                      adParams.append('creative', JSON.stringify({ creative_id: ad.creative.id }));
-                      adParams.append('status', status || 'ACTIVE');
-
-                      await fetch(`${GRAPH_BASE_URL}/${formattedActId}/ads`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: adParams.toString()
-                      });
-                    } catch (adErr) {
-                      console.warn(`[Clone Ad Error for ${ad.id}]:`, adErr.message);
+                    if (ad.tracking_specs) {
+                      adParams.append('tracking_specs', JSON.stringify(ad.tracking_specs));
                     }
+
+                    await fetch(`${GRAPH_BASE_URL}/${formattedActId}/ads`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                      body: adParams.toString()
+                    });
+                  } catch (adErr) {
+                    console.warn(`[Clone Ad Error for ${ad.id}]:`, adErr.message);
                   }
                 }
               }
@@ -687,8 +695,6 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, copie
             console.warn(`[Clone Adset Error for ${adset.id}]:`, adsetErr.message);
           }
         }
-      } catch (treeErr) {
-        console.warn(`[Clone Tree Error for Campaign ${campaignId}]:`, treeErr.message);
       }
 
       results.push(data);

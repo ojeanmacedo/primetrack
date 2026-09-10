@@ -2254,13 +2254,16 @@ app.post('/api/campaigns/duplicate', async (req, res) => {
     // Invalida cache de campanhas para recarregar com as novas
     campaignsCache.clear();
 
-    const successCount = duplicatedResults.filter(r => r.success).length;
+    const totalCopiesCreated = duplicatedResults
+      .filter(r => r.success)
+      .reduce((acc, r) => acc + (r.count || (r.copiedCampaigns ? r.copiedCampaigns.length : 1)), 0);
+
     res.json({
-      success: successCount > 0,
-      duplicatedCount: successCount,
+      success: totalCopiesCreated > 0,
+      duplicatedCount: totalCopiesCreated,
       results: duplicatedResults,
-      message: successCount > 0
-        ? `${successCount} campanha(s) duplicada(s) com sucesso na Meta!`
+      message: totalCopiesCreated > 0
+        ? `${totalCopiesCreated} campanha(s) duplicada(s) com sucesso na Meta!`
         : `Erro ao duplicar na Meta: ${duplicatedResults[0]?.error || 'Verifique as permissões do perfil'}`
     });
   } catch (err) {
