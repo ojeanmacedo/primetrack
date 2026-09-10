@@ -2130,14 +2130,15 @@ app.post('/api/campaigns/update', async (req, res) => {
   }
 });
 
-// Mapa oficial de páginas ativas por ID com nomes amigáveis reais
+// Mapa oficial de páginas ativas por ID com os nomes reais das páginas do Facebook
 const ACTIVE_FACEBOOK_PAGES = {
-  // Perfil 1 (Angel Kerry) - 3 páginas ativas
-  '105915032470227': { id: '105915032470227', name: 'Kauê precisa da nossa ajuda', category: 'Página do Facebook', profileName: 'Angel Kerry' },
-  '103591348911553': { id: '103591348911553', name: 'Ele precisa da nossa ajuda', category: 'Página do Facebook', profileName: 'Angel Kerry' },
-  '1182899901584051': { id: '1182899901584051', name: 'Ajude o Kauê', category: 'Página do Facebook', profileName: 'Angel Kerry' },
-  // Perfil 2 (Rafaelli Ribeiro) - 1 página ativa
-  '122103789734002354': { id: '122103789734002354', name: 'Acesse Agora!', category: 'Página do Facebook', profileName: 'Rafaelli Ribeiro' }
+  // Perfil 1 (Angel Kerry)
+  '105915032470227': { id: '105915032470227', name: 'Nicole Oliveira (Choquei)', category: 'Página do Facebook', profileName: 'Angel Kerry' },
+  '103591348911553': { id: '103591348911553', name: 'Nicole Oliveira', category: 'Página do Facebook', profileName: 'Angel Kerry' },
+  '1182899901584051': { id: '1182899901584051', name: 'Jessica Soares', category: 'Página do Facebook', profileName: 'Angel Kerry' },
+  '950900418114972': { id: '950900418114972', name: 'Zachariah Milbauer', category: 'Página do Facebook', profileName: 'Angel Kerry' },
+  // Perfil 2 (Rafaelli Ribeiro)
+  '122103789734002354': { id: '122103789734002354', name: 'Lorena Vans', category: 'Página do Facebook', profileName: 'Rafaelli Ribeiro' }
 };
 
 // F3. Duplicar Campanhas no Gerenciador Meta Ads (Na mesma conta ou em outra conta de anúncio)
@@ -2170,7 +2171,8 @@ app.get('/api/campaigns/duplicate-targets', async (req, res) => {
           profilePages = [
             ACTIVE_FACEBOOK_PAGES['105915032470227'],
             ACTIVE_FACEBOOK_PAGES['103591348911553'],
-            ACTIVE_FACEBOOK_PAGES['1182899901584051']
+            ACTIVE_FACEBOOK_PAGES['1182899901584051'],
+            ACTIVE_FACEBOOK_PAGES['950900418114972']
           ];
         } else if (connName.toLowerCase().includes('rafa') || String(conn.id) === '918761277983704') {
           profilePages = [
