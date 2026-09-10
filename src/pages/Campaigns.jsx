@@ -2537,27 +2537,52 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               <div className="pt-2">
                 <label className="block text-zinc-300 font-bold mb-1.5 flex items-center justify-between">
                   <span>Página do Facebook (Criativo)</span>
-                  <span className="text-[10px] text-zinc-400 font-normal">Páginas ativas sem restrição</span>
+                  <span className="text-[10px] text-zinc-400 font-normal">Páginas do mesmo Perfil / BM</span>
                 </label>
                 {(() => {
-                  // Descobre estritamente as páginas da conta/BM em foco
+                  // Descobre todas as páginas do perfil/BM dono da conta selecionada
                   let relevantPages = [];
+                  const pageMap = new Map();
+
                   if (duplicateTargetType === 'other_account' && selectedTargetAdAccount) {
                     const profile = availableProfiles.find(p => p.id === selectedTargetAdAccount.profileId);
-                    relevantPages = selectedTargetAdAccount.pages?.length > 0
-                      ? selectedTargetAdAccount.pages
-                      : (profile?.pages || []);
+                    // Junta páginas registradas no perfil e em todas as contas daquele mesmo perfil
+                    (profile?.pages || []).forEach(pg => {
+                      if (pg.id && !pageMap.has(pg.id)) pageMap.set(pg.id, pg);
+                    });
+                    (selectedTargetAdAccount.pages || []).forEach(pg => {
+                      if (pg.id && !pageMap.has(pg.id)) pageMap.set(pg.id, pg);
+                    });
+                    if (profile?.accounts) {
+                      profile.accounts.forEach(acc => {
+                        (acc.pages || []).forEach(pg => {
+                          if (pg.id && !pageMap.has(pg.id)) pageMap.set(pg.id, pg);
+                        });
+                      });
+                    }
                   } else {
-                    // Mesma conta: pega a conta dona das campanhas selecionadas
+                    // Mesma conta: pega a conta dona das campanhas e todas as páginas do perfil dela
                     const selectedCamp = campaignsList.find(c => activeSelectedSet.has(c.id));
                     const campActId = String(selectedCamp?.adAccountId || adAccountsList[0]?.id || '').replace('act_', '');
                     const matchedAcc = availableAccounts.find(a => String(a.id).replace('act_', '') === campActId);
                     const matchedProfile = matchedAcc ? availableProfiles.find(p => p.id === matchedAcc.profileId) : null;
                     
-                    relevantPages = matchedAcc?.pages?.length > 0
-                      ? matchedAcc.pages
-                      : (matchedProfile?.pages || []);
+                    (matchedProfile?.pages || []).forEach(pg => {
+                      if (pg.id && !pageMap.has(pg.id)) pageMap.set(pg.id, pg);
+                    });
+                    (matchedAcc?.pages || []).forEach(pg => {
+                      if (pg.id && !pageMap.has(pg.id)) pageMap.set(pg.id, pg);
+                    });
+                    if (matchedProfile?.accounts) {
+                      matchedProfile.accounts.forEach(acc => {
+                        (acc.pages || []).forEach(pg => {
+                          if (pg.id && !pageMap.has(pg.id)) pageMap.set(pg.id, pg);
+                        });
+                      });
+                    }
                   }
+
+                  relevantPages = Array.from(pageMap.values());
 
                   return (
                     <select
@@ -2568,7 +2593,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       <option value="">📄 Manter Página Original da Campanha</option>
                       {relevantPages.map((pg) => (
                         <option key={pg.id} value={pg.id}>
-                          Página {pg.id}
+                          {pg.name && !pg.name.startsWith('Página ') ? `${pg.name} (ID: ${pg.id})` : `Página ${pg.id}`}
                         </option>
                       ))}
                     </select>
