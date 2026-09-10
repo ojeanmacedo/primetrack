@@ -138,6 +138,7 @@ export default function Integrations() {
   const [editPixelIcValue, setEditPixelIcValue] = useState('');
   const [editPixelDomains, setEditPixelDomains] = useState('');
   const [editMetaPixelsList, setEditMetaPixelsList] = useState([]); // [{ id, metaPixelId, token, name }]
+  const [editSubPixelIndex, setEditSubPixelIndex] = useState(null); // null = novo, number = editando
   const [newMetaSubPixelId, setNewMetaSubPixelId] = useState('');
   const [newMetaSubPixelToken, setNewMetaSubPixelToken] = useState('');
   const [newMetaSubPixelName, setNewMetaSubPixelName] = useState('');
@@ -562,16 +563,32 @@ export default function Integrations() {
   const handleAddMetaSubPixel = (e) => {
     e?.preventDefault();
     if (!newMetaSubPixelId.trim()) return;
-    const newEntry = {
-      id: `mp_${Date.now()}`,
-      metaPixelId: newMetaSubPixelId.trim(),
-      capiToken: newMetaSubPixelToken.trim(),
-      name: newMetaSubPixelName.trim() || `Pixel Meta ${editMetaPixelsList.length + 1}`
-    };
-    setEditMetaPixelsList([...editMetaPixelsList, newEntry]);
+
+    if (editSubPixelIndex !== null && editSubPixelIndex >= 0 && editSubPixelIndex < editMetaPixelsList.length) {
+      // Editando pixel existente
+      const updatedList = [...editMetaPixelsList];
+      updatedList[editSubPixelIndex] = {
+        ...updatedList[editSubPixelIndex],
+        metaPixelId: newMetaSubPixelId.trim(),
+        capiToken: newMetaSubPixelToken.trim(),
+        name: newMetaSubPixelName.trim() || updatedList[editSubPixelIndex].name || `Pixel Meta ${editSubPixelIndex + 1}`
+      };
+      setEditMetaPixelsList(updatedList);
+    } else {
+      // Novo pixel
+      const newEntry = {
+        id: `mp_${Date.now()}`,
+        metaPixelId: newMetaSubPixelId.trim(),
+        capiToken: newMetaSubPixelToken.trim(),
+        name: newMetaSubPixelName.trim() || `Pixel Meta ${editMetaPixelsList.length + 1}`
+      };
+      setEditMetaPixelsList([...editMetaPixelsList, newEntry]);
+    }
+
     setNewMetaSubPixelId('');
     setNewMetaSubPixelToken('');
     setNewMetaSubPixelName('');
+    setEditSubPixelIndex(null);
     setShowAddSubPixelForm(false);
   };
 
@@ -2472,37 +2489,67 @@ export default function Integrations() {
                   )}
                 </div>
 
-                {/* Tags dos Pixels Ativos */}
-                <div className="flex flex-wrap gap-2">
+                {/* Tags dos Pixels Ativos com botão de edição inline */}
+                <div className="space-y-2">
                   {editMetaPixelsList.map((mp, idx) => (
                     <div 
                       key={mp.id || idx}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#060D1A] border border-[#1E3254] text-zinc-200 text-xs font-mono group"
+                      className="flex items-center justify-between p-2.5 rounded-xl bg-[#060D1A] border border-[#1E3254] text-zinc-200 text-xs font-mono"
                     >
-                      <span className="text-white font-bold">{mp.metaPixelId}</span>
-                      {mp.name && <span className="text-[10px] text-zinc-400 font-sans">({mp.name})</span>}
-                      {editMetaPixelsList.length > 1 && (
+                      <div className="flex flex-col gap-0.5 min-w-0 pr-2">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-white font-bold">{mp.metaPixelId}</span>
+                          {mp.name && <span className="text-[10px] text-zinc-400 font-sans">({mp.name})</span>}
+                        </div>
+                        <span className="text-[10px] text-zinc-500 truncate">
+                          {mp.capiToken ? `Token: ${mp.capiToken.slice(0, 8)}...${mp.capiToken.slice(-4)}` : 'Sem Token CAPI'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
                         <button
                           type="button"
-                          onClick={() => handleRemoveMetaSubPixel(mp.id)}
-                          className="text-zinc-500 hover:text-red-400 transition-colors ml-1 cursor-pointer"
-                          title="Remover Pixel"
+                          onClick={() => {
+                            setNewMetaSubPixelId(mp.metaPixelId || '');
+                            setNewMetaSubPixelToken(mp.capiToken || '');
+                            setNewMetaSubPixelName(mp.name || '');
+                            setEditSubPixelIndex(idx);
+                            setShowAddSubPixelForm(true);
+                          }}
+                          className="px-2 py-1 rounded-lg bg-[#1E3254]/50 hover:bg-[#1A6DFF]/20 text-[#5C9BFF] text-[11px] font-sans font-medium transition-colors cursor-pointer"
                         >
-                          <X className="w-3.5 h-3.5" />
+                          Editar
                         </button>
-                      )}
+                        {editMetaPixelsList.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMetaSubPixel(mp.id)}
+                            className="p-1 text-zinc-500 hover:text-red-400 transition-colors cursor-pointer"
+                            title="Remover Pixel"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
+                  {editMetaPixelsList.length === 0 && (
+                    <div className="text-[11px] text-zinc-500 italic py-2">
+                      Nenhum Pixel da Meta adicionado. Clique em "Adicionar +" acima.
+                    </div>
+                  )}
                 </div>
 
                 {/* Formulário para adicionar mais um pixel */}
                 {showAddSubPixelForm && (
                   <div className="p-3 rounded-xl bg-[#060D1A] border border-[#1A6DFF]/40 space-y-3 animate-in fade-in duration-150">
                     <div className="text-[11px] font-bold text-[#5C9BFF] flex items-center justify-between">
-                      <span>Novo Pixel da Meta (Outra BM / Conta)</span>
+                      <span>{editSubPixelIndex !== null ? 'Editar Pixel Meta' : 'Novo Pixel da Meta (Outra BM / Conta)'}</span>
                       <button
                         type="button"
-                        onClick={() => setShowAddSubPixelForm(false)}
+                        onClick={() => {
+                          setShowAddSubPixelForm(false);
+                          setEditSubPixelIndex(null);
+                        }}
                         className="text-zinc-400 hover:text-white"
                       >
                         <X className="w-3.5 h-3.5" />
