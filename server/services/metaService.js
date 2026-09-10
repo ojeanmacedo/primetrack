@@ -656,6 +656,9 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, targe
           newCampaignId = createdCampData.id;
           rootCopyData = { copied_campaign_id: newCampaignId, id: newCampaignId };
         } else {
+          if (createdCampData.error?.code === 17 || createdCampData.error?.code === 613) {
+            throw new Error('Limite temporário de requisições da Meta nessa conta. Aguarde cerca de 1 a 2 minutos para a Meta liberar novas chamadas.');
+          }
           throw new Error(createdCampData.error?.message || 'Falha ao criar campanha na conta de destino');
         }
       } else {

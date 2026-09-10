@@ -2198,35 +2198,26 @@ app.get('/api/campaigns/duplicate-targets', async (req, res) => {
                     console.warn(`[duplicate-targets] Erro ao buscar pixels da conta ${actId}:`, pxErr.message);
                   }
 
-                  // Descobre páginas ativas diretamente dos anúncios da conta (100% dinâmico para qualquer usuário)
+                  // Descobre páginas ativas diretamente dos anúncios da conta (apenas 5 ads para economizar chamadas de API)
                   let accountPages = [];
                   try {
-                    const adsRes = await fetch(`https://graph.facebook.com/v19.0/${actId}/ads?fields=id,name,issues_info,creative{id,actor_id,object_story_spec}&limit=35&access_token=${token}`);
+                    const adsRes = await fetch(`https://graph.facebook.com/v19.0/${actId}/ads?fields=id,creative{id,actor_id,object_story_spec}&limit=10&access_token=${token}`);
                     const adsData = await adsRes.json();
                     if (adsData && Array.isArray(adsData.data)) {
                       for (const ad of adsData.data) {
                         const pid = ad.creative?.object_story_spec?.page_id || ad.creative?.actor_id;
                         if (pid) {
-                          // Ignora páginas com erro de suspensão/não publicada
-                          const isSuspended = ad.issues_info && ad.issues_info.some(i => 
-                            i.error_code === 2446095 || 
-                            i.error_summary?.toLowerCase().includes('não publicada') || 
-                            i.error_type === 'HARD_ERROR'
-                          );
-
-                          if (!isSuspended) {
-                            if (!discoveredPageMap.has(pid)) {
-                              const pageObj = {
-                                id: pid,
-                                name: `Página ${pid}`,
-                                category: 'Página do Facebook',
-                                isPublished: true
-                              };
-                              discoveredPageMap.set(pid, pageObj);
-                              accountPages.push(pageObj);
-                            } else {
-                              accountPages.push(discoveredPageMap.get(pid));
-                            }
+                          if (!discoveredPageMap.has(pid)) {
+                            const pageObj = {
+                              id: pid,
+                              name: `Página ${pid}`,
+                              category: 'Página do Facebook',
+                              isPublished: true
+                            };
+                            discoveredPageMap.set(pid, pageObj);
+                            accountPages.push(pageObj);
+                          } else {
+                            accountPages.push(discoveredPageMap.get(pid));
                           }
                         }
                       }
