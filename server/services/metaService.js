@@ -577,14 +577,16 @@ export async function updateMetaItemDetails(itemId, { name, budget, bidCap, bidS
 
 /**
  * 9. Duplica campanha no Gerenciador da Meta Ads (na mesma conta ou em outra conta)
+ * Realiza deep_copy=true para clonar exatamente todos os conjuntos, anúncios, criativos, públicos e orçamentos.
+ * status_option='ACTIVE' garante que as novas campanhas já entrem ativas diretamente no Gerenciador de Anúncios.
  */
-export async function duplicateMetaCampaign(campaignId, { targetAccountId, copiesCount = 1, status = 'PAUSED' }, accessToken) {
+export async function duplicateMetaCampaign(campaignId, { targetAccountId, copiesCount = 1, status = 'ACTIVE' }, accessToken) {
   const cleanTargetAcc = (targetAccountId || '').replace('act_', '');
   const url = `${GRAPH_BASE_URL}/${campaignId}/copies?access_token=${accessToken}`;
   
   const body = {
     deep_copy: true,
-    status_option: status,
+    status_option: status || 'ACTIVE',
     rename_options: {
       rename_strategy: 'AUTORENAME'
     }
