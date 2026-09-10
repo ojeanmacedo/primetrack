@@ -903,8 +903,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         setSaveSuccessMsg(`🎉 ${data.duplicatedCount} campanha(s) duplicada(s) com sucesso na Meta!`);
         setShowDuplicateModal(false);
         setActiveSelectedSet(new Set());
-        // Força sincronização imediata sem cache para trazer a campanha recém-criada
-        await handleSync(true);
+        // Força sincronização imediata com a Meta para listar a campanha recém-criada
+        await handleSyncNow();
       } else {
         const errMsg = data.error || data.message || 'Falha na Meta Ads ao clonar campanhas';
         setSaveSuccessMsg(`⚠️ Erro ao duplicar: ${errMsg}`);
