@@ -2504,26 +2504,16 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   <span className="text-[10px] text-zinc-400 font-normal">Opcional: manter original ou trocar</span>
                 </label>
                 {(() => {
-                  // Descobre quais pixels estão disponíveis para a conta selecionada
+                  // Descobre estritamente os pixels da conta/BM em foco
                   let relevantPixels = [];
                   if (duplicateTargetType === 'other_account' && selectedTargetAdAccount) {
                     relevantPixels = selectedTargetAdAccount.pixels || [];
                   } else {
-                    // Mesma conta: busca os pixels da conta ativa
-                    const currentActId = (adAccountsList[0]?.id || '').replace('act_', '');
-                    const foundAcc = availableAccounts.find(a => String(a.id).replace('act_', '') === currentActId);
-                    if (foundAcc && foundAcc.pixels && foundAcc.pixels.length > 0) {
-                      relevantPixels = foundAcc.pixels;
-                    } else {
-                      // Coleta todos os pixels disponíveis de todas as contas conectadas
-                      const pixelMap = new Map();
-                      availableAccounts.forEach(a => {
-                        (a.pixels || []).forEach(px => {
-                          if (px.id && !pixelMap.has(px.id)) pixelMap.set(px.id, px);
-                        });
-                      });
-                      relevantPixels = Array.from(pixelMap.values());
-                    }
+                    // Mesma conta: pega a conta dona das campanhas selecionadas
+                    const selectedCamp = campaignsList.find(c => activeSelectedSet.has(c.id));
+                    const campActId = String(selectedCamp?.adAccountId || adAccountsList[0]?.id || '').replace('act_', '');
+                    const matchedAcc = availableAccounts.find(a => String(a.id).replace('act_', '') === campActId);
+                    relevantPixels = matchedAcc?.pixels || [];
                   }
 
                   return (
@@ -2550,24 +2540,23 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   <span className="text-[10px] text-zinc-400 font-normal">Páginas ativas sem restrição</span>
                 </label>
                 {(() => {
-                  // Descobre quais páginas estão disponíveis para o perfil/conta
+                  // Descobre estritamente as páginas da conta/BM em foco
                   let relevantPages = [];
                   if (duplicateTargetType === 'other_account' && selectedTargetAdAccount) {
                     const profile = availableProfiles.find(p => p.id === selectedTargetAdAccount.profileId);
-                    relevantPages = profile?.pages || selectedTargetAdAccount.pages || [];
+                    relevantPages = selectedTargetAdAccount.pages?.length > 0
+                      ? selectedTargetAdAccount.pages
+                      : (profile?.pages || []);
                   } else {
-                    const pageMap = new Map();
-                    availableProfiles.forEach(p => {
-                      (p.pages || []).forEach(pg => {
-                        if (pg.id && !pageMap.has(pg.id)) pageMap.set(pg.id, pg);
-                      });
-                    });
-                    availableAccounts.forEach(a => {
-                      (a.pages || []).forEach(pg => {
-                        if (pg.id && !pageMap.has(pg.id)) pageMap.set(pg.id, pg);
-                      });
-                    });
-                    relevantPages = Array.from(pageMap.values());
+                    // Mesma conta: pega a conta dona das campanhas selecionadas
+                    const selectedCamp = campaignsList.find(c => activeSelectedSet.has(c.id));
+                    const campActId = String(selectedCamp?.adAccountId || adAccountsList[0]?.id || '').replace('act_', '');
+                    const matchedAcc = availableAccounts.find(a => String(a.id).replace('act_', '') === campActId);
+                    const matchedProfile = matchedAcc ? availableProfiles.find(p => p.id === matchedAcc.profileId) : null;
+                    
+                    relevantPages = matchedAcc?.pages?.length > 0
+                      ? matchedAcc.pages
+                      : (matchedProfile?.pages || []);
                   }
 
                   return (
