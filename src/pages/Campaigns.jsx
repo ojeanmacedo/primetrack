@@ -351,17 +351,17 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               amountSpent: a.amountSpent || '0,00',
               sync: isSyncActive
             };
-          })
-          .filter(a => a.sync === true); // Apenas contas ativadas no perfil em integrações
+          });
 
-        if (mappedAccs.length > 0) {
-          setAdAccountsList(mappedAccs);
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('primetrack_ad_accounts', JSON.stringify(mappedAccs));
-          }
+        const activeAccs = mappedAccs.filter(a => a.sync === true);
+        const finalAccsList = activeAccs.length > 0 ? activeAccs : mappedAccs;
+
+        setAdAccountsList(finalAccsList);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('primetrack_ad_accounts', JSON.stringify(finalAccsList));
         }
 
-        if (accountFilter !== 'Todas' && !mappedAccs.some(a => a.id === accountFilter || a.name === accountFilter)) {
+        if (accountFilter !== 'Todas' && !finalAccsList.some(a => a.id === accountFilter || a.name === accountFilter)) {
           setAccountFilter('Todas');
         }
       }
@@ -418,20 +418,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       };
       const datePreset = periodMap[selectedPreset] || selectedPreset || 'today';
       
-      const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
-      let activeAccountIds = [];
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) {
-            activeAccountIds = parsed.filter(a => a.sync === true).map(a => a.id);
-          }
-        } catch (e) {}
-      }
+      const syncPayload = {};
 
-      const syncPayload = {
-        accountIds: activeAccountIds.length > 0 ? activeAccountIds : undefined
-      };
+      if (accountFilter && accountFilter !== 'Todas') {
+        const targetAcc = adAccountsList.find(a => a.name === accountFilter || a.id === accountFilter);
+        if (targetAcc) {
+          syncPayload.accountId = targetAcc.id;
+        }
+      }
 
       if (selectedPreset === 'Personalizado' && customRangeObj?.since) {
         syncPayload.since = customRangeObj.since;

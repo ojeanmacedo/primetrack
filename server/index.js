@@ -892,15 +892,15 @@ app.get('/api/campaigns', async (req, res) => {
       .map(a => String(a.accountId || a.id).replace('act_', ''))
   );
 
-  let activeOnlyCampaigns = activeAccountIds.size > 0 
-    ? allCampaigns.filter(c => {
-        const cAdId = String(c.adAccountId || '').replace('act_', '');
-        return activeAccountIds.has(cAdId);
-      })
-    : allCampaigns;
-
-  if (activeOnlyCampaigns.length === 0 && allCampaigns.length > 0) {
-    activeOnlyCampaigns = allCampaigns;
+  let activeOnlyCampaigns = allCampaigns;
+  if (activeAccountIds.size > 0) {
+    const filtered = allCampaigns.filter(c => {
+      const cAdId = String(c.adAccountId || '').replace('act_', '');
+      return activeAccountIds.has(cAdId);
+    });
+    if (filtered.length > 0) {
+      activeOnlyCampaigns = filtered;
+    }
   }
 
   const allOrders = await getAllOrders();
@@ -1744,13 +1744,11 @@ async function executeMetaSync({ datePreset = 'today', timeRange = null, account
     const actClean = accountId.replace('act_', '');
     targetAccounts = allAdAccounts.filter(a => a.id === accountId || a.id === `act_${actClean}` || a.accountId === actClean);
   } else {
-    // Sincroniza contas ativas em integrações (syncActive: true)
+    // Sincroniza contas marcadas com syncActive ou todas as contas com status Ativa/ACTIVE
     targetAccounts = allAdAccounts.filter(a => a.syncActive === true);
-  }
-
-  // Fallback de segurança: Se nenhuma conta está marcada com syncActive, usa todas as contas ativas do status da Meta
-  if (targetAccounts.length === 0 && allAdAccounts.length > 0) {
-    targetAccounts = allAdAccounts.filter(a => a.status === 'Ativa' || a.status === 'ACTIVE');
+    if (targetAccounts.length === 0) {
+      targetAccounts = allAdAccounts.filter(a => a.status === 'Ativa' || a.status === 'ACTIVE' || !a.status);
+    }
   }
 
   // Se ainda estiver vazio, usa todas as contas disponíveis
@@ -1878,13 +1876,15 @@ app.post('/api/meta/sync', async (req, res) => {
         .map(a => String(a.accountId || a.id).replace('act_', ''))
     );
 
-    let activeOnlyCampaigns = (result.campaigns || []).filter(c => {
-      const cAdId = String(c.adAccountId || '').replace('act_', '');
-      return activeAccountIds.has(cAdId);
-    });
-
-    if (activeOnlyCampaigns.length === 0 && (result.campaigns || []).length > 0) {
-      activeOnlyCampaigns = result.campaigns;
+    let activeOnlyCampaigns = result.campaigns || [];
+    if (activeAccountIds.size > 0 && activeOnlyCampaigns.length > 0) {
+      const filtered = activeOnlyCampaigns.filter(c => {
+        const cAdId = String(c.adAccountId || '').replace('act_', '');
+        return activeAccountIds.has(cAdId);
+      });
+      if (filtered.length > 0) {
+        activeOnlyCampaigns = filtered;
+      }
     }
 
     const approvedOrders = await getApprovedOrders();
