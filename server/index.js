@@ -1413,56 +1413,61 @@ app.get('/api/auth/facebook/callback', async (req, res) => {
 // C. Status das contas conectadas
 app.get('/api/meta/status', async (req, res) => {
   try {
-    let connections = db.get('facebook_connections') || [];
-    let adAccounts = db.get('ad_accounts') || [];
+    let connections = [];
+    let adAccounts = [];
 
-    // Em produção (Vercel Serverless), busca do Supabase se o store local estiver vazio
-    if (connections.length === 0) {
-      try {
-        const { data: supaConn } = await supabaseAdmin.from('facebook_connections').select('*');
-        if (supaConn && supaConn.length > 0) {
-          connections = supaConn.map(c => ({
-            id: c.id,
-            name: c.name,
-            email: c.email,
-            avatarUrl: c.avatar_url,
-            accessToken: c.access_token,
-            accountsCount: c.accounts_count,
-            connectedAt: c.connected_at
-          }));
-        }
-
-        // Lê contas ativas salvas
-        let activeSet = new Set();
-        if (connections[0] && connections[0].email) {
-          try {
-            const parsedMeta = JSON.parse(connections[0].email);
-            if (parsedMeta && Array.isArray(parsedMeta.activeAccounts)) {
-              activeSet = new Set(parsedMeta.activeAccounts);
-            }
-          } catch (e) {}
-        }
-
-        const { data: supaAccs } = await supabaseAdmin.from('ad_accounts').select('*');
-        if (supaAccs && supaAccs.length > 0) {
-          adAccounts = supaAccs.map(a => {
-            const cleanId = (a.id || '').replace('act_', '');
-            return {
-              id: a.id,
-              accountId: cleanId,
-              name: a.name,
-              businessName: a.bm_name,
-              currency: a.currency,
-              status: a.status,
-              amountSpent: String(a.amount_spent || '0.00'),
-              balance: String(a.balance || '0.00'),
-              syncActive: activeSet.has(cleanId)
-            };
-          });
-        }
-      } catch (supaReadErr) {
-        console.warn('[Supabase Read Status] Aviso:', supaReadErr.message);
+    // Sempre busca do Supabase primeiro para ter dados atualizados multi-perfil e multi-dispositivo
+    try {
+      const { data: supaConn } = await supabaseAdmin.from('facebook_connections').select('*').order('connected_at', { ascending: false });
+      if (supaConn && supaConn.length > 0) {
+        connections = supaConn.map(c => ({
+          id: c.id,
+          name: c.name,
+          email: c.email,
+          avatarUrl: c.avatar_url,
+          accessToken: c.access_token,
+          accountsCount: c.accounts_count,
+          connectedAt: c.connected_at
+        }));
       }
+
+      // Lê contas ativas salvas
+      let activeSet = new Set();
+      if (connections[0] && connections[0].email) {
+        try {
+          const parsedMeta = JSON.parse(connections[0].email);
+          if (parsedMeta && Array.isArray(parsedMeta.activeAccounts)) {
+            activeSet = new Set(parsedMeta.activeAccounts);
+          }
+        } catch (e) {}
+      }
+
+      const { data: supaAccs } = await supabaseAdmin.from('ad_accounts').select('*');
+      if (supaAccs && supaAccs.length > 0) {
+        adAccounts = supaAccs.map(a => {
+          const cleanId = (a.id || '').replace('act_', '');
+          return {
+            id: a.id,
+            accountId: cleanId,
+            name: a.name,
+            businessName: a.bm_name,
+            currency: a.currency,
+            status: a.status,
+            amountSpent: String(a.amount_spent || '0.00'),
+            balance: String(a.balance || '0.00'),
+            syncActive: activeSet.has(cleanId)
+          };
+        });
+      }
+    } catch (supaReadErr) {
+      console.warn('[Supabase Read Status] Aviso:', supaReadErr.message);
+    }
+
+    if (connections.length === 0) {
+      connections = db.get('facebook_connections') || [];
+    }
+    if (adAccounts.length === 0) {
+      adAccounts = db.get('ad_accounts') || [];
     }
 
     // Oculta o token completo por segurança
