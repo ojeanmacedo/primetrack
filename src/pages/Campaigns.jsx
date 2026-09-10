@@ -744,7 +744,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       setTimeout(() => setSaveSuccessMsg(null), 6000);
     }
   };
-  };
 
   const handleOpenBulkModal = (action) => {
     setBulkMenuOpen(false);
