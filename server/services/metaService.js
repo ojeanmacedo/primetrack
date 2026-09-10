@@ -581,36 +581,36 @@ export async function updateMetaItemDetails(itemId, { name, budget, bidCap, bidS
  * status_option='ACTIVE' garante que as novas campanhas já entrem ativas diretamente no Gerenciador de Anúncios.
  */
 export async function duplicateMetaCampaign(campaignId, { targetAccountId, copiesCount = 1, status = 'ACTIVE' }, accessToken) {
-  const cleanTargetAcc = (targetAccountId || '').replace('act_', '');
-  const url = `${GRAPH_BASE_URL}/${campaignId}/copies?access_token=${accessToken}`;
-  
-  const body = {
-    deep_copy: true,
-    status_option: status || 'ACTIVE',
-    rename_options: {
-      rename_strategy: 'AUTORENAME'
-    }
-  };
-
-  if (cleanTargetAcc) {
-    body.target_account_id = cleanTargetAcc;
-  }
+  const cleanTargetAcc = (targetAccountId || '').replace('act_', '').trim();
+  const url = `${GRAPH_BASE_URL}/${campaignId}/copies`;
 
   const results = [];
   for (let i = 0; i < copiesCount; i++) {
     try {
+      const params = new URLSearchParams();
+      params.append('access_token', accessToken);
+      params.append('deep_copy', 'true');
+      params.append('status_option', status || 'ACTIVE');
+      params.append('rename_options', JSON.stringify({
+        rename_strategy: 'ONLY_TOP_LEVEL_RENAME'
+      }));
+
+      if (cleanTargetAcc) {
+        params.append('target_account_id', cleanTargetAcc);
+      }
+
       const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString()
       });
       const data = await res.json();
       if (data.error) {
-        throw new Error(data.error.message);
+        throw new Error(data.error.message || `Meta Graph API Error [${data.error.code || 'Desconhecido'}]`);
       }
       results.push(data);
     } catch (err) {
-      console.warn(`[Duplicate Meta Campaign ${i + 1}/${copiesCount} Error]:`, err.message);
+      console.warn(`[Duplicate Meta Campaign ${campaignId} (#${i + 1}/${copiesCount}) Error]:`, err.message);
       throw err;
     }
   }

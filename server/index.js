@@ -2213,24 +2213,39 @@ app.post('/api/campaigns/duplicate', async (req, res) => {
       } catch (e) {}
     }
 
-    const token = connections[0]?.access_token || connections[0]?.accessToken;
-    if (!token) {
+    const validTokens = connections
+      .map(c => c.access_token || c.accessToken)
+      .filter(t => Boolean(t) && typeof t === 'string' && t.trim().length > 0);
+
+    if (validTokens.length === 0) {
       return res.status(400).json({ success: false, error: 'Nenhuma conta do Facebook conectada para duplicar campanhas.' });
     }
 
-    const cleanTargetAcc = destinationType === 'other_account' && targetAccountId ? targetAccountId.replace('act_', '') : null;
+    const cleanTargetAcc = destinationType === 'other_account' && targetAccountId ? targetAccountId.replace('act_', '').trim() : null;
     const duplicatedResults = [];
 
     for (const cId of campaignIds) {
-      try {
-        const resDup = await duplicateMetaCampaign(cId, {
-          targetAccountId: cleanTargetAcc,
-          copiesCount: Number(copiesCount) || 1
-        }, token);
-        duplicatedResults.push({ campaignId: cId, ...resDup });
-      } catch (err) {
-        console.warn(`[Duplicate Error for ${cId}]:`, err.message);
-        duplicatedResults.push({ campaignId: cId, success: false, error: err.message });
+      let succeeded = false;
+      let lastError = null;
+
+      // Itera por todos os tokens conectados até achar o perfil proprietário da campanha
+      for (const token of validTokens) {
+        try {
+          const resDup = await duplicateMetaCampaign(cId, {
+            targetAccountId: cleanTargetAcc,
+            copiesCount: Number(copiesCount) || 1
+          }, token);
+          duplicatedResults.push({ campaignId: cId, ...resDup });
+          succeeded = true;
+          break;
+        } catch (err) {
+          lastError = err;
+        }
+      }
+
+      if (!succeeded) {
+        console.warn(`[Duplicate Error for ${cId} across all tokens]:`, lastError?.message);
+        duplicatedResults.push({ campaignId: cId, success: false, error: lastError?.message || 'Falha de permissão no Meta Ads' });
       }
     }
 
@@ -2239,10 +2254,12 @@ app.post('/api/campaigns/duplicate', async (req, res) => {
 
     const successCount = duplicatedResults.filter(r => r.success).length;
     res.json({
-      success: true,
+      success: successCount > 0,
       duplicatedCount: successCount,
       results: duplicatedResults,
-      message: `${successCount} campanha(s) duplicada(s) com sucesso na Meta!`
+      message: successCount > 0
+        ? `${successCount} campanha(s) duplicada(s) com sucesso na Meta!`
+        : `Erro ao duplicar na Meta: ${duplicatedResults[0]?.error || 'Verifique as permissões do perfil'}`
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

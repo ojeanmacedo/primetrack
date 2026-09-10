@@ -834,20 +834,21 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       });
       const data = await res.json();
 
-      if (data.success) {
-        setSaveSuccessMsg(`🎉 ${data.duplicatedCount || ids.length} campanha(s) duplicada(s) com sucesso na Meta!`);
+      if (data.success && data.duplicatedCount > 0) {
+        setSaveSuccessMsg(`🎉 ${data.duplicatedCount} campanha(s) duplicada(s) com sucesso na Meta!`);
         setShowDuplicateModal(false);
         setActiveSelectedSet(new Set());
         // Recarrega os dados para exibir as novas campanhas
         loadData();
       } else {
-        setSaveSuccessMsg(`⚠️ Erro ao duplicar: ${data.error || 'Falha na Meta Ads'}`);
+        const errMsg = data.error || data.message || 'Falha na Meta Ads ao clonar campanhas';
+        setSaveSuccessMsg(`⚠️ Erro ao duplicar: ${errMsg}`);
       }
     } catch (err) {
       setSaveSuccessMsg(`⚠️ Erro ao duplicar: ${err.message}`);
     } finally {
       setDuplicatingLoading(false);
-      setTimeout(() => setSaveSuccessMsg(null), 6000);
+      setTimeout(() => setSaveSuccessMsg(null), 7000);
     }
   };
 
@@ -2462,7 +2463,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   ) : (
                     <>
                       <Copy className="w-4 h-4" />
-                      <span>Duplicar ({activeSelectedSet.size})</span>
+                      <span>Duplicar</span>
                     </>
                   )}
                 </button>
