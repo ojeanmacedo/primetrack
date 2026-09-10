@@ -1624,54 +1624,61 @@ async function executeMetaSync({ datePreset = 'today', timeRange = null, account
   let connections = db.get('facebook_connections') || [];
   let allAdAccounts = db.get('ad_accounts') || [];
 
-  // Em ambiente serverless (Vercel), restaura do Supabase caso o db em memória esteja vazio
-  if (connections.length === 0) {
-    try {
-      const { data: supaConns } = await supabaseAdmin.from('facebook_connections').select('*');
-      if (supaConns && supaConns.length > 0) {
-        connections = supaConns.map(c => ({
-          id: c.id,
-          name: c.name,
-          email: c.email,
-          avatarUrl: c.avatar_url,
-          accessToken: c.access_token,
-          accountsCount: c.accounts_count,
-          connectedAt: c.connected_at
-        }));
-        db.set('facebook_connections', connections);
+  // Em ambiente serverless (Vercel), restaura do Supabase sempre ou caso o db em memória esteja vazio
+  try {
+    const { data: supaConns } = await supabaseAdmin.from('facebook_connections').select('*');
+    if (supaConns && supaConns.length > 0) {
+      connections = supaConns.map(c => ({
+        id: c.id,
+        name: c.name,
+        email: c.email,
+        avatarUrl: c.avatar_url,
+        accessToken: c.access_token,
+        accountsCount: c.accounts_count,
+        connectedAt: c.connected_at
+      }));
+      db.set('facebook_connections', connections);
 
-        let activeSet = new Set();
-        if (connections[0] && connections[0].email) {
+      let activeSet = new Set();
+      connections.forEach(c => {
+        if (c.email) {
           try {
-            const parsedMeta = JSON.parse(connections[0].email);
+            const parsedMeta = JSON.parse(c.email);
             if (parsedMeta && Array.isArray(parsedMeta.activeAccounts)) {
-              activeSet = new Set(parsedMeta.activeAccounts);
+              parsedMeta.activeAccounts.forEach(acc => activeSet.add(String(acc).replace('act_', '')));
             }
           } catch (e) {}
         }
+      });
 
-        const { data: supaAccs } = await supabaseAdmin.from('ad_accounts').select('*');
-        if (supaAccs && supaAccs.length > 0) {
-          allAdAccounts = supaAccs.map(a => {
-            const cleanId = (a.id || '').replace('act_', '');
-            return {
-              id: a.id,
-              accountId: cleanId,
-              name: a.name,
-              businessName: a.bm_name,
-              currency: a.currency,
-              status: a.status,
-              amountSpent: String(a.amount_spent || '0.00'),
-              balance: String(a.balance || '0.00'),
-              syncActive: activeSet.has(cleanId)
-            };
-          });
-          db.set('ad_accounts', allAdAccounts);
-        }
+      const { data: supaAccs } = await supabaseAdmin.from('ad_accounts').select('*');
+      if (supaAccs && supaAccs.length > 0) {
+        allAdAccounts = supaAccs.map(a => {
+          const cleanId = (a.id || '').replace('act_', '');
+          return {
+            id: a.id,
+            accountId: cleanId,
+            name: a.name,
+            businessName: a.bm_name,
+            currency: a.currency,
+            status: a.status,
+            amountSpent: String(a.amount_spent || '0.00'),
+            balance: String(a.balance || '0.00'),
+            syncActive: activeSet.size === 0 ? true : activeSet.has(cleanId)
+          };
+        });
+        db.set('ad_accounts', allAdAccounts);
       }
-    } catch (e) {
-      console.warn('[Sync Supabase Restore Error]:', e.message);
     }
+  } catch (e) {
+    console.warn('[Sync Supabase Restore Error]:', e.message);
+  }
+
+  if (connections.length === 0) {
+    connections = db.get('facebook_connections') || [];
+  }
+  if (allAdAccounts.length === 0) {
+    allAdAccounts = db.get('ad_accounts') || [];
   }
 
   if (connections.length === 0) {
