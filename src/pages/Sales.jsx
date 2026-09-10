@@ -189,10 +189,10 @@ function resolveCustomerCityState(cust, o) {
 
     return {
       id: o.id || o.orderCode,
-      name: cust.name || 'Cliente MonsterPay',
+      name: cust.name || 'Sem Nome',
       email: cust.email || '—',
       city: cityState,
-      product: o.productName || 'Produto MonsterPay',
+      product: o.productName || 'Produto',
       value: `R$ ${Number(o.amount || 0).toFixed(2).replace('.', ',')}`,
       platform: o.gateway || 'MonsterPay',
       source: cleanSource,

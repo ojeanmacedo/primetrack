@@ -290,17 +290,17 @@ function parseMonsterPay(body) {
 
   const customerName = customer.name || customer.full_name || 
     (customer.first_name ? `${customer.first_name} ${customer.last_name || ''}`.trim() : '') || 
-    body.name || 'Cliente MonsterPay';
+    body.name || '';
 
-  const rawAmount = body.amount || body.total || body.price || body.value || body.data?.amount || 97.00;
+  const rawAmount = body.amount || body.total || body.price || body.value || body.data?.amount || 0;
   const numAmount = Number(rawAmount);
   const finalAmount = numAmount > 1000 && !String(rawAmount).includes('.') ? numAmount / 100 : numAmount;
 
   return {
     gateway: 'MonsterPay',
-    orderCode: body.order_id || body.transaction_id || body.id || body.code || body.data?.id || `MP-${Date.now().toString().slice(-7)}`,
+    orderCode: body.order_id || body.transaction_id || body.id || body.code || body.data?.id || '',
     status,
-    amount: finalAmount || 97.00,
+    amount: finalAmount,
     paymentMethod: body.payment_method || body.paymentMethod || body.data?.payment_method || 'pix',
     productName: product.name || body.product_name || body.productName || body.data?.product_name || 'Produto MonsterPay',
     customer: {

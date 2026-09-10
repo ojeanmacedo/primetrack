@@ -392,6 +392,14 @@ app.all([
     // 1. Normaliza payload do gateway
     const parsed = parseWebhook(gateway, body);
 
+    // Rejeita requisições vazias, pings sem dados de pedido ou testes genéricos
+    const hasOrderCode = body.order_id || body.transaction_id || body.id || body.code || body.transaction || body.data?.id || body.data?.order_id;
+    const hasCustomerData = parsed.customer.email || parsed.customer.phone || (parsed.customer.name && parsed.customer.name !== 'Cliente MonsterPay' && parsed.customer.name !== 'Cliente');
+    if (!hasOrderCode && !hasCustomerData) {
+      console.log(`[Webhook Ignorado] Payload vazio ou ping sem dados de venda recebido de ${gateway}.`);
+      return res.status(200).json({ success: true, message: 'Ping/Test received but not saved (no order data)' });
+    }
+
     // 2. Executa atribuição cross-session inteligente (recupera IP, cidade e estado do Pixel)
     const attribution = attributeOrder(parsed, clientIp);
 
