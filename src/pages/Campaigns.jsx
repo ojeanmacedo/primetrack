@@ -2504,17 +2504,35 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   <span className="text-[10px] text-zinc-400 font-normal">Opcional: manter original ou trocar</span>
                 </label>
                 {(() => {
-                  // Descobre estritamente os pixels da conta/BM em foco
                   let relevantPixels = [];
+                  const pixelMap = new Map();
+
                   if (duplicateTargetType === 'other_account' && selectedTargetAdAccount) {
-                    relevantPixels = selectedTargetAdAccount.pixels || [];
+                    (selectedTargetAdAccount.pixels || []).forEach(px => {
+                      if (px.id && !pixelMap.has(px.id)) pixelMap.set(px.id, px);
+                    });
                   } else {
-                    // Mesma conta: pega a conta dona das campanhas selecionadas
                     const selectedCamp = campaignsList.find(c => activeSelectedSet.has(c.id));
                     const campActId = String(selectedCamp?.adAccountId || adAccountsList[0]?.id || '').replace('act_', '');
                     const matchedAcc = availableAccounts.find(a => String(a.id).replace('act_', '') === campActId);
-                    relevantPixels = matchedAcc?.pixels || [];
+                    
+                    if (matchedAcc && matchedAcc.pixels && matchedAcc.pixels.length > 0) {
+                      matchedAcc.pixels.forEach(px => {
+                        if (px.id && !pixelMap.has(px.id)) pixelMap.set(px.id, px);
+                      });
+                    }
                   }
+
+                  // Fallback: se não encontrou pixels na conta isolada, lista os pixels de todas as contas conectadas
+                  if (pixelMap.size === 0) {
+                    availableAccounts.forEach(a => {
+                      (a.pixels || []).forEach(px => {
+                        if (px.id && !pixelMap.has(px.id)) pixelMap.set(px.id, px);
+                      });
+                    });
+                  }
+
+                  relevantPixels = Array.from(pixelMap.values());
 
                   return (
                     <select
@@ -2537,16 +2555,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               <div className="pt-2">
                 <label className="block text-zinc-300 font-bold mb-1.5 flex items-center justify-between">
                   <span>Página do Facebook (Criativo)</span>
-                  <span className="text-[10px] text-zinc-400 font-normal">Páginas do mesmo Perfil / BM</span>
+                  <span className="text-[10px] text-zinc-400 font-normal">Páginas do Perfil / BM</span>
                 </label>
                 {(() => {
-                  // Descobre todas as páginas do perfil/BM dono da conta selecionada
                   let relevantPages = [];
                   const pageMap = new Map();
 
                   if (duplicateTargetType === 'other_account' && selectedTargetAdAccount) {
                     const profile = availableProfiles.find(p => p.id === selectedTargetAdAccount.profileId);
-                    // Junta páginas registradas no perfil e em todas as contas daquele mesmo perfil
                     (profile?.pages || []).forEach(pg => {
                       if (pg.id && !pageMap.has(pg.id)) pageMap.set(pg.id, pg);
                     });
@@ -2561,18 +2577,21 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       });
                     }
                   } else {
-                    // Mesma conta: pega a conta dona das campanhas e todas as páginas do perfil dela
                     const selectedCamp = campaignsList.find(c => activeSelectedSet.has(c.id));
                     const campActId = String(selectedCamp?.adAccountId || adAccountsList[0]?.id || '').replace('act_', '');
                     const matchedAcc = availableAccounts.find(a => String(a.id).replace('act_', '') === campActId);
                     const matchedProfile = matchedAcc ? availableProfiles.find(p => p.id === matchedAcc.profileId) : null;
                     
-                    (matchedProfile?.pages || []).forEach(pg => {
-                      if (pg.id && !pageMap.has(pg.id)) pageMap.set(pg.id, pg);
-                    });
-                    (matchedAcc?.pages || []).forEach(pg => {
-                      if (pg.id && !pageMap.has(pg.id)) pageMap.set(pg.id, pg);
-                    });
+                    if (matchedProfile?.pages) {
+                      matchedProfile.pages.forEach(pg => {
+                        if (pg.id && !pageMap.has(pg.id)) pageMap.set(pg.id, pg);
+                      });
+                    }
+                    if (matchedAcc?.pages) {
+                      matchedAcc.pages.forEach(pg => {
+                        if (pg.id && !pageMap.has(pg.id)) pageMap.set(pg.id, pg);
+                      });
+                    }
                     if (matchedProfile?.accounts) {
                       matchedProfile.accounts.forEach(acc => {
                         (acc.pages || []).forEach(pg => {
@@ -2580,6 +2599,20 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                         });
                       });
                     }
+                  }
+
+                  // Fallback: se não encontrou páginas isoladas, lista todas as páginas encontradas em todos os perfis
+                  if (pageMap.size === 0) {
+                    availableProfiles.forEach(p => {
+                      (p.pages || []).forEach(pg => {
+                        if (pg.id && !pageMap.has(pg.id)) pageMap.set(pg.id, pg);
+                      });
+                    });
+                    availableAccounts.forEach(a => {
+                      (a.pages || []).forEach(pg => {
+                        if (pg.id && !pageMap.has(pg.id)) pageMap.set(pg.id, pg);
+                      });
+                    });
                   }
 
                   relevantPages = Array.from(pageMap.values());
