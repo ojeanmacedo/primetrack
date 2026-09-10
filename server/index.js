@@ -2130,14 +2130,13 @@ app.post('/api/campaigns/update', async (req, res) => {
   }
 });
 
-// Mapa oficial de páginas ativas por ID com os nomes reais das páginas do Facebook
+// Mapa oficial de páginas ativas e sem restrição (3 em Angel Kerry e 1 em Rafaelli Ribeiro)
 const ACTIVE_FACEBOOK_PAGES = {
-  // Perfil 1 (Angel Kerry)
-  '105915032470227': { id: '105915032470227', name: 'Nicole Oliveira (Choquei)', category: 'Página do Facebook', profileName: 'Angel Kerry' },
+  // Perfil 1 (Angel Kerry) - 3 páginas ativas sem restrição
   '103591348911553': { id: '103591348911553', name: 'Nicole Oliveira', category: 'Página do Facebook', profileName: 'Angel Kerry' },
   '1182899901584051': { id: '1182899901584051', name: 'Jessica Soares', category: 'Página do Facebook', profileName: 'Angel Kerry' },
   '950900418114972': { id: '950900418114972', name: 'Zachariah Milbauer', category: 'Página do Facebook', profileName: 'Angel Kerry' },
-  // Perfil 2 (Rafaelli Ribeiro)
+  // Perfil 2 (Rafaelli Ribeiro) - 1 página ativa sem restrição
   '122103789734002354': { id: '122103789734002354', name: 'Lorena Vans', category: 'Página do Facebook', profileName: 'Rafaelli Ribeiro' }
 };
 
@@ -2169,7 +2168,6 @@ app.get('/api/campaigns/duplicate-targets', async (req, res) => {
         // Atribui as páginas ativas deste perfil específico
         if (connName.toLowerCase().includes('angel') || String(conn.id) === '122109599696599930') {
           profilePages = [
-            ACTIVE_FACEBOOK_PAGES['105915032470227'],
             ACTIVE_FACEBOOK_PAGES['103591348911553'],
             ACTIVE_FACEBOOK_PAGES['1182899901584051'],
             ACTIVE_FACEBOOK_PAGES['950900418114972']
