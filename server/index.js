@@ -1656,7 +1656,27 @@ async function executeMetaSync({ datePreset = 'today', timeRange = null, account
     return { success: false, error: 'Nenhum perfil do Facebook conectado ainda.', syncedCampaigns: 0 };
   }
 
-  const latestConnection = connections[0];
+  // Mapeia todas as contas para seus respectivos tokens de conexão
+  const accountTokenMap = new Map(); // cleanId/act_Id -> token
+  await Promise.all(
+    connections.map(async (conn) => {
+      const token = conn.accessToken || conn.access_token;
+      if (token) {
+        try {
+          const freshAccs = await fetchAdAccounts(token);
+          if (Array.isArray(freshAccs)) {
+            freshAccs.forEach(acc => {
+              const clean = (acc.accountId || acc.id || '').replace('act_', '');
+              accountTokenMap.set(clean, token);
+              accountTokenMap.set(`act_${clean}`, token);
+            });
+          }
+        } catch (e) {}
+      }
+    })
+  );
+
+  const fallbackToken = connections[0]?.accessToken || connections[0]?.access_token;
 
   // Se o usuário especificou contas
   let targetAccounts = [];
@@ -1702,10 +1722,13 @@ async function executeMetaSync({ datePreset = 'today', timeRange = null, account
 
   const results = await Promise.all(accountsToQuery.map(async (acc) => {
     try {
+      const cleanAccId = (acc.accountId || acc.id || '').replace('act_', '');
+      const accountToken = accountTokenMap.get(cleanAccId) || accountTokenMap.get(acc.id) || fallbackToken;
+
       // Executa busca de campanhas e detalhes de saldo em paralelo para máxima velocidade
       const [campaigns, liveDetails] = await Promise.all([
-        fetchCampaigns(acc.id, latestConnection.accessToken, acc.name, datePreset, timeRange, acc.rawCurrency || acc.currency),
-        fetchLiveAccountDetails(acc.id, latestConnection.accessToken).catch(() => ({}))
+        fetchCampaigns(acc.id, accountToken, acc.name, datePreset, timeRange, acc.rawCurrency || acc.currency),
+        fetchLiveAccountDetails(acc.id, accountToken).catch(() => ({}))
       ]);
 
       let liveBalance = (liveDetails && liveDetails.balance !== undefined) ? liveDetails.balance : acc.balance;
@@ -2383,6 +2406,35 @@ app.post('/api/campaigns/duplicate', async (req, res) => {
         console.warn(`[Duplicate Error for ${cId}]:`, lastError?.message);
         duplicatedResults.push({ campaignId: cId, success: false, error: lastError?.message || 'Falha de permissão no Meta Ads' });
       }
+    }
+
+    // Se duplicou para outra conta, garante que a conta de destino esteja ativa para sincronização
+    if (cleanTargetAcc) {
+      try {
+        let curAccounts = db.get('ad_accounts') || [];
+        let found = false;
+        curAccounts = curAccounts.map(a => {
+          const cId = (a.accountId || a.id || '').replace('act_', '');
+          if (cId === cleanTargetAcc) {
+            found = true;
+            return { ...a, syncActive: true };
+          }
+          return a;
+        });
+
+        if (!found) {
+          curAccounts.push({
+            id: `act_${cleanTargetAcc}`,
+            accountId: cleanTargetAcc,
+            name: `Conta ${cleanTargetAcc}`,
+            businessName: 'BM Destino',
+            currency: 'BRL',
+            status: 'Ativa',
+            syncActive: true
+          });
+        }
+        db.set('ad_accounts', curAccounts);
+      } catch (accErr) {}
     }
 
     // Invalida cache de campanhas para recarregar com as novas
