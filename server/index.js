@@ -2330,44 +2330,66 @@ app.post('/api/campaigns/duplicate', async (req, res) => {
     const cleanTargetPage = targetPageId ? String(targetPageId).trim() : null;
     const duplicatedResults = [];
 
-    // Busca o token do perfil de destino (se for duplicar para outra conta)
+    // Mapeamento dinâmico de qual conta de anúncio pertence a qual token
+    const tokenAccountMap = new Map(); // actId -> token
+    await Promise.all(
+      connections.map(async (conn) => {
+        const token = conn.access_token || conn.accessToken;
+        if (token) {
+          try {
+            const accs = await fetchAdAccounts(token);
+            if (Array.isArray(accs)) {
+              for (const a of accs) {
+                const cleanId = String(a.accountId || (a.id || '').replace('act_', ''));
+                tokenAccountMap.set(cleanId, token);
+                tokenAccountMap.set(`act_${cleanId}`, token);
+              }
+            }
+          } catch (e) {}
+        }
+      })
+    );
+
+    // Identifica o token da conta de destino se especificada
     let targetProfileToken = null;
     if (cleanTargetAcc) {
-      // Localiza qual conexão tem a conta de destino
-      const allAdAccs = db.get('ad_accounts') || [];
-      const destAcc = allAdAccs.find(a => String(a.accountId || a.id).replace('act_', '') === cleanTargetAcc);
-      if (destAcc && destAcc.profileId) {
-        const matchingConn = connections.find(c => String(c.id) === String(destAcc.profileId));
-        if (matchingConn) {
-          targetProfileToken = matchingConn.access_token || matchingConn.accessToken;
-        }
-      }
+      targetProfileToken = tokenAccountMap.get(cleanTargetAcc) || null;
     }
 
     for (const cId of campaignIds) {
       let succeeded = false;
       let lastError = null;
 
-      // Itera por todos os tokens conectados até achar o perfil proprietário da campanha
+      // 1. Descobre qual token é o dono da campanha de origem
+      let sourceToken = null;
       for (const token of validTokens) {
         try {
-          const resDup = await duplicateMetaCampaign(cId, {
-            targetAccountId: cleanTargetAcc,
-            targetPixelId: cleanTargetPixel,
-            targetPageId: cleanTargetPage,
-            targetToken: targetProfileToken,
-            copiesCount: Number(copiesCount) || 1
-          }, token);
-          duplicatedResults.push({ campaignId: cId, ...resDup });
-          succeeded = true;
-          break;
-        } catch (err) {
-          lastError = err;
-        }
+          const testRes = await fetch(`https://graph.facebook.com/v19.0/${cId}?fields=id,account_id&access_token=${token}`);
+          const testData = await testRes.json();
+          if (testData && testData.id && !testData.error) {
+            sourceToken = token;
+            break;
+          }
+        } catch (e) {}
       }
 
-      if (!succeeded) {
-        console.warn(`[Duplicate Error for ${cId} across all tokens]:`, lastError?.message);
+      if (!sourceToken) {
+        sourceToken = validTokens[0];
+      }
+
+      try {
+        const resDup = await duplicateMetaCampaign(cId, {
+          targetAccountId: cleanTargetAcc,
+          targetPixelId: cleanTargetPixel,
+          targetPageId: cleanTargetPage,
+          targetToken: targetProfileToken,
+          copiesCount: Number(copiesCount) || 1
+        }, sourceToken);
+        duplicatedResults.push({ campaignId: cId, ...resDup });
+        succeeded = true;
+      } catch (err) {
+        lastError = err;
+        console.warn(`[Duplicate Error for ${cId}]:`, lastError?.message);
         duplicatedResults.push({ campaignId: cId, success: false, error: lastError?.message || 'Falha de permissão no Meta Ads' });
       }
     }
