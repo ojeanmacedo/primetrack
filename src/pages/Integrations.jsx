@@ -842,11 +842,14 @@ export default function Integrations() {
       })
       .catch(e => console.log('Backend offline ou usando cache local'));
 
-    // Sincroniza pixels cadastrados com o banco de dados / backend
-    fetch('/api/pixels')
+    // Sincroniza pixels cadastrados com o banco de dados / backend (isolado por usuário)
+    const userHeader = currentUser?.id ? { 'x-user-id': currentUser.id } : {};
+    fetch(`/api/pixels${currentUser?.id ? `?userId=${currentUser.id}` : ''}`, {
+      headers: userHeader
+    })
       .then(res => res.json())
       .then(pixels => {
-        if (Array.isArray(pixels) && pixels.length > 0) {
+        if (Array.isArray(pixels)) {
           setTrackingPixels(pixels);
           if (typeof window !== 'undefined') {
             localStorage.setItem('primetrack_pixels', JSON.stringify(pixels));

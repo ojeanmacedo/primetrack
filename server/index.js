@@ -177,8 +177,13 @@ app.get('/api/pixel/config', async (req, res) => {
 });
 
 app.get('/api/pixels', async (req, res) => {
+  const userId = req.headers['x-user-id'] || req.query.userId;
   try {
-    const { data } = await supabaseAdmin.from('pixels').select('*');
+    let query = supabaseAdmin.from('pixels').select('*');
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+    const { data } = await query;
     if (data && data.length > 0) {
       const mapped = data
         .filter(p => !p.id.startsWith('push_sub_')) // Filtra tokens de push da Apple/Chrome
@@ -210,14 +215,12 @@ app.get('/api/pixels', async (req, res) => {
 
 app.post('/api/pixels', async (req, res) => {
   const pixels = req.body.pixels || req.body;
+  const targetUserId = req.headers['x-user-id'] || req.body.userId || 'usr_1788826403159'; // jeeanmacedo@gmail.com
   if (Array.isArray(pixels)) {
     db.set('pixels', pixels);
 
-    // Persiste no Supabase para sobreviver a reciclagens serverless do Vercel
+    // Persiste no Supabase com isolamento por usuário
     try {
-      const { data: users } = await supabaseAdmin.from('users').select('id').limit(1);
-      const defaultUserId = (users && users[0] && users[0].id) ? users[0].id : 'usr_admin_digitaljm';
-
       for (const px of pixels) {
         const id = px.pixelId || px.internalPixelId || px.id;
         const configJson = JSON.stringify({
@@ -233,7 +236,7 @@ app.post('/api/pixels', async (req, res) => {
 
         await supabaseAdmin.from('pixels').upsert({
           id,
-          user_id: defaultUserId,
+          user_id: targetUserId,
           name: px.name || 'Pixel',
           domain: configJson,
           status: (px.status === 'Ativo' || px.status === 'active') ? 'active' : 'inactive',
