@@ -883,25 +883,6 @@ app.get('/api/campaigns', async (req, res) => {
   const allCampaigns = (syncResult && Array.isArray(syncResult.campaigns) && syncResult.campaigns.length > 0)
     ? syncResult.campaigns
     : (db.get('campaigns') || []);
-  const adAccounts = db.get('ad_accounts') || [];
-  
-  // Apenas contas ativadas pelo perfil em integrações (syncActive: true)
-  const activeAccountIds = new Set(
-    adAccounts
-      .filter(a => a.syncActive === true)
-      .map(a => String(a.accountId || a.id).replace('act_', ''))
-  );
-
-  let activeOnlyCampaigns = allCampaigns;
-  if (activeAccountIds.size > 0) {
-    const filtered = allCampaigns.filter(c => {
-      const cAdId = String(c.adAccountId || '').replace('act_', '');
-      return activeAccountIds.has(cAdId);
-    });
-    if (filtered.length > 0) {
-      activeOnlyCampaigns = filtered;
-    }
-  }
 
   const allOrders = await getAllOrders();
   const approvedOrders = allOrders.filter(o => o.status === 'approved' || o.status === 'paid' || o.status === 'pago');
@@ -962,7 +943,7 @@ app.get('/api/campaigns', async (req, res) => {
   };
 
   // Calcula vendas, receita e ICs EXCLUSIVAMENTE da MonsterPay e do Pixel da PrimeTrack
-  const enrichedCampaigns = activeOnlyCampaigns.map(c => {
+  const enrichedCampaigns = allCampaigns.map(c => {
     const matchingOrders = filteredOrders.filter(o => {
       const oCamp = ((o.attribution && o.attribution.campaign) || o.campaign || '').toLowerCase().trim();
       return isMatchCampaign(oCamp, c);
@@ -1869,24 +1850,6 @@ app.post('/api/meta/sync', async (req, res) => {
     const timeRange = (since && until) ? { since, until } : null;
     const result = await executeMetaSync({ datePreset, timeRange, accountId, accountIds });
 
-    const adAccounts = db.get('ad_accounts') || [];
-    const activeAccountIds = new Set(
-      adAccounts
-        .filter(a => a.syncActive === true)
-        .map(a => String(a.accountId || a.id).replace('act_', ''))
-    );
-
-    let activeOnlyCampaigns = result.campaigns || [];
-    if (activeAccountIds.size > 0 && activeOnlyCampaigns.length > 0) {
-      const filtered = activeOnlyCampaigns.filter(c => {
-        const cAdId = String(c.adAccountId || '').replace('act_', '');
-        return activeAccountIds.has(cAdId);
-      });
-      if (filtered.length > 0) {
-        activeOnlyCampaigns = filtered;
-      }
-    }
-
     const approvedOrders = await getApprovedOrders();
 
     const { since: filterSince, until: filterUntil } = resolveDateRange(datePreset, since, until);
@@ -1918,7 +1881,7 @@ app.post('/api/meta/sync', async (req, res) => {
       return (target === cId || (cUtm && target === cUtm) || target === cName);
     };
 
-    const enrichedCampaigns = activeOnlyCampaigns.map(c => {
+    const enrichedCampaigns = (result.campaigns || []).map(c => {
       const matchingOrders = filteredOrders.filter(o => {
         const oCamp = ((o.attribution && o.attribution.campaign) || o.campaign || '').toLowerCase().trim();
         return isMatchCampaign(oCamp, c);
