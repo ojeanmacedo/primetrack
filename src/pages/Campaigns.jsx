@@ -1733,13 +1733,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
         // Caso 1: Na aba Campanhas, se a campanha for ABO:
         // O orçamento é configurado nos conjuntos de anúncios, não na campanha!
+        // Conforme solicitado: deixa somente a escrita "Nível de conjunto"
         if (isCampanha && isItemAbo) {
-          const campAdsets = item.adsets || [];
-          const totalAdsetsBudget = campAdsets.reduce((sum, a) => sum + Number(a.budget || 0), 0);
-          const displayBudget = totalAdsetsBudget > 0 
-            ? `Total: R$ ${totalAdsetsBudget.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
-            : (item.budget && Number(item.budget) > 0 ? `Total: R$ ${Number(item.budget).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Vários conjuntos');
-
           return (
             <div 
               className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group" 
@@ -1747,13 +1742,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 setSelectedCampaignIds(new Set([item.id]));
                 setSubTab('Conjuntos');
               }}
-              title="O orçamento é definido individualmente em cada conjunto. Clique para ver e editar os conjuntos."
+              title="O orçamento é definido individualmente em cada conjunto. Clique para ver os conjuntos."
             >
               <div className="font-semibold text-zinc-200 text-xs flex items-center gap-1.5">
                 <span className="group-hover:text-[#5C9BFF] transition-colors">Nível de conjunto</span>
-              </div>
-              <div className="text-[10px] text-zinc-400 font-mono mt-0.5">
-                {campAdsets.length > 0 ? `${campAdsets.length} conjuntos • ${displayBudget}` : displayBudget}
               </div>
             </div>
           );
@@ -1895,13 +1887,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
       case 'cpa': {
         const cpaVal = Number(item.cpa || 0);
-        const salesVal = Number(item.sales || 0);
-        const spendVal = Number(item.spend || 0);
-        // Verde se teve vendas com CPA válido; vermelho se gastou e não vendeu
-        const isGoodCpa = salesVal > 0 && cpaVal > 0;
-        const isBadCpa = spendVal > 0 && salesVal === 0;
         return (
-          <span className={`font-bold font-mono ${isGoodCpa ? 'text-emerald-400' : isBadCpa ? 'text-red-400' : 'text-zinc-400'}`}>
+          <span className="font-bold font-mono text-white">
             R$ {cpaVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         );
@@ -1995,10 +1982,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         return <span className="font-mono text-zinc-300">{marginPct}</span>;
       }
       case 'cpa': {
-        const isGoodTotalCpa = t.sales > 0 && t.cpa > 0;
-        const isBadTotalCpa = t.spend > 0 && t.sales === 0;
         return (
-          <span className={`font-bold font-mono ${isGoodTotalCpa ? 'text-emerald-400' : isBadTotalCpa ? 'text-red-400' : 'text-zinc-400'}`}>
+          <span className="font-bold font-mono text-white">
             R$ {t.cpa.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         );
@@ -2279,7 +2264,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-zinc-200 hover:text-white hover:bg-[#12223D] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Edit3 className="w-4 h-4 text-amber-400" />
-                    <span>Alterar bid cap</span>
+                    <span>Alterar lance</span>
                   </button>
 
                   <div className="h-px bg-[#13233E]/60 my-1" />
@@ -3143,7 +3128,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 </div>
                 <div>
                   <h3 className="font-bold text-white text-xs">
-                    {bulkModalAction === 'budget' ? 'Alterar Orçamento em Massa' : 'Alterar Bid Cap em Massa'}
+                    {bulkModalAction === 'budget' ? 'Alterar Orçamento em Massa' : 'Alterar Lance em Massa'}
                   </h3>
                   <span className="text-[10px] font-mono text-[#5C9BFF] block">
                     {activeSelectedSet.size} {subTab.toLowerCase()} selecionada(s)
@@ -3162,7 +3147,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             <form onSubmit={handleSaveBulkValue} className="space-y-4 text-xs">
               <div>
                 <label className="block text-zinc-300 font-semibold mb-1.5">
-                  {bulkModalAction === 'budget' ? 'Novo Orçamento Diário (R$)' : 'Novo Limite de Lance / Bid Cap (R$)'}
+                  {bulkModalAction === 'budget' ? 'Novo Orçamento Diário (R$)' : 'Novo Lance (R$)'}
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-2.5 text-zinc-500 font-mono">R$</span>
