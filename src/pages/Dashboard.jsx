@@ -102,7 +102,7 @@ export default function Dashboard() {
 
   const DEFAULT_LAYOUT = {
     // 6 KPIs em ordem harmônica
-    kpis: ['faturamento', 'gastos', 'lucro', 'pendentes', 'roi', 'margem'],
+    kpis: ['faturamento', 'gastos', 'lucro', 'pendentes', 'roas', 'margem'],
     // 5 Cards Analíticos:
     // Linha 1 (3 horizontais): products, sources, approval
     // Linha 2 (2 horizontais): funnel, payments
@@ -116,8 +116,10 @@ export default function Dashboard() {
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed.analysisCards) && parsed.analysisCards.includes('funnel') && parsed.analysisCards[0] === 'products' && parsed.analysisCards[1] === 'sources' && parsed.analysisCards[2] === 'approval') {
+            const migratedKpis = (Array.isArray(parsed.kpis) && parsed.kpis.length === 6 ? parsed.kpis : DEFAULT_LAYOUT.kpis)
+              .map(k => k === 'roi' ? 'roas' : k);
             return {
-              kpis: Array.isArray(parsed.kpis) && parsed.kpis.length === 6 ? parsed.kpis : DEFAULT_LAYOUT.kpis,
+              kpis: migratedKpis,
               analysisCards: parsed.analysisCards
             };
           }
@@ -657,12 +659,12 @@ export default function Dashboard() {
   const impostoMetaAds = impostoMetaValue.toFixed(2);
   const impostoTotal = impostoMetaValue.toFixed(2);
 
-  // Lucro, ROI e Margem considerando impostos e gastos
+  // Lucro, ROAS e Margem considerando impostos e gastos
   const totalCost = realSpend + impostoMetaValue;
   const realProfit = realApprovedRevenue - totalCost;
   const realRoas = realSpend > 0 ? (realApprovedRevenue / realSpend).toFixed(2) : '0.00';
-  const realRoi = totalCost > 0 ? ((realApprovedRevenue - totalCost) / totalCost).toFixed(2) : (realApprovedRevenue > 0 ? '0.00' : '-0.12');
-  const realMargin = realApprovedRevenue > 0 ? `${(((realApprovedRevenue - totalCost) / realApprovedRevenue) * 100).toFixed(1)}%` : 'N/A';
+  const realRoi = totalCost > 0 ? ((realApprovedRevenue - totalCost) / totalCost).toFixed(2) : '0.00';
+  const realMargin = realApprovedRevenue > 0 ? `${(((realApprovedRevenue - totalCost) / realApprovedRevenue) * 100).toFixed(1)}%` : '0.0%';
 
   // Vendas agrupadas por produto com quantidade e porcentagem
   const productsMap = useMemo(() => {
@@ -853,12 +855,19 @@ export default function Dashboard() {
       subtitle: `${realPendingSales} ${realPendingSales === 1 ? 'venda pendente' : 'vendas pendentes'}`,
       valueColor: 'text-white'
     },
+    roas: {
+      id: 'roas',
+      label: 'ROAS',
+      value: realRoas,
+      subtitle: 'Retorno sobre gasto de anúncio',
+      valueColor: Number(realRoas) >= 1 ? 'text-emerald-400' : 'text-[#EF4444]'
+    },
     roi: {
-      id: 'roi',
-      label: 'ROI',
-      value: realRoi,
-      subtitle: 'Retorno sobre investimento',
-      valueColor: Number(realRoi) < 0 ? 'text-[#EF4444]' : 'text-emerald-400'
+      id: 'roas',
+      label: 'ROAS',
+      value: realRoas,
+      subtitle: 'Retorno sobre gasto de anúncio',
+      valueColor: Number(realRoas) >= 1 ? 'text-emerald-400' : 'text-[#EF4444]'
     },
     margem: {
       id: 'margem',

@@ -43,7 +43,8 @@ const COLUMN_DEFS = [
   { id: 'cpa', label: 'CPA', defaultVisible: true },
   { id: 'revenue', label: 'Faturamento', defaultVisible: true },
   { id: 'profit', label: 'Lucro', defaultVisible: true },
-  { id: 'roi', label: 'ROI', defaultVisible: true },
+  { id: 'roas', label: 'ROAS', defaultVisible: true },
+  { id: 'margin', label: 'Margem', defaultVisible: true },
   { id: 'arpu', label: 'ARPU', defaultVisible: true },
   { id: 'cpc', label: 'CPC', defaultVisible: true },
   { id: 'ctr', label: 'CTR', defaultVisible: true },
@@ -53,8 +54,7 @@ const COLUMN_DEFS = [
   { id: 'visits', label: 'Visitas', defaultVisible: true },
   { id: 'ic', label: 'IC', defaultVisible: true },
   { id: 'costPerIc', label: 'Custo por IC', defaultVisible: true },
-  { id: 'roas', label: 'ROAS', defaultVisible: false },
-  { id: 'margin', label: 'Margem', defaultVisible: false },
+  { id: 'roi', label: 'ROI', defaultVisible: false },
   { id: 'icRate', label: '% IC', defaultVisible: false },
   { id: 'id', label: 'ID', defaultVisible: false },
   { id: 'campaignId', label: 'ID Campanha', defaultVisible: false },
@@ -175,7 +175,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         try {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            const filtered = parsed.filter(c => c.id !== 'updatedAt' && c.id !== 'preview');
+            let filtered = parsed.filter(c => c.id !== 'updatedAt' && c.id !== 'preview');
+            filtered = filtered.map(c => {
+              if (c.id === 'roi') return { ...c, visible: false };
+              if (c.id === 'roas') return { ...c, visible: true };
+              if (c.id === 'margin') return { ...c, visible: true };
+              return c;
+            });
             const existingIds = new Set(filtered.map(c => c.id));
             const defaultCols = getDefaultColsForTab(tab);
             const missing = defaultCols.filter(c => !existingIds.has(c.id));
@@ -495,8 +501,15 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         if (saved) {
           try {
             const parsed = JSON.parse(saved);
-            if (Array.isArray(parsed) && parsed.some(c => c.id === 'updatedAt' || c.id === 'preview')) {
-              const cleaned = parsed.filter(c => c.id !== 'updatedAt' && c.id !== 'preview');
+            if (Array.isArray(parsed)) {
+              const cleaned = parsed
+                .filter(c => c.id !== 'updatedAt' && c.id !== 'preview')
+                .map(c => {
+                  if (c.id === 'roi') return { ...c, visible: false };
+                  if (c.id === 'roas') return { ...c, visible: true };
+                  if (c.id === 'margin') return { ...c, visible: true };
+                  return c;
+                });
               localStorage.setItem(key, JSON.stringify(cleaned));
             }
           } catch (e) {}
@@ -1848,7 +1861,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       }
 
       case 'roas': {
-        const rVal = Number(item.roas || 0);
+        const sp = Number(item.spend || 0);
+        const rev = Number(item.revenue || 0);
+        const rVal = item.roas !== undefined && item.roas !== null ? Number(item.roas) : (sp > 0 ? (rev / sp) : 0);
         return (
           <span className={`font-extrabold font-mono ${rVal >= 1 ? 'text-emerald-400' : 'text-red-400'}`}>
             {rVal.toFixed(2)}
