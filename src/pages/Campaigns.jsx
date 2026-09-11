@@ -1826,11 +1826,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group"
             title={`Clique para alterar ${strategyLabel.toLowerCase()}`}
           >
-            <div className="font-bold text-amber-300 font-mono flex items-center gap-1.5">
+            <div className="font-bold text-white font-mono flex items-center gap-1.5">
               <span>R$ {formattedBid}</span>
-              <Edit3 className="w-2.5 h-2.5 text-zinc-500 group-hover:text-amber-300" />
+              <Edit3 className="w-2.5 h-2.5 text-zinc-500 group-hover:text-[#5C9BFF]" />
             </div>
-            <div className="text-[10px] text-amber-400/90 font-medium">
+            <div className="text-[10px] text-zinc-400 font-medium">
               {strategyLabel}
             </div>
           </div>
@@ -2263,7 +2263,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     disabled={activeSelectedSet.size === 0}
                     className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-zinc-200 hover:text-white hover:bg-[#12223D] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    <Edit3 className="w-4 h-4 text-amber-400" />
+                    <Edit3 className="w-4 h-4 text-[#5C9BFF]" />
                     <span>Alterar lance</span>
                   </button>
 
@@ -3340,7 +3340,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       autoFocus
                       value={editBidCap}
                       onChange={e => setEditBidCap(formatCurrencyInput(e.target.value))}
-                      className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-amber-300 focus:outline-none focus:border-amber-400 font-mono font-bold text-sm"
+                      className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white focus:outline-none focus:border-[#1A6DFF] font-mono font-bold text-sm"
                       placeholder="11,00"
                       required
                     />
