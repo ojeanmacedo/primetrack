@@ -45,7 +45,7 @@ const COLUMN_DEFS = [
   { id: 'profit', label: 'Lucro', defaultVisible: true },
   { id: 'roas', label: 'ROAS', defaultVisible: true },
   { id: 'margin', label: 'Margem', defaultVisible: true },
-  { id: 'arpu', label: 'ARPU', defaultVisible: true },
+  { id: 'arpu', label: 'ARPU', defaultVisible: false },
   { id: 'cpc', label: 'CPC', defaultVisible: true },
   { id: 'ctr', label: 'CTR', defaultVisible: true },
   { id: 'cpm', label: 'CPM', defaultVisible: true },
