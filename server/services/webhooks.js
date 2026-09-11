@@ -2,6 +2,17 @@
  * Parsers de Webhooks para Plataformas de Pagamento Brasileiras & Globais
  */
 
+function extractTrackingPixelId(tracking = {}, body = {}) {
+  return tracking?.pixelId || tracking?.pt_pixel_id || tracking?.pixel_id || tracking?.pt_px_id ||
+         body?.pixelId || body?.pt_pixel_id || body?.pixel_id || body?.pt_px_id ||
+         body?.data?.tracking?.pixelId || body?.data?.tracking?.pt_pixel_id || null;
+}
+
+function extractMetaPixelId(tracking = {}, body = {}) {
+  return tracking?.pt_meta_pixel || tracking?.meta_pixel || tracking?.metaPixelId ||
+         body?.pt_meta_pixel || body?.meta_pixel || body?.metaPixelId || null;
+}
+
 export function parseWebhook(gateway, body) {
   const normGateway = (gateway || '').toLowerCase();
 
@@ -61,7 +72,8 @@ function parseKiwify(body) {
       sck: tracking.sck || body.sck,
       fbp: tracking.fbp || body.fbp,
       fbc: tracking.fbc || body.fbc,
-      sessionId: tracking.sessionId || body.sessionId
+      sessionId: tracking.sessionId || body.sessionId,
+      pixelId: extractTrackingPixelId(tracking, body)
     },
     raw: body
   };
@@ -103,7 +115,8 @@ function parseHotmart(body) {
       sck: (purchase.origin && purchase.origin.sck) || body.sck,
       fbp: body.fbp,
       fbc: body.fbc,
-      sessionId: body.sessionId
+      sessionId: body.sessionId,
+      pixelId: extractTrackingPixelId(purchase.tracking || purchase.origin, body)
     },
     raw: body
   };
@@ -140,7 +153,8 @@ function parseEduzz(body) {
       sck: body.sck,
       fbp: body.fbp,
       fbc: body.fbc,
-      sessionId: body.sessionId
+      sessionId: body.sessionId,
+      pixelId: extractTrackingPixelId({}, body)
     },
     raw: body
   };
@@ -173,7 +187,8 @@ function parseCakto(body) {
       sck: body.sck || (body.metadata && body.metadata.sck),
       fbp: body.fbp,
       fbc: body.fbc,
-      sessionId: body.sessionId
+      sessionId: body.sessionId,
+      pixelId: extractTrackingPixelId(body.metadata, body)
     },
     raw: body
   };
@@ -205,7 +220,8 @@ function parseKirvano(body) {
       utm_term: body.utm_term,
       fbp: body.fbp,
       fbc: body.fbc,
-      sessionId: body.sessionId
+      sessionId: body.sessionId,
+      pixelId: extractTrackingPixelId({}, body)
     },
     raw: body
   };
@@ -237,7 +253,8 @@ function parsePerfectPay(body) {
       utm_term: body.utm_term,
       fbp: body.fbp,
       fbc: body.fbc,
-      sessionId: body.sessionId
+      sessionId: body.sessionId,
+      pixelId: extractTrackingPixelId({}, body)
     },
     raw: body
   };
@@ -269,7 +286,8 @@ function parseBraip(body) {
       utm_term: body.utm_term,
       fbp: body.fbp,
       fbc: body.fbc,
-      sessionId: body.sessionId
+      sessionId: body.sessionId,
+      pixelId: extractTrackingPixelId({}, body)
     },
     raw: body
   };
@@ -322,7 +340,9 @@ function parseMonsterPay(body) {
       sck: tracking.sck || body.sck,
       fbp: tracking.fbp || tracking._fbp || body.fbp || body._fbp,
       fbc: tracking.fbc || tracking._fbc || body.fbc || body._fbc,
-      sessionId: tracking.pt_sid || body.pt_sid || tracking.sessionId || body.sessionId
+      sessionId: tracking.pt_sid || body.pt_sid || tracking.sessionId || body.sessionId,
+      pixelId: extractTrackingPixelId(tracking, body),
+      pt_meta_pixel: extractMetaPixelId(tracking, body)
     },
     raw: body
   };
@@ -372,7 +392,8 @@ function parseGeneric(body) {
       sck: tracking.sck || body.sck,
       fbp: tracking.fbp || body.fbp,
       fbc: tracking.fbc || body.fbc,
-      sessionId: tracking.sessionId || body.sessionId
+      sessionId: tracking.sessionId || body.sessionId,
+      pixelId: extractTrackingPixelId(tracking, body)
     },
     raw: body
   };

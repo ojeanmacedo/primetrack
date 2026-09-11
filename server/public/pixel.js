@@ -117,7 +117,8 @@
       utm_term: params.get('utm_term') || '',
       fbclid: params.get('fbclid') || '',
       src: params.get('src') || params.get('utm_source') || '',
-      sck: params.get('sck') || ''
+      sck: params.get('sck') || '',
+      pt_meta_pixel: params.get('pt_meta_pixel') || params.get('meta_pixel') || params.get('pixel') || ''
     };
 
     // Se a página não tem UTMs na URL, recupera do histórico de navegação local (30 dias)
@@ -316,7 +317,7 @@
         if (isCheckoutUrl(href) || isConfiguredTarget) {
           try {
             var urlObj = new URL(href, window.location.href);
-            ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'src', 'sck'].forEach(function(key) {
+            ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'src', 'sck', 'pt_meta_pixel'].forEach(function(key) {
               if (utms[key] && !urlObj.searchParams.get(key)) {
                 urlObj.searchParams.set(key, utms[key]);
               }
@@ -330,6 +331,10 @@
             }
             if (fbc && !urlObj.searchParams.get('_fbc')) {
               urlObj.searchParams.set('_fbc', fbc);
+            }
+            var currentPx = (pixelIds && pixelIds.length > 0) ? pixelIds[0] : (initialPixels && initialPixels[0]);
+            if (currentPx && !urlObj.searchParams.get('pt_pixel_id')) {
+              urlObj.searchParams.set('pt_pixel_id', currentPx);
             }
 
             var newUrl = urlObj.toString();

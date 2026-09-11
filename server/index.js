@@ -501,34 +501,119 @@ app.all([
     try {
       const { data: supaPixels } = await supabaseAdmin.from('pixels').select('*').eq('status', 'active');
       if (Array.isArray(supaPixels) && supaPixels.length > 0) {
-        pixels = supaPixels.map(p => {
-          let extra = {};
-          try { extra = JSON.parse(p.domain); } catch(e){}
-          return {
-            id: p.id,
-            pixelId: p.id,
-            name: p.name,
-            domain: extra.domain || '*',
-            metaPixelId: extra.metaPixelId || '',
-            metaPixels: extra.metaPixels || [],
-            capiToken: extra.capiToken || extra.capiTokenRaw || '',
-            capiTokenRaw: extra.capiTokenRaw || extra.capiToken || ''
-          };
-        });
+        pixels = supaPixels
+          .filter(p => p.id && !p.id.startsWith('push_sub_') && !p.id.startsWith('push_'))
+          .map(p => {
+            let extra = {};
+            try { extra = JSON.parse(p.domain); } catch(e){}
+            return {
+              id: p.id,
+              pixelId: p.id,
+              name: p.name,
+              domain: extra.domain || '*',
+              metaPixelId: extra.metaPixelId || '',
+              metaPixels: extra.metaPixels || [],
+              capiToken: extra.capiToken || extra.capiTokenRaw || '',
+              capiTokenRaw: extra.capiTokenRaw || extra.capiToken || '',
+              icRule: extra.icRule || '',
+              icValue: extra.icValue || ''
+            };
+          });
       }
     } catch (errSup) {}
 
     if (pixels.length === 0) {
-      pixels = db.get('pixels') || [];
+      pixels = (db.get('pixels') || []).filter(p => p.id && !p.id.startsWith('push_sub_'));
     }
 
     // Identifica o pixel PrimeTrack exato atrelado à sessão do visitante, ao tracking ou ao domínio
+    let targetPixelId = attribution.pixelId || parsed.tracking?.pixelId || parsed.tracking?.pt_pixel_id;
+
+    if (!targetPixelId && (attribution.sessionId || parsed.tracking?.sessionId || attribution.fbp)) {
+      try {
+        const sid = attribution.sessionId || parsed.tracking?.sessionId;
+        if (sid) {
+          const { data: evs } = await supabaseAdmin
+            .from('events')
+            .select('pixel_id')
+            .eq('session_id', sid)
+            .not('pixel_id', 'is', null)
+            .order('created_at', { ascending: false })
+            .limit(1);
+          if (evs && evs[0]?.pixel_id && !evs[0].pixel_id.startsWith('push_')) {
+            targetPixelId = evs[0].pixel_id;
+          }
+        }
+      } catch (errRecov) {}
+    }
+
     const orderDomain = (attribution.landingUrl || '').toLowerCase();
-    const specificPixel = pixels.find(p => {
-      if (attribution.pixelId && (p.pixelId === attribution.pixelId || p.id === attribution.pixelId || p.metaPixelId === attribution.pixelId || (Array.isArray(p.metaPixels) && p.metaPixels.some(m => m.metaPixelId === attribution.pixelId)))) return true;
-      if (p.domain && p.domain !== '*' && orderDomain && orderDomain.includes(p.domain.toLowerCase())) return true;
-      return false;
-    }) || pixels.find(p => p.pixelId === attribution.pixelId || p.id === attribution.pixelId) || pixels[0];
+    const prodName = (parsed.productName || '').toLowerCase();
+    const campName = (attribution.campaign || '').toLowerCase();
+
+    let specificPixel = null;
+
+    // 1) Match direto por ID de Pixel PrimeTrack ou ID Meta Pixel
+    if (targetPixelId) {
+      specificPixel = pixels.find(p => 
+        p.pixelId === targetPixelId || 
+        p.id === targetPixelId || 
+        p.metaPixelId === targetPixelId || 
+        (Array.isArray(p.metaPixels) && p.metaPixels.some(m => m.metaPixelId === targetPixelId))
+      );
+    }
+
+    // 2) Match por domínio configurado
+    if (!specificPixel && orderDomain) {
+      specificPixel = pixels.find(p => p.domain && p.domain !== '*' && orderDomain.includes(p.domain.toLowerCase()));
+    }
+
+    // 3) Match semântico por Produto / Campanha / Palavras-chave
+    if (!specificPixel) {
+      if (prodName.includes('transformando') || prodName.includes('vida') || prodName.includes('vakinha') || campName.includes('abo') || campName.includes('vakinha')) {
+        specificPixel = pixels.find(p => 
+          (p.name && p.name.toLowerCase().includes('kaue')) || 
+          p.metaPixelId === '2460567341021217' || 
+          (p.icValue && p.icValue.includes('donation'))
+        );
+      } else if (prodName.includes('mirella') || prodName.includes('privacy') || campName.includes('mirella')) {
+        specificPixel = pixels.find(p => 
+          (p.name && (p.name.toLowerCase().includes('jofrrey') || p.name.toLowerCase().includes('mirella'))) || 
+          p.metaPixelId === '1058568486987355'
+        );
+      }
+    }
+
+    // 4) Match por nome de pixel contido no produto ou campanha
+    if (!specificPixel) {
+      specificPixel = pixels.find(p => p.name && (prodName.includes(p.name.toLowerCase()) || campName.includes(p.name.toLowerCase())));
+    }
+
+    // 5) Fallback
+    if (!specificPixel && pixels.length > 0) {
+      specificPixel = pixels[0];
+    }
+
+    // Resolução dinâmica e precisa da URL do evento
+    let eventSourceUrl = attribution.landingUrl;
+    if (!eventSourceUrl) {
+      if (specificPixel && specificPixel.domain && specificPixel.domain !== '*') {
+        eventSourceUrl = `https://${specificPixel.domain.replace(/^https?:\/\//, '')}/checkout`;
+      } else if (prodName.includes('transformando') || prodName.includes('vakinha') || (specificPixel && specificPixel.name && specificPixel.name.toLowerCase().includes('kaue'))) {
+        eventSourceUrl = 'https://vakinhahoje.icu/checkout';
+      } else if (prodName.includes('mirella') || prodName.includes('privacy')) {
+        eventSourceUrl = 'https://conteudodelas.shop/checkout';
+      } else {
+        const hostHeader = req.headers.host || 'checkout.primetrack.top';
+        eventSourceUrl = `https://${hostHeader}/checkout`;
+      }
+    }
+
+    if (specificPixel) {
+      attribution.pixelId = specificPixel.id;
+      attribution.metaPixelId = specificPixel.metaPixelId || (specificPixel.metaPixels?.[0]?.metaPixelId) || null;
+    }
+    attribution.landingUrl = eventSourceUrl;
 
     // Fallback de Access Token do Facebook conectado para garantir CAPI 100% ativo
     const fbConns = db.get('facebook_connections') || [];
@@ -556,44 +641,98 @@ app.all([
       }
     }
 
-    // Dispara CAPI para todos os Pixels Meta vinculados a esta configuração
-    for (const targetMeta of metaPixelsToSend) {
-      const pxId = targetMeta.pixelId;
-      const pxToken = targetMeta.accessToken;
+    // Roteamento inteligente de Sub-Pixels Meta (quando há múltiplos pixels para o mesmo produto em BMs diferentes)
+    let finalMetaPixelsToSend = metaPixelsToSend;
 
-      if (pxToken && pxToken.startsWith('EAA')) {
-        const singleCapi = await sendCapiEvent({
-          pixelId: pxId,
-          accessToken: pxToken,
-          eventName: 'Purchase',
-          eventId: `capi_pur_${parsed.orderCode}`,
-          eventSourceUrl: attribution.landingUrl || `https://conteudodelas.shop/checkout`,
-          userData: {
-            email: parsed.customer.email,
-            phone: parsed.customer.phone,
-            name: parsed.customer.name,
-            city: resolvedCity || 'São Paulo',
-            state: resolvedState || 'SP',
-            zip: resolvedZip || '',
-            country: resolvedCountry || 'BR',
-            external_id: parsed.customer.email || parsed.orderCode,
-            fbp: attribution.fbp,
-            fbc: attribution.fbc,
-            client_ip_address: effectiveIp,
-            client_user_agent: attribution.userAgent || req.headers['user-agent']
-          },
-          customData: {
-            currency: 'BRL',
-            value: parsed.amount,
-            content_name: parsed.productName,
-            order_id: parsed.orderCode
-          },
-          testEventCode: settings.testEventCode
-        });
-        if (singleCapi && singleCapi.success) {
-          capiResult = singleCapi;
+    if (metaPixelsToSend.length > 1) {
+      // 1. Prioridade: Parâmetro explícito na URL/tracking (ex: pt_meta_pixel=1712345646538691 ou meta_pixel)
+      const explicitMetaPx = parsed.tracking?.pt_meta_pixel || parsed.tracking?.meta_pixel || parsed.tracking?.pixel || req.query?.pt_meta_pixel || req.query?.meta_pixel;
+      if (explicitMetaPx) {
+        const found = metaPixelsToSend.filter(m => m.pixelId === explicitMetaPx);
+        if (found.length > 0) finalMetaPixelsToSend = found;
+      }
+
+      // 2. Prioridade: Roteamento contextual por Conta de Anúncios / Campanha das BMs
+      if (finalMetaPixelsToSend.length > 1) {
+        const campId = attribution.campaignId;
+        const allCampaigns = db.get('campaigns') || [];
+        const campMatch = allCampaigns.find(c => String(c.id).trim() === String(campId).trim());
+        const norm = s => String(s || '').toLowerCase().replace(/jofrrey/g, 'jeffrey').trim();
+        const normAccount = norm(campMatch?.accountName || attribution.accountName || '');
+        const normCamp = norm(campMatch?.name || attribution.campaign || '');
+        const normSource = norm(parsed.tracking?.utm_source || attribution.source || '');
+
+        // Encontra o sub-pixel exato que corresponde à BM da campanha que gerou a venda
+        let matchedSub = null;
+        for (const mp of (specificPixel.metaPixels || [])) {
+          const normName = norm(mp.name);
+          if (!normName) continue;
+
+          // Se o nome do sub-pixel (ex: 'bm2' ou 'bm jofrrey') bate com a conta de anúncios (ex: 'ca01 bm2' ou 'ca03 jeffrey')
+          if (normAccount.includes(normName) || normName.includes(normAccount) || normSource.includes(normName) || normCamp.includes(normName)) {
+            matchedSub = mp;
+            break;
+          }
+
+          // Checa palavras-chave (ex: 'bm2', 'jofrrey', 'jeffrey')
+          const tokens = normName.split(/\s+/);
+          if (tokens.some(t => t.length >= 3 && (normAccount.includes(t) || normSource.includes(t) || normCamp.includes(t)))) {
+            matchedSub = mp;
+            break;
+          }
+        }
+
+        if (matchedSub) {
+          console.log(`[Roteamento Multi-BM] Venda da campanha '${normCamp}' (${normAccount}) roteada exclusivamente para o Pixel Meta '${matchedSub.name}' (${matchedSub.metaPixelId})`);
+          finalMetaPixelsToSend = metaPixelsToSend.filter(m => m.pixelId === matchedSub.metaPixelId);
         }
       }
+    }
+
+    // 4. Dispara CAPI APENAS para pedidos APROVADOS / PAGOS (Evita compras duplicadas e eventos falsos de PIX pendente)
+    const isApproved = parsed.status === 'approved' || parsed.status === 'paid';
+
+    if (isApproved && finalMetaPixelsToSend.length > 0) {
+      for (const targetMeta of finalMetaPixelsToSend) {
+        const pxId = targetMeta.pixelId;
+        const pxToken = targetMeta.accessToken;
+
+        if (pxToken && pxToken.startsWith('EAA')) {
+          const singleCapi = await sendCapiEvent({
+            pixelId: pxId,
+            accessToken: pxToken,
+            eventName: 'Purchase',
+            eventId: `capi_pur_${parsed.orderCode}`,
+            eventSourceUrl: eventSourceUrl,
+            userData: {
+              email: parsed.customer.email,
+              phone: parsed.customer.phone,
+              name: parsed.customer.name,
+              city: resolvedCity || 'São Paulo',
+              state: resolvedState || 'SP',
+              zip: resolvedZip || '',
+              country: resolvedCountry || 'BR',
+              external_id: parsed.customer.email || parsed.orderCode,
+              fbp: attribution.fbp,
+              fbc: attribution.fbc,
+              client_ip_address: effectiveIp,
+              client_user_agent: attribution.userAgent || req.headers['user-agent']
+            },
+            customData: {
+              currency: 'BRL',
+              value: parsed.amount,
+              content_name: parsed.productName,
+              order_id: parsed.orderCode
+            },
+            testEventCode: settings.testEventCode
+          });
+          if (singleCapi && singleCapi.success) {
+            capiResult = singleCapi;
+          }
+        }
+      }
+    } else if (!isApproved) {
+      console.log(`[CAPI Ignorado] Pedido ${parsed.orderCode} com status '${parsed.status}'. Purchase só é enviado após aprovação do pagamento.`);
     }
 
     // 4. Salva a venda atribuída
@@ -1076,6 +1215,166 @@ export function isMatchCampaign(campaignNameOrId, camp, orderOrEvent = null, all
   return false;
 }
 
+// Função de máxima precisão para identificação e atribuição estrita de conjuntos de anúncios (anti-duplicação em cópias e ABO)
+export function isMatchAdset(orderOrEvent, as, camp) {
+  if (!orderOrEvent || !as) return false;
+  const asId = String(as.id || as.adsetId || '').trim();
+  const asName = (as.name || '').toLowerCase().trim();
+
+  // 1. Prioridade Absoluta: ID explícito do conjunto vindo do tracking
+  // (UTM {{adset.id}}, Pixel ou Webhook)
+  let explicitAdsetId = String(
+    orderOrEvent?.attribution?.adsetId || 
+    orderOrEvent?.adsetId || 
+    orderOrEvent?.utms?.adsetId || 
+    ''
+  ).trim();
+
+  if (!explicitAdsetId && orderOrEvent?.attribution?.adset) {
+    const parsed = extractEntityNameAndId(orderOrEvent.attribution.adset);
+    if (parsed.id) explicitAdsetId = String(parsed.id).trim();
+  }
+
+  if (explicitAdsetId) {
+    // Se o pedido possui ID explícito do conjunto, DEVE corresponder ESTRITAMENTE ao ID deste conjunto!
+    // NUNCA pode vazar para outros conjuntos por igualdade de nome!
+    return explicitAdsetId === asId;
+  }
+
+  // 2. Resolução através do Anúncio (Ad ID -> Conjunto Pai)
+  // Todo anúncio no Meta pertence a um conjunto específico (ad.adsetId)
+  let explicitAdId = String(
+    orderOrEvent?.attribution?.adId || 
+    orderOrEvent?.adId || 
+    orderOrEvent?.utms?.adId || 
+    ''
+  ).trim();
+
+  if (!explicitAdId && orderOrEvent?.attribution?.ad) {
+    const parsed = extractEntityNameAndId(orderOrEvent.attribution.ad);
+    if (parsed.id) explicitAdId = String(parsed.id).trim();
+  }
+
+  if (explicitAdId && Array.isArray(camp.ads) && camp.ads.length > 0) {
+    const matchedAd = camp.ads.find(a => String(a.id || a.adId).trim() === explicitAdId);
+    if (matchedAd && (matchedAd.adsetId || matchedAd.adset_id)) {
+      const parentAdsetId = String(matchedAd.adsetId || matchedAd.adset_id).trim();
+      return parentAdsetId === asId;
+    }
+  }
+
+  // 3. Fallback: Match por Nome do Conjunto (Apenas se NÃO houver ID do conjunto nem do anúncio)
+  const orderAdsetRaw = orderOrEvent?.attribution?.adset || orderOrEvent?.adset || orderOrEvent?.utms?.adset || '';
+  const parsedOrderAdset = extractEntityNameAndId(orderAdsetRaw);
+  const orderAdsetName = (parsedOrderAdset.name || orderAdsetRaw || '').toLowerCase().trim();
+
+  if (!orderAdsetName || orderAdsetName === 'conjunto_padrao' || orderAdsetName === 'padrao') {
+    return false;
+  }
+
+  if (orderAdsetName === asName) {
+    // Desambiguação caso existam múltiplos conjuntos com o mesmo nome na campanha (ex: cópias)
+    const matchingCandidates = (camp.adsets || []).filter(a => (a.name || '').toLowerCase().trim() === asName);
+    if (matchingCandidates.length === 1) {
+      return true;
+    }
+
+    // Se múltiplos conjuntos têm o mesmo nome, atribui apenas àquele que teve gasto/cliques reais
+    const withTraffic = matchingCandidates.filter(a => Number(a.spend || 0) > 0 || Number(a.clicks || 0) > 0);
+    if (withTraffic.length === 1) {
+      return withTraffic[0].id === as.id;
+    }
+
+    // Se não há como desambiguar com 100% de certeza, NUNCA duplica a venda para todos os conjuntos!
+    // Para evitar fabricar vendas falsas, atribui apenas ao primeiro conjunto candidato
+    return matchingCandidates[0].id === as.id;
+  }
+
+  return false;
+}
+
+// Função de máxima precisão para identificação e atribuição estrita de anúncios/criativos (anti-duplicação)
+export function isMatchAd(orderOrEvent, ad, camp) {
+  if (!orderOrEvent || !ad) return false;
+  const adId = String(ad.id || ad.adId || '').trim();
+  const adName = (ad.name || '').toLowerCase().trim();
+  const adParentAdsetId = String(ad.adsetId || ad.adset_id || '').trim();
+
+  // 1. Prioridade Absoluta: ID explícito do anúncio vindo do tracking
+  // (UTM {{ad.id}}, Pixel ou Webhook)
+  let explicitAdId = String(
+    orderOrEvent?.attribution?.adId || 
+    orderOrEvent?.adId || 
+    orderOrEvent?.utms?.adId || 
+    ''
+  ).trim();
+
+  if (!explicitAdId && orderOrEvent?.attribution?.ad) {
+    const parsed = extractEntityNameAndId(orderOrEvent.attribution.ad);
+    if (parsed.id) explicitAdId = String(parsed.id).trim();
+  }
+
+  if (explicitAdId) {
+    // Se o pedido possui ID explícito do anúncio, DEVE corresponder ESTRITAMENTE ao ID deste anúncio!
+    // NUNCA pode vazar para outros anúncios por igualdade de nome!
+    return explicitAdId === adId;
+  }
+
+  // 2. Validação do Conjunto Pai:
+  // Se o pedido especificou um conjunto (por ID), o anúncio DEVE pertencer a esse conjunto
+  let explicitAdsetId = String(
+    orderOrEvent?.attribution?.adsetId || 
+    orderOrEvent?.adsetId || 
+    orderOrEvent?.utms?.adsetId || 
+    ''
+  ).trim();
+
+  if (!explicitAdsetId && orderOrEvent?.attribution?.adset) {
+    const parsed = extractEntityNameAndId(orderOrEvent.attribution.adset);
+    if (parsed.id) explicitAdsetId = String(parsed.id).trim();
+  }
+
+  if (explicitAdsetId && adParentAdsetId && explicitAdsetId !== adParentAdsetId) {
+    return false;
+  }
+
+  // 3. Fallback: Match por Nome do Anúncio (Apenas se NÃO houver ID de anúncio)
+  const orderAdRaw = orderOrEvent?.attribution?.ad || orderOrEvent?.ad || orderOrEvent?.utms?.ad || '';
+  const parsedOrderAd = extractEntityNameAndId(orderAdRaw);
+  const orderAdName = (parsedOrderAd.name || orderAdRaw || '').toLowerCase().trim();
+
+  if (!orderAdName || orderAdName === 'criativo_padrao' || orderAdName === 'padrao') {
+    return false;
+  }
+
+  if (orderAdName === adName) {
+    // Desambiguação caso múltiplos anúncios tenham o mesmo nome
+    const matchingCandidates = (camp.ads || []).filter(a => (a.name || '').toLowerCase().trim() === adName);
+    if (matchingCandidates.length === 1) {
+      return true;
+    }
+
+    // Se o pedido especificou o conjunto, filtra anúncios daquele conjunto
+    if (explicitAdsetId) {
+      const inAdset = matchingCandidates.filter(a => String(a.adsetId || a.adset_id).trim() === explicitAdsetId);
+      if (inAdset.length === 1) {
+        return inAdset[0].id === ad.id;
+      }
+    }
+
+    // Atribui àquele que teve gasto/cliques reais
+    const withTraffic = matchingCandidates.filter(a => Number(a.spend || 0) > 0 || Number(a.clicks || 0) > 0);
+    if (withTraffic.length === 1) {
+      return withTraffic[0].id === ad.id;
+    }
+
+    // Se não há como desambiguar com 100% de certeza, atribui apenas ao primeiro candidato para evitar duplicações
+    return matchingCandidates[0].id === ad.id;
+  }
+
+  return false;
+}
+
 export function enrichCampaignsWithTracking({
   campaigns = [],
   orders = [],
@@ -1120,38 +1419,53 @@ export function enrichCampaignsWithTracking({
     const totalICs = Math.max(Number(c.initCheckouts || 0), matchingPixelICs.length);
     const costPerIc = totalICs > 0 ? (spendNum / totalICs).toFixed(2) : '0.00';
 
+    const nameUpper = (c.name || '').toUpperCase();
+    const explicitAboInName = nameUpper.includes('ABO');
+    const isCampAbo = Boolean(
+      explicitAboInName || 
+      (c.isAbo === true && !c.isCbo && !nameUpper.includes('CBO')) ||
+      (c.budgetType?.includes('Conjunto') && !c.isCbo) ||
+      (c.budgetType === 'Nível de Conjunto (ABO)' && !c.isCbo)
+    );
+    const isCampCbo = !isCampAbo;
+
     const enrichedAdsets = (c.adsets || []).map(as => {
       const asSpend = Number(as.spend || 0);
-      const share = spendNum > 0 ? (asSpend / spendNum) : (1 / (c.adsets.length || 1));
       
-      const directOrders = matchingOrders.filter(o => {
-        const oAsId = o.attribution?.adsetId || o.adsetId;
-        if (oAsId && String(oAsId).trim() === String(as.id || as.adsetId).trim()) return true;
-        const oAs = (o.attribution?.adset || o.adset || '').toLowerCase().trim();
-        return oAs && oAs === (as.name || '').toLowerCase().trim();
-      });
-      const directPending = matchingPendingOrders.filter(o => {
-        const oAsId = o.attribution?.adsetId || o.adsetId;
-        if (oAsId && String(oAsId).trim() === String(as.id || as.adsetId).trim()) return true;
-        const oAs = (o.attribution?.adset || o.adset || '').toLowerCase().trim();
-        return oAs && oAs === (as.name || '').toLowerCase().trim();
-      });
+      const directOrders = matchingOrders.filter(o => isMatchAdset(o, as, c));
+      const directPending = matchingPendingOrders.filter(o => isMatchAdset(o, as, c));
+      const directPixelPurchases = matchingPixelEvents.filter(e => isMatchAdset(e, as, c));
+      const directPixelICs = matchingPixelICs.filter(e => isMatchAdset(e, as, c));
 
-      const asSales = directOrders.length > 0 ? directOrders.length : ((c.adsets.length === 1) ? totalSales : Math.round(totalSales * share));
-      const asPending = directPending.length > 0 ? directPending.length : ((c.adsets.length === 1) ? matchingPendingOrders.length : Math.round(matchingPendingOrders.length * share));
-      const asRevenue = directOrders.length > 0 ? directOrders.reduce((sum, o) => sum + Number(o.amount || 0), 0) : ((c.adsets.length === 1) ? totalRevenue : (totalRevenue * share));
+      let asSales = 0;
+      let asPending = 0;
+      let asRevenue = 0;
+
+      if (c.adsets.length === 1) {
+        // Se a campanha possui apenas 1 conjunto, todos os dados da campanha pertencem a ele
+        asSales = totalSales;
+        asPending = matchingPendingOrders.length;
+        asRevenue = totalRevenue;
+      } else {
+        // Múltiplos conjuntos (especialmente ABO, onde cada conjunto é independente):
+        // Vendas e receita pertencem ESTRITAMENTE ao conjunto onde o pedido foi rastreado!
+        const webhookAsSales = directOrders.length;
+        const pixelAsSales = directPixelPurchases.length;
+        asSales = Math.max(webhookAsSales, pixelAsSales);
+        asPending = directPending.length;
+
+        const webhookAsRev = directOrders.reduce((sum, o) => sum + Number(o.amount || 0), 0);
+        const pixelAsRev = directPixelPurchases.reduce((sum, e) => sum + Number(e.amount || e.customData?.value || 0), 0);
+        asRevenue = Math.max(webhookAsRev, pixelAsRev);
+      }
+
       const asProfit = asRevenue - asSpend;
       const asRoas = asSpend > 0 ? (asRevenue / asSpend).toFixed(2) : '0.00';
       const asCpa = asSales > 0 ? (asSpend / asSales).toFixed(2) : '0.00';
       const asArpu = asSales > 0 ? (asRevenue / asSales).toFixed(2) : '0.00';
-      const nameUpper = (c.name || '').toUpperCase();
-      const explicitAboInName = nameUpper.includes('ABO');
-      const isCampAbo = Boolean(
-        explicitAboInName || 
-        (c.isAbo === true && !c.isCbo && !nameUpper.includes('CBO')) ||
-        (c.budgetType?.includes('Conjunto') && !c.isCbo)
-      );
-      const isCampCbo = !isCampAbo;
+
+      const asICs = c.adsets.length === 1 ? totalICs : Math.max(Number(as.ic || as.initCheckouts || 0), directPixelICs.length);
+      const asCostPerIc = asICs > 0 ? (asSpend / asICs).toFixed(2) : '0.00';
 
       const campBid = (isCampCbo && c.bidCap && Number(c.bidCap) > 0) ? String(c.bidCap) : null;
       const asBid = isCampCbo ? ((as.bidCap && Number(as.bidCap) > 0) ? String(as.bidCap) : campBid) : null;
@@ -1165,36 +1479,45 @@ export function enrichCampaignsWithTracking({
         isAbo: isCampAbo,
         bidStrategy: asBidStrategy,
         bidCap: asBidCap,
+        spend: as.spend || '0.00',
         sales: asSales,
         pendingSales: asPending,
         revenue: asRevenue.toFixed(2),
         profit: asProfit.toFixed(2),
         roas: asRoas,
         cpa: asCpa,
-        arpu: asArpu
+        arpu: asArpu,
+        ic: asICs,
+        costPerIc: asCostPerIc
       };
     });
 
     const enrichedAds = (c.ads || []).map(ad => {
       const adSpend = Number(ad.spend || 0);
-      const share = spendNum > 0 ? (adSpend / spendNum) : 0;
-      
-      const directOrders = matchingOrders.filter(o => {
-        const oAdId = o.attribution?.adId || o.adId;
-        if (oAdId && String(oAdId).trim() === String(ad.id || ad.adId).trim()) return true;
-        const oAd = (o.attribution?.ad || o.ad || '').toLowerCase().trim();
-        return oAd && oAd === (ad.name || '').toLowerCase().trim();
-      });
-      const directPending = matchingPendingOrders.filter(o => {
-        const oAdId = o.attribution?.adId || o.adId;
-        if (oAdId && String(oAdId).trim() === String(ad.id || ad.adId).trim()) return true;
-        const oAd = (o.attribution?.ad || o.ad || '').toLowerCase().trim();
-        return oAd && oAd === (ad.name || '').toLowerCase().trim();
-      });
 
-      const adSales = directOrders.length > 0 ? directOrders.length : Math.round(totalSales * share);
-      const adPending = directPending.length > 0 ? directPending.length : (directOrders.length > 0 ? 0 : Math.round(matchingPendingOrders.length * share));
-      const adRevenue = directOrders.length > 0 ? directOrders.reduce((sum, o) => sum + Number(o.amount || 0), 0) : (totalRevenue * share);
+      const directOrders = matchingOrders.filter(o => isMatchAd(o, ad, c));
+      const directPending = matchingPendingOrders.filter(o => isMatchAd(o, ad, c));
+      const directPixelPurchases = matchingPixelEvents.filter(e => isMatchAd(e, ad, c));
+
+      let adSales = 0;
+      let adPending = 0;
+      let adRevenue = 0;
+
+      if (c.ads.length === 1) {
+        adSales = totalSales;
+        adPending = matchingPendingOrders.length;
+        adRevenue = totalRevenue;
+      } else {
+        const webhookAdSales = directOrders.length;
+        const pixelAdSales = directPixelPurchases.length;
+        adSales = Math.max(webhookAdSales, pixelAdSales);
+        adPending = directPending.length;
+
+        const webhookAdRev = directOrders.reduce((sum, o) => sum + Number(o.amount || 0), 0);
+        const pixelAdRev = directPixelPurchases.reduce((sum, e) => sum + Number(e.amount || e.customData?.value || 0), 0);
+        adRevenue = Math.max(webhookAdRev, pixelAdRev);
+      }
+
       const adProfit = adRevenue - adSpend;
       const adRoas = adSpend > 0 ? (adRevenue / adSpend).toFixed(2) : '0.00';
       const adCpa = adSales > 0 ? (adSpend / adSales).toFixed(2) : '0.00';
@@ -1202,6 +1525,7 @@ export function enrichCampaignsWithTracking({
 
       return {
         ...ad,
+        spend: ad.spend || '0.00',
         sales: adSales,
         pendingSales: adPending,
         revenue: adRevenue.toFixed(2),
@@ -1211,15 +1535,6 @@ export function enrichCampaignsWithTracking({
         arpu: adArpu
       };
     });
-
-    const nameUpper = (c.name || '').toUpperCase();
-    const explicitAboInName = nameUpper.includes('ABO');
-    const isCampAbo = Boolean(
-      explicitAboInName || 
-      (c.isAbo === true && !c.isCbo && !nameUpper.includes('CBO')) ||
-      (c.budgetType === 'Nível de Conjunto (ABO)' && !c.isCbo)
-    );
-    const isCampCbo = !isCampAbo;
 
     return {
       ...c,
