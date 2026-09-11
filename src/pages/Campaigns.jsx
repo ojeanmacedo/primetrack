@@ -22,6 +22,9 @@ import {
   ShieldAlert,
   Sliders,
   ArrowRight,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
   GripVertical,
   Palette,
   Layers,
@@ -1491,14 +1494,167 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   // Itens da sub-aba ativa
   const currentItems = subTab === 'Campanhas' ? filteredCampaigns : (subTab === 'Conjuntos' ? adsetsList : adsList);
 
+  // Ordenação de colunas (estilo Facebook Ads)
+  const [sortKey, setSortKey] = useState(null); // 'status' | 'name' | col.id
+  const [sortDirection, setSortDirection] = useState(null); // 'asc' | 'desc' | null
+
+  const handleToggleSort = (key) => {
+    setCurrentPage(1);
+    if (sortKey !== key) {
+      // Primeiro clique:
+      // Se for 'name', primeiro clique ordena A-Z (asc)
+      // Se for 'status' ou métricas numéricas, primeiro clique coloca maior / ativas no topo (desc)
+      setSortKey(key);
+      setSortDirection(key === 'name' ? 'asc' : 'desc');
+    } else {
+      if (key === 'name') {
+        if (sortDirection === 'asc') {
+          setSortDirection('desc');
+        } else {
+          setSortKey(null);
+          setSortDirection(null);
+        }
+      } else {
+        if (sortDirection === 'desc') {
+          setSortDirection('asc');
+        } else {
+          setSortKey(null);
+          setSortDirection(null);
+        }
+      }
+    }
+  };
+
+  const getItemSortValue = (item, key) => {
+    if (!item) return 0;
+    if (key === 'status') {
+      return item.status ? 1 : 0;
+    }
+    if (key === 'name') {
+      return String(item.name || '').toLowerCase();
+    }
+    switch (key) {
+      case 'spend':
+        return Number(item.spend || 0);
+      case 'sales':
+        return Number(item.sales || 0);
+      case 'pendingSales':
+        return Number(item.pendingSales || 0);
+      case 'revenue':
+        return Number(item.revenue || 0);
+      case 'profit':
+        return Number(item.profit !== undefined ? item.profit : (Number(item.revenue || 0) - Number(item.spend || 0)));
+      case 'roas': {
+        const sp = Number(item.spend || 0);
+        const rev = Number(item.revenue || 0);
+        return item.roas !== undefined && item.roas !== null ? Number(item.roas) : (sp > 0 ? rev / sp : 0);
+      }
+      case 'roi': {
+        const sp = Number(item.spend || 0);
+        const prof = Number(item.profit !== undefined ? item.profit : (Number(item.revenue || 0) - sp));
+        return sp > 0 ? prof / sp : 0;
+      }
+      case 'margin': {
+        const rev = Number(item.revenue || 0);
+        const prof = Number(item.profit !== undefined ? item.profit : (rev - Number(item.spend || 0)));
+        return rev > 0 ? (prof / rev) * 100 : 0;
+      }
+      case 'cpa': {
+        const sp = Number(item.spend || 0);
+        const sl = Number(item.sales || 0);
+        return item.cpa !== undefined && item.cpa !== null ? Number(item.cpa) : (sl > 0 ? sp / sl : 0);
+      }
+      case 'budget':
+        return Number(item.budget || 0);
+      case 'bid':
+        return Number(item.bidCap || 0);
+      case 'arpu': {
+        const rev = Number(item.revenue || 0);
+        const sl = Number(item.sales || 0);
+        return item.arpu !== undefined && item.arpu !== null ? Number(item.arpu) : (sl > 0 ? rev / sl : 0);
+      }
+      case 'cpc': {
+        const sp = Number(item.spend || 0);
+        const clk = Number(item.clicks || 0);
+        return item.cpc !== undefined && item.cpc !== null ? Number(item.cpc) : (clk > 0 ? sp / clk : 0);
+      }
+      case 'ctr':
+        return Number(String(item.ctr || '0').replace('%', ''));
+      case 'cpm': {
+        const sp = Number(item.spend || 0);
+        const imp = Number(item.impressions || 0);
+        return item.cpm !== undefined && item.cpm !== null ? Number(item.cpm) : (imp > 0 ? (sp / imp) * 1000 : 0);
+      }
+      case 'impressions':
+        return Number(item.impressions || 0);
+      case 'clicks':
+        return Number(item.clicks || 0);
+      case 'visits':
+        return Number(item.visits || Math.round(Number(item.clicks || 0) * 0.75));
+      case 'ic':
+        return Number(item.initCheckouts || item.ic || 0);
+      case 'costPerIc': {
+        const sp = Number(item.spend || 0);
+        const icVal = Number(item.initCheckouts || item.ic || 0);
+        return item.costPerIc !== undefined && item.costPerIc !== null ? Number(item.costPerIc) : (icVal > 0 ? sp / icVal : 0);
+      }
+      case 'icRate': {
+        const clk = Number(item.clicks || 0);
+        const icVal = Number(item.initCheckouts || item.ic || 0);
+        return clk > 0 ? (icVal / clk) * 100 : 0;
+      }
+      default:
+        return item[key] !== undefined && item[key] !== null ? item[key] : '';
+    }
+  };
+
+  const sortedItems = React.useMemo(() => {
+    if (!sortKey || !sortDirection) return currentItems;
+
+    return [...currentItems].sort((a, b) => {
+      const valA = getItemSortValue(a, sortKey);
+      const valB = getItemSortValue(b, sortKey);
+
+      if (typeof valA === 'string' && typeof valB === 'string') {
+        const cmp = valA.localeCompare(valB, 'pt-BR', { numeric: true, sensitivity: 'base' });
+        return sortDirection === 'asc' ? cmp : -cmp;
+      }
+
+      const numA = Number(valA);
+      const numB = Number(valB);
+      const cleanNumA = isNaN(numA) ? 0 : numA;
+      const cleanNumB = isNaN(numB) ? 0 : numB;
+
+      if (cleanNumA === cleanNumB) return 0;
+      return sortDirection === 'asc' ? cleanNumA - cleanNumB : cleanNumB - cleanNumA;
+    });
+  }, [currentItems, sortKey, sortDirection]);
+
   // Paginação inteligente para manter o puxador de métricas sempre no campo de visão
-  const totalPages = Math.max(1, Math.ceil(currentItems.length / rowsPerPage));
+  const totalPages = Math.max(1, Math.ceil(sortedItems.length / rowsPerPage));
   const paginatedItems = React.useMemo(() => {
     const start = (currentPage - 1) * rowsPerPage;
-    return currentItems.slice(start, start + rowsPerPage);
-  }, [currentItems, currentPage, rowsPerPage]);
+    return sortedItems.slice(start, start + rowsPerPage);
+  }, [sortedItems, currentPage, rowsPerPage]);
 
-  // Reseta página caso ultrapasse o total ao filtrar
+  const renderSortIcon = (key) => {
+    const isSorted = sortKey === key;
+    if (!isSorted) {
+      return (
+        <ArrowUpDown className="w-2.5 h-2.5 text-zinc-500/60 group-hover:text-zinc-300 transition-colors shrink-0 ml-1" />
+      );
+    }
+    if (sortDirection === 'desc') {
+      return (
+        <ArrowDown className="w-3 h-3 text-[#5C9BFF] transition-transform shrink-0 ml-1" />
+      );
+    }
+    return (
+      <ArrowUp className="w-3 h-3 text-[#5C9BFF] transition-transform shrink-0 ml-1" />
+    );
+  };
+
+  // Reseta página caso ultrapasse o total ao filtrar ou ordenar
   React.useEffect(() => {
     if (currentPage > totalPages) {
       setCurrentPage(1);
@@ -1555,42 +1711,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       return true;
     });
   }, [columnsConfig, subTab]);
-
-  // Drag & drop direto no cabeçalho da tabela
-  const [draggedTableColId, setDraggedTableColId] = useState(null);
-
-  const handleTableHeaderDragStart = (e, colId) => {
-    setDraggedTableColId(colId);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleTableHeaderDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleTableHeaderDrop = (e, targetColId) => {
-    e.preventDefault();
-    if (!draggedTableColId || draggedTableColId === targetColId) return;
-
-    setColumnsConfigByTab(prevByTab => {
-      const currentConfig = prevByTab[subTab] || prevByTab['Campanhas'];
-      const fromIndex = currentConfig.findIndex(c => c.id === draggedTableColId);
-      const toIndex = currentConfig.findIndex(c => c.id === targetColId);
-      if (fromIndex === -1 || toIndex === -1) return prevByTab;
-      const newConfig = [...currentConfig];
-      const [moved] = newConfig.splice(fromIndex, 1);
-      newConfig.splice(toIndex, 0, moved);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(`primetrack_columns_v2_${subTab}`, JSON.stringify(newConfig));
-      }
-      return {
-        ...prevByTab,
-        [subTab]: newConfig
-      };
-    });
-    setDraggedTableColId(null);
-  };
 
   // Controles do Modal de Personalização de Colunas
   const [modalDraggedIndex, setModalDraggedIndex] = useState(null);
@@ -1670,9 +1790,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   // Exportar para CSV
   const handleExportCSV = () => {
-    if (!currentItems || currentItems.length === 0) return;
+    const itemsToExport = sortedItems && sortedItems.length > 0 ? sortedItems : currentItems;
+    if (!itemsToExport || itemsToExport.length === 0) return;
     const headers = ['NOME', ...activeVisibleColumns.map(c => COLUMN_DEFS.find(d => d.id === c.id)?.label || c.id)];
-    const rows = currentItems.map(item => {
+    const rows = itemsToExport.map(item => {
       return [
         `"${item.name || ''}"`,
         ...activeVisibleColumns.map(col => {
@@ -1693,32 +1814,32 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   const getColumnHeaderLabel = (id) => {
     const map = {
-      budget: 'ORÇAMENTO :',
-      bid: 'LANCE :',
-      spend: 'GASTO :',
-      sales: 'VENDAS :',
-      pendingSales: 'VENDAS PEND. :',
-      revenue: 'FATURAMENTO :',
-      profit: 'LUCRO :',
-      roas: 'ROAS :',
-      margin: 'MARGEM :',
-      cpa: 'CPA :',
-      arpu: 'ARPU :',
-      cpc: 'CPC :',
-      ctr: 'CTR :',
-      cpm: 'CPM :',
-      impressions: 'IMPRESSÕES :',
-      clicks: 'CLIQUES :',
-      visits: 'VISITAS :',
-      ic: 'IC :',
-      costPerIc: 'CUSTO/IC :',
-      icRate: '% IC :',
-      id: 'ID :',
-      campaignId: 'ID CAMPANHA :',
-      adsetId: 'ID CONJUNTO :',
-      adId: 'ID ANÚNCIO :'
+      budget: 'ORÇAMENTO',
+      bid: 'LANCE',
+      spend: 'GASTO',
+      sales: 'VENDAS',
+      pendingSales: 'VENDAS PEND.',
+      revenue: 'FATURAMENTO',
+      profit: 'LUCRO',
+      roas: 'ROAS',
+      margin: 'MARGEM',
+      cpa: 'CPA',
+      arpu: 'ARPU',
+      cpc: 'CPC',
+      ctr: 'CTR',
+      cpm: 'CPM',
+      impressions: 'IMPRESSÕES',
+      clicks: 'CLIQUES',
+      visits: 'VISITAS',
+      ic: 'IC',
+      costPerIc: 'CUSTO/IC',
+      icRate: '% IC',
+      id: 'ID',
+      campaignId: 'ID CAMPANHA',
+      adsetId: 'ID CONJUNTO',
+      adId: 'ID ANÚNCIO'
     };
-    return map[id] || `${id.toUpperCase()} :`;
+    return map[id] || id.toUpperCase();
   };
 
   const renderCell = (colId, item) => {
@@ -2468,32 +2589,61 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       />
                     </th>
 
-                    {/* Status fixo na lateral esquerda */}
-                    <th className="py-3 pl-4 pr-5 bg-[#0A1426] sticky left-12 z-40">STATUS</th>
-
-                    {/* Nome (Campanha / Conjunto / Anúncio) fixo na lateral esquerda */}
-                    <th className="py-3 px-4 bg-[#0A1426] sticky left-[122px] z-40 border-r border-[#13233E] min-w-[220px] max-w-[320px] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
-                      {subTab === 'Campanhas' ? 'CAMPANHA' : (subTab === 'Conjuntos' ? 'CONJUNTO' : 'ANÚNCIO')}
+                    {/* Status fixo na lateral esquerda com ordenação */}
+                    <th 
+                      onClick={() => handleToggleSort('status')}
+                      className={`py-3 pl-4 pr-5 bg-[#0A1426] sticky left-12 z-40 cursor-pointer select-none transition-colors group ${
+                        sortKey === 'status' ? 'text-[#5C9BFF]' : 'hover:text-white'
+                      }`}
+                      title={sortKey === 'status' 
+                        ? (sortDirection === 'desc' ? 'Ordenado: Ativas no topo (clique para Inativas no topo)' : 'Ordenado: Inativas no topo (clique para restaurar)') 
+                        : 'Clique para ordenar por status (ativas no topo)'}
+                    >
+                      <div className="flex items-center gap-1">
+                        <span className={sortKey === 'status' ? 'font-bold' : ''}>STATUS</span>
+                        {renderSortIcon('status')}
+                      </div>
                     </th>
 
-                    {/* Colunas maleáveis e ordenáveis com mouse */}
-                    {activeVisibleColumns.map(col => (
-                      <th
-                        key={col.id}
-                        draggable={true}
-                        onDragStart={(e) => handleTableHeaderDragStart(e, col.id)}
-                        onDragOver={handleTableHeaderDragOver}
-                        onDrop={(e) => handleTableHeaderDrop(e, col.id)}
-                        title="Arraste com o mouse para reorganizar esta coluna"
-                        className={`py-3 px-4 select-none cursor-move hover:text-white hover:bg-white/[0.02] transition-colors ${
-                          draggedTableColId === col.id ? 'opacity-40 bg-[#12223D]' : ''
-                        }`}
-                      >
-                        <div className="flex items-center gap-1">
-                          <span>{getColumnHeaderLabel(col.id)}</span>
-                        </div>
-                      </th>
-                    ))}
+                    {/* Nome (Campanha / Conjunto / Anúncio) fixo na lateral esquerda com ordenação */}
+                    <th 
+                      onClick={() => handleToggleSort('name')}
+                      className={`py-3 px-4 bg-[#0A1426] sticky left-[122px] z-40 border-r border-[#13233E] min-w-[220px] max-w-[320px] shadow-[4px_0_12px_rgba(0,0,0,0.5)] cursor-pointer select-none transition-colors group ${
+                        sortKey === 'name' ? 'text-[#5C9BFF]' : 'hover:text-white'
+                      }`}
+                      title={sortKey === 'name' 
+                        ? (sortDirection === 'asc' ? 'Ordenado: A-Z (clique para Z-A)' : 'Ordenado: Z-A (clique para restaurar)') 
+                        : 'Clique para ordenar alfabeticamente'}
+                    >
+                      <div className="flex items-center gap-1">
+                        <span className={sortKey === 'name' ? 'font-bold' : ''}>
+                          {subTab === 'Campanhas' ? 'CAMPANHA' : (subTab === 'Conjuntos' ? 'CONJUNTO' : 'ANÚNCIO')}
+                        </span>
+                        {renderSortIcon('name')}
+                      </div>
+                    </th>
+
+                    {/* Colunas com ordenação estilo Facebook Ads (reordenação exclusiva no modal de Colunas) */}
+                    {activeVisibleColumns.map(col => {
+                      const isSorted = sortKey === col.id;
+                      return (
+                        <th
+                          key={col.id}
+                          onClick={() => handleToggleSort(col.id)}
+                          title={isSorted 
+                            ? (sortDirection === 'desc' ? 'Maior para menor (clique para menor para maior)' : 'Menor para maior (clique para restaurar)') 
+                            : `Clique para ordenar por ${getColumnHeaderLabel(col.id)}`}
+                          className={`py-3 px-4 select-none cursor-pointer transition-colors group ${
+                            isSorted ? 'text-[#5C9BFF] bg-[#12223D]/60' : 'hover:text-white hover:bg-white/[0.02]'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1">
+                            <span className={isSorted ? 'font-bold' : ''}>{getColumnHeaderLabel(col.id)}</span>
+                            {renderSortIcon(col.id)}
+                          </div>
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
 
