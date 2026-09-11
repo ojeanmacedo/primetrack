@@ -718,7 +718,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       return isNaN(Number(clean)) ? '0.00' : clean;
     };
     const normalizedBudget = cleanNumber(editBudget);
-    const normalizedBidCap = editStrategy === 'LOWEST_COST_WITHOUT_CAP' ? null : cleanNumber(editBidCap);
+    const normalizedBidCap = cleanNumber(editBidCap);
 
     // Salva sobrescrita no cache local
     if (editingField === 'name') {
@@ -3345,45 +3345,26 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
               {editingField === 'bid' && (
                 <div>
-                  <div className="mb-3">
-                    <label className="block text-zinc-400 text-[11px] mb-1 font-semibold">
-                      Estratégia de Lance
-                    </label>
-                    <select
-                      value={editStrategy}
-                      onChange={e => setEditStrategy(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white focus:outline-none focus:border-[#1A6DFF] font-sans text-xs cursor-pointer"
-                    >
-                      <option value="LOWEST_COST_WITH_BID_CAP">Limite de Lance (Bid Cap)</option>
-                      <option value="COST_CAP">Meta de Custo (Cost Cap)</option>
-                      <option value="LOWEST_COST_WITHOUT_CAP">Menor Custo (Usa orçamento, sem limite)</option>
-                    </select>
+                  <label className="block text-zinc-300 font-semibold mb-1.5">
+                    {editStrategy === 'COST_CAP' ? 'Meta de Custo (R$)' : 'Limite de Lance (R$)'}
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-zinc-500 font-mono">R$</span>
+                    <input 
+                      type="text"
+                      autoFocus
+                      value={editBidCap}
+                      onChange={e => setEditBidCap(formatCurrencyInput(e.target.value))}
+                      className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-amber-300 focus:outline-none focus:border-amber-400 font-mono font-bold text-sm"
+                      placeholder="11,00"
+                      required
+                    />
                   </div>
-
-                  {editStrategy !== 'LOWEST_COST_WITHOUT_CAP' && (
-                    <div>
-                      <label className="block text-zinc-300 font-semibold mb-1.5">
-                        {editStrategy === 'COST_CAP' ? 'Meta de Custo / Cost Cap (R$)' : 'Limite de Lance / Bid Cap (R$)'}
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-2.5 text-zinc-500 font-mono">R$</span>
-                        <input 
-                          type="text"
-                          autoFocus
-                          value={editBidCap}
-                          onChange={e => setEditBidCap(formatCurrencyInput(e.target.value))}
-                          className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-amber-300 focus:outline-none focus:border-amber-400 font-mono font-bold text-sm"
-                          placeholder="11,00"
-                          required
-                        />
-                      </div>
-                      <p className="text-[10px] text-zinc-500 mt-1.5">
-                        {editStrategy === 'COST_CAP' 
-                          ? 'A Meta buscará manter o custo médio por evento próximo a este valor.'
-                          : 'A Meta não dará lances acima deste valor no leilão.'}
-                      </p>
-                    </div>
-                  )}
+                  <p className="text-[10px] text-zinc-500 mt-1.5">
+                    {editStrategy === 'COST_CAP' 
+                      ? 'A Meta buscará manter o custo médio por evento próximo a este valor.'
+                      : 'A Meta não dará lances acima deste valor no leilão.'}
+                  </p>
                 </div>
               )}
 
