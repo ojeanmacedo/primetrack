@@ -1627,7 +1627,26 @@ app.get('/api/campaigns', async (req, res) => {
     return true;
   });
 
-  const events = db.get('events') || [];
+  let events = db.get('events') || [];
+  try {
+    const { data: supaEvents } = await supabaseAdmin.from('events').select('*').order('created_at', { ascending: false }).limit(500);
+    if (supaEvents && supaEvents.length > 0) {
+      const dbEventIds = new Set(events.map(e => e.id || e.eventId));
+      supaEvents.forEach(e => {
+        if (!dbEventIds.has(e.id) && !dbEventIds.has(e.event_id)) {
+          events.push({
+            id: e.id,
+            eventName: e.event_name,
+            eventId: e.event_id,
+            sessionId: e.session_id,
+            pixelId: e.pixel_id,
+            timestamp: e.created_at
+          });
+        }
+      });
+    }
+  } catch (errEvents) {}
+
   const pixelPurchases = events.filter(e => {
     if (e.eventName !== 'Purchase') return false;
     if (filterSince && filterUntil && e.timestamp) {
