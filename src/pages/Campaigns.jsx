@@ -175,7 +175,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         try {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            if (parsed.some(c => String(c.spend) === '354.27')) {
+            // Invalida cache se contiver campanhas zeradas com vendas fantasmas
+            if (parsed.some(c => (Number(c.spend || 0) === 0 && Number(c.clicks || 0) === 0 && (c.pendingSales > 0 || c.sales > 0)) || String(c.spend) === '354.27' || (c.accountName === 'CA03 JEFFREY' && c.pendingSales > 0))) {
               localStorage.removeItem('primetrack_cached_campaigns');
               return [];
             }
@@ -324,57 +325,74 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
       if (data.connections && data.connections.length > 0) {
         localStorage.removeItem('primetrack_meta_disconnected');
-      } else if (data.connections && data.connections.length === 0) {
-        if (!isAdmin) {
-          setCampaignsList([]);
-          setAdAccountsList([]);
-          return;
+      } else if (!data.connections || data.connections.length === 0) {
+        setCampaignsList([]);
+        setAdAccountsList([]);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('primetrack_ad_accounts');
+          localStorage.removeItem('primetrack_cached_campaigns');
         }
+        return;
       }
 
-      if (data.adAccounts && data.adAccounts.length > 0) {
-        const mappedAccs = data.adAccounts
-          .map(a => {
-            const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
-            // Prioridade: status retornado do backend / sincronizado > fallback para localStorage
-            const isSyncActive = a.syncActive !== undefined
-              ? (a.syncActive === true)
-              : (localSyncMap[accId] !== undefined ? localSyncMap[accId] === true : true);
+      if (Array.isArray(data.adAccounts)) {
+        if (data.adAccounts.length === 0) {
+          setAdAccountsList([]);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('primetrack_ad_accounts');
+          }
+        } else {
+          const mappedAccs = data.adAccounts
+            .map(a => {
+              const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
+              // Prioridade: status retornado do backend / sincronizado > fallback para localStorage
+              const isSyncActive = a.syncActive !== undefined
+                ? (a.syncActive === true)
+                : (localSyncMap[accId] !== undefined ? localSyncMap[accId] === true : true);
 
-            return {
-              name: a.name || 'Conta',
-              id: accId,
-              bm: a.businessName || 'BM Principal',
-              currency: a.currency || a.rawCurrency || 'BRL',
-              status: a.status === 'ACTIVE' || a.status === 'Ativa' ? 'Ativa' : 'Bloqueada',
-              balance: a.balance || '0,00',
-              amountSpent: a.amountSpent || '0,00',
-              sync: isSyncActive
-            };
-          });
+              return {
+                name: a.name || 'Conta',
+                id: accId,
+                bm: a.businessName || 'BM Principal',
+                currency: a.currency || a.rawCurrency || 'BRL',
+                status: a.status === 'ACTIVE' || a.status === 'Ativa' ? 'Ativa' : 'Bloqueada',
+                balance: a.balance || '0,00',
+                amountSpent: a.amountSpent || '0,00',
+                sync: isSyncActive
+              };
+            });
 
-        const activeAccs = mappedAccs.filter(a => a.sync === true);
-        const finalAccsList = activeAccs.length > 0 ? activeAccs : mappedAccs;
+          const activeAccs = mappedAccs.filter(a => a.sync === true);
+          const finalAccsList = activeAccs.length > 0 ? activeAccs : mappedAccs;
 
-        setAdAccountsList(finalAccsList);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('primetrack_ad_accounts', JSON.stringify(finalAccsList));
-        }
+          setAdAccountsList(finalAccsList);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('primetrack_ad_accounts', JSON.stringify(finalAccsList));
+          }
 
-        if (accountFilter !== 'Todas' && !finalAccsList.some(a => a.id === accountFilter || a.name === accountFilter)) {
-          // ponytail: Mantém o filtro se a conta existe nas contas gerais da integração
-          const existsInAll = mappedAccs.some(a => a.id === accountFilter || a.name === accountFilter);
-          if (!existsInAll) {
-            setAccountFilter('Todas');
+          if (accountFilter !== 'Todas' && !finalAccsList.some(a => a.id === accountFilter || a.name === accountFilter)) {
+            const existsInAll = mappedAccs.some(a => a.id === accountFilter || a.name === accountFilter);
+            if (!existsInAll) {
+              setAccountFilter('Todas');
+            }
           }
         }
       }
 
       const cData = await crRes.json();
       if (Array.isArray(cData)) {
-        setCampaignsList(cData);
-        if (typeof window !== 'undefined' && cData.length > 0) {
-          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(cData));
+        // Blindagem adicional de segurança no cliente: campanhas sem tráfego (0 gasto e 0 cliques) nunca podem ter vendas pendentes ou aprovadas
+        const sanitized = cData.map(c => {
+          const spend = Number(c.spend || 0);
+          const clicks = Number(c.clicks || 0);
+          if (spend === 0 && clicks === 0 && (Number(c.sales || 0) > 0 || Number(c.pendingSales || 0) > 0)) {
+            return { ...c, sales: 0, pendingSales: 0 };
+          }
+          return c;
+        });
+        setCampaignsList(sanitized);
+        if (typeof window !== 'undefined' && sanitized.length > 0) {
+          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(sanitized));
         }
       }
     } catch (err) {

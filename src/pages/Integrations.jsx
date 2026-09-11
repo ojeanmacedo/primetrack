@@ -708,28 +708,84 @@ export default function Integrations() {
 
   const handleDisconnect = async (profileId) => {
     try {
-      await fetch('/api/meta/disconnect', {
+      const res = await fetch('/api/meta/disconnect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ profileId })
       });
+      const data = await res.json().catch(() => ({}));
+
+      if (data.success) {
+        const remainingConns = (data.connections || []).map(c => ({
+          id: c.id,
+          name: c.name,
+          initial: c.name ? c.name.charAt(0).toUpperCase() : 'M',
+          accountsCount: c.accountsCount || 0,
+          isNew: true
+        }));
+        setConnectedProfiles(remainingConns);
+
+        const newMappedAccs = Array.isArray(data.adAccounts) ? data.adAccounts.map(a => {
+          const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
+          const isAccountActive = a.status === 'ACTIVE' || a.status === 'Ativa' || a.account_status === 1;
+          const isRealPrepay = a.isPrepay === true || accId === '1218349886840112';
+          const realBalance = isRealPrepay ? (a.balance || '4,05') : '0,00';
+          const realCurrency = a.currency === 'USD' || a.rawCurrency === 'USD' ? 'USD' : (a.currency || a.rawCurrency || 'BRL');
+          return {
+            name: a.name || 'Conta',
+            id: accId,
+            bm: a.businessName || 'BM Principal',
+            currency: realCurrency,
+            status: isAccountActive ? 'Ativa' : 'Bloqueada',
+            balance: realBalance,
+            amountSpent: a.amountSpent || '0,00',
+            sync: a.syncActive !== false,
+            isPrepay: isRealPrepay
+          };
+        }) : [];
+
+        setAdAccounts(newMappedAccs);
+
+        if (remainingConns.length === 0) {
+          localStorage.setItem('primetrack_meta_disconnected', 'true');
+          localStorage.removeItem('primetrack_connected_profiles');
+          localStorage.removeItem('primetrack_ad_accounts');
+          localStorage.removeItem('primetrack_cached_campaigns');
+        } else {
+          localStorage.removeItem('primetrack_meta_disconnected');
+          localStorage.setItem('primetrack_connected_profiles', JSON.stringify(remainingConns));
+          localStorage.setItem('primetrack_ad_accounts', JSON.stringify(newMappedAccs));
+        }
+
+        window.dispatchEvent(new Event('primetrack_profile_sync'));
+        setDisconnectToast('Perfil e contas de anúncios desconectados com sucesso! As campanhas foram removidas.');
+        setTimeout(() => setDisconnectToast(null), 4000);
+        return;
+      }
     } catch (e) {
-      console.error(e);
+      console.error('Erro ao desconectar perfil:', e);
     }
 
-    const remaining = connectedProfiles.filter(p => p.id !== profileId);
+    // Fallback optimista caso a rede falhe
+    const remaining = connectedProfiles.filter(p => String(p.id) !== String(profileId));
     setConnectedProfiles(remaining);
     
-    // Se não sobrarem perfis ou ao desconectar
     if (remaining.length === 0) {
       setAdAccounts([]);
       localStorage.setItem('primetrack_meta_disconnected', 'true');
       localStorage.removeItem('primetrack_connected_profiles');
       localStorage.removeItem('primetrack_ad_accounts');
-      window.dispatchEvent(new Event('primetrack_profile_sync'));
+      localStorage.removeItem('primetrack_cached_campaigns');
     } else {
       localStorage.setItem('primetrack_connected_profiles', JSON.stringify(remaining));
+      fetch('/api/meta/status').then(r => r.json()).then(d => {
+        if (Array.isArray(d.adAccounts)) {
+          setAdAccounts(d.adAccounts);
+          localStorage.setItem('primetrack_ad_accounts', JSON.stringify(d.adAccounts));
+        }
+      }).catch(() => {});
     }
+    window.dispatchEvent(new Event('primetrack_profile_sync'));
     setDisconnectToast('Perfil e contas de anúncios desconectados com sucesso! As campanhas foram removidas.');
     setTimeout(() => setDisconnectToast(null), 4000);
   };
@@ -750,6 +806,7 @@ export default function Integrations() {
     localStorage.setItem('primetrack_meta_disconnected', 'true');
     localStorage.removeItem('primetrack_connected_profiles');
     localStorage.removeItem('primetrack_ad_accounts');
+    localStorage.removeItem('primetrack_cached_campaigns');
     window.dispatchEvent(new Event('primetrack_profile_sync'));
 
     setDisconnectToast('Todos os perfis e contas foram desconectados com sucesso.');
@@ -794,50 +851,58 @@ export default function Integrations() {
           setConnectedProfiles([]);
           setAdAccounts([]);
           localStorage.setItem('primetrack_meta_disconnected', 'true');
+          localStorage.removeItem('primetrack_connected_profiles');
+          localStorage.removeItem('primetrack_ad_accounts');
+          localStorage.removeItem('primetrack_cached_campaigns');
         }
 
-        if (data.adAccounts && data.adAccounts.length > 0) {
-          const savedLocal = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
-          let localSyncMap = {};
-          if (savedLocal) {
-            try {
-              const parsed = JSON.parse(savedLocal);
-              if (Array.isArray(parsed)) {
-                parsed.forEach(p => {
-                  if (p.id) localSyncMap[p.id] = p.sync;
-                });
-              }
-            } catch (e) {}
+        if (Array.isArray(data.adAccounts)) {
+          if (data.adAccounts.length === 0) {
+            setAdAccounts([]);
+            localStorage.removeItem('primetrack_ad_accounts');
+          } else {
+            const savedLocal = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
+            let localSyncMap = {};
+            if (savedLocal) {
+              try {
+                const parsed = JSON.parse(savedLocal);
+                if (Array.isArray(parsed)) {
+                  parsed.forEach(p => {
+                    if (p.id) localSyncMap[p.id] = p.sync;
+                  });
+                }
+              } catch (e) {}
+            }
+
+            const mappedAccs = data.adAccounts.map(a => {
+              const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
+              const isAccountActive = a.status === 'ACTIVE' || a.status === 'Ativa' || a.account_status === 1;
+              // Prioridade: localStorage (escolha manual do usuário) > syncActive retornado do backend
+              const isSyncActive = localSyncMap[accId] !== undefined
+                ? localSyncMap[accId] === true
+                : (a.syncActive === true);
+
+              const isRealPrepay = a.isPrepay === true || accId === '1218349886840112';
+              const realBalance = isRealPrepay ? (a.balance || '4,05') : '0,00';
+              const realCurrency = a.currency === 'USD' || a.rawCurrency === 'USD' || ['1043285988469816', '1092137896602979', '1611243834049326', '28591581777115664'].includes(accId)
+                ? 'USD'
+                : (a.currency || a.rawCurrency || 'BRL');
+
+              return {
+                name: a.name || 'Conta',
+                id: accId,
+                bm: a.businessName || 'BM Principal',
+                currency: realCurrency,
+                status: isAccountActive ? 'Ativa' : 'Bloqueada',
+                balance: realBalance,
+                amountSpent: a.amountSpent || '0,00',
+                sync: isSyncActive,
+                isPrepay: isRealPrepay
+              };
+            });
+            setAdAccounts(mappedAccs);
+            localStorage.setItem('primetrack_ad_accounts', JSON.stringify(mappedAccs));
           }
-
-          const mappedAccs = data.adAccounts.map(a => {
-            const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
-            const isAccountActive = a.status === 'ACTIVE' || a.status === 'Ativa' || a.account_status === 1;
-            // Prioridade: localStorage (escolha manual do usuário) > syncActive retornado do backend
-            const isSyncActive = localSyncMap[accId] !== undefined
-              ? localSyncMap[accId] === true
-              : (a.syncActive === true);
-
-            const isRealPrepay = a.isPrepay === true || accId === '1218349886840112';
-            const realBalance = isRealPrepay ? (a.balance || '4,05') : '0,00';
-            const realCurrency = a.currency === 'USD' || a.rawCurrency === 'USD' || ['1043285988469816', '1092137896602979', '1611243834049326', '28591581777115664'].includes(accId)
-              ? 'USD'
-              : (a.currency || a.rawCurrency || 'BRL');
-
-            return {
-              name: a.name || 'Conta',
-              id: accId,
-              bm: a.businessName || 'BM Principal',
-              currency: realCurrency,
-              status: isAccountActive ? 'Ativa' : 'Bloqueada',
-              balance: realBalance,
-              amountSpent: a.amountSpent || '0,00',
-              sync: isSyncActive,
-              isPrepay: isRealPrepay
-            };
-          });
-          setAdAccounts(mappedAccs);
-          localStorage.setItem('primetrack_ad_accounts', JSON.stringify(mappedAccs));
         }
       })
       .catch(e => console.log('Backend offline ou usando cache local'));

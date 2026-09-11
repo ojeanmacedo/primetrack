@@ -7,6 +7,7 @@ const META_APP_SECRET = process.env.META_APP_SECRET || '3fde35c68c4bde3e0a5bd8ac
 const META_REDIRECT_URI = process.env.META_REDIRECT_URI || 'http://localhost:3001/api/auth/facebook/callback';
 const GRAPH_API_VERSION = 'v19.0';
 const GRAPH_BASE_URL = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
+export const DEFAULT_UTM_TAGS = 'utm_source=FB|{{ad.account_id}}&utm_medium={{adset.name}}|{{adset.id}}&utm_campaign={{campaign.name}}|{{campaign.id}}&utm_content={{ad.name}}|{{ad.id}}&utm_term={{placement}}';
 
 /**
  * 1. Gera URL oficial do Facebook Login OAuth com permissões de anúncios
@@ -614,6 +615,7 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, targe
 
   // Obtém os conjuntos originais com suas configurações completas e seus anúncios
   let originalAdsetsWithAds = [];
+  const DEFAULT_UTM_TAGS = 'utm_source=FB|{{ad.account_id}}&utm_campaign={{campaign.name}}|{{campaign.id}}&utm_medium={{adset.name}}|{{adset.id}}&utm_content={{ad.name}}|{{ad.id}}&utm_term={{placement}}';
   try {
     const adsetFields = 'id,name,status,daily_budget,lifetime_budget,bid_amount,bid_strategy,billing_event,optimization_goal,targeting,promoted_object,destination_type,ads{id,name,status,url_tags,creative{id,name,url_tags,object_story_id,effective_object_story_id,use_page_actor_override,object_story_spec,asset_feed_spec,image_url,image_hash,thumbnail_url,video_id,body,title,call_to_action_type,link_url},tracking_specs}';
     const adsetsRes = await fetch(`${GRAPH_BASE_URL}/${campaignId}/adsets?fields=${adsetFields}&limit=50&access_token=${accessToken}`);
@@ -855,7 +857,7 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, targe
                           use_page_actor_override: 'true'
                         };
 
-                        const utmTags = ad.creative.url_tags || ad.url_tags;
+                        const utmTags = ad.creative?.url_tags || ad.url_tags || DEFAULT_UTM_TAGS;
                         if (utmTags) {
                           creativeParams.url_tags = utmTags;
                         }
@@ -885,8 +887,11 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, targe
                     adParams.append('creative', JSON.stringify({ creative_id: creativeIdToUse }));
                     adParams.append('status', status || 'ACTIVE');
 
-                    // Preserva parâmetros UTM (url_tags) no nível do anúncio
-                    const adUtmTags = ad.url_tags || ad.creative?.url_tags;
+                    // Preserva parâmetros UTM (url_tags) no nível do anúncio (com fallback automático e injeção de macros dinâmicas)
+                    let adUtmTags = ad.url_tags || ad.creative?.url_tags || DEFAULT_UTM_TAGS;
+                    if (!adUtmTags.includes('{{campaign.id}}') || !adUtmTags.includes('{{ad.id}}')) {
+                      adUtmTags = DEFAULT_UTM_TAGS;
+                    }
                     if (adUtmTags) {
                       adParams.append('url_tags', adUtmTags);
                     }

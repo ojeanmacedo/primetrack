@@ -726,26 +726,62 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
 // Deduplicação de alertas de perfil bloqueado: avisa apenas 1 vez por perfil
 const notifiedBlockedProfiles = new Set();
 
+function extractEntityNameAndId(val) {
+  if (!val) return { name: '', id: null };
+  const str = String(val).trim();
+  if (/^\d{6,}$/.test(str)) {
+    return { name: str, id: str };
+  }
+  let name = str;
+  let id = null;
+  if (str.includes('::')) {
+    const parts = str.split('::');
+    name = parts[0].trim();
+    if (parts[1] && /^\d{6,}$/.test(parts[1].trim())) id = parts[1].trim();
+  } else if (str.includes('|')) {
+    const parts = str.split('|');
+    name = parts[0].trim();
+    if (parts[1] && /^\d{6,}$/.test(parts[1].trim())) id = parts[1].trim();
+  } else {
+    const match = str.match(/[-_]\s*(\d{6,})$/);
+    if (match) {
+      id = match[1];
+      name = str.replace(/[-_]\s*\d{6,}$/, '').trim();
+    }
+  }
+  name = name.replace(/[-_]\s*\d{6,}$/, '').trim();
+  return { name, id };
+}
+
 function sanitizeAttribution(rawAttr) {
   const attr = { ...(rawAttr || {}) };
-  let camp = attr.campaign || '';
+
+  const parsedCamp = extractEntityNameAndId(attr.campaign);
+  if (!attr.campaignId && parsedCamp.id) {
+    attr.campaignId = parsedCamp.id;
+  }
+  let camp = parsedCamp.name || attr.campaign || '';
   if (!camp || camp === 'campanha_direta' || camp.toLowerCase().includes('direta')) {
     camp = 'Orgânico';
-  } else {
-    camp = camp.split('::')[0].split('|')[0].replace(/[-_]\s*\d{6,}$/, '').trim();
-    if (!camp) camp = 'Orgânico';
   }
   attr.campaign = camp;
+
+  if (attr.adset) {
+    const parsedAdset = extractEntityNameAndId(attr.adset);
+    if (!attr.adsetId && parsedAdset.id) attr.adsetId = parsedAdset.id;
+    attr.adset = parsedAdset.name || attr.adset;
+  }
+
+  if (attr.ad) {
+    const parsedAd = extractEntityNameAndId(attr.ad);
+    if (!attr.adId && parsedAd.id) attr.adId = parsedAd.id;
+    attr.ad = parsedAd.name || attr.ad;
+  }
 
   if (camp === 'Orgânico' || !attr.source || attr.source.toLowerCase().includes('direta')) {
     attr.source = camp === 'Orgânico' ? 'Orgânico' : attr.source;
   }
-  if (attr.adset) {
-    attr.adset = String(attr.adset).split('::')[0].split('|')[0].replace(/[-_]\s*\d{6,}$/, '').trim();
-  }
-  if (attr.ad) {
-    attr.ad = String(attr.ad).split('::')[0].split('|')[0].replace(/[-_]\s*\d{6,}$/, '').trim();
-  }
+
   return attr;
 }
 
@@ -834,9 +870,270 @@ async function getAllOrders(forceFresh = false) {
   return allOrders;
 }
 
-async function getApprovedOrders() {
-  const all = await getAllOrders();
-  return all.filter(o => o.status === 'approved' || o.status === 'paid' || o.status === 'pago');
+// Função de máxima precisão para identificação e desambiguação de campanhas (anti-colisão entre contas e cópias)
+export function isMatchCampaign(campaignNameOrId, camp, orderOrEvent = null, allCampaignsList = []) {
+  if (!campaignNameOrId && !orderOrEvent) return false;
+  
+  const cId = String(camp.id || '').trim();
+  const cName = (camp.name || '').toLowerCase().trim();
+  const cUtm = (camp.utm_campaign || '').toLowerCase().trim();
+  const cAccId = String(camp.adAccountId || camp.accountId || '').replace('act_', '').trim();
+  const cAccName = (camp.accountName || '').toLowerCase().trim();
+
+  // 1. Prioridade Absoluta: ID explícito da campanha vindo do tracking (UTM {{campaign.id}}, Pixel ou Webhook)
+  const explicitCampId = String(
+    orderOrEvent?.attribution?.campaignId || 
+    orderOrEvent?.campaignId || 
+    orderOrEvent?.utms?.campaignId || 
+    ''
+  ).trim();
+  if (explicitCampId) {
+    return explicitCampId === cId;
+  }
+
+  // 2. Se o identificador pesquisado for numérico puro (ID da campanha da Meta), match estrito por ID
+  const target = String(campaignNameOrId || '').toLowerCase().trim();
+  if (!target || target === 'orgânico' || target === 'organico' || target === 'histórico') return false;
+  if (/^\d{6,}$/.test(target)) {
+    return target === cId.toLowerCase();
+  }
+
+  // 3. Isolamento Estrito de Conta de Anúncios:
+  // Se o pedido possui conta de anúncios identificada (ID ou Nome), NUNCA pode pontuar em campanha de outra conta!
+  const orderAccId = String(
+    orderOrEvent?.attribution?.accountId || 
+    orderOrEvent?.attribution?.adAccountId || 
+    orderOrEvent?.accountId || 
+    orderOrEvent?.utms?.accountId || 
+    ''
+  ).replace('act_', '').trim();
+  if (orderAccId && cAccId && orderAccId !== cAccId) {
+    return false;
+  }
+
+  const orderAccName = (
+    orderOrEvent?.attribution?.accountName || 
+    orderOrEvent?.accountName || 
+    orderOrEvent?.utms?.accountName || 
+    ''
+  ).toLowerCase().trim();
+  if (orderAccName && cAccName && orderAccName !== cAccName) {
+    return false;
+  }
+
+  // Pedidos originados de contas desconectadas (ex: CA01 BM2) não podem pontuar em contas ativas diferentes
+  if (orderAccName.includes('bm2') && !cAccName.includes('bm2')) {
+    return false;
+  }
+
+  // 4. Isolamento de Criativo (Ad ID):
+  // Se o pedido possui ID do anúncio explícito, valida se este anúncio pertence a esta campanha
+  const explicitAdId = String(
+    orderOrEvent?.attribution?.adId || 
+    orderOrEvent?.adId || 
+    orderOrEvent?.utms?.adId || 
+    ''
+  ).trim();
+  if (explicitAdId && Array.isArray(camp.ads) && camp.ads.length > 0) {
+    const hasAdId = camp.ads.some(a => String(a.id || a.adId).trim() === explicitAdId);
+    if (!hasAdId) return false;
+  }
+
+  // 5. Proteção de Campanha Recém-Criada / Sem Tráfego:
+  // Se a campanha tem 0 gasto e 0 cliques, ela NUNCA pode herdar vendas por simples igualdade de nome!
+  // Vendas de campanhas ativas/gastando ou pausadas no passado não podem ser canibalizadas por uma cópia zerada.
+  const campSpend = Number(camp.spend || 0);
+  const campClicks = Number(camp.clicks || 0);
+  const isZeroTraffic = campSpend === 0 || campClicks === 0;
+
+  // Match exato por UTM campaign ou ID literal
+  if (cId && target === cId.toLowerCase()) return true;
+  if (cUtm && target === cUtm) {
+    if (isZeroTraffic) return false;
+    return true;
+  }
+
+  if (target === cName) {
+    // Se a campanha nunca teve tráfego, rejeita terminantemente match por nome (exige ID exato)
+    if (isZeroTraffic) {
+      return false;
+    }
+
+    // Desambiguação inteligente caso existam múltiplas campanhas com mesmo nome
+    const candidateCampaigns = (allCampaignsList || []).filter(ac => (ac.name || '').toLowerCase().trim() === cName);
+    if (candidateCampaigns.length > 1) {
+      // A. Filtra por conta se conhecida
+      if (orderAccName) {
+        const accMatch = candidateCampaigns.filter(ac => (ac.accountName || '').toLowerCase().trim() === orderAccName);
+        if (accMatch.length > 0) {
+          return accMatch[0].id === camp.id;
+        }
+      }
+      if (orderAccId) {
+        const accMatch = candidateCampaigns.filter(ac => String(ac.adAccountId || ac.accountId || '').replace('act_', '').trim() === orderAccId);
+        if (accMatch.length > 0) {
+          return accMatch[0].id === camp.id;
+        }
+      }
+      // B. Filtra por criativo/anúncio se o pedido especifica anúncio
+      const orderAdName = (orderOrEvent?.attribution?.ad || orderOrEvent?.ad || '').toLowerCase().trim();
+      if (orderAdName) {
+        const adMatches = candidateCampaigns.filter(ac => 
+          Array.isArray(ac.ads) && ac.ads.some(a => (a.name || '').toLowerCase().trim() === orderAdName && (Number(a.spend || 0) > 0 || Number(a.clicks || 0) > 0))
+        );
+        if (adMatches.length === 1) {
+          return adMatches[0].id === camp.id;
+        }
+      }
+      // C. Atribui à campanha que realmente teve tráfego/gasto
+      const activeSpending = candidateCampaigns.filter(ac => Number(ac.spend || 0) > 0 && Number(ac.clicks || 0) > 0);
+      if (activeSpending.length === 1) {
+        return activeSpending[0].id === camp.id;
+      }
+
+      // Regra absoluta do usuário: se não conseguir rastrear com 100% de certeza entre campanhas duplicadas,
+      // a venda não é associada a nenhuma campanha (permanece como Orgânica)
+      return false;
+    }
+
+    return true;
+  }
+
+  return false;
+}
+
+export function enrichCampaignsWithTracking({
+  campaigns = [],
+  orders = [],
+  pendingOrders = [],
+  pixelPurchases = [],
+  pixelICs = []
+}) {
+  return campaigns.map(c => {
+    const matchingOrders = orders.filter(o => {
+      const oCamp = ((o.attribution && o.attribution.campaign) || o.campaign || '').toLowerCase().trim();
+      return isMatchCampaign(oCamp, c, o, campaigns);
+    });
+
+    const matchingPendingOrders = pendingOrders.filter(o => {
+      const oCamp = ((o.attribution && o.attribution.campaign) || o.campaign || '').toLowerCase().trim();
+      return isMatchCampaign(oCamp, c, o, campaigns);
+    });
+
+    const matchingPixelEvents = pixelPurchases.filter(e => {
+      const eCamp = ((e.attribution && e.attribution.campaign) || e.campaign || (e.utms && e.utms.utm_campaign) || '').toLowerCase().trim();
+      return isMatchCampaign(eCamp, c, e, campaigns);
+    });
+
+    const matchingPixelICs = pixelICs.filter(e => {
+      const eCamp = ((e.attribution && e.attribution.campaign) || e.campaign || (e.utms && e.utms.utm_campaign) || '').toLowerCase().trim();
+      return isMatchCampaign(eCamp, c, e, campaigns);
+    });
+
+    const webhookSales = matchingOrders.length;
+    const webhookRevenue = matchingOrders.reduce((acc, o) => acc + Number(o.amount || 0), 0);
+    const pixelSales = matchingPixelEvents.length;
+    const pixelRevenue = matchingPixelEvents.reduce((acc, e) => acc + Number(e.amount || e.customData?.value || 0), 0);
+
+    // Vendas e receita vêm ESTRITAMENTE da MonsterPay e do Pixel da PrimeTrack
+    const totalSales = Math.max(webhookSales, pixelSales);
+    const totalRevenue = Math.max(webhookRevenue, pixelRevenue);
+    const spendNum = Number(c.spend || 0);
+    const profitNum = totalRevenue - spendNum;
+    const roasNum = spendNum > 0 ? (totalRevenue / spendNum).toFixed(2) : '0.00';
+    const cpaNum = totalSales > 0 ? (spendNum / totalSales).toFixed(2) : '0.00';
+
+    const totalICs = Math.max(Number(c.initCheckouts || 0), matchingPixelICs.length);
+    const costPerIc = totalICs > 0 ? (spendNum / totalICs).toFixed(2) : '0.00';
+
+    const enrichedAdsets = (c.adsets || []).map(as => {
+      const asSpend = Number(as.spend || 0);
+      const share = spendNum > 0 ? (asSpend / spendNum) : (1 / (c.adsets.length || 1));
+      
+      const directOrders = matchingOrders.filter(o => {
+        const oAsId = o.attribution?.adsetId || o.adsetId;
+        if (oAsId && String(oAsId).trim() === String(as.id || as.adsetId).trim()) return true;
+        const oAs = (o.attribution?.adset || o.adset || '').toLowerCase().trim();
+        return oAs && oAs === (as.name || '').toLowerCase().trim();
+      });
+      const directPending = matchingPendingOrders.filter(o => {
+        const oAsId = o.attribution?.adsetId || o.adsetId;
+        if (oAsId && String(oAsId).trim() === String(as.id || as.adsetId).trim()) return true;
+        const oAs = (o.attribution?.adset || o.adset || '').toLowerCase().trim();
+        return oAs && oAs === (as.name || '').toLowerCase().trim();
+      });
+
+      const asSales = directOrders.length > 0 ? directOrders.length : ((c.adsets.length === 1) ? totalSales : Math.round(totalSales * share));
+      const asPending = directPending.length > 0 ? directPending.length : ((c.adsets.length === 1) ? matchingPendingOrders.length : Math.round(matchingPendingOrders.length * share));
+      const asRevenue = directOrders.length > 0 ? directOrders.reduce((sum, o) => sum + Number(o.amount || 0), 0) : ((c.adsets.length === 1) ? totalRevenue : (totalRevenue * share));
+      const asProfit = asRevenue - asSpend;
+      const asRoas = asSpend > 0 ? (asRevenue / asSpend).toFixed(2) : '0.00';
+      const asCpa = asSales > 0 ? (asSpend / asSales).toFixed(2) : '0.00';
+      const asArpu = asSales > 0 ? (asRevenue / asSales).toFixed(2) : '0.00';
+
+      return {
+        ...as,
+        sales: asSales,
+        pendingSales: asPending,
+        revenue: asRevenue.toFixed(2),
+        profit: asProfit.toFixed(2),
+        roas: asRoas,
+        cpa: asCpa,
+        arpu: asArpu
+      };
+    });
+
+    const enrichedAds = (c.ads || []).map(ad => {
+      const adSpend = Number(ad.spend || 0);
+      const share = spendNum > 0 ? (adSpend / spendNum) : 0;
+      
+      const directOrders = matchingOrders.filter(o => {
+        const oAdId = o.attribution?.adId || o.adId;
+        if (oAdId && String(oAdId).trim() === String(ad.id || ad.adId).trim()) return true;
+        const oAd = (o.attribution?.ad || o.ad || '').toLowerCase().trim();
+        return oAd && oAd === (ad.name || '').toLowerCase().trim();
+      });
+      const directPending = matchingPendingOrders.filter(o => {
+        const oAdId = o.attribution?.adId || o.adId;
+        if (oAdId && String(oAdId).trim() === String(ad.id || ad.adId).trim()) return true;
+        const oAd = (o.attribution?.ad || o.ad || '').toLowerCase().trim();
+        return oAd && oAd === (ad.name || '').toLowerCase().trim();
+      });
+
+      const adSales = directOrders.length > 0 ? directOrders.length : Math.round(totalSales * share);
+      const adPending = directPending.length > 0 ? directPending.length : (directOrders.length > 0 ? 0 : Math.round(matchingPendingOrders.length * share));
+      const adRevenue = directOrders.length > 0 ? directOrders.reduce((sum, o) => sum + Number(o.amount || 0), 0) : (totalRevenue * share);
+      const adProfit = adRevenue - adSpend;
+      const adRoas = adSpend > 0 ? (adRevenue / adSpend).toFixed(2) : '0.00';
+      const adCpa = adSales > 0 ? (adSpend / adSales).toFixed(2) : '0.00';
+      const adArpu = adSales > 0 ? (adRevenue / adSales).toFixed(2) : '0.00';
+
+      return {
+        ...ad,
+        sales: adSales,
+        pendingSales: adPending,
+        revenue: adRevenue.toFixed(2),
+        profit: adProfit.toFixed(2),
+        roas: adRoas,
+        cpa: adCpa,
+        arpu: adArpu
+      };
+    });
+
+    return {
+      ...c,
+      sales: totalSales,
+      pendingSales: matchingPendingOrders.length,
+      revenue: totalRevenue.toFixed(2),
+      profit: profitNum.toFixed(2),
+      roas: roasNum,
+      cpa: cpaNum,
+      initCheckouts: totalICs,
+      costPerIc: costPerIc,
+      adsets: enrichedAdsets,
+      ads: enrichedAds
+    };
+  });
 }
 
 app.get('/api/campaigns', async (req, res) => {
@@ -927,121 +1224,12 @@ app.get('/api/campaigns', async (req, res) => {
     return true;
   });
 
-  // Função auxiliar para checagem exata e desambiguação de campanhas
-  const isMatchCampaign = (campaignNameOrId, camp) => {
-    if (!campaignNameOrId) return false;
-    const target = String(campaignNameOrId).toLowerCase().trim();
-    if (!target || target === 'orgânico' || target === 'organico' || target === 'histórico') return false;
-
-    const cName = (camp.name || '').toLowerCase().trim();
-    const cUtm = (camp.utm_campaign || '').toLowerCase().trim();
-    const cId = String(camp.id || '').trim();
-
-    // Match exato por ID da campanha na Meta ou UTM campaign
-    if (target === cId || (cUtm && target === cUtm) || target === cName) {
-      return true;
-    }
-
-    return false;
-  };
-
-  // Calcula vendas, receita e ICs EXCLUSIVAMENTE da MonsterPay e do Pixel da PrimeTrack
-  const enrichedCampaigns = allCampaigns.map(c => {
-    const matchingOrders = filteredOrders.filter(o => {
-      const oCamp = ((o.attribution && o.attribution.campaign) || o.campaign || '').toLowerCase().trim();
-      return isMatchCampaign(oCamp, c);
-    });
-
-    const matchingPendingOrders = filteredPendingOrders.filter(o => {
-      const oCamp = ((o.attribution && o.attribution.campaign) || o.campaign || '').toLowerCase().trim();
-      return isMatchCampaign(oCamp, c);
-    });
-
-    const matchingPixelEvents = pixelPurchases.filter(e => {
-      const eCamp = ((e.attribution && e.attribution.campaign) || e.campaign || (e.utms && e.utms.utm_campaign) || '').toLowerCase().trim();
-      return isMatchCampaign(eCamp, c);
-    });
-
-    const matchingPixelICs = pixelICs.filter(e => {
-      const eCamp = ((e.attribution && e.attribution.campaign) || e.campaign || (e.utms && e.utms.utm_campaign) || '').toLowerCase().trim();
-      return isMatchCampaign(eCamp, c);
-    });
-
-    const webhookSales = matchingOrders.length;
-    const webhookRevenue = matchingOrders.reduce((acc, o) => acc + Number(o.amount || 0), 0);
-    const pixelSales = matchingPixelEvents.length;
-    const pixelRevenue = matchingPixelEvents.reduce((acc, e) => acc + Number(e.amount || e.customData?.value || 0), 0);
-
-    // Vendas e receita vêm ESTRITAMENTE da MonsterPay e do Pixel da PrimeTrack
-    const totalSales = Math.max(webhookSales, pixelSales);
-    const totalRevenue = Math.max(webhookRevenue, pixelRevenue);
-    const spendNum = Number(c.spend || 0);
-    const profitNum = totalRevenue - spendNum;
-    const roasNum = spendNum > 0 ? (totalRevenue / spendNum).toFixed(2) : '0.00';
-    const cpaNum = totalSales > 0 ? (spendNum / totalSales).toFixed(2) : '0.00';
-
-    const totalICs = Math.max(Number(c.initCheckouts || 0), matchingPixelICs.length);
-    const costPerIc = totalICs > 0 ? (spendNum / totalICs).toFixed(2) : '0.00';
-
-    const enrichedAdsets = (c.adsets || []).map(as => {
-      const asSpend = Number(as.spend || 0);
-      const share = spendNum > 0 ? (asSpend / spendNum) : (1 / (c.adsets.length || 1));
-      const asSales = (c.adsets.length === 1) ? totalSales : Math.round(totalSales * share);
-      const asPending = (c.adsets.length === 1) ? matchingPendingOrders.length : Math.round(matchingPendingOrders.length * share);
-      const asRevenue = (c.adsets.length === 1) ? totalRevenue : (totalRevenue * share);
-      const asProfit = asRevenue - asSpend;
-      const asRoas = asSpend > 0 ? (asRevenue / asSpend).toFixed(2) : '0.00';
-      const asCpa = asSales > 0 ? (asSpend / asSales).toFixed(2) : '0.00';
-      const asArpu = asSales > 0 ? (asRevenue / asSales).toFixed(2) : '0.00';
-
-      return {
-        ...as,
-        sales: asSales,
-        pendingSales: asPending,
-        revenue: asRevenue.toFixed(2),
-        profit: asProfit.toFixed(2),
-        roas: asRoas,
-        cpa: asCpa,
-        arpu: asArpu
-      };
-    });
-
-    const enrichedAds = (c.ads || []).map(ad => {
-      const adSpend = Number(ad.spend || 0);
-      const share = spendNum > 0 ? (adSpend / spendNum) : 0;
-      const adSales = Math.round(totalSales * share);
-      const adPending = Math.round(matchingPendingOrders.length * share);
-      const adRevenue = totalRevenue * share;
-      const adProfit = adRevenue - adSpend;
-      const adRoas = adSpend > 0 ? (adRevenue / adSpend).toFixed(2) : '0.00';
-      const adCpa = adSales > 0 ? (adSpend / adSales).toFixed(2) : '0.00';
-      const adArpu = adSales > 0 ? (adRevenue / adSales).toFixed(2) : '0.00';
-
-      return {
-        ...ad,
-        sales: adSales,
-        pendingSales: adPending,
-        revenue: adRevenue.toFixed(2),
-        profit: adProfit.toFixed(2),
-        roas: adRoas,
-        cpa: adCpa,
-        arpu: adArpu
-      };
-    });
-
-    return {
-      ...c,
-      sales: totalSales,
-      pendingSales: matchingPendingOrders.length,
-      revenue: totalRevenue.toFixed(2),
-      profit: profitNum.toFixed(2),
-      roas: roasNum,
-      cpa: cpaNum,
-      initCheckouts: totalICs,
-      costPerIc: costPerIc,
-      adsets: enrichedAdsets,
-      ads: enrichedAds
-    };
+  const enrichedCampaigns = enrichCampaignsWithTracking({
+    campaigns: allCampaigns,
+    orders: filteredOrders,
+    pendingOrders: filteredPendingOrders,
+    pixelPurchases,
+    pixelICs
   });
 
   campaignsCache.set(cacheKey, {
@@ -1049,6 +1237,7 @@ app.get('/api/campaigns', async (req, res) => {
     campaigns: enrichedCampaigns
   });
 
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.json(enrichedCampaigns);
 });
 
@@ -1451,113 +1640,180 @@ app.get('/api/auth/facebook/callback', async (req, res) => {
   }
 });
 
+// C. Função central de reconciliação de dados da Meta (perfis, contas ativas e limpeza de contas órfãs)
+export async function reconcileFacebookData() {
+  let connections = [];
+  try {
+    const { data: supaConns } = await supabaseAdmin
+      .from('facebook_connections')
+      .select('*')
+      .order('connected_at', { ascending: false });
+    if (supaConns) {
+      connections = supaConns;
+    }
+  } catch (e) {
+    console.warn('[Reconcile FB] Erro ao ler conexões do Supabase:', e.message);
+  }
+
+  // 1. Se não houver perfis conectados no Supabase, limpa tudo (local e Supabase ad_accounts)
+  if (connections.length === 0) {
+    db.set('facebook_connections', []);
+    db.set('ad_accounts', []);
+    db.set('campaigns', []);
+    db.set('meta_ads', []);
+    const settings = db.get('settings') || {};
+    settings.metaAccessToken = '';
+    settings.connectedProfile = null;
+    db.set('settings', settings);
+
+    try {
+      await supabaseAdmin.from('ad_accounts').delete().neq('id', '0');
+    } catch (e) {}
+
+    return { connections: [], adAccounts: [] };
+  }
+
+  // 2. Atualiza conexões locais
+  db.set('facebook_connections', connections.map(c => ({
+    id: c.id,
+    name: c.name,
+    email: c.email,
+    avatarUrl: c.avatar_url,
+    accessToken: c.access_token,
+    accountsCount: c.accounts_count,
+    connectedAt: c.connected_at
+  })));
+
+  // 3. Lê contas ativas salvas em JSON
+  let activeSet = new Set();
+  connections.forEach(c => {
+    if (c.email) {
+      try {
+        const parsedMeta = JSON.parse(c.email);
+        if (parsedMeta && Array.isArray(parsedMeta.activeAccounts)) {
+          parsedMeta.activeAccounts.forEach(acc => activeSet.add(String(acc).replace('act_', '')));
+        }
+      } catch (e) {}
+    }
+  });
+
+  // 4. Busca contas da Meta diretamente para cada perfil conectado
+  const validAccountCleanIds = new Set();
+  const validAccounts = [];
+
+  for (const conn of connections) {
+    const token = conn.access_token || conn.accessToken;
+    if (token) {
+      try {
+        const liveAccs = await fetchAdAccounts(token);
+        if (Array.isArray(liveAccs)) {
+          for (const acc of liveAccs) {
+            const cleanId = (acc.accountId || acc.id || '').replace('act_', '');
+            if (!validAccountCleanIds.has(cleanId)) {
+              validAccountCleanIds.add(cleanId);
+              validAccounts.push({
+                id: acc.id || `act_${cleanId}`,
+                accountId: cleanId,
+                profileId: conn.id,
+                profileName: conn.name,
+                name: acc.name,
+                businessName: acc.businessName,
+                currency: acc.currency,
+                status: acc.status,
+                amountSpent: String(acc.amountSpent || '0.00'),
+                balance: String(acc.balance || '0.00'),
+                syncActive: activeSet.size === 0 ? true : activeSet.has(cleanId)
+              });
+            }
+          }
+
+          if (conn.accounts_count !== liveAccs.length) {
+            try {
+              await supabaseAdmin.from('facebook_connections').update({
+                accounts_count: liveAccs.length
+              }).eq('id', conn.id);
+            } catch (e) {}
+          }
+        }
+      } catch (err) {
+        console.warn(`[Reconcile FB] Erro ao buscar contas do perfil ${conn.name}:`, err.message);
+      }
+    }
+  }
+
+  // 5. Deleta do Supabase ad_accounts qualquer conta que NÃO pertença aos perfis conectados (órfãs de desconexão)
+  try {
+    const { data: supaAccs } = await supabaseAdmin.from('ad_accounts').select('id');
+    if (supaAccs && supaAccs.length > 0) {
+      const orphanIds = supaAccs
+        .map(a => a.id)
+        .filter(id => !validAccountCleanIds.has(String(id).replace('act_', '')));
+      if (orphanIds.length > 0) {
+        console.log(`[Reconcile FB] 🧹 Limpando ${orphanIds.length} contas órfãs do Supabase:`, orphanIds);
+        await supabaseAdmin.from('ad_accounts').delete().in('id', orphanIds);
+      }
+    }
+  } catch (e) {
+    console.warn('[Reconcile FB] Erro ao limpar contas órfãs do Supabase:', e.message);
+  }
+
+  // 6. Atualiza contas válidas no Supabase
+  if (validAccounts.length > 0) {
+    try {
+      const rows = validAccounts.map(acc => ({
+        id: acc.id,
+        name: acc.name || 'Conta de Anúncio',
+        bm_name: acc.businessName || null,
+        currency: acc.currency || 'BRL',
+        status: acc.status || 'ACTIVE',
+        amount_spent: Number(acc.amountSpent || 0),
+        balance: Number(acc.balance || 0)
+      }));
+      await supabaseAdmin.from('ad_accounts').upsert(rows);
+    } catch (e) {}
+  }
+
+  // 7. Atualiza db local
+  db.set('ad_accounts', validAccounts);
+
+  // 8. Limpa campanhas e anúncios pertencentes a contas desconectadas
+  const curCampaigns = db.get('campaigns') || [];
+  const filteredCampaigns = curCampaigns.filter(c => {
+    const act = (c.adAccountId || c.accountId || '').replace('act_', '');
+    return !act || validAccountCleanIds.has(act);
+  });
+  db.set('campaigns', filteredCampaigns);
+
+  const curAds = db.get('meta_ads') || [];
+  const filteredAds = curAds.filter(a => {
+    const act = (a.adAccountId || a.accountId || '').replace('act_', '');
+    return !act || validAccountCleanIds.has(act);
+  });
+  db.set('meta_ads', filteredAds);
+
+  const sanitizedConnections = connections.map(c => ({
+    id: c.id,
+    name: c.name,
+    email: c.email,
+    avatarUrl: c.avatar_url,
+    accountsCount: validAccounts.filter(a => String(a.profileId) === String(c.id)).length || c.accounts_count,
+    connectedAt: c.connected_at
+  }));
+
+  return {
+    connections: sanitizedConnections,
+    adAccounts: validAccounts
+  };
+}
+
 // C. Status das contas conectadas
 app.get('/api/meta/status', async (req, res) => {
   try {
-    let connections = [];
-    let adAccounts = [];
-
-    // Sempre busca do Supabase primeiro para ter dados atualizados multi-perfil e multi-dispositivo
-    try {
-      const { data: supaConn } = await supabaseAdmin.from('facebook_connections').select('*').order('connected_at', { ascending: false });
-      if (supaConn && supaConn.length > 0) {
-        connections = supaConn.map(c => ({
-          id: c.id,
-          name: c.name,
-          email: c.email,
-          avatarUrl: c.avatar_url,
-          accessToken: c.access_token,
-          accountsCount: c.accounts_count,
-          connectedAt: c.connected_at
-        }));
-      }
-
-      // Lê contas ativas salvas em todas as conexões
-      let activeSet = new Set();
-      connections.forEach(c => {
-        if (c.email) {
-          try {
-            const parsedMeta = JSON.parse(c.email);
-            if (parsedMeta && Array.isArray(parsedMeta.activeAccounts)) {
-              parsedMeta.activeAccounts.forEach(acc => activeSet.add(String(acc).replace('act_', '')));
-            }
-          } catch (e) {}
-        }
-      });
-
-      const { data: supaAccs } = await supabaseAdmin.from('ad_accounts').select('*');
-      if (supaAccs && supaAccs.length > 0) {
-        adAccounts = supaAccs.map(a => {
-          const cleanId = (a.id || '').replace('act_', '');
-          return {
-            id: a.id,
-            accountId: cleanId,
-            name: a.name,
-            businessName: a.bm_name,
-            currency: a.currency,
-            status: a.status,
-            amountSpent: String(a.amount_spent || '0.00'),
-            balance: String(a.balance || '0.00'),
-            syncActive: activeSet.size === 0 ? true : activeSet.has(cleanId)
-          };
-        });
-      }
-    } catch (supaReadErr) {
-      console.warn('[Supabase Read Status] Aviso:', supaReadErr.message);
-    }
-
-    if (connections.length === 0) {
-      connections = db.get('facebook_connections') || [];
-    }
-    if (adAccounts.length === 0) {
-      adAccounts = db.get('ad_accounts') || [];
-    }
-
-    // Busca contas diretamente da Meta para cada conexão caso alguma BM nova tenha sido vinculada
-    if (connections.length > 0) {
-      const knownIds = new Set(adAccounts.map(a => (a.accountId || a.id || '').replace('act_', '')));
-      await Promise.all(
-        connections.map(async (conn) => {
-          const token = conn.accessToken || conn.access_token;
-          if (token) {
-            try {
-              const liveAccs = await fetchAdAccounts(token);
-              if (Array.isArray(liveAccs)) {
-                liveAccs.forEach(acc => {
-                  const clean = (acc.accountId || acc.id || '').replace('act_', '');
-                  if (!knownIds.has(clean)) {
-                    knownIds.add(clean);
-                    adAccounts.push({
-                      id: acc.id || `act_${clean}`,
-                      accountId: clean,
-                      name: acc.name,
-                      businessName: acc.businessName,
-                      currency: acc.currency,
-                      status: acc.status,
-                      amountSpent: String(acc.amountSpent || '0.00'),
-                      balance: String(acc.balance || '0.00'),
-                      syncActive: true
-                    });
-                  }
-                });
-              }
-            } catch (e) {}
-          }
-        })
-      );
-      db.set('ad_accounts', adAccounts);
-    }
-
-    // Oculta o token completo por segurança
-    const sanitizedConnections = connections.map(c => ({
-      ...c,
-      accessToken: c.accessToken ? `${c.accessToken.substring(0, 10)}...${c.accessToken.substring(c.accessToken.length - 6)}` : null
-    }));
-
+    const reconciled = await reconcileFacebookData();
     res.json({
       success: true,
-      connections: sanitizedConnections,
-      adAccounts,
+      connections: reconciled.connections,
+      adAccounts: reconciled.adAccounts,
       appId: process.env.META_APP_ID || '1650241273321193'
     });
   } catch (err) {
@@ -1568,61 +1824,13 @@ app.get('/api/meta/status', async (req, res) => {
 // Endpoint para recarregar contas novas criadas no Facebook sem precisar reconectar
 app.post('/api/meta/refresh-accounts', async (req, res) => {
   try {
-    const { data: supaConns } = await supabaseAdmin.from('facebook_connections').select('*').order('connected_at', { ascending: false });
-    if (!supaConns || supaConns.length === 0) {
-      return res.status(400).json({ success: false, error: 'Nenhum perfil conectado para atualizar contas.' });
-    }
-
-    let allFreshAccounts = [];
-    for (const conn of supaConns) {
-      if (conn.access_token) {
-        try {
-          // Verifica se o perfil continua válido na Graph API
-          const profileCheck = await fetchUserProfile(conn.access_token).catch(() => null);
-          if (!profileCheck) {
-            // Perfil bloqueado ou token revogado pela Meta! Notifica apenas 1 vez por perfil
-            if (!notifiedBlockedProfiles.has(conn.id)) {
-              notifiedBlockedProfiles.add(conn.id);
-              await sendSalesNotification({
-                title: '🚨 PERFIL BLOQUEADO!',
-                body: `O perfil ${conn.name || 'do Facebook'} foi bloqueado ou perdeu acesso ao Meta Ads. Conecte outro perfil para manter seu gerenciamento!`,
-                icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
-                tag: `profile_blocked_${conn.id}`,
-                data: { url: '/integracoes' }
-              });
-            }
-            continue;
-          } else {
-            // Se o perfil voltou a funcionar, reseta o alerta
-            notifiedBlockedProfiles.delete(conn.id);
-          }
-
-          const fresh = await fetchAdAccounts(conn.access_token);
-          if (Array.isArray(fresh)) {
-            const mapped = fresh.map(a => ({
-              id: a.id || `act_${a.accountId}`,
-              name: a.name || 'Conta de Anúncio',
-              bm_name: a.businessName || 'BM Principal',
-              currency: a.currency || a.rawCurrency || 'BRL',
-              status: a.status || 'ACTIVE',
-              amount_spent: Number(a.amountSpent || 0),
-              balance: Number(a.balance || 0)
-            }));
-            await supabaseAdmin.from('ad_accounts').upsert(mapped);
-            allFreshAccounts.push(...fresh);
-
-            // Atualiza contagem no perfil
-            await supabaseAdmin.from('facebook_connections').update({
-              accounts_count: fresh.length
-            }).eq('id', conn.id);
-          }
-        } catch (err) {
-          console.warn(`[Refresh Accounts] Erro no perfil ${conn.name}:`, err.message);
-        }
-      }
-    }
-
-    res.json({ success: true, message: 'Contas sincronizadas com sucesso da Meta!', count: allFreshAccounts.length });
+    const reconciled = await reconcileFacebookData();
+    res.json({
+      success: true,
+      message: 'Contas sincronizadas e reconciliadas com sucesso da Meta!',
+      count: reconciled.adAccounts.length,
+      adAccounts: reconciled.adAccounts
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -1866,10 +2074,20 @@ app.post('/api/meta/sync', async (req, res) => {
     const timeRange = (since && until) ? { since, until } : null;
     const result = await executeMetaSync({ datePreset, timeRange, accountId, accountIds });
 
-    const approvedOrders = await getApprovedOrders();
+    const allOrders = await getAllOrders();
+    const approvedOrders = allOrders.filter(o => o.status === 'approved' || o.status === 'paid' || o.status === 'pago');
+    const pendingOrders = allOrders.filter(o => o.status === 'pending' || o.status === 'waiting_payment' || o.status === 'aguardando_pagamento');
 
     const { since: filterSince, until: filterUntil } = resolveDateRange(datePreset, since, until);
     const filteredOrders = approvedOrders.filter(o => {
+      if (filterSince && filterUntil && o.createdAt) {
+        const oDate = toBrazilYMD(o.createdAt);
+        return oDate >= filterSince && oDate <= filterUntil;
+      }
+      return true;
+    });
+
+    const filteredPendingOrders = pendingOrders.filter(o => {
       if (filterSince && filterUntil && o.createdAt) {
         const oDate = toBrazilYMD(o.createdAt);
         return oDate >= filterSince && oDate <= filterUntil;
@@ -1887,48 +2105,21 @@ app.post('/api/meta/sync', async (req, res) => {
       return true;
     });
 
-    const isMatchCampaign = (campaignNameOrId, camp) => {
-      if (!campaignNameOrId) return false;
-      const target = String(campaignNameOrId).toLowerCase().trim();
-      if (!target || target === 'orgânico' || target === 'organico' || target === 'histórico') return false;
-      const cName = (camp.name || '').toLowerCase().trim();
-      const cUtm = (camp.utm_campaign || '').toLowerCase().trim();
-      const cId = String(camp.id || '').trim();
-      return (target === cId || (cUtm && target === cUtm) || target === cName);
-    };
+    const pixelICs = events.filter(e => {
+      if (e.eventName !== 'InitiateCheckout') return false;
+      if (filterSince && filterUntil && e.timestamp) {
+        const eDate = toBrazilYMD(e.timestamp);
+        return eDate >= filterSince && eDate <= filterUntil;
+      }
+      return true;
+    });
 
-    const enrichedCampaigns = (result.campaigns || []).map(c => {
-      const matchingOrders = filteredOrders.filter(o => {
-        const oCamp = ((o.attribution && o.attribution.campaign) || o.campaign || '').toLowerCase().trim();
-        return isMatchCampaign(oCamp, c);
-      });
-
-      const matchingPixelEvents = pixelPurchases.filter(e => {
-        const eCamp = ((e.attribution && e.attribution.campaign) || e.campaign || (e.utms && e.utms.utm_campaign) || '').toLowerCase().trim();
-        return isMatchCampaign(eCamp, c);
-      });
-
-      const webhookSales = matchingOrders.length;
-      const webhookRevenue = matchingOrders.reduce((acc, o) => acc + Number(o.amount || 0), 0);
-      const pixelSales = matchingPixelEvents.length;
-      const pixelRevenue = matchingPixelEvents.reduce((acc, e) => acc + Number(e.amount || e.customData?.value || 0), 0);
-
-      // Vendas e receita vêm ESTRITAMENTE da MonsterPay e do Pixel da PrimeTrack
-      const totalSales = Math.max(webhookSales, pixelSales);
-      const totalRevenue = Math.max(webhookRevenue, pixelRevenue);
-      const spendNum = Number(c.spend || 0);
-      const profitNum = totalRevenue - spendNum;
-      const roasNum = spendNum > 0 ? (totalRevenue / spendNum).toFixed(2) : '0.00';
-      const cpaNum = totalSales > 0 ? (spendNum / totalSales).toFixed(2) : '0.00';
-
-      return {
-        ...c,
-        sales: totalSales,
-        revenue: totalRevenue.toFixed(2),
-        profit: profitNum.toFixed(2),
-        roas: roasNum,
-        cpa: cpaNum
-      };
+    const enrichedCampaigns = enrichCampaignsWithTracking({
+      campaigns: result.campaigns || [],
+      orders: filteredOrders,
+      pendingOrders: filteredPendingOrders,
+      pixelPurchases,
+      pixelICs
     });
 
     const cacheKey = timeRange ? `${since}_${until}` : datePreset;
@@ -2017,32 +2208,32 @@ app.post('/api/meta/disconnect', async (req, res) => {
   try {
     const { profileId } = req.body || {};
     if (profileId) {
-      const connections = db.get('facebook_connections') || [];
-      const filtered = connections.filter(c => String(c.id) !== String(profileId));
-      db.set('facebook_connections', filtered);
-      
-      const adAccounts = db.get('ad_accounts') || [];
-      const remainingAccounts = adAccounts.filter(a => String(a.profileId) !== String(profileId));
-      db.set('ad_accounts', remainingAccounts);
+      console.log(`[Meta Disconnect] Desconectando perfil ID: ${profileId}`);
 
+      // 1. Remove perfil do Supabase
       try {
         await supabaseAdmin.from('facebook_connections').delete().eq('id', profileId);
-      } catch (e) {}
-
-      if (filtered.length === 0) {
-        db.set('ad_accounts', []);
-        db.set('campaigns', []);
-        db.set('meta_ads', []);
-        const settings = db.get('settings') || {};
-        settings.metaAccessToken = '';
-        settings.connectedProfile = null;
-        db.set('settings', settings);
-        try {
-          await supabaseAdmin.from('facebook_connections').delete().neq('id', '0');
-          await supabaseAdmin.from('ad_accounts').delete().neq('id', '0');
-        } catch (e) {}
+      } catch (e) {
+        console.warn('[Disconnect] Erro ao deletar do Supabase:', e.message);
       }
+
+      // 2. Remove perfil do db local
+      const connections = db.get('facebook_connections') || [];
+      const remaining = connections.filter(c => String(c.id) !== String(profileId));
+      db.set('facebook_connections', remaining);
+
+      // 3. Reconcilia as contas restantes (remove do Supabase e db local qualquer conta do perfil desconectado)
+      const reconciled = await reconcileFacebookData();
+
+      return res.json({
+        success: true,
+        message: 'Perfil e contas de anúncios desconectados com sucesso.',
+        connections: reconciled.connections,
+        adAccounts: reconciled.adAccounts
+      });
     } else {
+      // Desconectar tudo
+      console.log('[Meta Disconnect] Desconectando TODOS os perfis e contas');
       db.set('facebook_connections', []);
       db.set('ad_accounts', []);
       db.set('campaigns', []);
@@ -2051,13 +2242,19 @@ app.post('/api/meta/disconnect', async (req, res) => {
       settings.metaAccessToken = '';
       settings.connectedProfile = null;
       db.set('settings', settings);
+
       try {
         await supabaseAdmin.from('facebook_connections').delete().neq('id', '0');
         await supabaseAdmin.from('ad_accounts').delete().neq('id', '0');
       } catch (e) {}
-    }
 
-    res.json({ success: true, message: 'Perfil, contas de anúncios e campanhas desconectados com sucesso.' });
+      return res.json({
+        success: true,
+        message: 'Todos os perfis e contas foram desconectados com sucesso.',
+        connections: [],
+        adAccounts: []
+      });
+    }
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -2954,45 +3151,11 @@ app.post('/api/push/test', async (req, res) => {
 });
 
 if (process.env.VERCEL !== '1') {
-  // Inicialização local: sincroniza automaticamente dados do Supabase na inicialização do localhost
+  // Inicialização local: reconcilia e sincroniza automaticamente dados do Supabase e Meta na inicialização do localhost
   (async () => {
     try {
-      const { data: supaConns } = await supabaseAdmin.from('facebook_connections').select('*');
-      const { data: supaAccs } = await supabaseAdmin.from('ad_accounts').select('*');
-      if (supaConns && supaConns.length > 0) {
-        db.set('facebook_connections', supaConns.map(c => ({
-          id: c.id,
-          name: c.name,
-          email: c.email,
-          avatarUrl: c.avatar_url,
-          accessToken: c.access_token,
-          accountsCount: c.accounts_count,
-          connectedAt: c.connected_at
-        })));
-
-        let activeSet = new Set();
-        if (supaConns[0] && supaConns[0].email) {
-          try {
-            const parsed = JSON.parse(supaConns[0].email);
-            if (parsed.activeAccounts) activeSet = new Set(parsed.activeAccounts);
-          } catch(e){}
-        }
-
-        if (supaAccs && supaAccs.length > 0) {
-          db.set('ad_accounts', supaAccs.map(a => ({
-            id: a.id,
-            accountId: (a.id || '').replace('act_', ''),
-            name: a.name,
-            businessName: a.bm_name,
-            currency: a.currency,
-            status: a.status,
-            amountSpent: String(a.amount_spent || '0.00'),
-            balance: String(a.balance || '0.00'),
-            syncActive: activeSet.has((a.id || '').replace('act_', ''))
-          })));
-        }
-        console.log('[PrimeTrack Local] Conexões e contas sincronizadas com Supabase com sucesso!');
-      }
+      const reconciled = await reconcileFacebookData();
+      console.log(`[PrimeTrack Local] Reconciliado com sucesso: ${reconciled.connections.length} perfil(is) e ${reconciled.adAccounts.length} conta(s) ativas.`);
     } catch (err) {
       console.warn('[PrimeTrack Local Init] Aviso ao sincronizar com Supabase:', err.message);
     }

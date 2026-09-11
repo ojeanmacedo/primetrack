@@ -343,35 +343,46 @@ export default function Dashboard() {
       }
 
       const data = await rRes.json();
-      if (data.adAccounts && data.adAccounts.length > 0) {
-        const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
-        let localSyncMap = {};
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved);
-            if (Array.isArray(parsed)) {
-              parsed.forEach(p => {
-                if (p.id) localSyncMap[p.id] = p.sync;
-              });
-            }
-          } catch (e) {}
+      if (!data.connections || data.connections.length === 0) {
+        setAdAccountsList([]);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('primetrack_ad_accounts');
+          localStorage.removeItem('primetrack_cached_campaigns');
         }
+      } else if (Array.isArray(data.adAccounts)) {
+        if (data.adAccounts.length === 0) {
+          setAdAccountsList([]);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('primetrack_ad_accounts');
+          }
+        } else {
+          const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
+          let localSyncMap = {};
+          if (saved) {
+            try {
+              const parsed = JSON.parse(saved);
+              if (Array.isArray(parsed)) {
+                parsed.forEach(p => {
+                  if (p.id) localSyncMap[p.id] = p.sync;
+                });
+              }
+            } catch (e) {}
+          }
 
-        const allMappedAccs = data.adAccounts.map(a => {
-          const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
-          const isSync = localSyncMap[accId] !== undefined
-            ? localSyncMap[accId] === true
-            : (a.syncActive === true);
-          return {
-            ...a,
-            id: accId,
-            sync: isSync
-          };
-        });
+          const allMappedAccs = data.adAccounts.map(a => {
+            const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
+            const isSync = localSyncMap[accId] !== undefined
+              ? localSyncMap[accId] === true
+              : (a.syncActive === true);
+            return {
+              ...a,
+              id: accId,
+              sync: isSync
+            };
+          });
 
-        const activeSynced = allMappedAccs.filter(a => a.sync);
-        if (activeSynced.length > 0) {
-          setAdAccountsList(activeSynced);
+          const activeSynced = allMappedAccs.filter(a => a.sync);
+          setAdAccountsList(activeSynced.length > 0 ? activeSynced : allMappedAccs);
         }
       }
 

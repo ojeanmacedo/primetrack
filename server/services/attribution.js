@@ -51,52 +51,97 @@ export function attributeOrder(parsedOrder, clientIp = null) {
     matchType = 'cross_session_bio';
   }
 
-function cleanTrackingValue(val) {
-  if (!val) return '';
-  let str = String(val);
-  if (str.includes('::')) str = str.split('::')[0];
-  if (str.includes('|')) str = str.split('|')[0];
-  str = str.replace(/[-_]\s*\d{6,}$/, '');
-  return str.trim();
+function parseTrackingEntity(val) {
+  if (!val) return { name: '', id: null };
+  const str = String(val).trim();
+  if (/^\d{6,}$/.test(str)) {
+    return { name: str, id: str };
+  }
+  let name = str;
+  let id = null;
+  if (str.includes('::')) {
+    const parts = str.split('::');
+    name = parts[0].trim();
+    if (parts[1] && /^\d{6,}$/.test(parts[1].trim())) id = parts[1].trim();
+  } else if (str.includes('|')) {
+    const parts = str.split('|');
+    name = parts[0].trim();
+    if (parts[1] && /^\d{6,}$/.test(parts[1].trim())) id = parts[1].trim();
+  } else {
+    const match = str.match(/[-_]\s*(\d{6,})$/);
+    if (match) {
+      id = match[1];
+      name = str.replace(/[-_]\s*\d{6,}$/, '').trim();
+    }
+  }
+  return { name, id };
 }
 
   const rawAdset = tracking.utm_medium || (matchedSession && matchedSession.utms && matchedSession.utms.utm_medium) || '';
-  const resolvedAdset = cleanTrackingValue(rawAdset) || 'conjunto_padrao';
+  const parsedAdset = parseTrackingEntity(rawAdset);
+  const resolvedAdset = parsedAdset.name || 'conjunto_padrao';
+  const resolvedAdsetId = parsedAdset.id || tracking.adsetId || (matchedSession && matchedSession.utms && matchedSession.utms.adsetId) || null;
 
   const rawAd = tracking.utm_content || (matchedSession && matchedSession.utms && matchedSession.utms.utm_content) || '';
-  const resolvedAd = cleanTrackingValue(rawAd) || 'criativo_padrao';
+  const parsedAd = parseTrackingEntity(rawAd);
+  const resolvedAd = parsedAd.name || 'criativo_padrao';
+  const resolvedAdId = parsedAd.id || tracking.adId || (matchedSession && matchedSession.utms && matchedSession.utms.adId) || null;
 
-  // Extrai e normaliza o nome da campanha estritamente do tracking real (UTM ou Pixel)
+  // Extrai e normaliza o nome e ID da campanha estritamente do tracking real (UTM ou Pixel)
   let rawCampaign = tracking.utm_campaign || (matchedSession && matchedSession.utms && matchedSession.utms.utm_campaign) || '';
-  let resolvedCampaign = rawCampaign;
+  const parsedCamp = parseTrackingEntity(rawCampaign);
+  let resolvedCampaign = parsedCamp.name;
   if (!resolvedCampaign || resolvedCampaign === 'campanha_direta' || resolvedCampaign.toLowerCase().includes('direta')) {
     resolvedCampaign = 'Orgânico';
-  } else {
-    resolvedCampaign = cleanTrackingValue(resolvedCampaign) || 'Orgânico';
   }
+  const resolvedCampaignId = parsedCamp.id || tracking.campaignId || (matchedSession && matchedSession.utms && matchedSession.utms.campaignId) || null;
 
   const rawSource = tracking.utm_source || (matchedSession && matchedSession.utms && matchedSession.utms.utm_source) || '';
-  const resolvedSource = resolvedCampaign === 'Orgânico' ? 'Orgânico' : (rawSource || 'facebook');
+  let resolvedSource = resolvedCampaign === 'Orgânico' ? 'Orgânico' : (rawSource || 'facebook');
+  let resolvedAccountId = tracking.accountId || (matchedSession && matchedSession.accountId) || null;
+  let resolvedAccountName = tracking.accountName || (matchedSession && matchedSession.accountName) || null;
+
+  // Extrai conta se codificada na UTM source (ex: "FB|act_1101817232408751" ou "FB|CA02 JEFFREY")
+  if (rawSource && (rawSource.includes('|') || rawSource.includes('::'))) {
+    const parts = rawSource.includes('|') ? rawSource.split('|') : rawSource.split('::');
+    resolvedSource = parts[0].trim();
+    const accPart = (parts[1] || '').trim();
+    if (accPart.startsWith('act_') || /^\d{6,}$/.test(accPart)) {
+      resolvedAccountId = accPart.startsWith('act_') ? accPart : `act_${accPart}`;
+    } else if (accPart) {
+      resolvedAccountName = accPart;
+    }
+  }
 
   // Extrai as UTMs finais
   const finalUtms = {
     source: resolvedSource,
     campaign: resolvedCampaign,
+    campaignId: resolvedCampaignId,
     adset: resolvedAdset,
+    adsetId: resolvedAdsetId,
     ad: resolvedAd,
+    adId: resolvedAdId,
+    accountId: resolvedAccountId,
+    accountName: resolvedAccountName,
     term: tracking.utm_term || (matchedSession && matchedSession.utms && matchedSession.utms.utm_term) || ''
   };
 
   const fbp = tracking.fbp || (matchedSession && matchedSession.fbp) || `fb.1.${Date.now()}.${Math.floor(Math.random() * 1000000)}`;
   const fbc = tracking.fbc || (matchedSession && matchedSession.fbc) || undefined;
 
-  // Atualiza métricas agregadas da campanha no banco
-  updateCampaignStats(finalUtms.campaign, finalUtms.ad, parsedOrder.amount);
+  // Atualiza métricas agregadas da campanha no banco apenas se for match confiável
+  updateCampaignStats(finalUtms.campaign, finalUtms.campaignId, finalUtms.ad, finalUtms.adId, parsedOrder.amount);
 
   return {
     campaign: finalUtms.campaign,
+    campaignId: finalUtms.campaignId,
     adset: finalUtms.adset,
+    adsetId: finalUtms.adsetId,
     ad: finalUtms.ad,
+    adId: finalUtms.adId,
+    accountId: finalUtms.accountId,
+    accountName: finalUtms.accountName,
     source: finalUtms.source,
     term: finalUtms.term,
     matchType,
@@ -113,13 +158,21 @@ function cleanTrackingValue(val) {
   };
 }
 
-function updateCampaignStats(campaignName, adName, amount) {
+function updateCampaignStats(campaignName, campaignId, adName, adId, amount) {
+  if (!campaignName || campaignName === 'Orgânico') return;
   const campaigns = db.get('campaigns') || [];
-  let camp = campaigns.find(c => (c.utm_campaign && c.utm_campaign === campaignName) || (c.campaign_name && campaignName && c.campaign_name.includes(campaignName)));
-
-  if (!camp && campaigns.length > 0) {
-    camp = campaigns[0]; // Associa à principal caso não encontrada
+  
+  let camp = null;
+  if (campaignId) {
+    camp = campaigns.find(c => String(c.id).trim() === String(campaignId).trim());
   }
+  if (!camp && campaignName) {
+    const cleanName = campaignName.toLowerCase().trim();
+    camp = campaigns.find(c => (c.name || '').toLowerCase().trim() === cleanName || (c.utm_campaign || '').toLowerCase().trim() === cleanName);
+  }
+
+  // NUNCA associa arbitrariamente a campaigns[0] se não houver correspondência real!
+  if (!camp) return;
 
   if (camp) {
     camp.sales = (Number(camp.sales) || 0) + 1;
