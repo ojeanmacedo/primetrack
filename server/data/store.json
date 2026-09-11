@@ -18,7 +18,7 @@
       "effectiveStatus": "ACTIVE",
       "objective": "OUTCOME_SALES",
       "budget": "127.58",
-      "budgetType": "Nível de Conjunto (ABO)",
+      "budgetType": "Diário",
       "spend": "0.00",
       "rawSpendUsd": "0.00",
       "rawBudgetUsd": "25.00",
@@ -50,8 +50,8 @@
           "effectiveStatus": "ACTIVE",
           "budget": "127.58",
           "budgetType": "Diário",
-          "bidCap": null,
-          "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
+          "bidCap": "11.23",
+          "bidStrategy": "LOWEST_COST_WITH_BID_CAP",
           "spend": "0.00",
           "impressions": 1,
           "clicks": 0,
@@ -68,9 +68,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         }
       ],
       "ads": [
@@ -102,8 +101,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "52573562929831",
@@ -133,8 +131,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "52573562908831",
@@ -164,14 +161,13 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         }
       ],
-      "isAbo": true,
-      "isCbo": false,
-      "bidCap": null,
-      "bidStrategy": "LOWEST_COST_WITHOUT_CAP"
+      "isAbo": false,
+      "isCbo": true,
+      "bidCap": "11.23",
+      "bidStrategy": "LOWEST_COST_WITH_BID_CAP"
     },
     {
       "id": "52687589547178",
@@ -181,7 +177,7 @@
       "effectiveStatus": "ACTIVE",
       "objective": "OUTCOME_SALES",
       "budget": "127.58",
-      "budgetType": "Nível de Conjunto (ABO)",
+      "budgetType": "Diário",
       "spend": "16.48",
       "rawSpendUsd": "3.23",
       "rawBudgetUsd": "25.00",
@@ -213,8 +209,8 @@
           "effectiveStatus": "ACTIVE",
           "budget": "127.58",
           "budgetType": "Diário",
-          "bidCap": null,
-          "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
+          "bidCap": "11.23",
+          "bidStrategy": "LOWEST_COST_WITH_BID_CAP",
           "spend": "16.48",
           "impressions": 626,
           "clicks": 99,
@@ -231,9 +227,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         }
       ],
       "ads": [
@@ -265,8 +260,7 @@
           "profit": "-3.06",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "52687589696178",
@@ -296,8 +290,7 @@
           "profit": "-1.02",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "52687589571578",
@@ -327,14 +320,13 @@
           "profit": "-12.09",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         }
       ],
-      "isAbo": true,
-      "isCbo": false,
-      "bidCap": null,
-      "bidStrategy": "LOWEST_COST_WITHOUT_CAP"
+      "isAbo": false,
+      "isCbo": true,
+      "bidCap": "11.23",
+      "bidStrategy": "LOWEST_COST_WITH_BID_CAP"
     },
     {
       "id": "120250184790690459",
@@ -344,7 +336,7 @@
       "effectiveStatus": "PAUSED",
       "objective": "OUTCOME_SALES",
       "budget": "10.00",
-      "budgetType": "Nível de Conjunto (ABO)",
+      "budgetType": "Diário",
       "spend": "0.00",
       "rawSpendUsd": null,
       "rawBudgetUsd": null,
@@ -394,9 +386,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         }
       ],
       "ads": [
@@ -428,12 +419,11 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         }
       ],
-      "isAbo": true,
-      "isCbo": false,
+      "isAbo": false,
+      "isCbo": true,
       "bidCap": null,
       "bidStrategy": "LOWEST_COST_WITHOUT_CAP"
     },
@@ -445,7 +435,7 @@
       "effectiveStatus": "PAUSED",
       "objective": "OUTCOME_SALES",
       "budget": "10.00",
-      "budgetType": "Nível de Conjunto (ABO)",
+      "budgetType": "Diário",
       "spend": "0.00",
       "rawSpendUsd": null,
       "rawBudgetUsd": null,
@@ -495,9 +485,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         }
       ],
       "ads": [
@@ -529,12 +518,11 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         }
       ],
-      "isAbo": true,
-      "isCbo": false,
+      "isAbo": false,
+      "isCbo": true,
       "bidCap": null,
       "bidStrategy": "LOWEST_COST_WITHOUT_CAP"
     },
@@ -546,7 +534,7 @@
       "effectiveStatus": "PAUSED",
       "objective": "OUTCOME_SALES",
       "budget": "10.00",
-      "budgetType": "Nível de Conjunto (ABO)",
+      "budgetType": "Diário",
       "spend": "0.00",
       "rawSpendUsd": null,
       "rawBudgetUsd": null,
@@ -596,9 +584,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         }
       ],
       "ads": [
@@ -630,12 +617,11 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         }
       ],
-      "isAbo": true,
-      "isCbo": false,
+      "isAbo": false,
+      "isCbo": true,
       "bidCap": null,
       "bidStrategy": "LOWEST_COST_WITHOUT_CAP"
     },
@@ -647,7 +633,7 @@
       "effectiveStatus": "PAUSED",
       "objective": "OUTCOME_SALES",
       "budget": "25.00",
-      "budgetType": "Nível de Conjunto (ABO)",
+      "budgetType": "Diário",
       "spend": "0.00",
       "rawSpendUsd": null,
       "rawBudgetUsd": null,
@@ -697,9 +683,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120250051661890466",
@@ -730,9 +715,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120250051654850466",
@@ -763,9 +747,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         }
       ],
       "ads": [
@@ -797,8 +780,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120250051661920466",
@@ -828,8 +810,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120250051654820466",
@@ -859,12 +840,11 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         }
       ],
-      "isAbo": true,
-      "isCbo": false,
+      "isAbo": false,
+      "isCbo": true,
       "bidCap": null,
       "bidStrategy": "LOWEST_COST_WITHOUT_CAP"
     },
@@ -876,7 +856,7 @@
       "effectiveStatus": "PAUSED",
       "objective": "OUTCOME_SALES",
       "budget": "25.00",
-      "budgetType": "Nível de Conjunto (ABO)",
+      "budgetType": "Diário",
       "spend": "0.00",
       "rawSpendUsd": null,
       "rawBudgetUsd": null,
@@ -926,9 +906,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120250051661040466",
@@ -959,9 +938,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120250051654840466",
@@ -992,9 +970,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         }
       ],
       "ads": [
@@ -1026,8 +1003,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120250051654830466",
@@ -1057,8 +1033,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120250051661070466",
@@ -1088,12 +1063,11 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         }
       ],
-      "isAbo": true,
-      "isCbo": false,
+      "isAbo": false,
+      "isCbo": true,
       "bidCap": null,
       "bidStrategy": "LOWEST_COST_WITHOUT_CAP"
     },
@@ -1105,7 +1079,7 @@
       "effectiveStatus": "PAUSED",
       "objective": "OUTCOME_SALES",
       "budget": "25.00",
-      "budgetType": "Nível de Conjunto (ABO)",
+      "budgetType": "Diário",
       "spend": "0.00",
       "rawSpendUsd": null,
       "rawBudgetUsd": null,
@@ -1155,9 +1129,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120250051660620466",
@@ -1188,9 +1161,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120250051646610466",
@@ -1221,9 +1193,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         }
       ],
       "ads": [
@@ -1255,8 +1226,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120250051646600466",
@@ -1286,8 +1256,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120250051660650466",
@@ -1317,12 +1286,11 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         }
       ],
-      "isAbo": true,
-      "isCbo": false,
+      "isAbo": false,
+      "isCbo": true,
       "bidCap": null,
       "bidStrategy": "LOWEST_COST_WITHOUT_CAP"
     },
@@ -1334,7 +1302,7 @@
       "effectiveStatus": "PAUSED",
       "objective": "OUTCOME_SALES",
       "budget": "25.00",
-      "budgetType": "Nível de Conjunto (ABO)",
+      "budgetType": "Diário",
       "spend": "0.00",
       "rawSpendUsd": null,
       "rawBudgetUsd": null,
@@ -1384,9 +1352,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         }
       ],
       "ads": [
@@ -1418,8 +1385,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120250032139350466",
@@ -1449,8 +1415,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120250031975600466",
@@ -1480,8 +1445,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120250032096830466",
@@ -1511,8 +1475,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120250032116610466",
@@ -1542,8 +1505,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120250032135230466",
@@ -1573,12 +1535,11 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         }
       ],
-      "isAbo": true,
-      "isCbo": false,
+      "isAbo": false,
+      "isCbo": true,
       "bidCap": null,
       "bidStrategy": "LOWEST_COST_WITHOUT_CAP"
     },
@@ -1590,7 +1551,7 @@
       "effectiveStatus": "PAUSED",
       "objective": "OUTCOME_SALES",
       "budget": "127.58",
-      "budgetType": "Nível de Conjunto (ABO)",
+      "budgetType": "Diário",
       "spend": "51.85",
       "rawSpendUsd": "10.16",
       "rawBudgetUsd": "25.00",
@@ -1640,9 +1601,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         }
       ],
       "ads": [
@@ -1674,8 +1634,7 @@
           "profit": "-51.29",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251314349950152",
@@ -1705,8 +1664,7 @@
           "profit": "-0.15",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251314288700152",
@@ -1736,12 +1694,11 @@
           "profit": "-0.41",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         }
       ],
-      "isAbo": true,
-      "isCbo": false,
+      "isAbo": false,
+      "isCbo": true,
       "bidCap": null,
       "bidStrategy": "LOWEST_COST_WITHOUT_CAP"
     },
@@ -1753,7 +1710,7 @@
       "effectiveStatus": "PAUSED",
       "objective": "OUTCOME_SALES",
       "budget": "984.73",
-      "budgetType": "Nível de Conjunto (ABO)",
+      "budgetType": "Diário",
       "spend": "0.00",
       "rawSpendUsd": "0.00",
       "rawBudgetUsd": "192.96",
@@ -1803,7 +1760,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A"
+          "isAbo": false,
+          "isCbo": true
         }
       ],
       "ads": [
@@ -1835,8 +1793,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251192705090152",
@@ -1866,8 +1823,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251192705170152",
@@ -1897,8 +1853,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251192705130152",
@@ -1928,8 +1883,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251192705190152",
@@ -1959,8 +1913,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251192705180152",
@@ -1990,8 +1943,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251192705100152",
@@ -2021,8 +1973,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251192705160152",
@@ -2052,8 +2003,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251192705110152",
@@ -2083,12 +2033,13 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         }
       ],
-      "isAbo": true,
-      "isCbo": false
+      "isAbo": false,
+      "isCbo": true,
+      "bidCap": "20.41",
+      "bidStrategy": "LOWEST_COST_WITH_BID_CAP"
     },
     {
       "id": "120251162808980152",
@@ -2098,7 +2049,7 @@
       "effectiveStatus": "PAUSED",
       "objective": "OUTCOME_SALES",
       "budget": "984.73",
-      "budgetType": "Nível de Conjunto (ABO)",
+      "budgetType": "Diário",
       "spend": "0.00",
       "rawSpendUsd": "0.00",
       "rawBudgetUsd": "192.96",
@@ -2131,7 +2082,7 @@
           "budget": "984.73",
           "budgetType": "Diário",
           "bidCap": "10.21",
-          "bidStrategy": "LOWEST_COST_WITH_BID_CAP",
+          "bidStrategy": "COST_CAP",
           "spend": "0.00",
           "impressions": 0,
           "clicks": 0,
@@ -2148,7 +2099,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A"
+          "isAbo": false,
+          "isCbo": true
         }
       ],
       "ads": [
@@ -2180,8 +2132,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251162827000152",
@@ -2211,8 +2162,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251162826950152",
@@ -2242,8 +2192,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251162826970152",
@@ -2273,8 +2222,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251162827020152",
@@ -2304,8 +2252,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251162826960152",
@@ -2335,8 +2282,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251162826990152",
@@ -2366,8 +2312,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251162827010152",
@@ -2397,8 +2342,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251162808990152",
@@ -2428,12 +2372,13 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         }
       ],
-      "isAbo": true,
-      "isCbo": false
+      "isAbo": false,
+      "isCbo": true,
+      "bidCap": "10.21",
+      "bidStrategy": "COST_CAP"
     },
     {
       "id": "120251147918390152",
@@ -2443,7 +2388,7 @@
       "effectiveStatus": "PAUSED",
       "objective": "OUTCOME_SALES",
       "budget": "51.03",
-      "budgetType": "Nível de Conjunto (ABO)",
+      "budgetType": "Diário",
       "spend": "0.00",
       "rawSpendUsd": "0.00",
       "rawBudgetUsd": "10.00",
@@ -2493,9 +2438,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147918500152",
@@ -2526,9 +2470,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147918490152",
@@ -2559,9 +2502,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147918460152",
@@ -2592,9 +2534,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147918430152",
@@ -2625,9 +2566,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147918410152",
@@ -2658,9 +2598,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147918320152",
@@ -2691,9 +2630,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147918310152",
@@ -2724,9 +2662,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147918220152",
@@ -2757,9 +2694,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147918190152",
@@ -2790,9 +2726,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         }
       ],
       "ads": [
@@ -2824,8 +2759,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147918280152",
@@ -2855,8 +2789,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147918420152",
@@ -2886,8 +2819,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147918230152",
@@ -2917,8 +2849,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147918140152",
@@ -2948,8 +2879,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147918170152",
@@ -2979,8 +2909,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147918260152",
@@ -3010,8 +2939,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147918270152",
@@ -3041,8 +2969,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147918250152",
@@ -3072,8 +2999,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147918290152",
@@ -3103,12 +3029,11 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         }
       ],
-      "isAbo": true,
-      "isCbo": false,
+      "isAbo": false,
+      "isCbo": true,
       "bidCap": null,
       "bidStrategy": "LOWEST_COST_WITHOUT_CAP"
     },
@@ -3120,7 +3045,7 @@
       "effectiveStatus": "PAUSED",
       "objective": "OUTCOME_SALES",
       "budget": "29.50",
-      "budgetType": "Nível de Conjunto (ABO)",
+      "budgetType": "Diário",
       "spend": "0.00",
       "rawSpendUsd": "0.00",
       "rawBudgetUsd": "5.78",
@@ -3170,9 +3095,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147918470152",
@@ -3203,9 +3127,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147918440152",
@@ -3236,9 +3159,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147918400152",
@@ -3269,9 +3191,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147918330152",
@@ -3302,9 +3223,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147918300152",
@@ -3335,9 +3255,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147918240152",
@@ -3368,9 +3287,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147918210152",
@@ -3401,9 +3319,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147918200152",
@@ -3434,9 +3351,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147918180152",
@@ -3467,9 +3383,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         }
       ],
       "ads": [
@@ -3501,8 +3416,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147918450152",
@@ -3532,8 +3446,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147918150152",
@@ -3563,8 +3476,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147918130152",
@@ -3594,8 +3506,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147918480152",
@@ -3625,8 +3536,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147918120152",
@@ -3656,8 +3566,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147918360152",
@@ -3687,8 +3596,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147918340152",
@@ -3718,8 +3626,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147918350152",
@@ -3749,8 +3656,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147918380152",
@@ -3780,12 +3686,11 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         }
       ],
-      "isAbo": true,
-      "isCbo": false,
+      "isAbo": false,
+      "isCbo": true,
       "bidCap": null,
       "bidStrategy": "LOWEST_COST_WITHOUT_CAP"
     },
@@ -3797,7 +3702,7 @@
       "effectiveStatus": "PAUSED",
       "objective": "OUTCOME_SALES",
       "budget": "29.50",
-      "budgetType": "Nível de Conjunto (ABO)",
+      "budgetType": "Diário",
       "spend": "0.00",
       "rawSpendUsd": "0.00",
       "rawBudgetUsd": "5.78",
@@ -3847,9 +3752,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147916660152",
@@ -3880,9 +3784,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147916620152",
@@ -3913,9 +3816,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147916610152",
@@ -3946,9 +3848,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147916600152",
@@ -3979,9 +3880,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147916590152",
@@ -4012,9 +3912,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147916580152",
@@ -4045,9 +3944,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147916550152",
@@ -4078,9 +3976,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147916540152",
@@ -4111,9 +4008,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147907650152",
@@ -4144,9 +4040,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         }
       ],
       "ads": [
@@ -4178,8 +4073,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147916700152",
@@ -4209,8 +4103,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147916680152",
@@ -4240,8 +4133,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147907770152",
@@ -4271,8 +4163,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147916640152",
@@ -4302,8 +4193,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147916650152",
@@ -4333,8 +4223,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147916570152",
@@ -4364,8 +4253,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147916670152",
@@ -4395,8 +4283,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147916560152",
@@ -4426,8 +4313,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147916710152",
@@ -4457,12 +4343,11 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         }
       ],
-      "isAbo": true,
-      "isCbo": false,
+      "isAbo": false,
+      "isCbo": true,
       "bidCap": null,
       "bidStrategy": "LOWEST_COST_WITHOUT_CAP"
     },
@@ -4474,7 +4359,7 @@
       "effectiveStatus": "PAUSED",
       "objective": "OUTCOME_SALES",
       "budget": "29.50",
-      "budgetType": "Nível de Conjunto (ABO)",
+      "budgetType": "Diário",
       "spend": "0.00",
       "rawSpendUsd": "0.00",
       "rawBudgetUsd": "5.78",
@@ -4524,9 +4409,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147828090152",
@@ -4557,9 +4441,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147828070152",
@@ -4590,9 +4473,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147827960152",
@@ -4623,9 +4505,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147827950152",
@@ -4656,9 +4537,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147827930152",
@@ -4689,9 +4569,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147827870152",
@@ -4722,9 +4601,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147827860152",
@@ -4755,9 +4633,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147827820152",
@@ -4788,9 +4665,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147827800152",
@@ -4821,9 +4697,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         }
       ],
       "ads": [
@@ -4855,8 +4730,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147827890152",
@@ -4886,8 +4760,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147828000152",
@@ -4917,8 +4790,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147828020152",
@@ -4948,8 +4820,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147827900152",
@@ -4979,8 +4850,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147828030152",
@@ -5010,8 +4880,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147827760152",
@@ -5041,8 +4910,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147827990152",
@@ -5072,8 +4940,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147827910152",
@@ -5103,8 +4970,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147828050152",
@@ -5134,12 +5000,11 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         }
       ],
-      "isAbo": true,
-      "isCbo": false,
+      "isAbo": false,
+      "isCbo": true,
       "bidCap": null,
       "bidStrategy": "LOWEST_COST_WITHOUT_CAP"
     },
@@ -5151,7 +5016,7 @@
       "effectiveStatus": "PAUSED",
       "objective": "OUTCOME_SALES",
       "budget": "29.50",
-      "budgetType": "Nível de Conjunto (ABO)",
+      "budgetType": "Diário",
       "spend": "0.00",
       "rawSpendUsd": "0.00",
       "rawBudgetUsd": "5.78",
@@ -5201,9 +5066,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147828110152",
@@ -5234,9 +5098,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147828100152",
@@ -5267,9 +5130,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147828080152",
@@ -5300,9 +5162,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147828060152",
@@ -5333,9 +5194,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147827940152",
@@ -5366,9 +5226,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147827920152",
@@ -5399,9 +5258,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147827850152",
@@ -5432,9 +5290,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147827810152",
@@ -5465,9 +5322,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147827790152",
@@ -5498,9 +5354,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         }
       ],
       "ads": [
@@ -5532,8 +5387,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147827880152",
@@ -5563,8 +5417,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147827970152",
@@ -5594,8 +5447,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147827740152",
@@ -5625,8 +5477,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147827770152",
@@ -5656,8 +5507,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147827750152",
@@ -5687,8 +5537,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147827780152",
@@ -5718,8 +5567,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147827980152",
@@ -5749,8 +5597,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147828010152",
@@ -5780,8 +5627,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147828040152",
@@ -5811,12 +5657,11 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         }
       ],
-      "isAbo": true,
-      "isCbo": false,
+      "isAbo": false,
+      "isCbo": true,
       "bidCap": null,
       "bidStrategy": "LOWEST_COST_WITHOUT_CAP"
     },
@@ -5828,7 +5673,7 @@
       "effectiveStatus": "PAUSED",
       "objective": "OUTCOME_SALES",
       "budget": "70.17",
-      "budgetType": "Nível de Conjunto (ABO)",
+      "budgetType": "Diário",
       "spend": "0.00",
       "rawSpendUsd": "0.00",
       "rawBudgetUsd": "13.75",
@@ -5878,9 +5723,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147815850152",
@@ -5911,9 +5755,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147815840152",
@@ -5944,9 +5787,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147815830152",
@@ -5977,9 +5819,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147815820152",
@@ -6010,9 +5851,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147815790152",
@@ -6043,9 +5883,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147815720152",
@@ -6076,9 +5915,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147815700152",
@@ -6109,9 +5947,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147815690152",
@@ -6142,9 +5979,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120251147741940152",
@@ -6175,9 +6011,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         }
       ],
       "ads": [
@@ -6209,8 +6044,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147741920152",
@@ -6240,8 +6074,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147815770152",
@@ -6271,8 +6104,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147815760152",
@@ -6302,8 +6134,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147815810152",
@@ -6333,8 +6164,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147815730152",
@@ -6364,8 +6194,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147815780152",
@@ -6395,8 +6224,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147815710152",
@@ -6426,8 +6254,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147815800152",
@@ -6457,8 +6284,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120251147815740152",
@@ -6488,12 +6314,11 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         }
       ],
-      "isAbo": true,
-      "isCbo": false,
+      "isAbo": false,
+      "isCbo": true,
       "bidCap": null,
       "bidStrategy": "LOWEST_COST_WITHOUT_CAP"
     },
@@ -6505,7 +6330,7 @@
       "effectiveStatus": "PAUSED",
       "objective": "OUTCOME_SALES",
       "budget": "45.93",
-      "budgetType": "Nível de Conjunto (ABO)",
+      "budgetType": "Diário",
       "spend": "0.00",
       "rawSpendUsd": "0.00",
       "rawBudgetUsd": "9.00",
@@ -6555,9 +6380,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120252508917740319",
@@ -6588,9 +6412,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120252508917730319",
@@ -6621,9 +6444,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120252508917720319",
@@ -6654,9 +6476,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120252508917710319",
@@ -6687,9 +6508,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120252508917700319",
@@ -6720,9 +6540,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120252508917690319",
@@ -6753,9 +6572,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120252508917680319",
@@ -6786,9 +6604,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120252508917670319",
@@ -6819,9 +6636,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         },
         {
           "id": "120252508853300319",
@@ -6852,9 +6668,8 @@
           "roas": "0.00",
           "cpa": "0.00",
           "arpu": "0.00",
-          "updatedAt": "N/A",
-          "isAbo": true,
-          "isCbo": false
+          "isAbo": false,
+          "isCbo": true
         }
       ],
       "ads": [
@@ -6886,8 +6701,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120252508917800319",
@@ -6917,8 +6731,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120252508917830319",
@@ -6948,8 +6761,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120252508853310319",
@@ -6979,8 +6791,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120252508917820319",
@@ -7010,8 +6821,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120252508917780319",
@@ -7041,8 +6851,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120252508917810319",
@@ -7072,8 +6881,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120252508917790319",
@@ -7103,8 +6911,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120252508917760319",
@@ -7134,8 +6941,7 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         },
         {
           "id": "120252508917770319",
@@ -7165,12 +6971,11 @@
           "profit": "0.00",
           "roas": "0.00",
           "cpa": "0.00",
-          "arpu": "0.00",
-          "updatedAt": "N/A"
+          "arpu": "0.00"
         }
       ],
-      "isAbo": true,
-      "isCbo": false,
+      "isAbo": false,
+      "isCbo": true,
       "bidCap": null,
       "bidStrategy": "LOWEST_COST_WITHOUT_CAP"
     }
@@ -7325,8 +7130,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "52573562929831",
@@ -7356,8 +7160,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "52573562908831",
@@ -7387,8 +7190,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "52687589657778",
@@ -7418,8 +7220,7 @@
       "profit": "-3.06",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "52687589696178",
@@ -7449,8 +7250,7 @@
       "profit": "-1.02",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "52687589571578",
@@ -7480,8 +7280,7 @@
       "profit": "-12.09",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120250184790810459",
@@ -7511,8 +7310,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120250184790790459",
@@ -7542,8 +7340,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120250184683840459",
@@ -7573,8 +7370,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120250051661910466",
@@ -7604,8 +7400,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120250051661920466",
@@ -7635,8 +7430,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120250051654820466",
@@ -7666,8 +7460,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120250051661050466",
@@ -7697,8 +7490,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120250051654830466",
@@ -7728,8 +7520,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120250051661070466",
@@ -7759,8 +7550,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120250051660630466",
@@ -7790,8 +7580,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120250051646600466",
@@ -7821,8 +7610,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120250051660650466",
@@ -7852,8 +7640,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120250032129980466",
@@ -7883,8 +7670,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120250032139350466",
@@ -7914,8 +7700,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120250031975600466",
@@ -7945,8 +7730,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120250032096830466",
@@ -7976,8 +7760,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120250032116610466",
@@ -8007,8 +7790,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120250032135230466",
@@ -8038,8 +7820,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251314349960152",
@@ -8069,8 +7850,7 @@
       "profit": "-51.29",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251314349950152",
@@ -8100,8 +7880,7 @@
       "profit": "-0.15",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251314288700152",
@@ -8131,8 +7910,7 @@
       "profit": "-0.41",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251192705140152",
@@ -8162,8 +7940,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251192705090152",
@@ -8193,8 +7970,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251192705170152",
@@ -8224,8 +8000,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251192705130152",
@@ -8255,8 +8030,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251192705190152",
@@ -8286,8 +8060,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251192705180152",
@@ -8317,8 +8090,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251192705100152",
@@ -8348,8 +8120,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251192705160152",
@@ -8379,8 +8150,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251192705110152",
@@ -8410,8 +8180,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251162827030152",
@@ -8441,8 +8210,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251162827000152",
@@ -8472,8 +8240,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251162826950152",
@@ -8503,8 +8270,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251162826970152",
@@ -8534,8 +8300,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251162827020152",
@@ -8565,8 +8330,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251162826960152",
@@ -8596,8 +8360,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251162826990152",
@@ -8627,8 +8390,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251162827010152",
@@ -8658,8 +8420,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251162808990152",
@@ -8689,8 +8450,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147918110152",
@@ -8720,8 +8480,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147918280152",
@@ -8751,8 +8510,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147918420152",
@@ -8782,8 +8540,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147918230152",
@@ -8813,8 +8570,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147918140152",
@@ -8844,8 +8600,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147918170152",
@@ -8875,8 +8630,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147918260152",
@@ -8906,8 +8660,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147918270152",
@@ -8937,8 +8690,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147918250152",
@@ -8968,8 +8720,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147918290152",
@@ -8999,8 +8750,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147918160152",
@@ -9030,8 +8780,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147918450152",
@@ -9061,8 +8810,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147918150152",
@@ -9092,8 +8840,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147918130152",
@@ -9123,8 +8870,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147918480152",
@@ -9154,8 +8900,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147918120152",
@@ -9185,8 +8930,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147918360152",
@@ -9216,8 +8960,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147918340152",
@@ -9247,8 +8990,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147918350152",
@@ -9278,8 +9020,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147918380152",
@@ -9309,8 +9050,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147916630152",
@@ -9340,8 +9080,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147916700152",
@@ -9371,8 +9110,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147916680152",
@@ -9402,8 +9140,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147907770152",
@@ -9433,8 +9170,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147916640152",
@@ -9464,8 +9200,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147916650152",
@@ -9495,8 +9230,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147916570152",
@@ -9526,8 +9260,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147916670152",
@@ -9557,8 +9290,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147916560152",
@@ -9588,8 +9320,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147916710152",
@@ -9619,8 +9350,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147827830152",
@@ -9650,8 +9380,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147827890152",
@@ -9681,8 +9410,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147828000152",
@@ -9712,8 +9440,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147828020152",
@@ -9743,8 +9470,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147827900152",
@@ -9774,8 +9500,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147828030152",
@@ -9805,8 +9530,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147827760152",
@@ -9836,8 +9560,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147827990152",
@@ -9867,8 +9590,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147827910152",
@@ -9898,8 +9620,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147828050152",
@@ -9929,8 +9650,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147827840152",
@@ -9960,8 +9680,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147827880152",
@@ -9991,8 +9710,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147827970152",
@@ -10022,8 +9740,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147827740152",
@@ -10053,8 +9770,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147827770152",
@@ -10084,8 +9800,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147827750152",
@@ -10115,8 +9830,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147827780152",
@@ -10146,8 +9860,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147827980152",
@@ -10177,8 +9890,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147828010152",
@@ -10208,8 +9920,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147828040152",
@@ -10239,8 +9950,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147815750152",
@@ -10270,8 +9980,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147741920152",
@@ -10301,8 +10010,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147815770152",
@@ -10332,8 +10040,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147815760152",
@@ -10363,8 +10070,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147815810152",
@@ -10394,8 +10100,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147815730152",
@@ -10425,8 +10130,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147815780152",
@@ -10456,8 +10160,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147815710152",
@@ -10487,8 +10190,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147815800152",
@@ -10518,8 +10220,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120251147815740152",
@@ -10549,8 +10250,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120252508917840319",
@@ -10580,8 +10280,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120252508917800319",
@@ -10611,8 +10310,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120252508917830319",
@@ -10642,8 +10340,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120252508853310319",
@@ -10673,8 +10370,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120252508917820319",
@@ -10704,8 +10400,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120252508917780319",
@@ -10735,8 +10430,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120252508917810319",
@@ -10766,8 +10460,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120252508917790319",
@@ -10797,8 +10490,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120252508917760319",
@@ -10828,8 +10520,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     },
     {
       "id": "120252508917770319",
@@ -10859,8 +10550,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00",
-      "updatedAt": "N/A"
+      "arpu": "0.00"
     }
   ],
   "webhook_tokens": [

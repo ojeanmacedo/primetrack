@@ -36,7 +36,6 @@ import {
 import DateRangePicker from '../components/DateRangePicker';
 
 const COLUMN_DEFS = [
-  { id: 'updatedAt', label: 'Última Atualização', defaultVisible: true, notAds: false },
   { id: 'preview', label: 'Preview', defaultVisible: true, adsOnly: true },
   { id: 'budget', label: 'Orçamento', defaultVisible: true, notAds: true },
   { id: 'bid', label: 'Lance', defaultVisible: true },
@@ -72,33 +71,50 @@ export const sanitizeCampaignsData = (cData) => {
     const clicks = Number(c.clicks || 0);
     const campNameUpper = (c.name || '').toUpperCase();
     const explicitAboInName = campNameUpper.includes('ABO');
+    
+    // Uma campanha só é ABO se tiver 'ABO' no nome, ou estiver explicitamente marcada como ABO
     const isAbo = Boolean(
       explicitAboInName || 
-      c.isAbo || 
-      c.budgetType?.includes('ABO') || 
-      (!c.isCbo && !c.daily_budget && !c.lifetime_budget)
+      (c.isAbo === true && !c.isCbo && !campNameUpper.includes('CBO')) ||
+      (c.budgetType === 'Nível de Conjunto (ABO)' && !c.isCbo)
     );
     const isCbo = !isAbo;
 
-    const hasCampBid = Boolean(
-      c.bidCap && 
-      Number(c.bidCap) > 0 && 
-      (campNameUpper.includes('BID') || campNameUpper.includes('COST CAP') || c.bidStrategy === 'COST_CAP' || c.bidStrategy === 'LOWEST_COST_WITH_BID_CAP')
-    );
+    // Lance da campanha: preserva se tiver valor configurado (ex: 11.23 em Nova campanha de Vendas — Cópia)
+    const rawCampBid = (c.bidCap !== undefined && c.bidCap !== null && Number(c.bidCap) > 0)
+      ? String(c.bidCap)
+      : ((c.adsets || []).find(a => a.bidCap && Number(a.bidCap) > 0)?.bidCap || null);
+    
+    const isCostCap = c.bidStrategy === 'COST_CAP' || campNameUpper.includes('COST CAP');
+    const isBidCap = Boolean(rawCampBid || c.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || campNameUpper.includes('BID'));
+
+    let campBidStrategy = 'LOWEST_COST_WITHOUT_CAP';
+    if (rawCampBid || isCostCap || isBidCap) {
+      campBidStrategy = isCostCap ? 'COST_CAP' : 'LOWEST_COST_WITH_BID_CAP';
+    }
 
     const cleanAdsets = (c.adsets || []).map(a => {
       const asNameUpper = (a.name || '').toUpperCase();
-      const hasAdsetBid = Boolean(
-        a.bidCap && 
-        Number(a.bidCap) > 0 && 
-        (asNameUpper.includes('BID') || asNameUpper.includes('COST CAP') || campNameUpper.includes('BID') || campNameUpper.includes('COST CAP') || a.bidStrategy === 'COST_CAP' || a.bidStrategy === 'LOWEST_COST_WITH_BID_CAP')
-      );
+      const rawAdsetBid = (a.bidCap !== undefined && a.bidCap !== null && Number(a.bidCap) > 0)
+        ? String(a.bidCap)
+        : (isCbo ? rawCampBid : null);
+      
+      const asIsCost = a.bidStrategy === 'COST_CAP' || asNameUpper.includes('COST CAP') || (isCbo && isCostCap);
+      const asIsBid = Boolean(rawAdsetBid || a.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || asNameUpper.includes('BID') || (isCbo && isBidCap));
+
+      let asBidStrategy = 'LOWEST_COST_WITHOUT_CAP';
+      if (rawAdsetBid || asIsCost || asIsBid) {
+        asBidStrategy = asIsCost ? 'COST_CAP' : 'LOWEST_COST_WITH_BID_CAP';
+      }
+
       return {
         ...a,
         isAbo,
         isCbo,
-        bidCap: hasAdsetBid ? a.bidCap : null,
-        bidStrategy: hasAdsetBid ? (a.bidStrategy || 'LOWEST_COST_WITH_BID_CAP') : 'LOWEST_COST_WITHOUT_CAP'
+        budget: isCbo ? (c.budget || a.budget || '127.58') : (a.budget || '10.00'),
+        budgetType: isCbo ? (c.budgetType || 'Diário') : (a.budgetType || 'Diário'),
+        bidCap: rawAdsetBid,
+        bidStrategy: asBidStrategy
       };
     });
 
@@ -106,9 +122,10 @@ export const sanitizeCampaignsData = (cData) => {
       ...c,
       isAbo,
       isCbo,
+      budget: c.budget || '127.58',
       budgetType: isAbo ? 'Nível de Conjunto (ABO)' : (c.budgetType || 'Diário'),
-      bidCap: hasCampBid ? c.bidCap : null,
-      bidStrategy: hasCampBid ? (c.bidStrategy || 'LOWEST_COST_WITH_BID_CAP') : 'LOWEST_COST_WITHOUT_CAP',
+      bidCap: rawCampBid,
+      bidStrategy: campBidStrategy,
       adsets: cleanAdsets
     };
 
@@ -139,9 +156,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         try {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            const existingIds = new Set(parsed.map(c => c.id));
+            const filtered = parsed.filter(c => c.id !== 'updatedAt');
+            const existingIds = new Set(filtered.map(c => c.id));
             const missing = COLUMN_DEFS.filter(c => !existingIds.has(c.id)).map(c => ({ id: c.id, visible: c.defaultVisible }));
-            return [...parsed, ...missing];
+            return [...filtered, ...missing];
           }
         } catch (e) {}
       }
@@ -159,10 +177,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const [currentPage, setCurrentPage] = useState(1);
 
   const [columnsConfigByTab, setColumnsConfigByTab] = useState(() => ({
-    Contas: getInitialColsForTab('Contas'),
-    Campanhas: getInitialColsForTab('Campanhas'),
-    Conjuntos: getInitialColsForTab('Conjuntos'),
-    Anúncios: getInitialColsForTab('Anúncios')
+    Contas: getInitialColsForTab('Contas').filter(c => c.id !== 'updatedAt'),
+    Campanhas: getInitialColsForTab('Campanhas').filter(c => c.id !== 'updatedAt'),
+    Conjuntos: getInitialColsForTab('Conjuntos').filter(c => c.id !== 'updatedAt'),
+    Anúncios: getInitialColsForTab('Anúncios').filter(c => c.id !== 'updatedAt')
   }));
 
   const columnsConfig = columnsConfigByTab[subTab] || columnsConfigByTab['Campanhas'];
@@ -450,6 +468,22 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   };
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      ['Contas', 'Campanhas', 'Conjuntos', 'Anúncios'].forEach(tab => {
+        const key = `primetrack_columns_v2_${tab}`;
+        const saved = localStorage.getItem(key);
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.some(c => c.id === 'updatedAt')) {
+              const cleaned = parsed.filter(c => c.id !== 'updatedAt');
+              localStorage.setItem(key, JSON.stringify(cleaned));
+            }
+          } catch (e) {}
+        }
+      });
+    }
+
     loadData(periodFilter, customRange);
 
     const handleProfileSync = () => {
@@ -619,13 +653,17 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     const parentCamp = campaignsList.find(c => c.id === item.id || c.id === item.campaignId) || item;
     const isConjunto = subTab === 'Conjuntos' || Boolean(item.adsetId);
     const parentNameUpper = (parentCamp.name || '').toUpperCase();
+    const itemNameUpper = (item.name || '').toUpperCase();
+
+    // Regra estrita: só é ABO se tiver 'ABO' no nome ou configurada explicitamente como ABO sem CBO
     const isAbo = Boolean(
-      item.isAbo || 
-      parentCamp.isAbo || 
-      parentCamp.budgetType?.includes('ABO') || 
       parentNameUpper.includes('ABO') || 
-      (!parentCamp.daily_budget && Boolean(item.budget))
+      itemNameUpper.includes('ABO') || 
+      (parentCamp.isAbo === true && !parentCamp.isCbo && !parentNameUpper.includes('CBO')) ||
+      (parentCamp.budgetType === 'Nível de Conjunto (ABO)' && !parentCamp.isCbo) ||
+      (item.isAbo === true && !item.isCbo)
     );
+    const isCbo = !isAbo;
 
     // Se o usuário clicar em orçamento na linha da CAMPANHA na aba Campanhas e ela for ABO:
     // O orçamento é a nível de conjunto. Redireciona para a aba de conjuntos filtrando esta campanha!
@@ -641,12 +679,26 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setEditName(item.name || parentCamp.name || '');
 
     // Para conjuntos em ABO, prioriza o orçamento do próprio conjunto (item.budget)
-    const rawBudgetNum = Number((isConjunto && isAbo ? item.budget : null) || item.budget || parentCamp.budget || 20.00);
-    const rawBidCapNum = Number(item.bidCap || 0);
+    // Para CBO, usa o orçamento da campanha
+    const rawBudgetNum = Number((isConjunto && isAbo ? item.budget : null) || (isCbo ? parentCamp.budget : item.budget) || item.budget || parentCamp.budget || 127.58);
     
-    setEditBudget(isNaN(rawBudgetNum) ? '20,00' : rawBudgetNum.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    // Bid Cap: se o item tiver bidCap, usa o dele; se for CBO e o item não tiver, herda da campanha
+    const rawBidCapVal = (item.bidCap !== undefined && item.bidCap !== null && Number(item.bidCap) > 0)
+      ? item.bidCap
+      : (isCbo && parentCamp.bidCap && Number(parentCamp.bidCap) > 0 ? parentCamp.bidCap : null);
+    const rawBidCapNum = Number(rawBidCapVal || 0);
+
+    const isCostCap = item.bidStrategy === 'COST_CAP' || itemNameUpper.includes('COST CAP') || (isCbo && (parentCamp.bidStrategy === 'COST_CAP' || parentNameUpper.includes('COST CAP')));
+    const isBidCap = item.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || itemNameUpper.includes('BID') || (isCbo && (parentCamp.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || parentNameUpper.includes('BID'))) || (rawBidCapNum > 0 && !isCostCap);
+
+    let resolvedStrategy = 'LOWEST_COST_WITHOUT_CAP';
+    if (rawBidCapNum > 0 || isCostCap || isBidCap) {
+      resolvedStrategy = isCostCap ? 'COST_CAP' : 'LOWEST_COST_WITH_BID_CAP';
+    }
+
+    setEditBudget(isNaN(rawBudgetNum) ? '127,58' : rawBudgetNum.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
     setEditBidCap(isNaN(rawBidCapNum) || rawBidCapNum === 0 ? '' : rawBidCapNum.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-    setEditStrategy(item.bidStrategy || 'LOWEST_COST_WITHOUT_CAP');
+    setEditStrategy(resolvedStrategy);
   };
 
   // Salva alteração com Trava de Perfil Backup
@@ -663,7 +715,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       return isNaN(Number(clean)) ? '0.00' : clean;
     };
     const normalizedBudget = cleanNumber(editBudget);
-    const normalizedBidCap = cleanNumber(editBidCap);
+    const normalizedBidCap = editStrategy === 'LOWEST_COST_WITHOUT_CAP' ? null : cleanNumber(editBidCap);
 
     // Salva sobrescrita no cache local
     if (editingField === 'name') {
@@ -681,12 +733,26 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           ...(isTargetCamp && editingField === 'name' ? { name: editName } : {}),
           ...(isTargetCamp && editingField === 'budget' ? { budget: normalizedBudget } : {}),
           ...(isTargetCamp && editingField === 'bid' ? { bidCap: normalizedBidCap, bidStrategy: editStrategy } : {}),
-          adsets: (c.adsets || []).map(a => (a.id === targetId || a.adsetId === targetId) ? {
-            ...a,
-            ...(editingField === 'name' ? { name: editName } : {}),
-            ...(editingField === 'budget' ? { budget: normalizedBudget } : {}),
-            ...(editingField === 'bid' ? { bidCap: normalizedBidCap, bidStrategy: editStrategy } : {})
-          } : a)
+          adsets: (c.adsets || []).map(a => {
+            const isMatch = (a.id === targetId || a.adsetId === targetId);
+            if (isMatch) {
+              return {
+                ...a,
+                ...(editingField === 'name' ? { name: editName } : {}),
+                ...(editingField === 'budget' ? { budget: normalizedBudget } : {}),
+                ...(editingField === 'bid' ? { bidCap: normalizedBidCap, bidStrategy: editStrategy } : {})
+              };
+            }
+            // Se editou a campanha inteira e ela for CBO, propaga para os conjuntos
+            if (isTargetCamp && !c.isAbo) {
+              return {
+                ...a,
+                ...(editingField === 'budget' ? { budget: normalizedBudget } : {}),
+                ...(editingField === 'bid' ? { bidCap: normalizedBidCap, bidStrategy: editStrategy } : {})
+              };
+            }
+            return a;
+          })
         };
       }
       return c;
@@ -1107,37 +1173,52 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     const allAdsets = parentCampaigns.flatMap(camp => {
       const campNameUpper = (camp.name || '').toUpperCase();
       const campIsAbo = Boolean(
-        camp.isAbo === true || 
-        camp.budgetType?.includes('ABO') || 
-        campNameUpper.includes('ABO') || 
-        (!camp.isCbo && !camp.daily_budget && !camp.lifetime_budget)
+        campNameUpper.includes('ABO') ||
+        (camp.isAbo === true && !camp.isCbo && !campNameUpper.includes('CBO')) ||
+        (camp.budgetType === 'Nível de Conjunto (ABO)' && !camp.isCbo)
       );
+      const campIsCbo = !campIsAbo;
+
+      const rawCampBid = (camp.bidCap !== undefined && camp.bidCap !== null && Number(camp.bidCap) > 0)
+        ? String(camp.bidCap)
+        : null;
+      const campIsCost = camp.bidStrategy === 'COST_CAP' || campNameUpper.includes('COST CAP');
+      const campIsBid = Boolean(rawCampBid || camp.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || campNameUpper.includes('BID'));
 
       if (camp.adsets && camp.adsets.length > 0) {
         return camp.adsets.map(a => {
           const asNameUpper = (a.name || '').toUpperCase();
-          const hasRealBid = Boolean(
-            a.bidCap && 
-            Number(a.bidCap) > 0 && 
-            (asNameUpper.includes('BID') || asNameUpper.includes('COST CAP') || campNameUpper.includes('BID') || campNameUpper.includes('COST CAP') || a.bidStrategy === 'COST_CAP' || a.bidStrategy === 'LOWEST_COST_WITH_BID_CAP')
-          );
+          const rawAdsetBid = (a.bidCap !== undefined && a.bidCap !== null && Number(a.bidCap) > 0)
+            ? String(a.bidCap)
+            : (campIsCbo ? rawCampBid : null);
+          
+          const asIsCost = a.bidStrategy === 'COST_CAP' || asNameUpper.includes('COST CAP') || (campIsCbo && campIsCost);
+          const asIsBid = Boolean(rawAdsetBid || a.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || asNameUpper.includes('BID') || (campIsCbo && campIsBid));
+
+          let asBidStrategy = 'LOWEST_COST_WITHOUT_CAP';
+          if (rawAdsetBid || asIsCost || asIsBid) {
+            asBidStrategy = asIsCost ? 'COST_CAP' : 'LOWEST_COST_WITH_BID_CAP';
+          }
+
           return {
             ...a,
             name: itemNamesOverride[a.id] || a.name,
-            isCbo: !campIsAbo,
+            isCbo: campIsCbo,
             isAbo: campIsAbo,
-            bidStrategy: hasRealBid ? (a.bidStrategy || 'LOWEST_COST_WITH_BID_CAP') : 'LOWEST_COST_WITHOUT_CAP',
-            bidCap: hasRealBid ? a.bidCap : null
+            budget: campIsCbo ? (camp.budget || a.budget || '127.58') : (a.budget || '10.00'),
+            budgetType: campIsCbo ? (camp.budgetType || 'Diário') : (a.budgetType || 'Diário'),
+            bidStrategy: asBidStrategy,
+            bidCap: rawAdsetBid
           };
         });
       }
       const adsetId = camp.id === '52604661655655' ? '52604661655855' : `${camp.id}_adset_1`;
       const defaultName = (camp.name.includes('TESTE MI') || camp.id === '52604661655655') ? 'Novo conjunto de anúncios de Vendas' : `${camp.name} — Conjunto 01`;
-      const hasCampRealBid = Boolean(
-        camp.bidCap && 
-        Number(camp.bidCap) > 0 && 
-        (campNameUpper.includes('BID') || campNameUpper.includes('COST CAP') || camp.bidStrategy === 'COST_CAP' || camp.bidStrategy === 'LOWEST_COST_WITH_BID_CAP')
-      );
+      
+      let fallbackStrategy = 'LOWEST_COST_WITHOUT_CAP';
+      if (rawCampBid || campIsCost || campIsBid) {
+        fallbackStrategy = campIsCost ? 'COST_CAP' : 'LOWEST_COST_WITH_BID_CAP';
+      }
 
       return [{
         id: adsetId,
@@ -1146,12 +1227,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         name: itemNamesOverride[adsetId] || defaultName,
         accountName: camp.accountName || 'CA01',
         status: camp.status,
-        isCbo: !campIsAbo,
+        isCbo: campIsCbo,
         isAbo: campIsAbo,
-        budget: camp.budget,
-        budgetType: campIsAbo ? 'Diário' : (camp.budgetType || 'Diário'),
-        bidCap: hasCampRealBid ? camp.bidCap : null,
-        bidStrategy: hasCampRealBid ? (camp.bidStrategy || 'LOWEST_COST_WITH_BID_CAP') : 'LOWEST_COST_WITHOUT_CAP',
+        budget: campIsCbo ? (camp.budget || '127.58') : '10.00',
+        budgetType: campIsCbo ? (camp.budgetType || 'Diário') : 'Diário',
+        bidCap: rawCampBid,
+        bidStrategy: fallbackStrategy,
         spend: camp.spend,
         sales: camp.sales,
         pendingSales: camp.pendingSales || 0,
@@ -1167,8 +1248,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         clicks: camp.clicks,
         visits: camp.visits || Math.round(Number(camp.clicks || 0) * 0.75),
         ic: camp.initCheckouts || camp.ic || 0,
-        costPerIc: camp.costPerIc || '0.00',
-        updatedAt: 'N/A'
+        costPerIc: camp.costPerIc || '0.00'
       }];
     });
 
@@ -1238,7 +1318,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           name: itemNamesOverride['52604662342655'] || 'AD02',
           accountName: camp.accountName || 'CA01',
           status: true,
-          updatedAt: 'N/A',
           mediaSrc: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=80',
           videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-woman-posing-for-a-fashion-photoshoot-40291-large.mp4',
           spend: ad2Spend.toFixed(2),
@@ -1266,7 +1345,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           name: itemNamesOverride['52604662342855'] || 'AD03',
           accountName: camp.accountName || 'CA01',
           status: false,
-          updatedAt: 'N/A',
           mediaSrc: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=800&auto=format&fit=crop&q=80',
           videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-vertical-selfie-of-a-woman-smiling-at-the-camera-42867-large.mp4',
           spend: '0.00',
@@ -1294,7 +1372,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           name: itemNamesOverride['52604661656055'] || 'AD01',
           accountName: camp.accountName || 'CA01',
           status: true,
-          updatedAt: 'N/A',
           mediaSrc: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=800&auto=format&fit=crop&q=80',
           videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-hands-holding-a-smartphone-with-a-green-screen-41527-large.mp4',
           spend: ad1Spend.toFixed(2),
@@ -1534,7 +1611,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   const getColumnHeaderLabel = (id) => {
     const map = {
-      updatedAt: 'ÚLTIMA ATUALIZAÇÃO :',
       preview: 'PREVIEW :',
       budget: 'ORÇAMENTO :',
       bid: 'LANCE :',
@@ -1566,70 +1642,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   const renderCell = (colId, item) => {
     switch (colId) {
-      case 'updatedAt': {
-        const itemBudget = Number(item.budget || 0);
-        const itemSpend = Number(item.spend || 0);
-        const itemProfit = Number(item.profit !== undefined ? item.profit : ((Number(item.revenue || 0)) - itemSpend));
-        const itemSales = Number(item.sales || 0);
-        const itemCpa = Number(item.cpa || 0);
-        const itemRoi = itemSpend > 0 ? (itemProfit / itemSpend) : 0;
-        
-        let displayDate = currentTime;
-        if (item.updatedAt && item.updatedAt !== 'N/A') {
-          try {
-            const parsed = new Date(item.updatedAt);
-            if (!isNaN(parsed.getTime())) {
-              displayDate = `${parsed.toLocaleDateString('pt-BR')} ${parsed.getHours().toString().padStart(2, '0')}:${parsed.getMinutes().toString().padStart(2, '0')}`;
-            } else {
-              displayDate = item.updatedAt;
-            }
-          } catch (e) {
-            displayDate = item.updatedAt;
-          }
-        }
-
-        const itemNameUpper = (item.name || '').toUpperCase();
-        const hasBidVal = Boolean(
-          item.bidCap && 
-          Number(item.bidCap) > 0 && 
-          (itemNameUpper.includes('BID') || itemNameUpper.includes('COST CAP') || item.bidStrategy === 'COST_CAP' || item.bidStrategy === 'LOWEST_COST_WITH_BID_CAP')
-        );
-        const isCostCap = hasBidVal && item.bidStrategy === 'COST_CAP';
-        const isBidCap = hasBidVal && (item.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || !isCostCap);
-        const numBid = Number(item.bidCap || 0);
-        const isCampAbo = subTab === 'Campanhas' && Boolean(item.isAbo || item.budgetType?.includes('ABO') || itemNameUpper.includes('ABO'));
-
-        return (
-          <div className="text-[10px] leading-tight space-y-0.5 text-left font-sans min-w-[130px]">
-            {/* Se for estratégia de lance (Bid Cap) ou meta de custo (Cost Cap), identifica e mostra o lance com a escala/troca */}
-            {(isBidCap || isCostCap) && hasBidVal ? (
-              <div className="text-amber-300 font-mono font-medium flex items-center gap-1">
-                <span>{isCostCap ? 'Meta:' : 'Lance:'} R$ {numBid.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                <span className="text-amber-400 font-bold">↑ R$ {(numBid * 1.85).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-            ) : isCampAbo ? (
-              <div className="text-zinc-300 font-mono flex items-center gap-1">
-                <span>Orç: Conjuntos</span>
-                <span className="text-[9px] px-1 py-0.2 rounded bg-blue-500/15 border border-blue-500/30 text-[#5C9BFF] font-bold">ABO</span>
-              </div>
-            ) : (
-              <div className="text-zinc-300 font-mono">
-                Orç: R$ {itemBudget.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {itemBudget > 0 ? `↑ R$ ${(itemBudget * 1.85).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}
-              </div>
-            )}
-            <div className="text-zinc-400 font-mono">
-              Gasto: R$ {itemSpend.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} | Lucro: <span className={itemProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}>R$ {itemProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-            </div>
-            <div className="text-zinc-400 font-mono">
-              Vendas: {itemSales} | CPA: R$ {itemCpa.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} | ROI: <span className={itemRoi >= 0 ? 'text-emerald-400' : 'text-red-400'}>{itemRoi.toFixed(2)}</span>
-            </div>
-            <div className="text-zinc-500 font-mono flex items-center gap-1">
-              <span>🗓</span> <span>{displayDate}</span>
-            </div>
-          </div>
-        );
-      }
-
       case 'preview': {
         // Verifica se o anúncio tem vídeo real cadastrado ou se é vídeo pelo tipo/url
         const hasVideo = Boolean(
@@ -1662,10 +1674,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         const isCampanha = subTab === 'Campanhas';
         const itemNameUpper = (item.name || '').toUpperCase();
         const isItemAbo = Boolean(
-          item.isAbo || 
-          item.budgetType?.includes('ABO') || 
           itemNameUpper.includes('ABO') || 
-          (!item.isCbo && isConjunto)
+          (item.isAbo === true && !item.isCbo && !itemNameUpper.includes('CBO')) ||
+          (item.budgetType === 'Nível de Conjunto (ABO)' && !item.isCbo)
         );
 
         // Caso 1: Na aba Campanhas, se a campanha for ABO:
@@ -1742,31 +1753,28 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       }
 
       case 'bid': {
-        // Lance só aparece em Conjuntos
-        if (subTab !== 'Conjuntos') {
+        // Para Anúncios, não há lance específico
+        if (subTab === 'Anúncios') {
           return <span className="text-zinc-600 font-mono text-xs">—</span>;
         }
 
         const itemNameUpper = (item.name || '').toUpperCase();
-        const hasRealBidVal = Boolean(
-          item.bidCap && 
-          Number(item.bidCap) > 0 && 
-          (itemNameUpper.includes('BID') || itemNameUpper.includes('COST CAP') || item.bidStrategy === 'COST_CAP' || item.bidStrategy === 'LOWEST_COST_WITH_BID_CAP')
-        );
-        const isCostCap = hasRealBidVal && item.bidStrategy === 'COST_CAP';
-        const isBidCap = hasRealBidVal && (item.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || !isCostCap);
+        const rawBidVal = (item.bidCap !== undefined && item.bidCap !== null && Number(item.bidCap) > 0)
+          ? Number(item.bidCap)
+          : 0;
 
-        // Se NÃO tiver limite de lance nem meta de custo configurados com valor positivo real
-        if (!hasRealBidVal) {
+        const isCostCap = item.bidStrategy === 'COST_CAP' || itemNameUpper.includes('COST CAP');
+        const isBidCap = item.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || (!isCostCap && (rawBidVal > 0 || itemNameUpper.includes('BID')));
+
+        const hasCappedBid = rawBidVal > 0 && (isCostCap || isBidCap);
+
+        // Se for Volume mais alto (sem limite / padrão ou ABO):
+        // Só um risquinho sem a canetinha pra clicar
+        if (!hasCappedBid) {
           return (
-            <div 
-              onClick={() => handleOpenEdit(item, 'bid')}
-              className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group"
-              title="Volume mais alto / Menor custo padrão (sem limite). Clique para configurar limite de lance."
-            >
-              <div className="text-zinc-400 font-mono text-xs flex items-center gap-1 group-hover:text-white transition-colors">
-                <span>—</span>
-                <Edit3 className="w-2.5 h-2.5 text-zinc-600 group-hover:text-[#5C9BFF] opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="p-1 select-none" title="Volume mais alto">
+              <div className="text-zinc-400 font-mono text-xs">
+                —
               </div>
               <div className="text-[10px] text-zinc-500">
                 Volume mais alto
@@ -1775,7 +1783,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           );
         }
 
-        const bidVal = Number(item.bidCap).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        // Se for Limite de lance ou Meta de custo: valor, texto e a canetinha para clicar
+        const formattedBid = rawBidVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         const strategyLabel = isCostCap ? 'Meta de custo' : 'Limite de lance';
 
         return (
@@ -1785,7 +1794,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             title={`Clique para alterar ${strategyLabel.toLowerCase()}`}
           >
             <div className="font-bold text-amber-300 font-mono flex items-center gap-1.5">
-              <span>R$ {bidVal}</span>
+              <span>R$ {formattedBid}</span>
               <Edit3 className="w-2.5 h-2.5 text-zinc-500 group-hover:text-amber-300" />
             </div>
             <div className="text-[10px] text-amber-400/90 font-medium">

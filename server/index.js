@@ -1145,12 +1145,18 @@ export function enrichCampaignsWithTracking({
       const asCpa = asSales > 0 ? (asSpend / asSales).toFixed(2) : '0.00';
       const nameUpper = (c.name || '').toUpperCase();
       const explicitAboInName = nameUpper.includes('ABO');
-      const isCampAbo = explicitAboInName || c.isAbo || (!c.daily_budget && !c.lifetime_budget && !c.isCbo);
+      const isCampAbo = Boolean(
+        explicitAboInName || 
+        (c.isAbo === true && !c.isCbo && !nameUpper.includes('CBO')) ||
+        (c.budgetType === 'Nível de Conjunto (ABO)' && !c.isCbo)
+      );
       const isCampCbo = !isCampAbo;
 
-      const hasRealBidAmount = Boolean(as.bidCap && Number(as.bidCap) > 0);
+      const campBid = (c.bidCap && Number(c.bidCap) > 0) ? String(c.bidCap) : null;
+      const asBid = (as.bidCap && Number(as.bidCap) > 0) ? String(as.bidCap) : (isCampCbo ? campBid : null);
+      const hasRealBidAmount = Boolean(asBid && Number(asBid) > 0);
       const asBidStrategy = hasRealBidAmount ? (as.bidStrategy || c.bidStrategy || 'LOWEST_COST_WITH_BID_CAP') : 'LOWEST_COST_WITHOUT_CAP';
-      const asBidCap = hasRealBidAmount ? as.bidCap : null;
+      const asBidCap = hasRealBidAmount ? asBid : null;
 
       return {
         ...as,
@@ -1207,7 +1213,11 @@ export function enrichCampaignsWithTracking({
 
     const nameUpper = (c.name || '').toUpperCase();
     const explicitAboInName = nameUpper.includes('ABO');
-    const isCampAbo = explicitAboInName || c.isAbo || (!c.daily_budget && !c.lifetime_budget && !c.isCbo);
+    const isCampAbo = Boolean(
+      explicitAboInName || 
+      (c.isAbo === true && !c.isCbo && !nameUpper.includes('CBO')) ||
+      (c.budgetType === 'Nível de Conjunto (ABO)' && !c.isCbo)
+    );
     const isCampCbo = !isCampAbo;
 
     return {
@@ -2426,13 +2436,13 @@ app.post('/api/campaigns/update', async (req, res) => {
         if (camp.adsets && Array.isArray(camp.adsets)) {
           const asIdx = camp.adsets.findIndex(a => a.id === id || a.adsetId === id);
           if (asIdx !== -1) {
+            const newBidCap = bidStrategy === 'LOWEST_COST_WITHOUT_CAP' ? null : (bidCap !== undefined ? (bidCap && Number(bidCap) > 0 ? String(bidCap) : null) : camp.adsets[asIdx].bidCap);
             camp.adsets[asIdx] = {
               ...camp.adsets[asIdx],
               ...(name ? { name } : {}),
               ...(budget !== undefined && budget !== null ? { budget: String(budget) } : {}),
-              ...(bidCap !== undefined && bidCap !== null ? { bidCap: String(bidCap) } : {}),
-              ...(bidStrategy ? { bidStrategy } : {}),
-              updatedAt: new Date().toISOString()
+              bidCap: newBidCap,
+              ...(bidStrategy ? { bidStrategy } : {})
             };
             target = camp.adsets[asIdx];
             adsetUpdated = true;
@@ -2444,14 +2454,23 @@ app.post('/api/campaigns/update', async (req, res) => {
 
     if (!adsetUpdated) {
       if (index !== -1) {
+        const newBidCap = bidStrategy === 'LOWEST_COST_WITHOUT_CAP' ? null : (bidCap !== undefined ? (bidCap && Number(bidCap) > 0 ? String(bidCap) : null) : campaigns[index].bidCap);
         campaigns[index] = {
           ...campaigns[index],
           ...(name ? { name } : {}),
           ...(budget !== undefined && budget !== null ? { budget: String(budget) } : {}),
-          ...(bidCap !== undefined && bidCap !== null ? { bidCap: String(bidCap) } : {}),
-          ...(bidStrategy ? { bidStrategy } : {}),
-          updatedAt: new Date().toISOString()
+          bidCap: newBidCap,
+          ...(bidStrategy ? { bidStrategy } : {})
         };
+        // Se a campanha for CBO, propaga para seus conjuntos de anúncios
+        if (!campaigns[index].isAbo && campaigns[index].adsets) {
+          campaigns[index].adsets = campaigns[index].adsets.map(a => ({
+            ...a,
+            ...(budget !== undefined && budget !== null ? { budget: String(budget) } : {}),
+            bidCap: newBidCap,
+            ...(bidStrategy ? { bidStrategy } : {})
+          }));
+        }
         target = campaigns[index];
       } else if (itemType !== 'adset') {
         target = {
@@ -2463,8 +2482,7 @@ app.post('/api/campaigns/update', async (req, res) => {
           bidStrategy: bidStrategy || "LOWEST_COST_WITHOUT_CAP",
           spend: "123.41",
           sales: 15,
-          revenue: "139.67",
-          updatedAt: new Date().toISOString()
+          revenue: "139.67"
         };
         campaigns.unshift(target);
       }

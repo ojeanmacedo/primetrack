@@ -305,8 +305,7 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       profit: (-realSpend).toFixed(2),
       roas: '0.00',
       cpa: '0.00',
-      arpu: '0.00',
-      updatedAt: 'N/A'
+      arpu: '0.00'
     };
   });
 
@@ -374,8 +373,7 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       profit: (-realSpend).toFixed(2),
       roas: '0.00',
       cpa: '0.00',
-      arpu: '0.00',
-      updatedAt: 'N/A'
+      arpu: '0.00'
     };
   }));
 
@@ -394,7 +392,7 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const isAbo = explicitAboInName || (!rawDailyBudget && !rawLifetimeBudget);
     const isCbo = !isAbo;
     let campBidStrategy = c.bid_strategy || 'LOWEST_COST_WITHOUT_CAP';
-    if (!nameUpper.includes('BID') && !nameUpper.includes('COST CAP')) {
+    if (!nameUpper.includes('BID') && !nameUpper.includes('COST CAP') && c.bid_strategy !== 'LOWEST_COST_WITH_BID_CAP' && c.bid_strategy !== 'COST_CAP') {
       campBidStrategy = 'LOWEST_COST_WITHOUT_CAP';
     }
 
@@ -439,15 +437,27 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
         }
       }
 
-      // Se o conjunto não tem limite de lance real configurado, é estritamente Volume Mais Alto (Menor Custo)
-      const hasRealBidAmount = Boolean(as.bidCap && Number(as.bidCap) > 0);
+      // Se a campanha for CBO e o conjunto não tem limite de lance próprio, herda da campanha
+      const rawCampBidAmount = c.bid_amount ? (Number(c.bid_amount) / 100) : null;
+      const realCampBidCap = rawCampBidAmount !== null ? (rawCampBidAmount * usdRate).toFixed(2) : null;
+
+      const effectiveBidCap = (as.bidCap && Number(as.bidCap) > 0)
+        ? as.bidCap
+        : (isCbo ? realCampBidCap : null);
+
+      const hasRealBidAmount = Boolean(effectiveBidCap && Number(effectiveBidCap) > 0);
       if (!hasRealBidAmount) {
         as.bidCap = null;
         as.bidStrategy = 'LOWEST_COST_WITHOUT_CAP';
       } else {
-        as.bidStrategy = as.bidStrategy || campBidStrategy;
+        as.bidCap = effectiveBidCap;
+        as.bidStrategy = as.bidStrategy || campBidStrategy || 'LOWEST_COST_WITH_BID_CAP';
       }
     });
+
+    const rawCampBidAmount = c.bid_amount ? (Number(c.bid_amount) / 100) : null;
+    const realCampBidCap = rawCampBidAmount !== null ? (rawCampBidAmount * usdRate).toFixed(2) : null;
+    const finalCampBidCap = isCbo ? (realCampBidCap || (campAdsets.find(a => a.bidCap && Number(a.bidCap) > 0)?.bidCap || null)) : null;
 
     const campAds = allAds.filter(a => a.campaignId === c.id);
     const totalAdsetsBudget = campAdsets.reduce((sum, a) => sum + Number(a.budget || 0), 0);
@@ -464,6 +474,7 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       objective: c.objective,
       isCbo,
       isAbo,
+      bidCap: finalCampBidCap,
       bidStrategy: campBidStrategy,
       budget: finalCampBudget,
       budgetType: isCbo ? (c.daily_budget ? 'Diário' : 'Vitalício') : 'Nível de Conjunto (ABO)',
