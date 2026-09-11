@@ -571,15 +571,17 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setEditingItem(item);
     setEditingCampaign(parentCamp);
     setEditingField(field);
-    setEditName(item.name || parentCamp.name || 'TESTE MI');
+    setEditName(item.name || parentCamp.name || '');
 
-    // Converte valor numérico para padrão monetário brasileiro (ex: 60 -> 60,00)
-    const rawBudgetNum = Number(parentCamp.budget || item.budget || 256.99);
-    const rawBidCapNum = Number(item.bidCap || parentCamp.bidCap || 11.02);
+    // Para conjuntos em ABO, prioriza o orçamento do próprio conjunto (item.budget)
+    const isConjunto = subTab === 'Conjuntos' || Boolean(item.adsetId);
+    const isAbo = item.isAbo || (!parentCamp.daily_budget && Boolean(item.budget));
+    const rawBudgetNum = Number((isConjunto && isAbo ? item.budget : null) || item.budget || parentCamp.budget || 20.00);
+    const rawBidCapNum = Number(item.bidCap || parentCamp.bidCap || 0);
     
-    setEditBudget(isNaN(rawBudgetNum) ? '60,00' : rawBudgetNum.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-    setEditBidCap(isNaN(rawBidCapNum) ? '11,02' : rawBidCapNum.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-    setEditStrategy(parentCamp.bidStrategy || 'LOWEST_COST_WITH_BID_CAP');
+    setEditBudget(isNaN(rawBudgetNum) ? '20,00' : rawBudgetNum.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    setEditBidCap(isNaN(rawBidCapNum) || rawBidCapNum === 0 ? '' : rawBidCapNum.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    setEditStrategy(item.bidStrategy || parentCamp.bidStrategy || 'LOWEST_COST_WITHOUT_CAP');
   };
 
   // Salva alteração com Trava de Perfil Backup
@@ -603,14 +605,23 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       saveItemNameOverride(targetId, editName);
     }
 
-    // Atualiza imediatamente na tabela APENAS o campo específico que foi editado
+    // Atualiza imediatamente na tabela APENAS o campo específico que foi editado no item exato
     setCampaignsList(prev => prev.map(c => {
-      if (c.id === editingCampaign.id || c.name === editingCampaign.name) {
+      const isTargetCamp = c.id === targetId || c.name === editingCampaign.name;
+      const matchingAdset = c.adsets && c.adsets.some(a => a.id === targetId || a.adsetId === targetId);
+
+      if (isTargetCamp || matchingAdset) {
         return {
           ...c,
-          ...(editingField === 'name' ? { name: editName } : {}),
-          ...(editingField === 'budget' ? { budget: normalizedBudget } : {}),
-          ...(editingField === 'bid' ? { bidCap: normalizedBidCap, bidStrategy: editStrategy } : {})
+          ...(isTargetCamp && editingField === 'name' ? { name: editName } : {}),
+          ...(isTargetCamp && editingField === 'budget' ? { budget: normalizedBudget } : {}),
+          ...(isTargetCamp && editingField === 'bid' ? { bidCap: normalizedBidCap, bidStrategy: editStrategy } : {}),
+          adsets: (c.adsets || []).map(a => (a.id === targetId || a.adsetId === targetId) ? {
+            ...a,
+            ...(editingField === 'name' ? { name: editName } : {}),
+            ...(editingField === 'budget' ? { budget: normalizedBudget } : {}),
+            ...(editingField === 'bid' ? { bidCap: normalizedBidCap, bidStrategy: editStrategy } : {})
+          } : a)
         };
       }
       return c;
@@ -784,10 +795,15 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
     // Atualiza otimista na tabela
     setCampaignsList(prev => prev.map(c => {
-      if (ids.includes(c.id)) {
+      const hasMatchingAdset = c.adsets && c.adsets.some(a => ids.includes(a.id) || ids.includes(a.adsetId));
+      if (ids.includes(c.id) || hasMatchingAdset) {
         return {
           ...c,
-          ...(bulkModalAction === 'budget' ? { budget: normalizedVal } : { bidCap: normalizedVal })
+          ...(ids.includes(c.id) ? (bulkModalAction === 'budget' ? { budget: normalizedVal } : { bidCap: normalizedVal }) : {}),
+          adsets: (c.adsets || []).map(a => (ids.includes(a.id) || ids.includes(a.adsetId)) ? {
+            ...a,
+            ...(bulkModalAction === 'budget' ? { budget: normalizedVal } : { bidCap: normalizedVal })
+          } : a)
         };
       }
       return c;
@@ -1024,10 +1040,15 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       : filteredCampaigns;
 
     const allAdsets = parentCampaigns.flatMap(camp => {
+      const campIsAbo = camp.isAbo ?? (camp.budgetType?.includes('ABO') || (!camp.isCbo && !camp.daily_budget));
       if (camp.adsets && camp.adsets.length > 0) {
         return camp.adsets.map(a => ({
           ...a,
-          name: itemNamesOverride[a.id] || a.name
+          name: itemNamesOverride[a.id] || a.name,
+          isCbo: a.isCbo ?? !campIsAbo,
+          isAbo: a.isAbo ?? campIsAbo,
+          bidStrategy: a.bidStrategy || camp.bidStrategy || 'LOWEST_COST_WITHOUT_CAP',
+          bidCap: a.bidCap || null
         }));
       }
       const adsetId = camp.id === '52604661655655' ? '52604661655855' : `${camp.id}_adset_1`;
@@ -1040,10 +1061,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         name: itemNamesOverride[adsetId] || defaultName,
         accountName: camp.accountName || 'CA01',
         status: camp.status,
+        isCbo: !campIsAbo,
+        isAbo: campIsAbo,
         budget: camp.budget,
         budgetType: camp.budgetType || 'Diário',
-        bidCap: camp.bidCap || '11.02',
-        bidStrategy: camp.bidStrategy || 'LOWEST_COST_WITH_BID_CAP',
+        bidCap: camp.bidCap || null,
+        bidStrategy: camp.bidStrategy || 'LOWEST_COST_WITHOUT_CAP',
         spend: camp.spend,
         sales: camp.sales,
         pendingSales: camp.pendingSales || 0,
@@ -1480,11 +1503,24 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           }
         }
 
+        const isCostCap = item.bidStrategy === 'COST_CAP';
+        const isBidCap = item.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || (Boolean(item.bidCap) && Number(item.bidCap) > 0 && !isCostCap);
+        const hasBidVal = Boolean(item.bidCap && Number(item.bidCap) > 0);
+        const numBid = Number(item.bidCap || 0);
+
         return (
           <div className="text-[10px] leading-tight space-y-0.5 text-left font-sans min-w-[130px]">
-            <div className="text-zinc-300 font-mono">
-              Orç: R$ {itemBudget.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {itemBudget > 0 ? `↑ R$ ${(itemBudget * 1.85).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}
-            </div>
+            {/* Se for estratégia de lance (Bid Cap) ou meta de custo (Cost Cap), identifica e mostra o lance com a escala/troca */}
+            {(isBidCap || isCostCap) && hasBidVal ? (
+              <div className="text-amber-300 font-mono font-medium flex items-center gap-1">
+                <span>{isCostCap ? 'Meta:' : 'Lance:'} R$ {numBid.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="text-amber-400 font-bold">↑ R$ {(numBid * 1.85).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+            ) : (
+              <div className="text-zinc-300 font-mono">
+                Orç: R$ {itemBudget.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {itemBudget > 0 ? `↑ R$ ${(itemBudget * 1.85).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}
+              </div>
+            )}
             <div className="text-zinc-400 font-mono">
               Gasto: R$ {itemSpend.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} | Lucro: <span className={itemProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}>R$ {itemProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
@@ -1525,16 +1561,21 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         );
       }
 
-      case 'budget':
-        if (subTab === 'Conjuntos') {
+      case 'budget': {
+        const isConjunto = subTab === 'Conjuntos';
+        const isAbo = item.isAbo || (!item.isCbo && isConjunto);
+
+        if (isConjunto && !isAbo) {
+          // Campanha CBO no nível de conjunto
           return (
             <div 
               className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group" 
               onClick={() => handleOpenEdit(item, 'budget')}
-              title="Clique para editar orçamento"
+              title="Campanha CBO: Usando orçamento da campanha"
             >
-              <div className="text-zinc-300 font-sans text-xs">
-                Usando orç. campanha
+              <div className="text-zinc-300 font-sans text-xs flex items-center gap-1">
+                <span>Usando orç. campanha</span>
+                <Edit3 className="w-2.5 h-2.5 text-zinc-500 group-hover:text-[#5C9BFF]" />
               </div>
               <div className="text-[10px] text-zinc-500 font-mono">
                 R$ {Number(item.budget || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({item.budgetType || 'Diário'})
@@ -1542,19 +1583,29 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             </div>
           );
         }
+
+        // Campanhas normais OU Conjunto em campanha ABO
         return (
           <div 
             className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group" 
             onClick={() => handleOpenEdit(item, 'budget')}
-            title="Clique para alterar orçamento"
+            title={isConjunto ? "Campanha ABO: Clique para alterar orçamento do conjunto" : "Clique para alterar orçamento da campanha"}
           >
             <div className="font-bold text-white font-mono flex items-center gap-1.5">
               <span>R$ {Number(item.budget || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               <Edit3 className="w-2.5 h-2.5 text-zinc-500 group-hover:text-[#5C9BFF]" />
             </div>
-            <div className="text-[10px] text-zinc-400">{item.budgetType || 'Diário'}</div>
+            <div className="text-[10px] text-zinc-400 flex items-center gap-1.5">
+              <span>{item.budgetType || 'Diário'}</span>
+              {isConjunto && (
+                <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/15 border border-blue-500/30 text-[#5C9BFF] font-mono font-bold">
+                  ABO
+                </span>
+              )}
+            </div>
           </div>
         );
+      }
 
       case 'bid': {
         // Lance só aparece em Conjuntos
@@ -1562,23 +1613,43 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           return <span className="text-zinc-600 font-mono text-xs">—</span>;
         }
 
-        const hasBidCap = Boolean(item.bidCap);
-        const bidVal = item.bidCap ? Number(item.bidCap).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '11,02';
-        const strategyLabel = item.bidStrategy === 'COST_CAP' 
-          ? 'Meta de custo' 
-          : (item.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || hasBidCap ? 'Limite de lance' : 'Menor custo');
+        const isCostCap = item.bidStrategy === 'COST_CAP';
+        const isBidCap = item.bidStrategy === 'LOWEST_COST_WITH_BID_CAP';
+        const hasBidVal = Boolean(item.bidCap && Number(item.bidCap) > 0);
+
+        // Se NÃO tiver limite de lance nem meta de custo (Menor Custo padrão / Maior Volume)
+        if (!hasBidVal && !isBidCap && !isCostCap) {
+          return (
+            <div 
+              onClick={() => handleOpenEdit(item, 'bid')}
+              className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group"
+              title="Menor Custo (usa orçamento do conjunto/campanha). Clique para configurar limite de lance."
+            >
+              <div className="text-zinc-400 font-mono text-xs flex items-center gap-1 group-hover:text-white transition-colors">
+                <span>—</span>
+                <Edit3 className="w-2.5 h-2.5 text-zinc-600 group-hover:text-[#5C9BFF] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+              <div className="text-[10px] text-zinc-500">
+                Menor custo
+              </div>
+            </div>
+          );
+        }
+
+        const bidVal = Number(item.bidCap || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const strategyLabel = isCostCap ? 'Meta de custo' : 'Limite de lance';
 
         return (
           <div 
             onClick={() => handleOpenEdit(item, 'bid')}
             className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group"
-            title="Clique para alterar limite de lance"
+            title={`Clique para alterar ${strategyLabel.toLowerCase()}`}
           >
-            <div className="font-bold text-white font-mono flex items-center gap-1.5">
+            <div className="font-bold text-amber-300 font-mono flex items-center gap-1.5">
               <span>R$ {bidVal}</span>
-              <Edit3 className="w-2.5 h-2.5 text-zinc-500 group-hover:text-[#5C9BFF]" />
+              <Edit3 className="w-2.5 h-2.5 text-zinc-500 group-hover:text-amber-300" />
             </div>
-            <div className="text-[10px] text-zinc-400 capitalize">
+            <div className="text-[10px] text-amber-400/90 font-medium">
               {strategyLabel}
             </div>
           </div>
@@ -2291,9 +2362,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                             <span className="text-[10px] text-zinc-500 font-mono">
                               {item.accountName || 'CA01'}
                             </span>
-                            {item.bidCap && (
+                            {Boolean(item.bidCap && Number(item.bidCap) > 0 && (item.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || item.bidStrategy === 'COST_CAP')) && (
                               <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono font-bold shrink-0">
-                                Bid Cap: R$ {item.bidCap}
+                                {item.bidStrategy === 'COST_CAP' ? 'Cost Cap' : 'Bid Cap'}: R$ {Number(item.bidCap).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </span>
                             )}
                           </div>
@@ -3039,10 +3110,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 </div>
                 <div>
                   <h3 className="font-bold text-white text-xs">
-                    {editingField === 'bid' ? 'Editar Limite de Lance' : (editingField === 'name' ? 'Editar Nome' : 'Editar Orçamento')}
+                    {editingField === 'bid' 
+                      ? (editStrategy === 'COST_CAP' ? 'Editar Meta de Custo' : 'Editar Limite de Lance') 
+                      : (editingField === 'name' ? 'Editar Nome' : (subTab === 'Conjuntos' ? 'Editar Orçamento do Conjunto' : 'Editar Orçamento da Campanha'))}
                   </h3>
                   <span className="text-[10px] font-mono text-zinc-400 truncate max-w-[200px] block">
-                    {editingCampaign.name}
+                    {editingItem?.name || editingCampaign?.name}
                   </span>
                 </div>
               </div>
@@ -3059,9 +3132,16 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             <form onSubmit={handleSaveCampaign} className="space-y-4 text-xs">
               {editingField === 'budget' && (
                 <div>
-                  <label className="block text-zinc-300 font-semibold mb-1.5">
-                    Orçamento Diário (R$)
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-zinc-300 font-semibold">
+                      {subTab === 'Conjuntos' ? 'Orçamento Diário do Conjunto (R$)' : 'Orçamento Diário da Campanha (R$)'}
+                    </label>
+                    {subTab === 'Conjuntos' && (
+                      <span className="text-[10px] font-mono text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20">
+                        {editingItem?.isAbo ? 'Campanha ABO' : 'Campanha CBO'}
+                      </span>
+                    )}
+                  </div>
                   <div className="relative">
                     <span className="absolute left-3 top-2.5 text-zinc-500 font-mono">R$</span>
                     <input 
@@ -3070,30 +3150,61 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       value={editBudget}
                       onChange={e => setEditBudget(formatCurrencyInput(e.target.value))}
                       className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white focus:outline-none focus:border-[#1A6DFF] font-mono font-bold text-sm"
-                      placeholder="60,00"
+                      placeholder="20,00"
                       required
                     />
                   </div>
+                  {subTab === 'Conjuntos' && (
+                    <p className="text-[10px] text-zinc-500 mt-1.5">
+                      {editingItem?.isAbo 
+                        ? 'Este valor será aplicado diretamente neste conjunto de anúncios (ABO).'
+                        : 'Atenção: Em campanhas CBO, o orçamento é compartilhado entre todos os conjuntos.'}
+                    </p>
+                  )}
                 </div>
               )}
 
               {editingField === 'bid' && (
                 <div>
-                  <label className="block text-zinc-300 font-semibold mb-1.5">
-                    Limite de Lance / Bid Cap (R$)
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-zinc-500 font-mono">R$</span>
-                    <input 
-                      type="text"
-                      autoFocus
-                      value={editBidCap}
-                      onChange={e => setEditBidCap(formatCurrencyInput(e.target.value))}
-                      className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-amber-300 focus:outline-none focus:border-amber-400 font-mono font-bold text-sm"
-                      placeholder="15,00"
-                      required
-                    />
+                  <div className="mb-3">
+                    <label className="block text-zinc-400 text-[11px] mb-1 font-semibold">
+                      Estratégia de Lance
+                    </label>
+                    <select
+                      value={editStrategy}
+                      onChange={e => setEditStrategy(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white focus:outline-none focus:border-[#1A6DFF] font-sans text-xs cursor-pointer"
+                    >
+                      <option value="LOWEST_COST_WITH_BID_CAP">Limite de Lance (Bid Cap)</option>
+                      <option value="COST_CAP">Meta de Custo (Cost Cap)</option>
+                      <option value="LOWEST_COST_WITHOUT_CAP">Menor Custo (Usa orçamento, sem limite)</option>
+                    </select>
                   </div>
+
+                  {editStrategy !== 'LOWEST_COST_WITHOUT_CAP' && (
+                    <div>
+                      <label className="block text-zinc-300 font-semibold mb-1.5">
+                        {editStrategy === 'COST_CAP' ? 'Meta de Custo / Cost Cap (R$)' : 'Limite de Lance / Bid Cap (R$)'}
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2.5 text-zinc-500 font-mono">R$</span>
+                        <input 
+                          type="text"
+                          autoFocus
+                          value={editBidCap}
+                          onChange={e => setEditBidCap(formatCurrencyInput(e.target.value))}
+                          className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-amber-300 focus:outline-none focus:border-amber-400 font-mono font-bold text-sm"
+                          placeholder="11,00"
+                          required
+                        />
+                      </div>
+                      <p className="text-[10px] text-zinc-500 mt-1.5">
+                        {editStrategy === 'COST_CAP' 
+                          ? 'A Meta buscará manter o custo médio por evento próximo a este valor.'
+                          : 'A Meta não dará lances acima deste valor no leilão.'}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 

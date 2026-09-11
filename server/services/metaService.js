@@ -217,7 +217,7 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
   }
 
   const [campRes, adsetsRes, adsRes, accRes] = await Promise.all([
-    fetch(`${GRAPH_BASE_URL}/${actId}/campaigns?fields=id,name,status,effective_status,objective,daily_budget,lifetime_budget,${insightField}&limit=100&access_token=${accessToken}`),
+    fetch(`${GRAPH_BASE_URL}/${actId}/campaigns?fields=id,name,status,effective_status,objective,daily_budget,lifetime_budget,bid_strategy,${insightField}&limit=100&access_token=${accessToken}`),
     fetch(`${GRAPH_BASE_URL}/${actId}/adsets?fields=id,name,status,effective_status,campaign_id,daily_budget,lifetime_budget,bid_amount,bid_strategy,${insightField}&limit=100&access_token=${accessToken}`).catch(() => null),
     fetch(`${GRAPH_BASE_URL}/${actId}/ads?fields=id,name,status,effective_status,campaign_id,adset_id,creative{id,name,thumbnail_url,image_url,video_id},${insightField}&limit=100&access_token=${accessToken}`).catch(() => null),
     fetch(`${GRAPH_BASE_URL}/${actId}?fields=currency&access_token=${accessToken}`).catch(() => null)
@@ -272,7 +272,7 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const costPerIc = metaInitCheckouts > 0 ? (realSpend / metaInitCheckouts).toFixed(2) : '0.00';
 
     const rawBidAmount = adset.bid_amount ? (Number(adset.bid_amount) / 100) : null;
-    const realBidCap = rawBidAmount !== null ? (rawBidAmount * usdRate).toFixed(2) : '11.02';
+    const realBidCap = rawBidAmount !== null ? (rawBidAmount * usdRate).toFixed(2) : null;
 
     const rawDailyBudget = adset.daily_budget ? (Number(adset.daily_budget) / 100) : null;
     const realBudget = rawDailyBudget !== null ? (rawDailyBudget * usdRate).toFixed(2) : null;
@@ -289,7 +289,7 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       budget: realBudget,
       budgetType: adset.daily_budget ? 'Diário' : 'Vitalício',
       bidCap: realBidCap,
-      bidStrategy: adset.bid_strategy || 'LOWEST_COST_WITH_BID_CAP',
+      bidStrategy: adset.bid_strategy || null,
       spend: realSpend.toFixed(2),
       impressions,
       clicks,
@@ -388,6 +388,11 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const rawDailyBudget = c.daily_budget ? (Number(c.daily_budget) / 100) : null;
     const rawLifetimeBudget = c.lifetime_budget ? (Number(c.lifetime_budget) / 100) : null;
 
+    const hasCampBudget = Boolean(rawDailyBudget !== null || rawLifetimeBudget !== null);
+    const isCbo = hasCampBudget;
+    const isAbo = !hasCampBudget;
+    const campBidStrategy = c.bid_strategy || 'LOWEST_COST_WITHOUT_CAP';
+
     const baseBudget = rawDailyBudget !== null ? rawDailyBudget : (rawLifetimeBudget !== null ? rawLifetimeBudget : 25.00);
 
     // Converte automaticamente para Real Brasileiro (BRL / R$) se a conta de anúncios for em Dólar
@@ -414,13 +419,28 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     // Anexa conjuntos e anúncios reais vinculados a esta campanha
     const campAdsets = allAdsets.filter(a => a.campaignId === c.id);
     campAdsets.forEach(as => {
-      if (!as.budget) {
-        as.budget = realBudget.toFixed(2);
-        as.budgetType = c.daily_budget ? 'Diário' : 'Vitalício';
+      as.isCbo = isCbo;
+      as.isAbo = isAbo;
+      if (isCbo) {
+        if (!as.budget) {
+          as.budget = realBudget.toFixed(2);
+          as.budgetType = c.daily_budget ? 'Diário' : 'Vitalício';
+        }
+      } else {
+        // Campanha ABO: o conjunto tem seu próprio orçamento
+        if (!as.budget) {
+          as.budget = '10.00';
+          as.budgetType = 'Diário';
+        }
+      }
+      if (!as.bidStrategy) {
+        as.bidStrategy = campBidStrategy;
       }
     });
 
     const campAds = allAds.filter(a => a.campaignId === c.id);
+    const totalAdsetsBudget = campAdsets.reduce((sum, a) => sum + Number(a.budget || 0), 0);
+    const finalCampBudget = isCbo ? realBudget.toFixed(2) : (totalAdsetsBudget > 0 ? totalAdsetsBudget.toFixed(2) : realBudget.toFixed(2));
 
     // A API da Meta é utilizada ESTRITAMENTE para coletar gastos, impressões, cliques, CPC, CPM, CTR e ICS
     // As vendas e receitas vêm exclusivamente das plataformas integradas (MonsterPay) e do Pixel PrimeTrack
@@ -431,8 +451,11 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       rawStatus: c.status,
       effectiveStatus: c.effective_status || c.status,
       objective: c.objective,
-      budget: realBudget.toFixed(2),
-      budgetType: c.daily_budget ? 'Diário' : 'Vitalício',
+      isCbo,
+      isAbo,
+      bidStrategy: campBidStrategy,
+      budget: finalCampBudget,
+      budgetType: isCbo ? (c.daily_budget ? 'Diário' : 'Vitalício') : 'Diário (ABO)',
       spend: realSpend.toFixed(2),
       rawSpendUsd: isUsd ? rawSpend.toFixed(2) : null,
       rawBudgetUsd: isUsd ? baseBudget.toFixed(2) : null,

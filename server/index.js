@@ -1143,10 +1143,15 @@ export function enrichCampaignsWithTracking({
       const asProfit = asRevenue - asSpend;
       const asRoas = asSpend > 0 ? (asRevenue / asSpend).toFixed(2) : '0.00';
       const asCpa = asSales > 0 ? (asSpend / asSales).toFixed(2) : '0.00';
-      const asArpu = asSales > 0 ? (asRevenue / asSales).toFixed(2) : '0.00';
+      const isCbo = c.isCbo ?? Boolean(c.daily_budget || c.lifetime_budget);
+      const isAbo = c.isAbo ?? !isCbo;
 
       return {
         ...as,
+        isCbo: as.isCbo ?? isCbo,
+        isAbo: as.isAbo ?? isAbo,
+        bidStrategy: as.bidStrategy || c.bidStrategy || 'LOWEST_COST_WITHOUT_CAP',
+        bidCap: as.bidCap || null,
         sales: asSales,
         pendingSales: asPending,
         revenue: asRevenue.toFixed(2),
@@ -1194,8 +1199,14 @@ export function enrichCampaignsWithTracking({
       };
     });
 
+    const isCampCbo = c.isCbo ?? Boolean(c.daily_budget || c.lifetime_budget);
+    const isCampAbo = c.isAbo ?? !isCampCbo;
+
     return {
       ...c,
+      isCbo: isCampCbo,
+      isAbo: isCampAbo,
+      bidStrategy: c.bidStrategy || 'LOWEST_COST_WITHOUT_CAP',
       sales: totalSales,
       pendingSales: matchingPendingOrders.length,
       revenue: totalRevenue.toFixed(2),
@@ -2398,30 +2409,56 @@ app.post('/api/campaigns/update', async (req, res) => {
     const index = campaigns.findIndex(c => c.id === id || c.name === 'TESTE MI');
 
     let target = null;
-    if (index !== -1) {
-      campaigns[index] = {
-        ...campaigns[index],
-        ...(name ? { name } : {}),
-        ...(budget ? { budget: String(budget) } : {}),
-        ...(bidCap ? { bidCap: String(bidCap) } : {}),
-        ...(bidStrategy ? { bidStrategy } : {}),
-        updatedAt: new Date().toISOString()
-      };
-      target = campaigns[index];
-    } else {
-      target = {
-        id: id || "52604661655655",
-        name: name || "TESTE MI",
-        status: true,
-        budget: String(budget || "256.99"),
-        bidCap: String(bidCap || "15.00"),
-        bidStrategy: bidStrategy || "LOWEST_COST_WITH_BID_CAP",
-        spend: "123.41",
-        sales: 15,
-        revenue: "139.67",
-        updatedAt: new Date().toISOString()
-      };
-      campaigns.unshift(target);
+    let adsetUpdated = false;
+
+    // Se for edição de conjunto, procura nos adsets das campanhas
+    if (itemType === 'adset') {
+      for (const camp of campaigns) {
+        if (camp.adsets && Array.isArray(camp.adsets)) {
+          const asIdx = camp.adsets.findIndex(a => a.id === id || a.adsetId === id);
+          if (asIdx !== -1) {
+            camp.adsets[asIdx] = {
+              ...camp.adsets[asIdx],
+              ...(name ? { name } : {}),
+              ...(budget !== undefined && budget !== null ? { budget: String(budget) } : {}),
+              ...(bidCap !== undefined && bidCap !== null ? { bidCap: String(bidCap) } : {}),
+              ...(bidStrategy ? { bidStrategy } : {}),
+              updatedAt: new Date().toISOString()
+            };
+            target = camp.adsets[asIdx];
+            adsetUpdated = true;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!adsetUpdated) {
+      if (index !== -1) {
+        campaigns[index] = {
+          ...campaigns[index],
+          ...(name ? { name } : {}),
+          ...(budget !== undefined && budget !== null ? { budget: String(budget) } : {}),
+          ...(bidCap !== undefined && bidCap !== null ? { bidCap: String(bidCap) } : {}),
+          ...(bidStrategy ? { bidStrategy } : {}),
+          updatedAt: new Date().toISOString()
+        };
+        target = campaigns[index];
+      } else if (itemType !== 'adset') {
+        target = {
+          id: id || "52604661655655",
+          name: name || "TESTE MI",
+          status: true,
+          budget: String(budget || "256.99"),
+          bidCap: String(bidCap || "15.00"),
+          bidStrategy: bidStrategy || "LOWEST_COST_WITH_BID_CAP",
+          spend: "123.41",
+          sales: 15,
+          revenue: "139.67",
+          updatedAt: new Date().toISOString()
+        };
+        campaigns.unshift(target);
+      }
     }
     db.set('campaigns', campaigns);
     campaignsCache.clear();
