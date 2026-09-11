@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUser, isMasterAdmin } from '../utils/auth';
 import { 
-  Eye, 
   Plus, 
   ChevronDown, 
   Download, 
@@ -36,7 +35,6 @@ import {
 import DateRangePicker from '../components/DateRangePicker';
 
 const COLUMN_DEFS = [
-  { id: 'preview', label: 'Preview', defaultVisible: true, adsOnly: true },
   { id: 'budget', label: 'Orçamento', defaultVisible: true, notAds: true },
   { id: 'bid', label: 'Lance', defaultVisible: false },
   { id: 'sales', label: 'Vendas', defaultVisible: true },
@@ -151,16 +149,16 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const [customRange, setCustomRange] = useState(null);
   const [accountFilter, setAccountFilter] = useState('Todas');
   
-  // Configuração padrão de colunas por aba (Lance ativo apenas na aba Conjuntos por padrão)
+  // Configuração padrão de colunas por aba para novas contas na PrimeTrack:
+  // - Lance ativo por padrão apenas em Conjuntos (desmarcado em Campanhas, Contas e Anúncios)
+  // - Orçamento ativo em Contas, Campanhas e Conjuntos (não se aplica a Anúncios)
+  // - Coluna Preview de criativo removida definitivamente
   const getDefaultColsForTab = (tab) => {
     return COLUMN_DEFS.map(c => {
       let isVisible = c.defaultVisible;
       if (c.id === 'bid') {
         // Lance desmarcado na Campanha, marcado apenas em Conjuntos
         isVisible = (tab === 'Conjuntos');
-      }
-      if (c.id === 'preview') {
-        isVisible = (tab === 'Anúncios');
       }
       if (c.id === 'budget') {
         isVisible = (tab !== 'Anúncios');
@@ -177,7 +175,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         try {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            const filtered = parsed.filter(c => c.id !== 'updatedAt');
+            const filtered = parsed.filter(c => c.id !== 'updatedAt' && c.id !== 'preview');
             const existingIds = new Set(filtered.map(c => c.id));
             const defaultCols = getDefaultColsForTab(tab);
             const missing = defaultCols.filter(c => !existingIds.has(c.id));
@@ -199,10 +197,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const [currentPage, setCurrentPage] = useState(1);
 
   const [columnsConfigByTab, setColumnsConfigByTab] = useState(() => ({
-    Contas: getInitialColsForTab('Contas').filter(c => c.id !== 'updatedAt'),
-    Campanhas: getInitialColsForTab('Campanhas').filter(c => c.id !== 'updatedAt'),
-    Conjuntos: getInitialColsForTab('Conjuntos').filter(c => c.id !== 'updatedAt'),
-    Anúncios: getInitialColsForTab('Anúncios').filter(c => c.id !== 'updatedAt')
+    Contas: getInitialColsForTab('Contas').filter(c => c.id !== 'updatedAt' && c.id !== 'preview'),
+    Campanhas: getInitialColsForTab('Campanhas').filter(c => c.id !== 'updatedAt' && c.id !== 'preview'),
+    Conjuntos: getInitialColsForTab('Conjuntos').filter(c => c.id !== 'updatedAt' && c.id !== 'preview'),
+    Anúncios: getInitialColsForTab('Anúncios').filter(c => c.id !== 'updatedAt' && c.id !== 'preview')
   }));
 
   const columnsConfig = columnsConfigByTab[subTab] || columnsConfigByTab['Campanhas'];
@@ -497,8 +495,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         if (saved) {
           try {
             const parsed = JSON.parse(saved);
-            if (Array.isArray(parsed) && parsed.some(c => c.id === 'updatedAt')) {
-              const cleaned = parsed.filter(c => c.id !== 'updatedAt');
+            if (Array.isArray(parsed) && parsed.some(c => c.id === 'updatedAt' || c.id === 'preview')) {
+              const cleaned = parsed.filter(c => c.id !== 'updatedAt' && c.id !== 'preview');
               localStorage.setItem(key, JSON.stringify(cleaned));
             }
           } catch (e) {}
@@ -1539,7 +1537,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const activeVisibleColumns = React.useMemo(() => {
     return columnsConfig.filter(col => {
       if (!col.visible) return false;
-      if (col.id === 'preview' && subTab !== 'Anúncios') return false;
+      if (col.id === 'preview') return false;
       if (col.id === 'budget' && subTab === 'Anúncios') return false;
       return true;
     });
@@ -1682,7 +1680,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   const getColumnHeaderLabel = (id) => {
     const map = {
-      preview: 'PREVIEW :',
       budget: 'ORÇAMENTO :',
       bid: 'LANCE :',
       spend: 'GASTO :',
@@ -1713,33 +1710,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   const renderCell = (colId, item) => {
     switch (colId) {
-      case 'preview': {
-        // Verifica se o anúncio tem vídeo real cadastrado ou se é vídeo pelo tipo/url
-        const hasVideo = Boolean(
-          item.videoUrl || 
-          (item.type && item.type.toLowerCase().includes('video')) ||
-          (typeof item.mediaSrc === 'string' && (item.mediaSrc.includes('.mp4') || item.mediaSrc.includes('video')))
-        );
-
-        const videoSrc = item.videoUrl || (hasVideo ? item.mediaSrc : null);
-        const imgSrc = item.mediaSrc || item.thumbnailUrl || item.imageUrl || item.creativeUrl;
-
-        return (
-          <button 
-            type="button"
-            onClick={() => setActiveCreativePreview({
-              videoUrl: videoSrc,
-              imageUrl: imgSrc,
-              isVideo: Boolean(videoSrc)
-            })}
-            title="Ver criativo"
-            className="p-1.5 rounded-lg border border-white/10 hover:border-[#1A6DFF] hover:bg-[#12223D] text-zinc-400 hover:text-[#5C9BFF] transition-all cursor-pointer inline-flex items-center justify-center"
-          >
-            <Eye className="w-3.5 h-3.5" />
-          </button>
-        );
-      }
-
       case 'budget': {
         const isConjunto = subTab === 'Conjuntos';
         const isCampanha = subTab === 'Campanhas';
