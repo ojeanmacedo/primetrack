@@ -2040,14 +2040,18 @@ app.get('/api/auth/facebook/callback', async (req, res) => {
       console.warn('[Supabase Conexão Meta] Aviso ao persistir no Supabase:', supaErr.message);
     }
 
-    // Salva as contas de anúncios no Banco de Dados (sempre desativadas por padrão ao conectar)
+    // Salva as contas de anúncios no Banco de Dados (preserva status ativo ou define como true por padrão)
     const existingAccounts = db.get('ad_accounts') || [];
-    const accountsWithProfile = adAccounts.map(acc => ({
-      ...acc,
-      profileId: userProfile.id,
-      profileName: userProfile.name,
-      syncActive: false
-    }));
+    const accountsWithProfile = adAccounts.map(acc => {
+      const cleanId = (acc.accountId || acc.id || '').replace('act_', '');
+      const prev = existingAccounts.find(a => (a.accountId || a.id || '').replace('act_', '') === cleanId);
+      return {
+        ...acc,
+        profileId: userProfile.id,
+        profileName: userProfile.name,
+        syncActive: prev ? prev.syncActive !== false : true
+      };
+    });
     
     // Mescla mantendo outras contas de outros perfis e atualizando as deste perfil
     const otherAccounts = existingAccounts.filter(a => a.profileId !== userProfile.id);
@@ -2231,6 +2235,42 @@ export async function reconcileFacebookData() {
       return !act || validAccountCleanIds.has(act);
     });
     db.set('meta_ads', filteredAds);
+  } else if (connections.length > 0) {
+    // Se a busca ao vivo na Meta falhou ou não retornou contas (ex: erro de permissão temporário, rate limit ou app em desenvolvimento),
+    // recupera as contas existentes já salvas no Supabase e no banco local para não apagar a visualização do usuário
+    let existingAccounts = [];
+    try {
+      const { data: supaAccs } = await supabaseAdmin.from('ad_accounts').select('*');
+      if (supaAccs && supaAccs.length > 0) {
+        existingAccounts = supaAccs.map(a => {
+          const cleanId = (a.id || '').replace('act_', '');
+          return {
+            id: a.id?.startsWith('act_') ? a.id : `act_${cleanId}`,
+            accountId: cleanId,
+            profileId: connections[0]?.id,
+            profileName: connections[0]?.name,
+            name: a.name,
+            businessName: a.bm_name,
+            currency: a.currency || 'BRL',
+            status: a.status || 'Ativa',
+            amountSpent: String(a.amount_spent || '0.00'),
+            balance: String(a.balance || '0.00'),
+            syncActive: activeSet.size === 0 ? true : activeSet.has(cleanId)
+          };
+        });
+      }
+    } catch (e) {
+      console.warn('[Reconcile FB] Erro ao recuperar fallback do Supabase:', e.message);
+    }
+
+    if (existingAccounts.length === 0) {
+      existingAccounts = db.get('ad_accounts') || [];
+    }
+
+    if (existingAccounts.length > 0) {
+      validAccounts.push(...existingAccounts);
+      db.set('ad_accounts', validAccounts);
+    }
   }
 
   const sanitizedConnections = connections.map(c => ({
@@ -2238,7 +2278,7 @@ export async function reconcileFacebookData() {
     name: c.name,
     email: c.email,
     avatarUrl: c.avatar_url,
-    accountsCount: validAccounts.filter(a => String(a.profileId) === String(c.id)).length || c.accounts_count,
+    accountsCount: validAccounts.length || c.accounts_count,
     connectedAt: c.connected_at
   }));
 
@@ -2271,6 +2311,102 @@ app.post('/api/meta/refresh-accounts', async (req, res) => {
       success: true,
       message: 'Contas sincronizadas e reconciliadas com sucesso da Meta!',
       count: reconciled.adAccounts.length,
+      adAccounts: reconciled.adAccounts
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Endpoint para conectar perfil / contas diretamente via Access Token ou System User Token
+app.post('/api/meta/connect-token', async (req, res) => {
+  try {
+    const { token, name } = req.body;
+    if (!token || !token.trim()) {
+      return res.status(400).json({ success: false, error: 'Token de acesso é obrigatório.' });
+    }
+    const cleanToken = token.trim();
+
+    let userProfile = null;
+    try {
+      userProfile = await fetchUserProfile(cleanToken);
+    } catch (e) {
+      const meRes = await fetch(`https://graph.facebook.com/v19.0/me?access_token=${cleanToken}`);
+      const meData = await meRes.json();
+      if (meData.error) {
+        return res.status(400).json({ success: false, error: `Token inválido na Meta: ${meData.error.message}` });
+      }
+      userProfile = {
+        id: meData.id || `sys_${Date.now()}`,
+        name: name || meData.name || 'Usuário Meta Ads',
+        email: null,
+        avatarUrl: null
+      };
+    }
+
+    const adAccounts = await fetchAdAccounts(cleanToken);
+
+    // Atualiza facebook_connections
+    const existingConnections = db.get('facebook_connections') || [];
+    const updatedConnections = existingConnections.filter(c => c.id !== userProfile.id);
+    const newConn = {
+      id: userProfile.id,
+      name: userProfile.name,
+      email: userProfile.email || null,
+      avatarUrl: userProfile.avatarUrl || null,
+      accessToken: cleanToken,
+      accountsCount: adAccounts.length,
+      connectedAt: new Date().toISOString()
+    };
+    updatedConnections.unshift(newConn);
+    db.set('facebook_connections', updatedConnections);
+
+    // Salva no Supabase
+    try {
+      await supabaseAdmin.from('facebook_connections').upsert({
+        id: userProfile.id,
+        name: userProfile.name,
+        email: userProfile.email || null,
+        avatar_url: userProfile.avatarUrl || null,
+        access_token: cleanToken,
+        accounts_count: adAccounts.length,
+        connected_at: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn('[Supabase Token Connect]:', e.message);
+    }
+
+    if (adAccounts.length > 0) {
+      const existingAccounts = db.get('ad_accounts') || [];
+      const accountsWithProfile = adAccounts.map(acc => ({
+        ...acc,
+        profileId: userProfile.id,
+        profileName: userProfile.name,
+        syncActive: true
+      }));
+      const otherAccounts = existingAccounts.filter(a => a.profileId !== userProfile.id);
+      db.set('ad_accounts', [...otherAccounts, ...accountsWithProfile]);
+
+      try {
+        const rows = adAccounts.map(acc => ({
+          id: acc.id || `act_${acc.accountId}`,
+          name: acc.name || 'Conta de Anúncio',
+          bm_name: acc.businessName || null,
+          currency: acc.currency || acc.rawCurrency || 'BRL',
+          status: acc.status || 'ACTIVE',
+          amount_spent: Number(acc.amountSpent || 0),
+          balance: Number(acc.balance || 0)
+        }));
+        await supabaseAdmin.from('ad_accounts').upsert(rows);
+      } catch (e) {}
+    }
+
+    const reconciled = await reconcileFacebookData();
+
+    res.json({
+      success: true,
+      message: `Perfil ${userProfile.name} conectado com sucesso (${adAccounts.length} contas encontradas)!`,
+      connections: reconciled.connections,
       adAccounts: reconciled.adAccounts
     });
   } catch (err) {

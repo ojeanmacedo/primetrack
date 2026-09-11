@@ -273,11 +273,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         try {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            // Invalida cache se contiver campanhas zeradas com vendas fantasmas
-            if (parsed.some(c => (Number(c.spend || 0) === 0 && Number(c.clicks || 0) === 0 && (c.pendingSales > 0 || c.sales > 0)) || String(c.spend) === '354.27' || (c.accountName === 'CA03 JEFFREY' && c.pendingSales > 0))) {
-              localStorage.removeItem('primetrack_cached_campaigns');
-              return [];
-            }
             return sanitizeCampaignsData(parsed);
           }
         } catch (e) {}
@@ -437,9 +432,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
       if (Array.isArray(data.adAccounts)) {
         if (data.adAccounts.length === 0) {
-          setAdAccountsList([]);
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('primetrack_ad_accounts');
+          const savedLocal = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
+          if (!savedLocal) {
+            setAdAccountsList([]);
           }
         } else {
           const mappedAccs = data.adAccounts

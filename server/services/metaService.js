@@ -27,7 +27,9 @@ export function getAuthorizationUrl(state = 'primetrack_oauth', customRedirectUr
     redirect_uri: redirectUri,
     state: state,
     scope: scopes,
-    response_type: 'code'
+    response_type: 'code',
+    auth_type: 'rerequest',
+    return_scopes: 'true'
   });
 
   return `https://www.facebook.com/${GRAPH_API_VERSION}/dialog/oauth?${params.toString()}`;
