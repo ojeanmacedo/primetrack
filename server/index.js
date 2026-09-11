@@ -1143,6 +1143,7 @@ export function enrichCampaignsWithTracking({
       const asProfit = asRevenue - asSpend;
       const asRoas = asSpend > 0 ? (asRevenue / asSpend).toFixed(2) : '0.00';
       const asCpa = asSales > 0 ? (asSpend / asSales).toFixed(2) : '0.00';
+      const asArpu = asSales > 0 ? (asRevenue / asSales).toFixed(2) : '0.00';
       const nameUpper = (c.name || '').toUpperCase();
       const explicitAboInName = nameUpper.includes('ABO');
       const isCampAbo = Boolean(
@@ -1284,9 +1285,11 @@ app.get('/api/campaigns', async (req, res) => {
     console.warn('[Sync Campaigns Error]:', e.message);
   }
 
-  const allCampaigns = (syncResult && Array.isArray(syncResult.campaigns) && syncResult.campaigns.length > 0)
-    ? syncResult.campaigns
-    : (db.get('campaigns') || []);
+  const allCampaigns = (db.get('campaigns') && db.get('campaigns').length > 0)
+    ? db.get('campaigns')
+    : ((syncResult && Array.isArray(syncResult.campaigns) && syncResult.campaigns.length > 0)
+        ? syncResult.campaigns
+        : []);
 
   const allOrders = await getAllOrders();
   const approvedOrders = allOrders.filter(o => o.status === 'approved' || o.status === 'paid' || o.status === 'pago');
@@ -1845,24 +1848,25 @@ export async function reconcileFacebookData() {
     }
   }
 
-  // 5. Deleta do Supabase ad_accounts qualquer conta que NÃO pertença aos perfis conectados (órfãs de desconexão)
-  try {
-    const { data: supaAccs } = await supabaseAdmin.from('ad_accounts').select('id');
-    if (supaAccs && supaAccs.length > 0) {
-      const orphanIds = supaAccs
-        .map(a => a.id)
-        .filter(id => !validAccountCleanIds.has(String(id).replace('act_', '')));
-      if (orphanIds.length > 0) {
-        console.log(`[Reconcile FB] 🧹 Limpando ${orphanIds.length} contas órfãs do Supabase:`, orphanIds);
-        await supabaseAdmin.from('ad_accounts').delete().in('id', orphanIds);
-      }
-    }
-  } catch (e) {
-    console.warn('[Reconcile FB] Erro ao limpar contas órfãs do Supabase:', e.message);
-  }
-
-  // 6. Atualiza contas válidas no Supabase
+  // Só atualiza/limpa contas se a busca na Meta retornou contas com sucesso para não apagar dados em caso de rate limit
   if (validAccounts.length > 0) {
+    // 5. Deleta do Supabase ad_accounts qualquer conta que NÃO pertença aos perfis conectados (órfãs de desconexão)
+    try {
+      const { data: supaAccs } = await supabaseAdmin.from('ad_accounts').select('id');
+      if (supaAccs && supaAccs.length > 0) {
+        const orphanIds = supaAccs
+          .map(a => a.id)
+          .filter(id => !validAccountCleanIds.has(String(id).replace('act_', '')));
+        if (orphanIds.length > 0) {
+          console.log(`[Reconcile FB] 🧹 Limpando ${orphanIds.length} contas órfãs do Supabase:`, orphanIds);
+          await supabaseAdmin.from('ad_accounts').delete().in('id', orphanIds);
+        }
+      }
+    } catch (e) {
+      console.warn('[Reconcile FB] Erro ao limpar contas órfãs do Supabase:', e.message);
+    }
+
+    // 6. Atualiza contas válidas no Supabase
     try {
       const rows = validAccounts.map(acc => ({
         id: acc.id,
@@ -1875,25 +1879,25 @@ export async function reconcileFacebookData() {
       }));
       await supabaseAdmin.from('ad_accounts').upsert(rows);
     } catch (e) {}
+
+    // 7. Atualiza db local
+    db.set('ad_accounts', validAccounts);
+
+    // 8. Limpa campanhas e anúncios pertencentes a contas desconectadas
+    const curCampaigns = db.get('campaigns') || [];
+    const filteredCampaigns = curCampaigns.filter(c => {
+      const act = (c.adAccountId || c.accountId || '').replace('act_', '');
+      return !act || validAccountCleanIds.has(act);
+    });
+    db.set('campaigns', filteredCampaigns);
+
+    const curAds = db.get('meta_ads') || [];
+    const filteredAds = curAds.filter(a => {
+      const act = (a.adAccountId || a.accountId || '').replace('act_', '');
+      return !act || validAccountCleanIds.has(act);
+    });
+    db.set('meta_ads', filteredAds);
   }
-
-  // 7. Atualiza db local
-  db.set('ad_accounts', validAccounts);
-
-  // 8. Limpa campanhas e anúncios pertencentes a contas desconectadas
-  const curCampaigns = db.get('campaigns') || [];
-  const filteredCampaigns = curCampaigns.filter(c => {
-    const act = (c.adAccountId || c.accountId || '').replace('act_', '');
-    return !act || validAccountCleanIds.has(act);
-  });
-  db.set('campaigns', filteredCampaigns);
-
-  const curAds = db.get('meta_ads') || [];
-  const filteredAds = curAds.filter(a => {
-    const act = (a.adAccountId || a.accountId || '').replace('act_', '');
-    return !act || validAccountCleanIds.has(act);
-  });
-  db.set('meta_ads', filteredAds);
 
   const sanitizedConnections = connections.map(c => ({
     id: c.id,
@@ -2121,14 +2125,19 @@ async function executeMetaSync({ datePreset = 'today', timeRange = null, account
   const allCampaigns = results.flatMap(r => r.campaigns);
   const allAds = results.flatMap(r => r.ads);
 
-  if (allCampaigns.length > 0) {
-    const syncedIds = new Set(accountsToQuery.map(a => String(a.id || a.accountId).replace('act_', '')));
-    const existingCamps = db.get('campaigns') || [];
-    const remainingCamps = existingCamps.filter(c => {
-      const clean = String(c.adAccountId || '').replace('act_', '');
-      return !syncedIds.has(clean);
-    });
-    db.set('campaigns', [...remainingCamps, ...allCampaigns]);
+  const successfullySyncedIds = new Set(
+    results
+      .filter(r => !r.error && Array.isArray(r.campaigns) && r.campaigns.length > 0)
+      .map(r => String(r.accId).replace('act_', ''))
+  );
+  const existingCamps = db.get('campaigns') || [];
+  const remainingCamps = existingCamps.filter(c => {
+    const clean = String(c.adAccountId || '').replace('act_', '');
+    return !successfullySyncedIds.has(clean);
+  });
+  const mergedCampaigns = [...remainingCamps, ...allCampaigns];
+  if (mergedCampaigns.length > 0) {
+    db.set('campaigns', mergedCampaigns);
   }
 
   if (allAds.length > 0) {
@@ -2164,9 +2173,9 @@ async function executeMetaSync({ datePreset = 'today', timeRange = null, account
   return {
     success: true,
     rateLimited: hasErrors,
-    syncedCampaigns: allCampaigns.length,
+    syncedCampaigns: mergedCampaigns.length,
     syncedAds: allAds.length,
-    campaigns: allCampaigns,
+    campaigns: mergedCampaigns,
     timestamp: new Date().toISOString()
   };
 }

@@ -133,10 +133,6 @@ export const sanitizeCampaignsData = (cData) => {
       adsets: cleanAdsets
     };
 
-    if (spend === 0 && clicks === 0 && (Number(c.sales || 0) > 0 || Number(c.pendingSales || 0) > 0)) {
-      updatedC.sales = 0;
-      updatedC.pendingSales = 0;
-    }
     return updatedC;
   });
 };
@@ -526,8 +522,27 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       loadData(periodFilter, customRange);
     };
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadData(periodFilter, customRange);
+      }
+    };
+
+    // Auto-refresh a cada 20 segundos para refletir vendas e vendas pendentes em tempo real
+    const autoRefreshInterval = setInterval(() => {
+      loadData(periodFilter, customRange);
+    }, 20000);
+
     window.addEventListener('primetrack_profile_sync', handleProfileSync);
-    return () => window.removeEventListener('primetrack_profile_sync', handleProfileSync);
+    window.addEventListener('primetrack_order_sync', handleProfileSync);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(autoRefreshInterval);
+      window.removeEventListener('primetrack_profile_sync', handleProfileSync);
+      window.removeEventListener('primetrack_order_sync', handleProfileSync);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   useEffect(() => {
