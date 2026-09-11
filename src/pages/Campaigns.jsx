@@ -38,7 +38,7 @@ import DateRangePicker from '../components/DateRangePicker';
 const COLUMN_DEFS = [
   { id: 'preview', label: 'Preview', defaultVisible: true, adsOnly: true },
   { id: 'budget', label: 'Orçamento', defaultVisible: true, notAds: true },
-  { id: 'bid', label: 'Lance', defaultVisible: true },
+  { id: 'bid', label: 'Lance', defaultVisible: false },
   { id: 'sales', label: 'Vendas', defaultVisible: true },
   { id: 'pendingSales', label: 'Vendas Pendentes', defaultVisible: true },
   { id: 'spend', label: 'Gasto', defaultVisible: true },
@@ -151,6 +151,24 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const [customRange, setCustomRange] = useState(null);
   const [accountFilter, setAccountFilter] = useState('Todas');
   
+  // Configuração padrão de colunas por aba (Lance ativo apenas na aba Conjuntos por padrão)
+  const getDefaultColsForTab = (tab) => {
+    return COLUMN_DEFS.map(c => {
+      let isVisible = c.defaultVisible;
+      if (c.id === 'bid') {
+        // Lance desmarcado na Campanha, marcado apenas em Conjuntos
+        isVisible = (tab === 'Conjuntos');
+      }
+      if (c.id === 'preview') {
+        isVisible = (tab === 'Anúncios');
+      }
+      if (c.id === 'budget') {
+        isVisible = (tab !== 'Anúncios');
+      }
+      return { id: c.id, visible: isVisible };
+    });
+  };
+
   // Customização maleável de colunas independente por aba (Contas, Campanhas, Conjuntos, Anúncios)
   const getInitialColsForTab = (tab) => {
     if (typeof window !== 'undefined') {
@@ -161,13 +179,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           if (Array.isArray(parsed) && parsed.length > 0) {
             const filtered = parsed.filter(c => c.id !== 'updatedAt');
             const existingIds = new Set(filtered.map(c => c.id));
-            const missing = COLUMN_DEFS.filter(c => !existingIds.has(c.id)).map(c => ({ id: c.id, visible: c.defaultVisible }));
+            const defaultCols = getDefaultColsForTab(tab);
+            const missing = defaultCols.filter(c => !existingIds.has(c.id));
             return [...filtered, ...missing];
           }
         } catch (e) {}
       }
     }
-    return COLUMN_DEFS.map(c => ({ id: c.id, visible: c.defaultVisible }));
+    return getDefaultColsForTab(tab);
   };
 
   const [rowsPerPage, setRowsPerPage] = useState(() => {
@@ -1633,7 +1652,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   };
 
   const resetDefaultTempColumns = () => {
-    const updated = COLUMN_DEFS.map(c => ({ id: c.id, visible: c.defaultVisible }));
+    const updated = getDefaultColsForTab(subTab);
     setTempColumnsConfig(updated);
     saveColumnsImmediately(updated);
   };
@@ -3511,7 +3530,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 <button
                   type="button"
                   onClick={resetDefaultTempColumns}
-                  className="hover:text-amber-300 transition-colors cursor-pointer"
+                  className="hover:text-[#5C9BFF] transition-colors cursor-pointer"
                 >
                   Padrão
                 </button>
