@@ -322,30 +322,80 @@ app.post('/api/track/event', async (req, res) => {
 
     // Envia para o Meta CAPI Server-Side enriquecido com dados de geolocalização reais do pixel
     const settings = db.get('settings') || {};
-    const pixels = db.get('pixels') || [];
-    const matchedPixel = pixels.find(p => p.pixelId === pixelId || p.id === pixelId || p.metaPixelId === pixelId) || pixels[0] || {};
-    const activePixelId = matchedPixel.metaPixelId || pixelId || settings.metaPixelId;
-    const activeAccessToken = matchedPixel.capiToken || matchedPixel.capiTokenRaw || settings.metaAccessToken;
+    let pixels = db.get('pixels') || [];
+    if (!pixels || pixels.length === 0) {
+      try {
+        const { data: supaPixels } = await supabaseAdmin.from('pixels').select('*').eq('status', 'active');
+        if (Array.isArray(supaPixels) && supaPixels.length > 0) {
+          pixels = supaPixels.map(p => {
+            let extra = {};
+            try { extra = JSON.parse(p.domain); } catch(e){}
+            return {
+              id: p.id,
+              pixelId: p.id,
+              name: p.name,
+              domain: extra.domain || '*',
+              metaPixelId: extra.metaPixelId || '',
+              metaPixels: extra.metaPixels || [],
+              capiToken: extra.capiToken || extra.capiTokenRaw || '',
+              capiTokenRaw: extra.capiTokenRaw || extra.capiToken || ''
+            };
+          });
+        }
+      } catch (errSup) {}
+    }
 
-    const capiResult = await sendCapiEvent({
-      pixelId: activePixelId,
-      accessToken: activeAccessToken,
-      eventName: eventName || 'PageView',
-      eventId: eventId,
-      eventSourceUrl,
-      userData: {
-        fbp,
-        fbc,
-        city: geo.city,
-        state: geo.state,
-        country: 'BR',
-        external_id: sessionId || undefined,
-        client_ip_address: clientIp,
-        client_user_agent: clientUserAgent
-      },
-      customData,
-      testEventCode: settings.testEventCode
-    });
+    // Busca estritamente o pixel PrimeTrack correspondente à requisição
+    const matchedPixel = pixels.find(p => p.pixelId === pixelId || p.id === pixelId || (Array.isArray(p.metaPixels) && p.metaPixels.some(m => m.metaPixelId === pixelId)) || p.metaPixelId === pixelId);
+    
+    // Obter fallback de token do perfil do Facebook conectado
+    const fbConns = db.get('facebook_connections') || [];
+    const activeFbToken = (fbConns[0] && fbConns[0].accessToken) ? fbConns[0].accessToken : settings.metaAccessToken;
+
+    const metaPixelsToSend = [];
+    if (matchedPixel) {
+      if (Array.isArray(matchedPixel.metaPixels) && matchedPixel.metaPixels.length > 0) {
+        matchedPixel.metaPixels.forEach(mp => {
+          if (mp.metaPixelId) {
+            metaPixelsToSend.push({
+              pixelId: mp.metaPixelId,
+              accessToken: mp.capiToken || matchedPixel.capiTokenRaw || matchedPixel.capiToken || activeFbToken
+            });
+          }
+        });
+      } else if (matchedPixel.metaPixelId) {
+        metaPixelsToSend.push({
+          pixelId: matchedPixel.metaPixelId,
+          accessToken: matchedPixel.capiTokenRaw || matchedPixel.capiToken || activeFbToken
+        });
+      }
+    }
+
+    let capiResult = { success: false, emq: { score: 7.3 }, response: null };
+    for (const targetMeta of metaPixelsToSend) {
+      if (targetMeta.pixelId && targetMeta.accessToken) {
+        const resCapi = await sendCapiEvent({
+          pixelId: targetMeta.pixelId,
+          accessToken: targetMeta.accessToken,
+          eventName: eventName || 'PageView',
+          eventId: eventId,
+          eventSourceUrl,
+          userData: {
+            fbp,
+            fbc,
+            city: geo.city,
+            state: geo.state,
+            country: 'BR',
+            external_id: sessionId || undefined,
+            client_ip_address: clientIp,
+            client_user_agent: clientUserAgent
+          },
+          customData,
+          testEventCode: settings.testEventCode
+        });
+        if (resCapi && resCapi.success) capiResult = resCapi;
+      }
+    }
 
     // Registra evento no banco
     const eventRecord = {
@@ -460,6 +510,7 @@ app.all([
             name: p.name,
             domain: extra.domain || '*',
             metaPixelId: extra.metaPixelId || '',
+            metaPixels: extra.metaPixels || [],
             capiToken: extra.capiToken || extra.capiTokenRaw || '',
             capiTokenRaw: extra.capiTokenRaw || extra.capiToken || ''
           };
@@ -471,35 +522,38 @@ app.all([
       pixels = db.get('pixels') || [];
     }
 
-    // Identifica o pixel exato atrelado à sessão do visitante, ao domínio ou ao tracking
+    // Identifica o pixel PrimeTrack exato atrelado à sessão do visitante, ao tracking ou ao domínio
     const orderDomain = (attribution.landingUrl || '').toLowerCase();
     const specificPixel = pixels.find(p => {
-      if (attribution.pixelId && (p.pixelId === attribution.pixelId || p.id === attribution.pixelId || p.metaPixelId === attribution.pixelId)) return true;
-      if (p.domain && p.domain !== '*' && orderDomain.includes(p.domain.toLowerCase())) return true;
+      if (attribution.pixelId && (p.pixelId === attribution.pixelId || p.id === attribution.pixelId || p.metaPixelId === attribution.pixelId || (Array.isArray(p.metaPixels) && p.metaPixels.some(m => m.metaPixelId === attribution.pixelId)))) return true;
+      if (p.domain && p.domain !== '*' && orderDomain && orderDomain.includes(p.domain.toLowerCase())) return true;
       return false;
-    }) || pixels.find(p => {
-      const token = p.capiTokenRaw || p.capiToken || '';
-      return (p.metaPixelId || p.pixelId) && token.startsWith('EAA') && token.length > 30;
-    }) || pixels[0] || {};
+    }) || pixels.find(p => p.pixelId === attribution.pixelId || p.id === attribution.pixelId) || pixels[0];
+
+    // Fallback de Access Token do Facebook conectado para garantir CAPI 100% ativo
+    const fbConns = db.get('facebook_connections') || [];
+    const activeFbToken = (fbConns[0] && fbConns[0].accessToken) ? fbConns[0].accessToken : settings.metaAccessToken;
 
     let capiResult = { success: false, emq: { score: 7.3 }, response: null };
 
-    // Monta a lista de todos os Pixels Meta que devem receber o CAPI
+    // Monta a lista apenas dos Pixels Meta configurados dentro DESTE pixel específico da PrimeTrack
     const metaPixelsToSend = [];
-    if (Array.isArray(specificPixel.metaPixels) && specificPixel.metaPixels.length > 0) {
-      specificPixel.metaPixels.forEach(mp => {
-        if (mp.metaPixelId) {
-          metaPixelsToSend.push({
-            pixelId: mp.metaPixelId,
-            accessToken: mp.capiToken || specificPixel.capiTokenRaw || specificPixel.capiToken || settings.metaAccessToken
-          });
-        }
-      });
-    } else if (specificPixel.metaPixelId || specificPixel.pixelId) {
-      metaPixelsToSend.push({
-        pixelId: specificPixel.metaPixelId || specificPixel.pixelId,
-        accessToken: specificPixel.capiTokenRaw || specificPixel.capiToken || settings.metaAccessToken
-      });
+    if (specificPixel) {
+      if (Array.isArray(specificPixel.metaPixels) && specificPixel.metaPixels.length > 0) {
+        specificPixel.metaPixels.forEach(mp => {
+          if (mp.metaPixelId) {
+            metaPixelsToSend.push({
+              pixelId: mp.metaPixelId,
+              accessToken: mp.capiToken || specificPixel.capiTokenRaw || specificPixel.capiToken || activeFbToken
+            });
+          }
+        });
+      } else if (specificPixel.metaPixelId) {
+        metaPixelsToSend.push({
+          pixelId: specificPixel.metaPixelId,
+          accessToken: specificPixel.capiTokenRaw || specificPixel.capiToken || activeFbToken
+        });
+      }
     }
 
     // Dispara CAPI para todos os Pixels Meta vinculados a esta configuração
@@ -570,6 +624,9 @@ app.all([
 
     const existingOrders = db.get('orders') || [];
     const existingIdx = existingOrders.findIndex(o => o.orderCode === parsed.orderCode);
+    const prevOrder = existingIdx >= 0 ? existingOrders[existingIdx] : null;
+    const prevStatus = prevOrder ? prevOrder.status : null;
+
     if (existingIdx >= 0) {
       existingOrders[existingIdx] = {
         ...existingOrders[existingIdx],
@@ -582,6 +639,7 @@ app.all([
     }
     ordersMemoryCache = { data: null, timestamp: 0 };
 
+    let supaPrevStatus = null;
     try {
       const { data: existingSupa } = await supabaseAdmin
         .from('orders')
@@ -590,6 +648,7 @@ app.all([
         .limit(1);
 
       if (existingSupa && existingSupa.length > 0) {
+        supaPrevStatus = existingSupa[0].status;
         await supabaseAdmin
           .from('orders')
           .update({
@@ -627,36 +686,51 @@ app.all([
 
     console.log(`[Venda Registrada] R$ ${parsed.amount} via ${parsed.gateway} atribuída ao anúncio: ${attribution.ad}`);
 
-    // Disparo de Web Push para iOS Safari & Navegadores
+    // Disparo de Web Push para iOS Safari & Navegadores (apenas se for novo evento / alteração de status)
     try {
       const isPaid = parsed.status === 'paid' || parsed.status === 'approved';
       const isPending = parsed.status === 'waiting_payment' || parsed.status === 'pending';
       const isRefunded = parsed.status === 'refunded';
+
+      const effectivelyPreviousStatus = prevStatus || supaPrevStatus;
+      const isPaidAlready = isPaid && (effectivelyPreviousStatus === 'paid' || effectivelyPreviousStatus === 'approved');
+      const isPendingAlready = isPending && (effectivelyPreviousStatus === 'waiting_payment' || effectivelyPreviousStatus === 'pending');
+      const isRefundedAlready = isRefunded && (effectivelyPreviousStatus === 'refunded');
+
+      // Se já notificou anteriormente com o mesmo status exato, evita renotificar no celular
+      const shouldNotify = !isPaidAlready && !isPendingAlready && !isRefundedAlready;
       
       const formattedAmount = (parsed.amount || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
       const campaignName = attribution?.campaign || 'Campanha';
 
-      if (isPaid) {
-        sendSalesNotification({
-          title: 'Venda Aprovada!',
-          body: `Comissão: ${formattedAmount} — ${campaignName}`,
-          icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
-          data: { url: '/sales', orderCode: parsed.orderCode }
-        });
-      } else if (isPending) {
-        sendSalesNotification({
-          title: 'Venda Pendente!',
-          body: `Comissão: ${formattedAmount} — ${campaignName}`,
-          icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
-          data: { url: '/sales', orderCode: parsed.orderCode }
-        });
-      } else if (isRefunded) {
-        sendSalesNotification({
-          title: 'Venda Reembolsada!',
-          body: `Comissão: -${formattedAmount} — ${campaignName}`,
-          icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
-          data: { url: '/sales', orderCode: parsed.orderCode }
-        });
+      if (shouldNotify) {
+        if (isPaid) {
+          sendSalesNotification({
+            title: 'Venda Aprovada!',
+            body: `Comissão: ${formattedAmount} — ${campaignName}`,
+            icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
+            tag: `order_${parsed.orderCode}_approved`,
+            data: { url: '/sales', orderCode: parsed.orderCode }
+          });
+        } else if (isPending) {
+          sendSalesNotification({
+            title: 'Venda Pendente!',
+            body: `Comissão: ${formattedAmount} — ${campaignName}`,
+            icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
+            tag: `order_${parsed.orderCode}_pending`,
+            data: { url: '/sales', orderCode: parsed.orderCode }
+          });
+        } else if (isRefunded) {
+          sendSalesNotification({
+            title: 'Venda Reembolsada!',
+            body: `Comissão: -${formattedAmount} — ${campaignName}`,
+            icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
+            tag: `order_${parsed.orderCode}_refunded`,
+            data: { url: '/sales', orderCode: parsed.orderCode }
+          });
+        }
+      } else {
+        console.log(`[WebPush] Notificação ignorada para ${parsed.orderCode}: status '${parsed.status}' já foi notificado anteriormente.`);
       }
     } catch (pushErr) {
       console.warn('[WebPush] Falha ao enviar notificação de webhook:', pushErr.message);

@@ -33,7 +33,7 @@ export async function saveSubscription(subscription) {
 
   // 2. Persiste no Supabase para sobreviver entre invocações serverless do Vercel
   try {
-    const endpointHash = Buffer.from(subscription.endpoint).toString('base64').substring(0, 64);
+    const endpointHash = Buffer.from(subscription.endpoint).toString('hex').substring(0, 64);
     // Salva na tabela pixels com namespace especial 'push_sub_'
     await supabaseAdmin.from('pixels').upsert({
       id: `push_sub_${endpointHash}`,
@@ -81,7 +81,7 @@ export async function removeSubscription(endpoint) {
   db.set('pushSubscriptions', filtered);
 
   try {
-    const endpointHash = Buffer.from(endpoint).toString('base64').substring(0, 64);
+    const endpointHash = Buffer.from(endpoint).toString('hex').substring(0, 64);
     await supabaseAdmin.from('pixels').delete().eq('id', `push_sub_${endpointHash}`);
   } catch (e) {}
 }
