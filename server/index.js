@@ -1148,12 +1148,12 @@ export function enrichCampaignsWithTracking({
       const isCampAbo = Boolean(
         explicitAboInName || 
         (c.isAbo === true && !c.isCbo && !nameUpper.includes('CBO')) ||
-        (c.budgetType === 'Nível de Conjunto (ABO)' && !c.isCbo)
+        (c.budgetType?.includes('Conjunto') && !c.isCbo)
       );
       const isCampCbo = !isCampAbo;
 
-      const campBid = (c.bidCap && Number(c.bidCap) > 0) ? String(c.bidCap) : null;
-      const asBid = (as.bidCap && Number(as.bidCap) > 0) ? String(as.bidCap) : (isCampCbo ? campBid : null);
+      const campBid = (isCampCbo && c.bidCap && Number(c.bidCap) > 0) ? String(c.bidCap) : null;
+      const asBid = isCampCbo ? ((as.bidCap && Number(as.bidCap) > 0) ? String(as.bidCap) : campBid) : null;
       const hasRealBidAmount = Boolean(asBid && Number(asBid) > 0);
       const asBidStrategy = hasRealBidAmount ? (as.bidStrategy || c.bidStrategy || 'LOWEST_COST_WITH_BID_CAP') : 'LOWEST_COST_WITHOUT_CAP';
       const asBidCap = hasRealBidAmount ? asBid : null;
@@ -1224,7 +1224,7 @@ export function enrichCampaignsWithTracking({
       ...c,
       isCbo: isCampCbo,
       isAbo: isCampAbo,
-      budgetType: isCampCbo ? (c.budgetType || 'Diário') : 'Nível de Conjunto (ABO)',
+      budgetType: isCampCbo ? (c.budgetType || 'Diário') : 'Nível de Conjunto',
       bidStrategy: c.bidStrategy || 'LOWEST_COST_WITHOUT_CAP',
       sales: totalSales,
       pendingSales: matchingPendingOrders.length,

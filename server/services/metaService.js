@@ -437,21 +437,27 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
         }
       }
 
-      // Se a campanha for CBO e o conjunto não tem limite de lance próprio, herda da campanha
-      const rawCampBidAmount = c.bid_amount ? (Number(c.bid_amount) / 100) : null;
-      const realCampBidCap = rawCampBidAmount !== null ? (rawCampBidAmount * usdRate).toFixed(2) : null;
-
-      const effectiveBidCap = (as.bidCap && Number(as.bidCap) > 0)
-        ? as.bidCap
-        : (isCbo ? realCampBidCap : null);
-
-      const hasRealBidAmount = Boolean(effectiveBidCap && Number(effectiveBidCap) > 0);
-      if (!hasRealBidAmount) {
+      // Se for ABO, os conjuntos são estritamente Volume Mais Alto (sem limite de lance)
+      if (isAbo) {
         as.bidCap = null;
         as.bidStrategy = 'LOWEST_COST_WITHOUT_CAP';
       } else {
-        as.bidCap = effectiveBidCap;
-        as.bidStrategy = as.bidStrategy || campBidStrategy || 'LOWEST_COST_WITH_BID_CAP';
+        // Se a campanha for CBO e o conjunto não tem limite de lance próprio, herda da campanha
+        const rawCampBidAmount = c.bid_amount ? (Number(c.bid_amount) / 100) : null;
+        const realCampBidCap = rawCampBidAmount !== null ? (rawCampBidAmount * usdRate).toFixed(2) : null;
+
+        const effectiveBidCap = (as.bidCap && Number(as.bidCap) > 0)
+          ? as.bidCap
+          : realCampBidCap;
+
+        const hasRealBidAmount = Boolean(effectiveBidCap && Number(effectiveBidCap) > 0);
+        if (!hasRealBidAmount) {
+          as.bidCap = null;
+          as.bidStrategy = 'LOWEST_COST_WITHOUT_CAP';
+        } else {
+          as.bidCap = effectiveBidCap;
+          as.bidStrategy = as.bidStrategy || campBidStrategy || 'LOWEST_COST_WITH_BID_CAP';
+        }
       }
     });
 
@@ -475,9 +481,9 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       isCbo,
       isAbo,
       bidCap: finalCampBidCap,
-      bidStrategy: campBidStrategy,
+      bidStrategy: isCbo ? campBidStrategy : 'LOWEST_COST_WITHOUT_CAP',
       budget: finalCampBudget,
-      budgetType: isCbo ? (c.daily_budget ? 'Diário' : 'Vitalício') : 'Nível de Conjunto (ABO)',
+      budgetType: isCbo ? (c.daily_budget ? 'Diário' : 'Vitalício') : 'Nível de Conjunto',
       spend: realSpend.toFixed(2),
       rawSpendUsd: isUsd ? rawSpend.toFixed(2) : null,
       rawBudgetUsd: isUsd ? baseBudget.toFixed(2) : null,

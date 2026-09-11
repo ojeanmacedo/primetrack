@@ -76,17 +76,19 @@ export const sanitizeCampaignsData = (cData) => {
     const isAbo = Boolean(
       explicitAboInName || 
       (c.isAbo === true && !c.isCbo && !campNameUpper.includes('CBO')) ||
-      (c.budgetType === 'Nível de Conjunto (ABO)' && !c.isCbo)
+      (c.budgetType?.includes('Conjunto') && !c.isCbo)
     );
     const isCbo = !isAbo;
 
-    // Lance da campanha: preserva se tiver valor configurado (ex: 11.23 em Nova campanha de Vendas — Cópia)
-    const rawCampBid = (c.bidCap !== undefined && c.bidCap !== null && Number(c.bidCap) > 0)
-      ? String(c.bidCap)
-      : ((c.adsets || []).find(a => a.bidCap && Number(a.bidCap) > 0)?.bidCap || null);
+    // Em campanhas ABO, a estratégia é padrão Volume Mais Alto (sem limite de lance)
+    const rawCampBid = isCbo
+      ? ((c.bidCap !== undefined && c.bidCap !== null && Number(c.bidCap) > 0)
+          ? String(c.bidCap)
+          : ((c.adsets || []).find(a => a.bidCap && Number(a.bidCap) > 0)?.bidCap || null))
+      : null;
     
-    const isCostCap = c.bidStrategy === 'COST_CAP' || campNameUpper.includes('COST CAP');
-    const isBidCap = Boolean(rawCampBid || c.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || campNameUpper.includes('BID'));
+    const isCostCap = isCbo && (c.bidStrategy === 'COST_CAP' || campNameUpper.includes('COST CAP'));
+    const isBidCap = isCbo && Boolean(rawCampBid || c.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || campNameUpper.includes('BID'));
 
     let campBidStrategy = 'LOWEST_COST_WITHOUT_CAP';
     if (rawCampBid || isCostCap || isBidCap) {
@@ -95,12 +97,13 @@ export const sanitizeCampaignsData = (cData) => {
 
     const cleanAdsets = (c.adsets || []).map(a => {
       const asNameUpper = (a.name || '').toUpperCase();
-      const rawAdsetBid = (a.bidCap !== undefined && a.bidCap !== null && Number(a.bidCap) > 0)
-        ? String(a.bidCap)
-        : (isCbo ? rawCampBid : null);
+      // Em campanhas ABO, os conjuntos são estritamente Volume Mais Alto (sem limite de lance)
+      const rawAdsetBid = isCbo
+        ? ((a.bidCap !== undefined && a.bidCap !== null && Number(a.bidCap) > 0) ? String(a.bidCap) : rawCampBid)
+        : null;
       
-      const asIsCost = a.bidStrategy === 'COST_CAP' || asNameUpper.includes('COST CAP') || (isCbo && isCostCap);
-      const asIsBid = Boolean(rawAdsetBid || a.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || asNameUpper.includes('BID') || (isCbo && isBidCap));
+      const asIsCost = isCbo && (a.bidStrategy === 'COST_CAP' || asNameUpper.includes('COST CAP') || isCostCap);
+      const asIsBid = isCbo && Boolean(rawAdsetBid || a.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || asNameUpper.includes('BID') || isBidCap);
 
       let asBidStrategy = 'LOWEST_COST_WITHOUT_CAP';
       if (rawAdsetBid || asIsCost || asIsBid) {
@@ -123,7 +126,7 @@ export const sanitizeCampaignsData = (cData) => {
       isAbo,
       isCbo,
       budget: c.budget || '127.58',
-      budgetType: isAbo ? 'Nível de Conjunto (ABO)' : (c.budgetType || 'Diário'),
+      budgetType: isAbo ? 'Nível de Conjunto' : (c.budgetType || 'Diário'),
       bidCap: rawCampBid,
       bidStrategy: campBidStrategy,
       adsets: cleanAdsets
@@ -1175,10 +1178,59 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       const campIsAbo = Boolean(
         campNameUpper.includes('ABO') ||
         (camp.isAbo === true && !camp.isCbo && !campNameUpper.includes('CBO')) ||
-        (camp.budgetType === 'Nível de Conjunto (ABO)' && !camp.isCbo)
+        (camp.budgetType?.includes('Conjunto') && !camp.isCbo)
       );
       const campIsCbo = !campIsAbo;
 
+      if (campIsAbo) {
+        // Campanha ABO: todos os conjuntos são padrão Volume Mais Alto (sem limite de lance)
+        if (camp.adsets && camp.adsets.length > 0) {
+          return camp.adsets.map(a => ({
+            ...a,
+            name: itemNamesOverride[a.id] || a.name,
+            isCbo: false,
+            isAbo: true,
+            budget: a.budget || '10.00',
+            budgetType: a.budgetType || 'Diário',
+            bidStrategy: 'LOWEST_COST_WITHOUT_CAP',
+            bidCap: null
+          }));
+        }
+        const adsetId = camp.id === '52604661655655' ? '52604661655855' : `${camp.id}_adset_1`;
+        const defaultName = (camp.name.includes('TESTE MI') || camp.id === '52604661655655') ? 'Novo conjunto de anúncios de Vendas' : `${camp.name} — Conjunto 01`;
+        return [{
+          id: adsetId,
+          campaignId: camp.id,
+          adsetId: adsetId,
+          name: itemNamesOverride[adsetId] || defaultName,
+          accountName: camp.accountName || 'CA01',
+          status: camp.status,
+          isCbo: false,
+          isAbo: true,
+          budget: '10.00',
+          budgetType: 'Diário',
+          bidCap: null,
+          bidStrategy: 'LOWEST_COST_WITHOUT_CAP',
+          spend: camp.spend,
+          sales: camp.sales,
+          pendingSales: camp.pendingSales || 0,
+          revenue: camp.revenue,
+          profit: camp.profit,
+          roas: camp.roas,
+          cpa: camp.cpa,
+          arpu: camp.arpu || (camp.sales > 0 ? (Number(camp.revenue) / camp.sales).toFixed(2) : '0.00'),
+          cpc: camp.cpc,
+          ctr: camp.ctr,
+          cpm: camp.cpm,
+          impressions: camp.impressions,
+          clicks: camp.clicks,
+          visits: camp.visits || Math.round(Number(camp.clicks || 0) * 0.75),
+          ic: camp.initCheckouts || camp.ic || 0,
+          costPerIc: camp.costPerIc || '0.00'
+        }];
+      }
+
+      // Campanha CBO
       const rawCampBid = (camp.bidCap !== undefined && camp.bidCap !== null && Number(camp.bidCap) > 0)
         ? String(camp.bidCap)
         : null;
@@ -1190,10 +1242,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           const asNameUpper = (a.name || '').toUpperCase();
           const rawAdsetBid = (a.bidCap !== undefined && a.bidCap !== null && Number(a.bidCap) > 0)
             ? String(a.bidCap)
-            : (campIsCbo ? rawCampBid : null);
+            : rawCampBid;
           
-          const asIsCost = a.bidStrategy === 'COST_CAP' || asNameUpper.includes('COST CAP') || (campIsCbo && campIsCost);
-          const asIsBid = Boolean(rawAdsetBid || a.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || asNameUpper.includes('BID') || (campIsCbo && campIsBid));
+          const asIsCost = a.bidStrategy === 'COST_CAP' || asNameUpper.includes('COST CAP') || campIsCost;
+          const asIsBid = Boolean(rawAdsetBid || a.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || asNameUpper.includes('BID') || campIsBid);
 
           let asBidStrategy = 'LOWEST_COST_WITHOUT_CAP';
           if (rawAdsetBid || asIsCost || asIsBid) {
@@ -1203,10 +1255,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           return {
             ...a,
             name: itemNamesOverride[a.id] || a.name,
-            isCbo: campIsCbo,
-            isAbo: campIsAbo,
-            budget: campIsCbo ? (camp.budget || a.budget || '127.58') : (a.budget || '10.00'),
-            budgetType: campIsCbo ? (camp.budgetType || 'Diário') : (a.budgetType || 'Diário'),
+            isCbo: true,
+            isAbo: false,
+            budget: camp.budget || a.budget || '127.58',
+            budgetType: camp.budgetType || a.budgetType || 'Diário',
             bidStrategy: asBidStrategy,
             bidCap: rawAdsetBid
           };
@@ -1227,10 +1279,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         name: itemNamesOverride[adsetId] || defaultName,
         accountName: camp.accountName || 'CA01',
         status: camp.status,
-        isCbo: campIsCbo,
-        isAbo: campIsAbo,
-        budget: campIsCbo ? (camp.budget || '127.58') : '10.00',
-        budgetType: campIsCbo ? (camp.budgetType || 'Diário') : 'Diário',
+        isCbo: true,
+        isAbo: false,
+        budget: camp.budget || '127.58',
+        budgetType: camp.budgetType || 'Diário',
         bidCap: rawCampBid,
         bidStrategy: fallbackStrategy,
         spend: camp.spend,
@@ -1676,7 +1728,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         const isItemAbo = Boolean(
           itemNameUpper.includes('ABO') || 
           (item.isAbo === true && !item.isCbo && !itemNameUpper.includes('CBO')) ||
-          (item.budgetType === 'Nível de Conjunto (ABO)' && !item.isCbo)
+          (item.budgetType?.includes('Conjunto') && !item.isCbo)
         );
 
         // Caso 1: Na aba Campanhas, se a campanha for ABO:
@@ -1695,13 +1747,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 setSelectedCampaignIds(new Set([item.id]));
                 setSubTab('Conjuntos');
               }}
-              title="Campanha ABO: O orçamento é definido individualmente em cada conjunto. Clique para ver e editar os conjuntos."
+              title="O orçamento é definido individualmente em cada conjunto. Clique para ver e editar os conjuntos."
             >
               <div className="font-semibold text-zinc-200 text-xs flex items-center gap-1.5">
                 <span className="group-hover:text-[#5C9BFF] transition-colors">Nível de conjunto</span>
-                <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/15 border border-blue-500/30 text-[#5C9BFF] font-mono font-bold">
-                  ABO
-                </span>
               </div>
               <div className="text-[10px] text-zinc-400 font-mono mt-0.5">
                 {campAdsets.length > 0 ? `${campAdsets.length} conjuntos • ${displayBudget}` : displayBudget}
@@ -1716,7 +1765,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             <div 
               className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group" 
               onClick={() => handleOpenEdit(item, 'budget')}
-              title="Campanha CBO: Usando orçamento da campanha"
+              title="Usando orçamento da campanha"
             >
               <div className="text-zinc-300 font-sans text-xs flex items-center gap-1">
                 <span>Usando orç. campanha</span>
@@ -1734,7 +1783,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           <div 
             className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group" 
             onClick={() => handleOpenEdit(item, 'budget')}
-            title={isConjunto ? "Campanha ABO: Clique para alterar orçamento deste conjunto" : "Clique para alterar orçamento da campanha"}
+            title={isConjunto ? "Clique para alterar orçamento deste conjunto" : "Clique para alterar orçamento da campanha"}
           >
             <div className="font-bold text-white font-mono flex items-center gap-1.5">
               <span>R$ {Number(item.budget || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
@@ -1742,23 +1791,31 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             </div>
             <div className="text-[10px] text-zinc-400 flex items-center gap-1.5">
               <span>{item.budgetType || 'Diário'}</span>
-              {isConjunto && isItemAbo && (
-                <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/15 border border-blue-500/30 text-[#5C9BFF] font-mono font-bold">
-                  ABO
-                </span>
-              )}
             </div>
           </div>
         );
       }
 
       case 'bid': {
-        // Para Anúncios, não há lance específico
-        if (subTab === 'Anúncios') {
-          return <span className="text-zinc-600 font-mono text-xs">—</span>;
+        // Regra do Usuário: "limite de lance ele só é a limite de conjunto nunca na campanha. na campanha tira tambem deixa só um risquinho."
+        // Na aba Campanhas e na aba Anúncios, é estritamente um risquinho "—"
+        if (subTab === 'Campanhas' || subTab === 'Anúncios') {
+          return <span className="text-zinc-500 font-mono text-xs select-none">—</span>;
         }
 
         const itemNameUpper = (item.name || '').toUpperCase();
+        const isItemAbo = Boolean(
+          item.isAbo || 
+          itemNameUpper.includes('ABO') ||
+          (item.budgetType?.includes('Conjunto'))
+        );
+
+        // Se o conjunto pertencer a uma campanha ABO, ou se for ABO:
+        // "e a campanha TESTE ABO que é padrao volume alto, e ABO, no lance ta limite de lance.. ali coloca um risquinho.. e na campanha de abo tambem em lance ta com limite de lance.. sendo que ela é volume mais alto, coloca um risquinho la tambem."
+        if (isItemAbo) {
+          return <span className="text-zinc-500 font-mono text-xs select-none">—</span>;
+        }
+
         const rawBidVal = (item.bidCap !== undefined && item.bidCap !== null && Number(item.bidCap) > 0)
           ? Number(item.bidCap)
           : 0;
@@ -1768,22 +1825,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
         const hasCappedBid = rawBidVal > 0 && (isCostCap || isBidCap);
 
-        // Se for Volume mais alto (sem limite / padrão ou ABO):
-        // Só um risquinho sem a canetinha pra clicar
+        // Se for Volume mais alto (sem limite / padrão): só um risquinho
         if (!hasCappedBid) {
-          return (
-            <div className="p-1 select-none" title="Volume mais alto">
-              <div className="text-zinc-400 font-mono text-xs">
-                —
-              </div>
-              <div className="text-[10px] text-zinc-500">
-                Volume mais alto
-              </div>
-            </div>
-          );
+          return <span className="text-zinc-500 font-mono text-xs select-none">—</span>;
         }
 
-        // Se for Limite de lance ou Meta de custo: valor, texto e a canetinha para clicar
+        // Se for Limite de lance ou Meta de custo com valor positivo no conjunto: mostra valor, texto e canetinha
         const formattedBid = rawBidVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         const strategyLabel = isCostCap ? 'Meta de custo' : 'Limite de lance';
 
@@ -2510,16 +2557,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                             <span className="text-[10px] text-zinc-500 font-mono">
                               {item.accountName || 'CA01'}
                             </span>
-                            {subTab === 'Campanhas' && Boolean(item.isAbo || item.budgetType?.includes('ABO') || (item.name || '').toUpperCase().includes('ABO')) && (
-                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-500/15 border border-blue-500/30 text-[#5C9BFF] font-mono font-bold shrink-0">
-                                ABO
-                              </span>
-                            )}
-                            {Boolean(item.bidCap && Number(item.bidCap) > 0 && ((item.name || '').toUpperCase().includes('BID') || (item.name || '').toUpperCase().includes('COST CAP') || item.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || item.bidStrategy === 'COST_CAP')) && (
-                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono font-bold shrink-0">
-                                {item.bidStrategy === 'COST_CAP' ? 'Cost Cap' : 'Bid Cap'}: R$ {Number(item.bidCap).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                              </span>
-                            )}
                           </div>
                         </div>
                       </td>
@@ -3289,11 +3326,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     <label className="text-zinc-300 font-semibold">
                       {subTab === 'Conjuntos' ? 'Orçamento Diário do Conjunto (R$)' : 'Orçamento Diário da Campanha (R$)'}
                     </label>
-                    {subTab === 'Conjuntos' && (
-                      <span className="text-[10px] font-mono text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20">
-                        {editingItem?.isAbo ? 'Campanha ABO' : 'Campanha CBO'}
-                      </span>
-                    )}
                   </div>
                   <div className="relative">
                     <span className="absolute left-3 top-2.5 text-zinc-500 font-mono">R$</span>
@@ -3310,8 +3342,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   {subTab === 'Conjuntos' && (
                     <p className="text-[10px] text-zinc-500 mt-1.5">
                       {editingItem?.isAbo 
-                        ? 'Este valor será aplicado diretamente neste conjunto de anúncios (ABO).'
-                        : 'Atenção: Em campanhas CBO, o orçamento é compartilhado entre todos os conjuntos.'}
+                        ? 'Este valor será aplicado diretamente neste conjunto de anúncios.'
+                        : 'Atenção: O orçamento é compartilhado no nível da campanha.'}
                     </p>
                   )}
                 </div>
