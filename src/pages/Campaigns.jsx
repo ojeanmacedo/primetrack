@@ -65,6 +65,61 @@ const COLUMN_DEFS = [
   { id: 'adId', label: 'ID Anúncio', defaultVisible: false }
 ];
 
+export const sanitizeCampaignsData = (cData) => {
+  if (!Array.isArray(cData)) return [];
+  return cData.map(c => {
+    const spend = Number(c.spend || 0);
+    const clicks = Number(c.clicks || 0);
+    const campNameUpper = (c.name || '').toUpperCase();
+    const explicitAboInName = campNameUpper.includes('ABO');
+    const isAbo = Boolean(
+      explicitAboInName || 
+      c.isAbo || 
+      c.budgetType?.includes('ABO') || 
+      (!c.isCbo && !c.daily_budget && !c.lifetime_budget)
+    );
+    const isCbo = !isAbo;
+
+    const hasCampBid = Boolean(
+      c.bidCap && 
+      Number(c.bidCap) > 0 && 
+      (campNameUpper.includes('BID') || campNameUpper.includes('COST CAP') || c.bidStrategy === 'COST_CAP' || c.bidStrategy === 'LOWEST_COST_WITH_BID_CAP')
+    );
+
+    const cleanAdsets = (c.adsets || []).map(a => {
+      const asNameUpper = (a.name || '').toUpperCase();
+      const hasAdsetBid = Boolean(
+        a.bidCap && 
+        Number(a.bidCap) > 0 && 
+        (asNameUpper.includes('BID') || asNameUpper.includes('COST CAP') || campNameUpper.includes('BID') || campNameUpper.includes('COST CAP') || a.bidStrategy === 'COST_CAP' || a.bidStrategy === 'LOWEST_COST_WITH_BID_CAP')
+      );
+      return {
+        ...a,
+        isAbo,
+        isCbo,
+        bidCap: hasAdsetBid ? a.bidCap : null,
+        bidStrategy: hasAdsetBid ? (a.bidStrategy || 'LOWEST_COST_WITH_BID_CAP') : 'LOWEST_COST_WITHOUT_CAP'
+      };
+    });
+
+    let updatedC = {
+      ...c,
+      isAbo,
+      isCbo,
+      budgetType: isAbo ? 'Nível de Conjunto (ABO)' : (c.budgetType || 'Diário'),
+      bidCap: hasCampBid ? c.bidCap : null,
+      bidStrategy: hasCampBid ? (c.bidStrategy || 'LOWEST_COST_WITH_BID_CAP') : 'LOWEST_COST_WITHOUT_CAP',
+      adsets: cleanAdsets
+    };
+
+    if (spend === 0 && clicks === 0 && (Number(c.sales || 0) > 0 || Number(c.pendingSales || 0) > 0)) {
+      updatedC.sales = 0;
+      updatedC.pendingSales = 0;
+    }
+    return updatedC;
+  });
+};
+
 export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) {
   const navigate = useNavigate();
   const user = getCurrentUser();
@@ -180,7 +235,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               localStorage.removeItem('primetrack_cached_campaigns');
               return [];
             }
-            return parsed;
+            return sanitizeCampaignsData(parsed);
           }
         } catch (e) {}
       }
@@ -201,6 +256,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     }
     return [];
   });
+
+  const [isClientMode, setIsClientMode] = useState(clientMode === 'clean');
   const [syncing, setSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState('Agora');
   const [currentTime, setCurrentTime] = useState(() => {
@@ -222,7 +279,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const [editName, setEditName] = useState('');
   const [editBudget, setEditBudget] = useState('');
   const [editBidCap, setEditBidCap] = useState('');
-  const [editStrategy, setEditStrategy] = useState('LOWEST_COST_WITH_BID_CAP');
+  const [editStrategy, setEditStrategy] = useState('LOWEST_COST_WITHOUT_CAP');
   const [savingEdit, setSavingEdit] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState(null);
 
@@ -381,15 +438,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
       const cData = await crRes.json();
       if (Array.isArray(cData)) {
-        // Blindagem adicional de segurança no cliente: campanhas sem tráfego (0 gasto e 0 cliques) nunca podem ter vendas pendentes ou aprovadas
-        const sanitized = cData.map(c => {
-          const spend = Number(c.spend || 0);
-          const clicks = Number(c.clicks || 0);
-          if (spend === 0 && clicks === 0 && (Number(c.sales || 0) > 0 || Number(c.pendingSales || 0) > 0)) {
-            return { ...c, sales: 0, pendingSales: 0 };
-          }
-          return c;
-        });
+        const sanitized = sanitizeCampaignsData(cData);
         setCampaignsList(sanitized);
         if (typeof window !== 'undefined' && sanitized.length > 0) {
           localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(sanitized));
@@ -568,20 +617,36 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   // Abre modal direto para edição do valor selecionado
   const handleOpenEdit = (item, field = 'budget') => {
     const parentCamp = campaignsList.find(c => c.id === item.id || c.id === item.campaignId) || item;
+    const isConjunto = subTab === 'Conjuntos' || Boolean(item.adsetId);
+    const parentNameUpper = (parentCamp.name || '').toUpperCase();
+    const isAbo = Boolean(
+      item.isAbo || 
+      parentCamp.isAbo || 
+      parentCamp.budgetType?.includes('ABO') || 
+      parentNameUpper.includes('ABO') || 
+      (!parentCamp.daily_budget && Boolean(item.budget))
+    );
+
+    // Se o usuário clicar em orçamento na linha da CAMPANHA na aba Campanhas e ela for ABO:
+    // O orçamento é a nível de conjunto. Redireciona para a aba de conjuntos filtrando esta campanha!
+    if (field === 'budget' && subTab === 'Campanhas' && isAbo) {
+      setSelectedCampaignIds(new Set([parentCamp.id]));
+      setSubTab('Conjuntos');
+      return;
+    }
+
     setEditingItem(item);
     setEditingCampaign(parentCamp);
     setEditingField(field);
     setEditName(item.name || parentCamp.name || '');
 
     // Para conjuntos em ABO, prioriza o orçamento do próprio conjunto (item.budget)
-    const isConjunto = subTab === 'Conjuntos' || Boolean(item.adsetId);
-    const isAbo = item.isAbo || (!parentCamp.daily_budget && Boolean(item.budget));
     const rawBudgetNum = Number((isConjunto && isAbo ? item.budget : null) || item.budget || parentCamp.budget || 20.00);
-    const rawBidCapNum = Number(item.bidCap || parentCamp.bidCap || 0);
+    const rawBidCapNum = Number(item.bidCap || 0);
     
     setEditBudget(isNaN(rawBudgetNum) ? '20,00' : rawBudgetNum.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
     setEditBidCap(isNaN(rawBidCapNum) || rawBidCapNum === 0 ? '' : rawBidCapNum.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-    setEditStrategy(item.bidStrategy || parentCamp.bidStrategy || 'LOWEST_COST_WITHOUT_CAP');
+    setEditStrategy(item.bidStrategy || 'LOWEST_COST_WITHOUT_CAP');
   };
 
   // Salva alteração com Trava de Perfil Backup
@@ -1040,19 +1105,39 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       : filteredCampaigns;
 
     const allAdsets = parentCampaigns.flatMap(camp => {
-      const campIsAbo = camp.isAbo ?? (camp.budgetType?.includes('ABO') || (!camp.isCbo && !camp.daily_budget));
+      const campNameUpper = (camp.name || '').toUpperCase();
+      const campIsAbo = Boolean(
+        camp.isAbo === true || 
+        camp.budgetType?.includes('ABO') || 
+        campNameUpper.includes('ABO') || 
+        (!camp.isCbo && !camp.daily_budget && !camp.lifetime_budget)
+      );
+
       if (camp.adsets && camp.adsets.length > 0) {
-        return camp.adsets.map(a => ({
-          ...a,
-          name: itemNamesOverride[a.id] || a.name,
-          isCbo: a.isCbo ?? !campIsAbo,
-          isAbo: a.isAbo ?? campIsAbo,
-          bidStrategy: a.bidStrategy || camp.bidStrategy || 'LOWEST_COST_WITHOUT_CAP',
-          bidCap: a.bidCap || null
-        }));
+        return camp.adsets.map(a => {
+          const asNameUpper = (a.name || '').toUpperCase();
+          const hasRealBid = Boolean(
+            a.bidCap && 
+            Number(a.bidCap) > 0 && 
+            (asNameUpper.includes('BID') || asNameUpper.includes('COST CAP') || campNameUpper.includes('BID') || campNameUpper.includes('COST CAP') || a.bidStrategy === 'COST_CAP' || a.bidStrategy === 'LOWEST_COST_WITH_BID_CAP')
+          );
+          return {
+            ...a,
+            name: itemNamesOverride[a.id] || a.name,
+            isCbo: !campIsAbo,
+            isAbo: campIsAbo,
+            bidStrategy: hasRealBid ? (a.bidStrategy || 'LOWEST_COST_WITH_BID_CAP') : 'LOWEST_COST_WITHOUT_CAP',
+            bidCap: hasRealBid ? a.bidCap : null
+          };
+        });
       }
       const adsetId = camp.id === '52604661655655' ? '52604661655855' : `${camp.id}_adset_1`;
       const defaultName = (camp.name.includes('TESTE MI') || camp.id === '52604661655655') ? 'Novo conjunto de anúncios de Vendas' : `${camp.name} — Conjunto 01`;
+      const hasCampRealBid = Boolean(
+        camp.bidCap && 
+        Number(camp.bidCap) > 0 && 
+        (campNameUpper.includes('BID') || campNameUpper.includes('COST CAP') || camp.bidStrategy === 'COST_CAP' || camp.bidStrategy === 'LOWEST_COST_WITH_BID_CAP')
+      );
 
       return [{
         id: adsetId,
@@ -1064,9 +1149,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         isCbo: !campIsAbo,
         isAbo: campIsAbo,
         budget: camp.budget,
-        budgetType: camp.budgetType || 'Diário',
-        bidCap: camp.bidCap || null,
-        bidStrategy: camp.bidStrategy || 'LOWEST_COST_WITHOUT_CAP',
+        budgetType: campIsAbo ? 'Diário' : (camp.budgetType || 'Diário'),
+        bidCap: hasCampRealBid ? camp.bidCap : null,
+        bidStrategy: hasCampRealBid ? (camp.bidStrategy || 'LOWEST_COST_WITH_BID_CAP') : 'LOWEST_COST_WITHOUT_CAP',
         spend: camp.spend,
         sales: camp.sales,
         pendingSales: camp.pendingSales || 0,
@@ -1503,10 +1588,16 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           }
         }
 
-        const isCostCap = item.bidStrategy === 'COST_CAP';
-        const isBidCap = item.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || (Boolean(item.bidCap) && Number(item.bidCap) > 0 && !isCostCap);
-        const hasBidVal = Boolean(item.bidCap && Number(item.bidCap) > 0);
+        const itemNameUpper = (item.name || '').toUpperCase();
+        const hasBidVal = Boolean(
+          item.bidCap && 
+          Number(item.bidCap) > 0 && 
+          (itemNameUpper.includes('BID') || itemNameUpper.includes('COST CAP') || item.bidStrategy === 'COST_CAP' || item.bidStrategy === 'LOWEST_COST_WITH_BID_CAP')
+        );
+        const isCostCap = hasBidVal && item.bidStrategy === 'COST_CAP';
+        const isBidCap = hasBidVal && (item.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || !isCostCap);
         const numBid = Number(item.bidCap || 0);
+        const isCampAbo = subTab === 'Campanhas' && Boolean(item.isAbo || item.budgetType?.includes('ABO') || itemNameUpper.includes('ABO'));
 
         return (
           <div className="text-[10px] leading-tight space-y-0.5 text-left font-sans min-w-[130px]">
@@ -1515,6 +1606,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               <div className="text-amber-300 font-mono font-medium flex items-center gap-1">
                 <span>{isCostCap ? 'Meta:' : 'Lance:'} R$ {numBid.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 <span className="text-amber-400 font-bold">↑ R$ {(numBid * 1.85).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+            ) : isCampAbo ? (
+              <div className="text-zinc-300 font-mono flex items-center gap-1">
+                <span>Orç: Conjuntos</span>
+                <span className="text-[9px] px-1 py-0.2 rounded bg-blue-500/15 border border-blue-500/30 text-[#5C9BFF] font-bold">ABO</span>
               </div>
             ) : (
               <div className="text-zinc-300 font-mono">
@@ -1563,10 +1659,48 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
       case 'budget': {
         const isConjunto = subTab === 'Conjuntos';
-        const isAbo = item.isAbo || (!item.isCbo && isConjunto);
+        const isCampanha = subTab === 'Campanhas';
+        const itemNameUpper = (item.name || '').toUpperCase();
+        const isItemAbo = Boolean(
+          item.isAbo || 
+          item.budgetType?.includes('ABO') || 
+          itemNameUpper.includes('ABO') || 
+          (!item.isCbo && isConjunto)
+        );
 
-        if (isConjunto && !isAbo) {
-          // Campanha CBO no nível de conjunto
+        // Caso 1: Na aba Campanhas, se a campanha for ABO:
+        // O orçamento é configurado nos conjuntos de anúncios, não na campanha!
+        if (isCampanha && isItemAbo) {
+          const campAdsets = item.adsets || [];
+          const totalAdsetsBudget = campAdsets.reduce((sum, a) => sum + Number(a.budget || 0), 0);
+          const displayBudget = totalAdsetsBudget > 0 
+            ? `Total: R$ ${totalAdsetsBudget.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
+            : (item.budget && Number(item.budget) > 0 ? `Total: R$ ${Number(item.budget).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : 'Vários conjuntos');
+
+          return (
+            <div 
+              className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group" 
+              onClick={() => {
+                setSelectedCampaignIds(new Set([item.id]));
+                setSubTab('Conjuntos');
+              }}
+              title="Campanha ABO: O orçamento é definido individualmente em cada conjunto. Clique para ver e editar os conjuntos."
+            >
+              <div className="font-semibold text-zinc-200 text-xs flex items-center gap-1.5">
+                <span className="group-hover:text-[#5C9BFF] transition-colors">Nível de conjunto</span>
+                <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/15 border border-blue-500/30 text-[#5C9BFF] font-mono font-bold">
+                  ABO
+                </span>
+              </div>
+              <div className="text-[10px] text-zinc-400 font-mono mt-0.5">
+                {campAdsets.length > 0 ? `${campAdsets.length} conjuntos • ${displayBudget}` : displayBudget}
+              </div>
+            </div>
+          );
+        }
+
+        // Caso 2: Na aba Conjuntos, se a campanha for CBO (orçamento centralizado na campanha):
+        if (isConjunto && !isItemAbo) {
           return (
             <div 
               className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group" 
@@ -1584,12 +1718,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           );
         }
 
-        // Campanhas normais OU Conjunto em campanha ABO
+        // Caso 3: Conjunto individual em campanha ABO OU Campanha CBO normal na aba Campanhas
         return (
           <div 
             className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group" 
             onClick={() => handleOpenEdit(item, 'budget')}
-            title={isConjunto ? "Campanha ABO: Clique para alterar orçamento do conjunto" : "Clique para alterar orçamento da campanha"}
+            title={isConjunto ? "Campanha ABO: Clique para alterar orçamento deste conjunto" : "Clique para alterar orçamento da campanha"}
           >
             <div className="font-bold text-white font-mono flex items-center gap-1.5">
               <span>R$ {Number(item.budget || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
@@ -1597,7 +1731,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             </div>
             <div className="text-[10px] text-zinc-400 flex items-center gap-1.5">
               <span>{item.budgetType || 'Diário'}</span>
-              {isConjunto && (
+              {isConjunto && isItemAbo && (
                 <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/15 border border-blue-500/30 text-[#5C9BFF] font-mono font-bold">
                   ABO
                 </span>
@@ -1613,30 +1747,35 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           return <span className="text-zinc-600 font-mono text-xs">—</span>;
         }
 
-        const isCostCap = item.bidStrategy === 'COST_CAP';
-        const isBidCap = item.bidStrategy === 'LOWEST_COST_WITH_BID_CAP';
-        const hasBidVal = Boolean(item.bidCap && Number(item.bidCap) > 0);
+        const itemNameUpper = (item.name || '').toUpperCase();
+        const hasRealBidVal = Boolean(
+          item.bidCap && 
+          Number(item.bidCap) > 0 && 
+          (itemNameUpper.includes('BID') || itemNameUpper.includes('COST CAP') || item.bidStrategy === 'COST_CAP' || item.bidStrategy === 'LOWEST_COST_WITH_BID_CAP')
+        );
+        const isCostCap = hasRealBidVal && item.bidStrategy === 'COST_CAP';
+        const isBidCap = hasRealBidVal && (item.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || !isCostCap);
 
-        // Se NÃO tiver limite de lance nem meta de custo (Menor Custo padrão / Maior Volume)
-        if (!hasBidVal && !isBidCap && !isCostCap) {
+        // Se NÃO tiver limite de lance nem meta de custo configurados com valor positivo real
+        if (!hasRealBidVal) {
           return (
             <div 
               onClick={() => handleOpenEdit(item, 'bid')}
               className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group"
-              title="Menor Custo (usa orçamento do conjunto/campanha). Clique para configurar limite de lance."
+              title="Volume mais alto / Menor custo padrão (sem limite). Clique para configurar limite de lance."
             >
               <div className="text-zinc-400 font-mono text-xs flex items-center gap-1 group-hover:text-white transition-colors">
                 <span>—</span>
                 <Edit3 className="w-2.5 h-2.5 text-zinc-600 group-hover:text-[#5C9BFF] opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
               <div className="text-[10px] text-zinc-500">
-                Menor custo
+                Volume mais alto
               </div>
             </div>
           );
         }
 
-        const bidVal = Number(item.bidCap || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const bidVal = Number(item.bidCap).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         const strategyLabel = isCostCap ? 'Meta de custo' : 'Limite de lance';
 
         return (
@@ -2362,7 +2501,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                             <span className="text-[10px] text-zinc-500 font-mono">
                               {item.accountName || 'CA01'}
                             </span>
-                            {Boolean(item.bidCap && Number(item.bidCap) > 0 && (item.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || item.bidStrategy === 'COST_CAP')) && (
+                            {subTab === 'Campanhas' && Boolean(item.isAbo || item.budgetType?.includes('ABO') || (item.name || '').toUpperCase().includes('ABO')) && (
+                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-500/15 border border-blue-500/30 text-[#5C9BFF] font-mono font-bold shrink-0">
+                                ABO
+                              </span>
+                            )}
+                            {Boolean(item.bidCap && Number(item.bidCap) > 0 && ((item.name || '').toUpperCase().includes('BID') || (item.name || '').toUpperCase().includes('COST CAP') || item.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || item.bidStrategy === 'COST_CAP')) && (
                               <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono font-bold shrink-0">
                                 {item.bidStrategy === 'COST_CAP' ? 'Cost Cap' : 'Bid Cap'}: R$ {Number(item.bidCap).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </span>

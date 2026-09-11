@@ -1143,15 +1143,21 @@ export function enrichCampaignsWithTracking({
       const asProfit = asRevenue - asSpend;
       const asRoas = asSpend > 0 ? (asRevenue / asSpend).toFixed(2) : '0.00';
       const asCpa = asSales > 0 ? (asSpend / asSales).toFixed(2) : '0.00';
-      const isCbo = c.isCbo ?? Boolean(c.daily_budget || c.lifetime_budget);
-      const isAbo = c.isAbo ?? !isCbo;
+      const nameUpper = (c.name || '').toUpperCase();
+      const explicitAboInName = nameUpper.includes('ABO');
+      const isCampAbo = explicitAboInName || c.isAbo || (!c.daily_budget && !c.lifetime_budget && !c.isCbo);
+      const isCampCbo = !isCampAbo;
+
+      const hasRealBidAmount = Boolean(as.bidCap && Number(as.bidCap) > 0);
+      const asBidStrategy = hasRealBidAmount ? (as.bidStrategy || c.bidStrategy || 'LOWEST_COST_WITH_BID_CAP') : 'LOWEST_COST_WITHOUT_CAP';
+      const asBidCap = hasRealBidAmount ? as.bidCap : null;
 
       return {
         ...as,
-        isCbo: as.isCbo ?? isCbo,
-        isAbo: as.isAbo ?? isAbo,
-        bidStrategy: as.bidStrategy || c.bidStrategy || 'LOWEST_COST_WITHOUT_CAP',
-        bidCap: as.bidCap || null,
+        isCbo: isCampCbo,
+        isAbo: isCampAbo,
+        bidStrategy: asBidStrategy,
+        bidCap: asBidCap,
         sales: asSales,
         pendingSales: asPending,
         revenue: asRevenue.toFixed(2),
@@ -1199,13 +1205,16 @@ export function enrichCampaignsWithTracking({
       };
     });
 
-    const isCampCbo = c.isCbo ?? Boolean(c.daily_budget || c.lifetime_budget);
-    const isCampAbo = c.isAbo ?? !isCampCbo;
+    const nameUpper = (c.name || '').toUpperCase();
+    const explicitAboInName = nameUpper.includes('ABO');
+    const isCampAbo = explicitAboInName || c.isAbo || (!c.daily_budget && !c.lifetime_budget && !c.isCbo);
+    const isCampCbo = !isCampAbo;
 
     return {
       ...c,
       isCbo: isCampCbo,
       isAbo: isCampAbo,
+      budgetType: isCampCbo ? (c.budgetType || 'Diário') : 'Nível de Conjunto (ABO)',
       bidStrategy: c.bidStrategy || 'LOWEST_COST_WITHOUT_CAP',
       sales: totalSales,
       pendingSales: matchingPendingOrders.length,
@@ -2450,8 +2459,8 @@ app.post('/api/campaigns/update', async (req, res) => {
           name: name || "TESTE MI",
           status: true,
           budget: String(budget || "256.99"),
-          bidCap: String(bidCap || "15.00"),
-          bidStrategy: bidStrategy || "LOWEST_COST_WITH_BID_CAP",
+          bidCap: bidCap ? String(bidCap) : null,
+          bidStrategy: bidStrategy || "LOWEST_COST_WITHOUT_CAP",
           spend: "123.41",
           sales: 15,
           revenue: "139.67",

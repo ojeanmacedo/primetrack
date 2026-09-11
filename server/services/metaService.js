@@ -385,13 +385,18 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const clicks = Number(insight.clicks || 0);
     const impressions = Number(insight.impressions || 0);
 
+    const nameUpper = (c.name || '').toUpperCase();
+    const explicitAboInName = nameUpper.includes('ABO');
     const rawDailyBudget = c.daily_budget ? (Number(c.daily_budget) / 100) : null;
     const rawLifetimeBudget = c.lifetime_budget ? (Number(c.lifetime_budget) / 100) : null;
 
-    const hasCampBudget = Boolean(rawDailyBudget !== null || rawLifetimeBudget !== null);
-    const isCbo = hasCampBudget;
-    const isAbo = !hasCampBudget;
-    const campBidStrategy = c.bid_strategy || 'LOWEST_COST_WITHOUT_CAP';
+    // Se o nome tiver "ABO" ou a campanha não tiver orçamento no nível de campanha na Meta
+    const isAbo = explicitAboInName || (!rawDailyBudget && !rawLifetimeBudget);
+    const isCbo = !isAbo;
+    let campBidStrategy = c.bid_strategy || 'LOWEST_COST_WITHOUT_CAP';
+    if (!nameUpper.includes('BID') && !nameUpper.includes('COST CAP')) {
+      campBidStrategy = 'LOWEST_COST_WITHOUT_CAP';
+    }
 
     const baseBudget = rawDailyBudget !== null ? rawDailyBudget : (rawLifetimeBudget !== null ? rawLifetimeBudget : 25.00);
 
@@ -433,8 +438,14 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
           as.budgetType = 'Diário';
         }
       }
-      if (!as.bidStrategy) {
-        as.bidStrategy = campBidStrategy;
+
+      // Se o conjunto não tem limite de lance real configurado, é estritamente Volume Mais Alto (Menor Custo)
+      const hasRealBidAmount = Boolean(as.bidCap && Number(as.bidCap) > 0);
+      if (!hasRealBidAmount) {
+        as.bidCap = null;
+        as.bidStrategy = 'LOWEST_COST_WITHOUT_CAP';
+      } else {
+        as.bidStrategy = as.bidStrategy || campBidStrategy;
       }
     });
 
@@ -455,7 +466,7 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       isAbo,
       bidStrategy: campBidStrategy,
       budget: finalCampBudget,
-      budgetType: isCbo ? (c.daily_budget ? 'Diário' : 'Vitalício') : 'Diário (ABO)',
+      budgetType: isCbo ? (c.daily_budget ? 'Diário' : 'Vitalício') : 'Nível de Conjunto (ABO)',
       spend: realSpend.toFixed(2),
       rawSpendUsd: isUsd ? rawSpend.toFixed(2) : null,
       rawBudgetUsd: isUsd ? baseBudget.toFixed(2) : null,
