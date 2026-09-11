@@ -1760,16 +1760,15 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         }
 
         // Caso 2: Na aba Conjuntos, se a campanha for CBO (orçamento centralizado na campanha):
+        // Conforme solicitado: deixa só a escrita sem a canetinha porque para alterar o valor é só na campanha (CBO)
         if (isConjunto && !isItemAbo) {
           return (
             <div 
-              className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group" 
-              onClick={() => handleOpenEdit(item, 'budget')}
-              title="Usando orçamento da campanha"
+              className="p-1 select-none" 
+              title="Campanha CBO: O orçamento é gerenciado na campanha"
             >
-              <div className="text-zinc-300 font-sans text-xs flex items-center gap-1">
-                <span>Usando orç. campanha</span>
-                <Edit3 className="w-2.5 h-2.5 text-zinc-500 group-hover:text-[#5C9BFF]" />
+              <div className="text-zinc-300 font-sans text-xs">
+                Usando orç. campanha
               </div>
               <div className="text-[10px] text-zinc-500 font-mono">
                 R$ {Number(item.budget || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({item.budgetType || 'Diário'})
