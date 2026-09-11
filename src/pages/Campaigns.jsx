@@ -2579,7 +2579,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 <thead className="bg-[#0A1426] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E] sticky top-0 z-30 shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
                   <tr>
                     {/* Checkbox fixo na lateral esquerda */}
-                    <th className="py-3 pl-4 pr-4 w-12 bg-[#0A1426] sticky left-0 z-40">
+                    <th className="py-3 pl-4 pr-3 w-[48px] min-w-[48px] max-w-[48px] bg-[#0A1426] sticky left-0 z-40">
                       <input 
                         type="checkbox" 
                         className="rounded bg-[#03060D] border-white/10 cursor-pointer accent-[#1A6DFF]" 
@@ -2592,7 +2592,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     {/* Status fixo na lateral esquerda com ordenação */}
                     <th 
                       onClick={() => handleToggleSort('status')}
-                      className={`py-3 pl-4 pr-5 bg-[#0A1426] sticky left-12 z-40 cursor-pointer select-none transition-colors group ${
+                      className={`py-3 pl-4 pr-3 w-[94px] min-w-[94px] max-w-[94px] bg-[#0A1426] sticky left-[48px] z-40 cursor-pointer select-none transition-colors group ${
                         sortKey === 'status' ? 'text-[#5C9BFF]' : 'hover:text-white'
                       }`}
                       title={sortKey === 'status' 
@@ -2608,7 +2608,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     {/* Nome (Campanha / Conjunto / Anúncio) fixo na lateral esquerda com ordenação */}
                     <th 
                       onClick={() => handleToggleSort('name')}
-                      className={`py-3 px-4 bg-[#0A1426] sticky left-[122px] z-40 min-w-[220px] max-w-[320px] cursor-pointer select-none transition-colors group ${
+                      className={`py-3 px-4 bg-[#0A1426] sticky left-[142px] z-40 min-w-[220px] max-w-[320px] cursor-pointer select-none transition-colors group ${
                         sortKey === 'name' ? 'text-[#5C9BFF]' : 'hover:text-white'
                       }`}
                       title={sortKey === 'name' 
@@ -2651,7 +2651,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   {paginatedItems.map((item, idx) => (
                     <tr key={item.id || idx} className={`group hover:bg-[#0e1b33] transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#1A6DFF]/10' : ''}`}>
                       {/* Checkbox fixo na lateral */}
-                      <td className={`py-4 pl-4 pr-4 sticky left-0 z-10 transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0f1d38]' : 'bg-[#0A1426] group-hover:bg-[#0e1b33]'}`}>
+                      <td className={`py-4 pl-4 pr-3 w-[48px] min-w-[48px] max-w-[48px] sticky left-0 z-10 transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0f1d38]' : 'bg-[#0A1426] group-hover:bg-[#0e1b33]'}`}>
                         <input 
                           type="checkbox" 
                           className="rounded bg-[#03060D] border-white/10 cursor-pointer accent-[#1A6DFF]" 
@@ -2661,7 +2661,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       </td>
 
                       {/* Status Toggle fixo na lateral */}
-                      <td className={`py-4 pl-4 pr-5 sticky left-12 z-10 transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0f1d38]' : 'bg-[#0A1426] group-hover:bg-[#0e1b33]'}`}>
+                      <td className={`py-4 pl-4 pr-3 w-[94px] min-w-[94px] max-w-[94px] sticky left-[48px] z-10 transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0f1d38]' : 'bg-[#0A1426] group-hover:bg-[#0e1b33]'}`}>
                         <button
                           type="button"
                           onClick={() => handleToggleStatus(item.id || item.campaignId || item.adsetId || item.adId)}
@@ -2676,7 +2676,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       </td>
 
                       {/* Nome do Item fixo na lateral */}
-                      <td className={`py-4 px-4 font-sans sticky left-[122px] z-10 min-w-[220px] max-w-[320px] transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0f1d38]' : 'bg-[#0A1426] group-hover:bg-[#0e1b33]'}`}>
+                      <td className={`py-4 px-4 font-sans sticky left-[142px] z-10 min-w-[220px] max-w-[320px] transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0f1d38]' : 'bg-[#0A1426] group-hover:bg-[#0e1b33]'}`}>
                         <div className="truncate">
                           <div 
                             onClick={() => handleOpenEdit(item, 'name')}
@@ -2707,9 +2707,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 {/* Rodapé com totais reais sticky embaixo */}
                 <tfoot className="bg-[#0A1426] font-bold border-t border-[#13233E] text-xs font-mono sticky bottom-0 z-30 shadow-[0_-2px_10px_rgba(0,0,0,0.5)]">
                   <tr>
-                    <td className="py-3.5 pl-4 pr-4 bg-[#0A1426] sticky left-0 z-40"></td>
-                    <td className="py-3.5 pl-4 pr-5 bg-[#0A1426] sticky left-12 z-40"></td>
-                    <td className="py-3.5 px-4 font-sans text-white uppercase text-[11px] bg-[#0A1426] sticky left-[122px] z-40">
+                    <td className="py-3.5 pl-4 pr-3 w-[48px] min-w-[48px] max-w-[48px] bg-[#0A1426] sticky left-0 z-40"></td>
+                    <td className="py-3.5 pl-4 pr-3 w-[94px] min-w-[94px] max-w-[94px] bg-[#0A1426] sticky left-[48px] z-40"></td>
+                    <td className="py-3.5 px-4 font-sans text-white uppercase text-[11px] bg-[#0A1426] sticky left-[142px] z-40">
                       {currentItems.length} {
                         subTab === 'Campanhas' 
                           ? (currentItems.length === 1 ? 'CAMPANHA' : 'CAMPANHAS')
