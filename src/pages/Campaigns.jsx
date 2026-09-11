@@ -2608,7 +2608,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     {/* Nome (Campanha / Conjunto / Anúncio) fixo na lateral esquerda com ordenação */}
                     <th 
                       onClick={() => handleToggleSort('name')}
-                      className={`py-3 px-4 bg-[#0A1426] sticky left-[122px] z-40 border-r border-[#13233E] min-w-[220px] max-w-[320px] shadow-[4px_0_12px_rgba(0,0,0,0.5)] cursor-pointer select-none transition-colors group ${
+                      className={`py-3 px-4 bg-[#0A1426] sticky left-[122px] z-40 min-w-[220px] max-w-[320px] cursor-pointer select-none transition-colors group ${
                         sortKey === 'name' ? 'text-[#5C9BFF]' : 'hover:text-white'
                       }`}
                       title={sortKey === 'name' 
@@ -2676,7 +2676,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       </td>
 
                       {/* Nome do Item fixo na lateral */}
-                      <td className={`py-4 px-4 font-sans sticky left-[122px] z-10 border-r border-[#13233E] min-w-[220px] max-w-[320px] shadow-[4px_0_12px_rgba(0,0,0,0.5)] transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0f1d38]' : 'bg-[#0A1426] group-hover:bg-[#0e1b33]'}`}>
+                      <td className={`py-4 px-4 font-sans sticky left-[122px] z-10 min-w-[220px] max-w-[320px] transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0f1d38]' : 'bg-[#0A1426] group-hover:bg-[#0e1b33]'}`}>
                         <div className="truncate">
                           <div 
                             onClick={() => handleOpenEdit(item, 'name')}
@@ -2709,7 +2709,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   <tr>
                     <td className="py-3.5 pl-4 pr-4 bg-[#0A1426] sticky left-0 z-40"></td>
                     <td className="py-3.5 pl-4 pr-5 bg-[#0A1426] sticky left-12 z-40"></td>
-                    <td className="py-3.5 px-4 font-sans text-white uppercase text-[11px] bg-[#0A1426] sticky left-[122px] z-40 border-r border-[#13233E] shadow-[4px_0_12px_rgba(0,0,0,0.5)]">
+                    <td className="py-3.5 px-4 font-sans text-white uppercase text-[11px] bg-[#0A1426] sticky left-[122px] z-40">
                       {currentItems.length} {
                         subTab === 'Campanhas' 
                           ? (currentItems.length === 1 ? 'CAMPANHA' : 'CAMPANHAS')
