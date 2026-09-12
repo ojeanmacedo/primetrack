@@ -1674,6 +1674,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   // Totais calculados dinamicamente
   const totals = React.useMemo(() => {
     const spend = currentItems.reduce((acc, c) => acc + Number(c.spend || 0), 0);
+    const spendUsd = currentItems.reduce((acc, c) => acc + (c.rawSpendUsd ? Number(c.rawSpendUsd) : 0), 0);
     const sales = currentItems.reduce((acc, c) => acc + Number(c.sales || 0), 0);
     const pendingSales = currentItems.reduce((acc, c) => acc + Number(c.pendingSales || 0), 0);
     const revenue = currentItems.reduce((acc, c) => acc + Number(c.revenue || 0), 0);
@@ -1693,6 +1694,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
     return {
       spend,
+      spendUsd,
       sales,
       pendingSales,
       revenue,
@@ -1970,8 +1972,21 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         );
       }
 
-      case 'spend':
-        return <span className="font-bold text-white font-mono">R$ {Number(item.spend || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>;
+      case 'spend': {
+        const rawUsd = item.rawSpendUsd ? Number(item.rawSpendUsd) : null;
+        return (
+          <div className="flex flex-col">
+            <span className="font-bold text-white font-mono">
+              R$ {Number(item.spend || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            {rawUsd !== null && rawUsd > 0 && (
+              <span className="text-[10.5px] text-zinc-400 font-mono tracking-tight" title={`Valor nativo no Meta Ads: $${rawUsd.toFixed(2)} USD`}>
+                ${rawUsd.toFixed(2)} USD
+              </span>
+            )}
+          </div>
+        );
+      }
 
       case 'sales':
         return <span className="font-bold text-white font-mono">{item.sales || 0}</span>;
@@ -2087,7 +2102,18 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const renderFooterCell = (colId, t) => {
     switch (colId) {
       case 'spend':
-        return <span className="text-white font-bold font-mono">R$ {t.spend.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>;
+        return (
+          <div className="flex flex-col">
+            <span className="text-white font-bold font-mono">
+              R$ {t.spend.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            {t.spendUsd > 0 && (
+              <span className="text-[10px] text-zinc-400 font-mono tracking-tight">
+                ${t.spendUsd.toFixed(2)} USD
+              </span>
+            )}
+          </div>
+        );
       case 'sales':
         return <span className="text-white font-bold font-mono">{t.sales}</span>;
       case 'pendingSales':

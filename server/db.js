@@ -431,6 +431,7 @@ const demoData = {
 
 class Store {
   constructor() {
+    this.cache = null;
     this.init();
   }
 
@@ -441,21 +442,27 @@ class Store {
   }
 
   read() {
+    if (this.cache) {
+      return this.cache;
+    }
     try {
       const content = fs.readFileSync(DB_FILE, 'utf-8');
-      return JSON.parse(content);
+      this.cache = JSON.parse(content);
+      return this.cache;
     } catch (err) {
       console.error("Erro ao ler banco de dados:", err);
-      return cleanCustomerData;
+      this.cache = { ...cleanCustomerData };
+      return this.cache;
     }
   }
 
   save(data) {
+    this.cache = data;
     try {
       fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
       return true;
     } catch (err) {
-      console.error("Erro ao gravar no banco de dados:", err);
+      // Em ambientes como Vercel Serverless onde o FS é read-only, os dados persistem em this.cache
       return false;
     }
   }

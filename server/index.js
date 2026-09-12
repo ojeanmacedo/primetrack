@@ -1600,11 +1600,9 @@ app.get('/api/campaigns', async (req, res) => {
     console.warn('[Sync Campaigns Error]:', e.message);
   }
 
-  const allCampaigns = (db.get('campaigns') && db.get('campaigns').length > 0)
-    ? db.get('campaigns')
-    : ((syncResult && Array.isArray(syncResult.campaigns) && syncResult.campaigns.length > 0)
-        ? syncResult.campaigns
-        : []);
+  const allCampaigns = (syncResult && Array.isArray(syncResult.campaigns) && syncResult.campaigns.length > 0)
+    ? syncResult.campaigns
+    : (db.get('campaigns') || []);
 
   const allOrders = await getAllOrders();
   const approvedOrders = allOrders.filter(o => o.status === 'approved' || o.status === 'paid' || o.status === 'pago');

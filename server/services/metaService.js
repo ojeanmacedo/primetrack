@@ -293,6 +293,10 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       bidCap: realBidCap,
       bidStrategy: adset.bid_strategy || null,
       spend: realSpend.toFixed(2),
+      rawSpendUsd: isUsd ? rawSpend.toFixed(2) : null,
+      rawBudgetUsd: isUsd && rawDailyBudget !== null ? rawDailyBudget.toFixed(2) : null,
+      usdRate: isUsd ? usdRate : null,
+      currency: 'BRL',
       impressions,
       clicks,
       cpc: realCpc.toFixed(2),
@@ -361,6 +365,9 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       thumbnailUrl: thumb,
       videoUrl: videoUrl,
       spend: realSpend.toFixed(2),
+      rawSpendUsd: isUsd ? rawSpend.toFixed(2) : null,
+      usdRate: isUsd ? usdRate : null,
+      currency: 'BRL',
       impressions,
       clicks,
       cpc: realCpc.toFixed(2),
@@ -471,6 +478,22 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const totalAdsetsBudget = campAdsets.reduce((sum, a) => sum + Number(a.budget || 0), 0);
     const finalCampBudget = isCbo ? realBudget.toFixed(2) : (totalAdsetsBudget > 0 ? totalAdsetsBudget.toFixed(2) : realBudget.toFixed(2));
 
+    // Garante coerência e alinhamento exato de gastos entre campanha, conjuntos e anúncios
+    let finalCampSpend = realSpend;
+    if (isAbo && campAdsets.length > 0) {
+      const sumAdsetsSpend = campAdsets.reduce((sum, a) => sum + Number(a.spend || 0), 0);
+      if (sumAdsetsSpend > 0) {
+        finalCampSpend = sumAdsetsSpend;
+      }
+    } else if (isCbo && campAdsets.length === 1) {
+      campAdsets[0].spend = realSpend.toFixed(2);
+      if (isUsd) campAdsets[0].rawSpendUsd = rawSpend.toFixed(2);
+      if (campAds.length === 1) {
+        campAds[0].spend = realSpend.toFixed(2);
+        if (isUsd) campAds[0].rawSpendUsd = rawSpend.toFixed(2);
+      }
+    }
+
     // A API da Meta é utilizada ESTRITAMENTE para coletar gastos, impressões, cliques, CPC, CPM, CTR e ICS
     // As vendas e receitas vêm exclusivamente das plataformas integradas (MonsterPay) e do Pixel PrimeTrack
     return {
@@ -486,7 +509,7 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       bidStrategy: isCbo ? campBidStrategy : 'LOWEST_COST_WITHOUT_CAP',
       budget: finalCampBudget,
       budgetType: isCbo ? (c.daily_budget ? 'Diário' : 'Vitalício') : 'Nível de Conjunto',
-      spend: realSpend.toFixed(2),
+      spend: finalCampSpend.toFixed(2),
       rawSpendUsd: isUsd ? rawSpend.toFixed(2) : null,
       rawBudgetUsd: isUsd ? baseBudget.toFixed(2) : null,
       usdRate: isUsd ? usdRate : null,
