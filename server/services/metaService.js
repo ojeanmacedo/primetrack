@@ -293,6 +293,17 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     }
   } catch (e) {}
 
+  let metaCurrency = 'BRL';
+  try {
+    if (accRes) {
+      const accData = await accRes.json();
+      if (accData.currency) metaCurrency = accData.currency;
+    }
+  } catch (e) {}
+
+  const isUsd = metaCurrency === 'USD' || accountCurrency === 'USD' || actId.includes('1092137896602979') || actId.includes('2013649985959956') || actId.includes('1084136023986167') || actId.includes('1588922422580250');
+  const usdRate = isUsd ? await getUsdToBrlRate() : 1.0;
+
   // Fallback: se a Meta bloquear leitura da estrutura por rate limit, recupera do db local
   const cleanAct = actId.replace('act_', '');
   const storedCampaigns = (db.get('campaigns') || []).filter(c => 
@@ -302,15 +313,28 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
   if (!data.data || data.data.length === 0) {
     if (storedCampaigns.length > 0) {
       data = {
-        data: storedCampaigns.map(c => ({
-          id: c.id,
-          name: c.name,
-          status: c.rawStatus || (c.status ? 'ACTIVE' : 'PAUSED'),
-          effective_status: c.effectiveStatus || (c.status ? 'ACTIVE' : 'PAUSED'),
-          objective: c.objective,
-          daily_budget: c.budget ? Math.round(Number(c.budget) * 100) : null,
-          bid_strategy: c.bidStrategy
-        }))
+        data: storedCampaigns.map(c => {
+          const isCampAbo = Boolean(c.isAbo === true || c.budgetType?.includes('Conjunto') || (c.name || '').toUpperCase().includes('ABO'));
+          let campDailyBudget = null;
+          if (!isCampAbo) {
+            const rawVal = (c.rawBudgetUsd !== null && c.rawBudgetUsd !== undefined && Number(c.rawBudgetUsd) > 0)
+              ? Number(c.rawBudgetUsd)
+              : (isUsd ? (Number(c.budget || 25) / usdRate) : Number(c.budget || 25));
+            campDailyBudget = Math.round(rawVal * 100);
+          }
+          return {
+            id: c.id,
+            name: c.name,
+            status: c.rawStatus || (c.status ? 'ACTIVE' : 'PAUSED'),
+            effective_status: c.effectiveStatus || (c.status ? 'ACTIVE' : 'PAUSED'),
+            objective: c.objective,
+            daily_budget: campDailyBudget,
+            bid_strategy: isCampAbo ? 'LOWEST_COST_WITHOUT_CAP' : (c.bidStrategy || 'LOWEST_COST_WITHOUT_CAP'),
+            _fromFallback: true,
+            _originalBudgetBrl: c.budget,
+            _originalIsAbo: isCampAbo
+          };
+        })
       };
     }
   }
@@ -324,18 +348,41 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     }
   } catch (e) {}
   if (!adsetsData.data || adsetsData.data.length === 0) {
-    const fallbackAdsets = storedCampaigns.flatMap(c => c.adsets || []);
+    const fallbackAdsets = storedCampaigns.flatMap(c => {
+      const isCampAbo = Boolean(c.isAbo === true || c.budgetType?.includes('Conjunto') || (c.name || '').toUpperCase().includes('ABO'));
+      return (c.adsets || []).map(a => ({
+        ...a,
+        _parentIsAbo: isCampAbo
+      }));
+    });
     if (fallbackAdsets.length > 0) {
-      adsetsData = { data: fallbackAdsets.map(a => ({
-        id: a.id || a.adsetId,
-        name: a.name,
-        campaign_id: a.campaignId,
-        status: a.status ? 'ACTIVE' : 'PAUSED',
-        effective_status: a.effectiveStatus || (a.status ? 'ACTIVE' : 'PAUSED'),
-        daily_budget: a.budget ? Math.round(Number(a.budget) * 100) : null,
-        bid_amount: a.bidCap ? Math.round(Number(a.bidCap) * 100) : null,
-        bid_strategy: a.bidStrategy
-      })) };
+      adsetsData = { data: fallbackAdsets.map(a => {
+        const isAboAdset = Boolean(a._parentIsAbo || a.isAbo);
+        const rawBudgetVal = (a.rawBudgetUsd !== null && a.rawBudgetUsd !== undefined && Number(a.rawBudgetUsd) > 0)
+          ? Number(a.rawBudgetUsd)
+          : (isUsd ? (Number(a.budget || 10) / usdRate) : Number(a.budget || 10));
+
+        let rawBidVal = null;
+        if (!isAboAdset && a.bidCap && Number(a.bidCap) > 0 && Number(a.bidCap) < 500) {
+          rawBidVal = (a.rawBidCapUsd !== null && a.rawBidCapUsd !== undefined && Number(a.rawBidCapUsd) > 0)
+            ? Number(a.rawBidCapUsd)
+            : (isUsd ? (Number(a.bidCap) / usdRate) : Number(a.bidCap));
+        }
+
+        return {
+          id: a.id || a.adsetId,
+          name: a.name,
+          campaign_id: a.campaignId,
+          status: a.status ? 'ACTIVE' : 'PAUSED',
+          effective_status: a.effectiveStatus || (a.status ? 'ACTIVE' : 'PAUSED'),
+          daily_budget: Math.round(rawBudgetVal * 100),
+          bid_amount: rawBidVal !== null ? Math.round(rawBidVal * 100) : null,
+          bid_strategy: isAboAdset ? 'LOWEST_COST_WITHOUT_CAP' : (a.bidStrategy || 'LOWEST_COST_WITHOUT_CAP'),
+          _fromFallback: true,
+          _originalBudgetBrl: a.budget,
+          _originalBidCapBrl: isAboAdset ? null : a.bidCap
+        };
+      }) };
     }
   }
 
@@ -366,17 +413,6 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     }
   }
 
-  let metaCurrency = 'BRL';
-  try {
-    if (accRes) {
-      const accData = await accRes.json();
-      if (accData.currency) metaCurrency = accData.currency;
-    }
-  } catch (e) {}
-
-  const isUsd = metaCurrency === 'USD' || accountCurrency === 'USD' || actId.includes('1092137896602979') || actId.includes('2013649985959956') || actId.includes('1084136023986167') || actId.includes('1588922422580250');
-  const usdRate = isUsd ? await getUsdToBrlRate() : 1.0;
-
   // Processa os conjuntos reais vinculando as métricas exatas do período
   const allAdsets = (adsetsData.data || []).map(adset => {
     const insight = adsetInsightsMap.get(String(adset.id)) || {};
@@ -402,10 +438,17 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const costPerIc = metaInitCheckouts > 0 ? (realSpend / metaInitCheckouts).toFixed(2) : '0.00';
 
     const rawBidAmount = adset.bid_amount ? (Number(adset.bid_amount) / 100) : null;
-    const realBidCap = rawBidAmount !== null ? (rawBidAmount * usdRate).toFixed(2) : null;
+    let realBidCap = rawBidAmount !== null ? (rawBidAmount * usdRate).toFixed(2) : null;
+    if (realBidCap && Number(realBidCap) > 500) realBidCap = null;
+    if (adset._originalBidCapBrl !== undefined) {
+      realBidCap = adset._originalBidCapBrl;
+    }
 
     const rawDailyBudget = adset.daily_budget ? (Number(adset.daily_budget) / 100) : null;
-    const realBudget = rawDailyBudget !== null ? (rawDailyBudget * usdRate).toFixed(2) : null;
+    let realBudget = rawDailyBudget !== null ? (rawDailyBudget * usdRate).toFixed(2) : null;
+    if (adset._originalBudgetBrl !== undefined && Number(adset._originalBudgetBrl) > 0) {
+      realBudget = Number(adset._originalBudgetBrl).toFixed(2);
+    }
 
     return {
       id: adset.id,
@@ -514,15 +557,19 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const rawDailyBudget = c.daily_budget ? (Number(c.daily_budget) / 100) : null;
     const rawLifetimeBudget = c.lifetime_budget ? (Number(c.lifetime_budget) / 100) : null;
 
-    const isAbo = explicitAboInName || (!rawDailyBudget && !rawLifetimeBudget);
+    const isAbo = explicitAboInName || Boolean(c._originalIsAbo) || (!rawDailyBudget && !rawLifetimeBudget);
     const isCbo = !isAbo;
     let campBidStrategy = c.bid_strategy || 'LOWEST_COST_WITHOUT_CAP';
-    if (!nameUpper.includes('BID') && !nameUpper.includes('COST CAP') && c.bid_strategy !== 'LOWEST_COST_WITH_BID_CAP' && c.bid_strategy !== 'COST_CAP') {
+    if (isAbo || (!nameUpper.includes('BID') && !nameUpper.includes('COST CAP') && c.bid_strategy !== 'LOWEST_COST_WITH_BID_CAP' && c.bid_strategy !== 'COST_CAP')) {
       campBidStrategy = 'LOWEST_COST_WITHOUT_CAP';
     }
 
     const baseBudget = rawDailyBudget !== null ? rawDailyBudget : (rawLifetimeBudget !== null ? rawLifetimeBudget : 25.00);
-    const realBudget = baseBudget * usdRate;
+    let realBudget = baseBudget * usdRate;
+    if (c._originalBudgetBrl && isCbo && Number(c._originalBudgetBrl) > 0) {
+      realBudget = Number(c._originalBudgetBrl);
+    }
+
     const realSpend = rawSpend * usdRate;
     const rawCtr = impressions > 0 ? ((clicks / impressions) * 100) : Number(insight.ctr || 0);
     const rawCpc = clicks > 0 ? (rawSpend / clicks) : Number(insight.cpc || 0);
@@ -546,15 +593,13 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       as.isCbo = isCbo;
       as.isAbo = isAbo;
       if (isCbo) {
-        if (!as.budget) {
-          as.budget = realBudget.toFixed(2);
-          as.budgetType = c.daily_budget ? 'Diário' : 'Vitalício';
-        }
+        as.budget = realBudget.toFixed(2);
+        as.budgetType = c.daily_budget ? 'Diário' : 'Vitalício';
       } else {
-        if (!as.budget) {
+        if (!as.budget || Number(as.budget) > 500) {
           as.budget = '10.00';
-          as.budgetType = 'Diário';
         }
+        as.budgetType = 'Diário';
       }
 
       if (isAbo) {
@@ -563,9 +608,9 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       } else {
         const rawCampBidAmount = c.bid_amount ? (Number(c.bid_amount) / 100) : null;
         const realCampBidCap = rawCampBidAmount !== null ? (rawCampBidAmount * usdRate).toFixed(2) : null;
-        const effectiveBidCap = (as.bidCap !== undefined && as.bidCap !== null && Number(as.bidCap) > 0)
+        const effectiveBidCap = (as.bidCap !== undefined && as.bidCap !== null && Number(as.bidCap) > 0 && Number(as.bidCap) < 500)
           ? as.bidCap
-          : realCampBidCap;
+          : (realCampBidCap && Number(realCampBidCap) < 500 ? realCampBidCap : null);
 
         const hasRealBidAmount = Boolean(effectiveBidCap && Number(effectiveBidCap) > 0);
         if (!hasRealBidAmount) {
@@ -580,11 +625,13 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
 
     const rawCampBidAmount = c.bid_amount ? (Number(c.bid_amount) / 100) : null;
     const realCampBidCap = rawCampBidAmount !== null ? (rawCampBidAmount * usdRate).toFixed(2) : null;
-    const finalCampBidCap = isCbo ? (realCampBidCap || (campAdsets.find(a => a.bidCap && Number(a.bidCap) > 0)?.bidCap || null)) : null;
+    const finalCampBidCap = isCbo 
+      ? ((realCampBidCap && Number(realCampBidCap) < 500 ? realCampBidCap : null) || (campAdsets.find(a => a.bidCap && Number(a.bidCap) > 0 && Number(a.bidCap) < 500)?.bidCap || null)) 
+      : null;
 
     const campAds = allAds.filter(a => a.campaignId === c.id);
     const totalAdsetsBudget = campAdsets.reduce((sum, a) => sum + Number(a.budget || 0), 0);
-    const finalCampBudget = isCbo ? realBudget.toFixed(2) : (totalAdsetsBudget > 0 ? totalAdsetsBudget.toFixed(2) : realBudget.toFixed(2));
+    const finalCampBudget = isCbo ? realBudget.toFixed(2) : (totalAdsetsBudget > 0 ? totalAdsetsBudget.toFixed(2) : '10.00');
 
     let finalCampSpend = realSpend;
     if (isAbo && campAdsets.length > 0) {
@@ -610,8 +657,8 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       objective: c.objective,
       isCbo,
       isAbo,
-      bidCap: finalCampBidCap,
-      bidStrategy: isCbo ? campBidStrategy : 'LOWEST_COST_WITHOUT_CAP',
+      bidCap: isAbo ? null : finalCampBidCap,
+      bidStrategy: isAbo ? 'LOWEST_COST_WITHOUT_CAP' : campBidStrategy,
       budget: finalCampBudget,
       budgetType: isCbo ? (c.daily_budget ? 'Diário' : 'Vitalício') : 'Nível de Conjunto',
       spend: finalCampSpend.toFixed(2),

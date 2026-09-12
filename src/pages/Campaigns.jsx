@@ -1303,9 +1303,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     const allAdsets = parentCampaigns.flatMap(camp => {
       const campNameUpper = (camp.name || '').toUpperCase();
       const campIsAbo = Boolean(
-        campNameUpper.includes('ABO') ||
-        (camp.isAbo === true && !camp.isCbo && !campNameUpper.includes('CBO')) ||
-        (camp.budgetType?.includes('Conjunto') && !camp.isCbo)
+        camp.isAbo === true ||
+        camp.budgetType?.includes('Conjunto') ||
+        campNameUpper.includes('ABO')
       );
       const campIsCbo = !campIsAbo;
 
@@ -1358,7 +1358,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       }
 
       // Campanha CBO
-      const rawCampBid = (camp.bidCap !== undefined && camp.bidCap !== null && Number(camp.bidCap) > 0)
+      const rawCampBid = (camp.bidCap !== undefined && camp.bidCap !== null && Number(camp.bidCap) > 0 && Number(camp.bidCap) < 500)
         ? String(camp.bidCap)
         : null;
       const campIsCost = camp.bidStrategy === 'COST_CAP' || campNameUpper.includes('COST CAP');
@@ -1367,7 +1367,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       if (camp.adsets && camp.adsets.length > 0) {
         return camp.adsets.map(a => {
           const asNameUpper = (a.name || '').toUpperCase();
-          const rawAdsetBid = (a.bidCap !== undefined && a.bidCap !== null && Number(a.bidCap) > 0)
+          const rawAdsetBid = (a.bidCap !== undefined && a.bidCap !== null && Number(a.bidCap) > 0 && Number(a.bidCap) < 500)
             ? String(a.bidCap)
             : rawCampBid;
           
@@ -1945,9 +1945,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         const isCampanha = subTab === 'Campanhas';
         const itemNameUpper = (item.name || '').toUpperCase();
         const isItemAbo = Boolean(
-          itemNameUpper.includes('ABO') || 
-          (item.isAbo === true && !item.isCbo && !itemNameUpper.includes('CBO')) ||
-          (item.budgetType?.includes('Conjunto') && !item.isCbo)
+          item.isAbo === true || 
+          item.budgetType?.includes('Conjunto') ||
+          itemNameUpper.includes('ABO')
         );
 
         // Caso 1: Na aba Campanhas, se a campanha for ABO:
@@ -2010,18 +2010,18 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
         const itemNameUpper = (item.name || '').toUpperCase();
         const isItemAbo = Boolean(
-          item.isAbo || 
-          itemNameUpper.includes('ABO') ||
-          (item.budgetType?.includes('Conjunto'))
+          item.isAbo === true || 
+          item.budgetType?.includes('Conjunto') ||
+          itemNameUpper.includes('ABO')
         );
 
         // Se o conjunto pertencer a uma campanha ABO, ou se for ABO:
-        // "e a campanha TESTE ABO que é padrao volume alto, e ABO, no lance ta limite de lance.. ali coloca um risquinho.. e na campanha de abo tambem em lance ta com limite de lance.. sendo que ela é volume mais alto, coloca um risquinho la tambem."
+        // Estritamente um risquinho "—" (Volume mais alto, sem limite de lance!)
         if (isItemAbo) {
           return <span className="text-zinc-500 font-mono text-xs select-none">—</span>;
         }
 
-        const rawBidVal = (item.bidCap !== undefined && item.bidCap !== null && Number(item.bidCap) > 0)
+        const rawBidVal = (item.bidCap !== undefined && item.bidCap !== null && Number(item.bidCap) > 0 && Number(item.bidCap) < 500)
           ? Number(item.bidCap)
           : 0;
 
