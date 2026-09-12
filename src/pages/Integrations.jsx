@@ -846,14 +846,10 @@ export default function Integrations() {
           }));
           setConnectedProfiles(mapped);
           localStorage.setItem('primetrack_connected_profiles', JSON.stringify(mapped));
-        } else {
-          // Se backend reportar 0 conexões
+        } else if (data && Array.isArray(data.connections) && data.connections.length === 0) {
+          // Se backend explicitamente reportar 0 conexões (ex: nova instalação)
           setConnectedProfiles([]);
           setAdAccounts([]);
-          localStorage.setItem('primetrack_meta_disconnected', 'true');
-          localStorage.removeItem('primetrack_connected_profiles');
-          localStorage.removeItem('primetrack_ad_accounts');
-          localStorage.removeItem('primetrack_cached_campaigns');
         }
 
         if (Array.isArray(data.adAccounts)) {

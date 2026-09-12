@@ -1577,7 +1577,12 @@ app.get('/api/campaigns', async (req, res) => {
     } catch (e) {}
   }
 
+  const savedCampaigns = db.get('campaigns') || [];
   if (connections.length === 0) {
+    // Se ainda houver campanhas salvas no banco de dados local, NUNCA retorna vazio
+    if (savedCampaigns.length > 0) {
+      return res.json(savedCampaigns);
+    }
     return res.json([]);
   }
 
@@ -1587,8 +1592,8 @@ app.get('/api/campaigns', async (req, res) => {
   const now = Date.now();
   const cached = campaignsCache.get(cacheKey);
 
-  // Cache curto de 15 segundos para navegação ultrarrápida entre telas sem estragar filtros
-  if (cached && (now - cached.timestamp < 15 * 1000) && refresh !== 'true') {
+  // Cache de 30 segundos para navegação ultrarrápida e proteção contra rate limits da Meta
+  if (cached && (now - cached.timestamp < 30 * 1000) && refresh !== 'true') {
     return res.json(cached.campaigns);
   }
 
@@ -1600,9 +1605,17 @@ app.get('/api/campaigns', async (req, res) => {
     console.warn('[Sync Campaigns Error]:', e.message);
   }
 
-  const allCampaigns = (syncResult && Array.isArray(syncResult.campaigns) && syncResult.campaigns.length > 0)
+  let allCampaigns = (syncResult && Array.isArray(syncResult.campaigns) && syncResult.campaigns.length > 0)
     ? syncResult.campaigns
     : (db.get('campaigns') || []);
+
+  // Proteção máxima: se por instabilidade da Meta ou rate limit allCampaigns vier vazio, preserva o cache anterior
+  if ((!allCampaigns || allCampaigns.length === 0) && cached && Array.isArray(cached.campaigns) && cached.campaigns.length > 0) {
+    allCampaigns = cached.campaigns;
+  }
+  if ((!allCampaigns || allCampaigns.length === 0) && savedCampaigns.length > 0) {
+    allCampaigns = savedCampaigns;
+  }
 
   const allOrders = await getAllOrders();
   const approvedOrders = allOrders.filter(o => o.status === 'approved' || o.status === 'paid' || o.status === 'pago');
@@ -2083,37 +2096,36 @@ app.get('/api/auth/facebook/callback', async (req, res) => {
   }
 });
 
+let reconcileCache = { data: null, timestamp: 0 };
+
 // C. Função central de reconciliação de dados da Meta (perfis, contas ativas e limpeza de contas órfãs)
-export async function reconcileFacebookData() {
+export async function reconcileFacebookData(force = false) {
+  const now = Date.now();
+  if (!force && reconcileCache.data && (now - reconcileCache.timestamp < 45 * 1000)) {
+    return reconcileCache.data;
+  }
+
   let connections = [];
   try {
     const { data: supaConns } = await supabaseAdmin
       .from('facebook_connections')
       .select('*')
       .order('connected_at', { ascending: false });
-    if (supaConns) {
+    if (supaConns && supaConns.length > 0) {
       connections = supaConns;
     }
   } catch (e) {
     console.warn('[Reconcile FB] Erro ao ler conexões do Supabase:', e.message);
   }
 
-  // 1. Se não houver perfis conectados no Supabase, limpa tudo (local e Supabase ad_accounts)
+  // Fallback: se Supabase falhar ou estiver vazio temporariamente, preserva conexões locais
   if (connections.length === 0) {
-    db.set('facebook_connections', []);
-    db.set('ad_accounts', []);
-    db.set('campaigns', []);
-    db.set('meta_ads', []);
-    const settings = db.get('settings') || {};
-    settings.metaAccessToken = '';
-    settings.connectedProfile = null;
-    db.set('settings', settings);
+    connections = db.get('facebook_connections') || [];
+  }
 
-    try {
-      await supabaseAdmin.from('ad_accounts').delete().neq('id', '0');
-    } catch (e) {}
-
-    return { connections: [], adAccounts: [] };
+  // 1. Se REALMENTE não houver perfis conectados nem no Supabase nem no banco local
+  if (connections.length === 0) {
+    return { connections: [], adAccounts: db.get('ad_accounts') || [] };
   }
 
   // 2. Atualiza conexões locais
@@ -2121,10 +2133,10 @@ export async function reconcileFacebookData() {
     id: c.id,
     name: c.name,
     email: c.email,
-    avatarUrl: c.avatar_url,
-    accessToken: c.access_token,
-    accountsCount: c.accounts_count,
-    connectedAt: c.connected_at
+    avatarUrl: c.avatar_url || c.avatarUrl,
+    accessToken: c.access_token || c.accessToken,
+    accountsCount: c.accounts_count || c.accountsCount,
+    connectedAt: c.connected_at || c.connectedAt
   })));
 
   // 3. Lê contas ativas salvas em JSON
@@ -2184,9 +2196,9 @@ export async function reconcileFacebookData() {
     }
   }
 
-  // Só atualiza/limpa contas se a busca na Meta retornou contas com sucesso para não apagar dados em caso de rate limit
+  // Só atualiza contas se a busca na Meta retornou contas com sucesso para não apagar dados em caso de rate limit
   if (validAccounts.length > 0) {
-    // 5. Deleta do Supabase ad_accounts qualquer conta que NÃO pertença aos perfis conectados (órfãs de desconexão)
+    // 5. Deleta do Supabase ad_accounts apenas contas que comprovadamente não existem mais
     try {
       const { data: supaAccs } = await supabaseAdmin.from('ad_accounts').select('id');
       if (supaAccs && supaAccs.length > 0) {
@@ -2194,7 +2206,6 @@ export async function reconcileFacebookData() {
           .map(a => a.id)
           .filter(id => !validAccountCleanIds.has(String(id).replace('act_', '')));
         if (orphanIds.length > 0) {
-          console.log(`[Reconcile FB] 🧹 Limpando ${orphanIds.length} contas órfãs do Supabase:`, orphanIds);
           await supabaseAdmin.from('ad_accounts').delete().in('id', orphanIds);
         }
       }
@@ -2216,25 +2227,10 @@ export async function reconcileFacebookData() {
       await supabaseAdmin.from('ad_accounts').upsert(rows);
     } catch (e) {}
 
-    // 7. Atualiza db local
+    // 7. Atualiza db local de contas (SEM DELETAR CAMPANHAS)
     db.set('ad_accounts', validAccounts);
-
-    // 8. Limpa campanhas e anúncios pertencentes a contas desconectadas
-    const curCampaigns = db.get('campaigns') || [];
-    const filteredCampaigns = curCampaigns.filter(c => {
-      const act = (c.adAccountId || c.accountId || '').replace('act_', '');
-      return !act || validAccountCleanIds.has(act);
-    });
-    db.set('campaigns', filteredCampaigns);
-
-    const curAds = db.get('meta_ads') || [];
-    const filteredAds = curAds.filter(a => {
-      const act = (a.adAccountId || a.accountId || '').replace('act_', '');
-      return !act || validAccountCleanIds.has(act);
-    });
-    db.set('meta_ads', filteredAds);
   } else if (connections.length > 0) {
-    // Se a busca ao vivo na Meta falhou ou não retornou contas (ex: erro de permissão temporário, rate limit ou app em desenvolvimento),
+    // Se a busca ao vivo na Meta falhou (ex: rate limit ou erro de rede temporário),
     // recupera as contas existentes já salvas no Supabase e no banco local para não apagar a visualização do usuário
     let existingAccounts = [];
     try {
@@ -2275,15 +2271,20 @@ export async function reconcileFacebookData() {
     id: c.id,
     name: c.name,
     email: c.email,
-    avatarUrl: c.avatar_url,
-    accountsCount: validAccounts.length || c.accounts_count,
-    connectedAt: c.connected_at
+    avatarUrl: c.avatar_url || c.avatarUrl,
+    accountsCount: validAccounts.length || c.accounts_count || c.accountsCount,
+    connectedAt: c.connected_at || c.connectedAt
   }));
 
-  return {
-    connections: sanitizedConnections,
-    adAccounts: validAccounts
+  reconcileCache = {
+    data: {
+      connections: sanitizedConnections,
+      adAccounts: validAccounts
+    },
+    timestamp: now
   };
+
+  return reconcileCache.data;
 }
 
 // C. Status das contas conectadas
@@ -2593,23 +2594,38 @@ async function executeMetaSync({ datePreset = 'today', timeRange = null, account
   const allCampaigns = results.flatMap(r => r.campaigns);
   const allAds = results.flatMap(r => r.ads);
 
-  const successfullySyncedIds = new Set(
-    results
-      .filter(r => !r.error && Array.isArray(r.campaigns) && r.campaigns.length > 0)
-      .map(r => String(r.accId).replace('act_', ''))
-  );
+  // Preserva 100% das campanhas existentes no banco e apenas atualiza/insere novas
   const existingCamps = db.get('campaigns') || [];
-  const remainingCamps = existingCamps.filter(c => {
-    const clean = String(c.adAccountId || '').replace('act_', '');
-    return !successfullySyncedIds.has(clean);
+  const campMap = new Map();
+  existingCamps.forEach(c => {
+    if (c && c.id) campMap.set(String(c.id), c);
   });
-  const mergedCampaigns = [...remainingCamps, ...allCampaigns];
+  allCampaigns.forEach(c => {
+    if (c && c.id) {
+      const prev = campMap.get(String(c.id)) || {};
+      campMap.set(String(c.id), { ...prev, ...c });
+    }
+  });
+  const mergedCampaigns = Array.from(campMap.values());
   if (mergedCampaigns.length > 0) {
     db.set('campaigns', mergedCampaigns);
   }
 
-  if (allAds.length > 0) {
-    db.set('meta_ads', allAds);
+  // Preserva 100% dos anúncios existentes no banco
+  const existingAds = db.get('meta_ads') || [];
+  const adsMap = new Map();
+  existingAds.forEach(a => {
+    if (a && a.id) adsMap.set(String(a.id), a);
+  });
+  allAds.forEach(a => {
+    if (a && a.id) {
+      const prev = adsMap.get(String(a.id)) || {};
+      adsMap.set(String(a.id), { ...prev, ...a });
+    }
+  });
+  const mergedAds = Array.from(adsMap.values());
+  if (mergedAds.length > 0) {
+    db.set('meta_ads', mergedAds);
   }
 
   // Atualiza saldo real e gasto total das contas ativas
