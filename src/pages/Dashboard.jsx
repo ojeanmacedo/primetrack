@@ -19,6 +19,18 @@ import {
 import DateRangePicker from '../components/DateRangePicker';
 import { getTaxSettings } from './Taxes';
 
+// Converte qualquer data para YYYY-MM-DD no fuso de São Paulo / Brasília (UTC-3)
+const toBrazilYMD = (dateInput = new Date()) => {
+  if (!dateInput) return null;
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return null;
+  const spDate = new Date(d.getTime() - (3 * 3600 * 1000));
+  const y = spDate.getUTCFullYear();
+  const m = String(spDate.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(spDate.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
 function FunnelGauge({ percentage, strokeColor = '#0066FF', isFull = false }) {
   const radius = 24;
   const strokeWidth = 3.5;
@@ -253,7 +265,67 @@ export default function Dashboard() {
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed)) return parsed;
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const savedDate = localStorage.getItem('primetrack_cached_campaigns_date');
+            const todayYMD = toBrazilYMD(new Date());
+            if (savedDate && savedDate !== todayYMD) {
+              return parsed.map(c => ({
+                ...c,
+                spend: '0.00',
+                rawSpendUsd: c.rawSpendUsd !== null ? '0.00' : null,
+                impressions: 0,
+                clicks: 0,
+                cpc: '0.00',
+                cpm: '0.00',
+                ctr: '0.00%',
+                initCheckouts: 0,
+                costPerIc: '0.00',
+                sales: 0,
+                pendingSales: 0,
+                revenue: '0.00',
+                profit: '0.00',
+                roas: '0.00',
+                cpa: '0.00',
+                adsets: (c.adsets || []).map(as => ({
+                  ...as,
+                  spend: '0.00',
+                  rawSpendUsd: as.rawSpendUsd !== null ? '0.00' : null,
+                  impressions: 0,
+                  clicks: 0,
+                  cpc: '0.00',
+                  cpm: '0.00',
+                  ctr: '0.00%',
+                  initCheckouts: 0,
+                  costPerIc: '0.00',
+                  sales: 0,
+                  pendingSales: 0,
+                  revenue: '0.00',
+                  profit: '0.00',
+                  roas: '0.00',
+                  cpa: '0.00'
+                })),
+                ads: (c.ads || []).map(ad => ({
+                  ...ad,
+                  spend: '0.00',
+                  rawSpendUsd: ad.rawSpendUsd !== null ? '0.00' : null,
+                  impressions: 0,
+                  clicks: 0,
+                  cpc: '0.00',
+                  cpm: '0.00',
+                  ctr: '0.00%',
+                  initCheckouts: 0,
+                  costPerIc: '0.00',
+                  sales: 0,
+                  pendingSales: 0,
+                  revenue: '0.00',
+                  profit: '0.00',
+                  roas: '0.00',
+                  cpa: '0.00'
+                }))
+              }));
+            }
+            return parsed;
+          }
         } catch (e) {}
       }
     }
@@ -384,6 +456,9 @@ export default function Dashboard() {
         setCampaigns(cData);
         if (typeof window !== 'undefined') {
           localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(cData));
+          if (customPeriod === 'Hoje' || (!customPeriod && period === 'Hoje')) {
+            localStorage.setItem('primetrack_cached_campaigns_date', toBrazilYMD(new Date()));
+          }
         }
       }
 
@@ -414,6 +489,9 @@ export default function Dashboard() {
         setCampaigns(cData);
         if (typeof window !== 'undefined') {
           localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(cData));
+          if (period === 'Hoje') {
+            localStorage.setItem('primetrack_cached_campaigns_date', toBrazilYMD(new Date()));
+          }
         }
       }
       if (Array.isArray(oData)) {
@@ -442,6 +520,7 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
+    let lastKnownDate = toBrazilYMD(new Date());
     loadDashboardData(period, customRange);
 
     const handleProfileSync = () => {
@@ -449,6 +528,14 @@ export default function Dashboard() {
     };
 
     const ordersPollInterval = setInterval(() => {
+      // Detecção de virada do dia (00:00 / 00:01)
+      const currentToday = toBrazilYMD(new Date());
+      if (currentToday !== lastKnownDate) {
+        lastKnownDate = currentToday;
+        if (period === 'Hoje') {
+          loadDashboardData('Hoje');
+        }
+      }
       fetch('/api/orders')
         .then(res => res.json())
         .then(oData => {
@@ -566,18 +653,6 @@ export default function Dashboard() {
       return true;
     });
   }, [campaigns, selectedAccount, adAccountsList]);
-
-  // Converte qualquer data para YYYY-MM-DD no fuso de São Paulo (UTC-3)
-  const toBrazilYMD = (dateInput) => {
-    if (!dateInput) return null;
-    const d = new Date(dateInput);
-    if (isNaN(d.getTime())) return null;
-    const spDate = new Date(d.getTime() - (3 * 3600 * 1000));
-    const y = spDate.getUTCFullYear();
-    const m = String(spDate.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(spDate.getUTCDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  };
 
   // Filtra as vendas baseado no período e filtros selecionados
   const filteredOrders = useMemo(() => {

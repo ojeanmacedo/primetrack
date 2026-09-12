@@ -213,30 +213,158 @@ export async function fetchLiveAccountDetails(adAccountId, accessToken) {
 export async function fetchCampaigns(adAccountId, accessToken, accountName = '', datePreset = 'today', timeRange = null, accountCurrency = null) {
   const actId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`;
 
-  let insightField = `insights.date_preset(${datePreset}){spend,impressions,clicks,cpc,cpm,ctr,actions,action_values}`;
-  if (timeRange && timeRange.since && timeRange.until) {
-    insightField = `insights.time_range({'since':'${timeRange.since}','until':'${timeRange.until}'}){spend,impressions,clicks,cpc,cpm,ctr,actions,action_values}`;
+  // 1. Calcula o intervalo exato de datas (time_range) com base no fuso horário de Brasília (UTC-3)
+  let effectiveRange = timeRange;
+  if (!effectiveRange || !effectiveRange.since || !effectiveRange.until) {
+    const now = new Date();
+    const spNow = new Date(now.getTime() - (3 * 3600 * 1000));
+    const formatYMD = (d) => {
+      const y = d.getUTCFullYear();
+      const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(d.getUTCDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+    if (datePreset === 'yesterday') {
+      const yest = formatYMD(new Date(spNow.getTime() - 86400000));
+      effectiveRange = { since: yest, until: yest };
+    } else if (datePreset === 'last_7d') {
+      const d7 = formatYMD(new Date(spNow.getTime() - 6 * 86400000));
+      effectiveRange = { since: d7, until: formatYMD(spNow) };
+    } else if (datePreset === 'last_14d') {
+      const d14 = formatYMD(new Date(spNow.getTime() - 13 * 86400000));
+      effectiveRange = { since: d14, until: formatYMD(spNow) };
+    } else if (datePreset === 'last_30d') {
+      const d30 = formatYMD(new Date(spNow.getTime() - 29 * 86400000));
+      effectiveRange = { since: d30, until: formatYMD(spNow) };
+    } else if (datePreset === 'this_month') {
+      const mStart = `${spNow.getUTCFullYear()}-${String(spNow.getUTCMonth() + 1).padStart(2, '0')}-01`;
+      effectiveRange = { since: mStart, until: formatYMD(spNow) };
+    } else {
+      // Padrão: 'today' (dia de hoje em Brasília)
+      const t = formatYMD(spNow);
+      effectiveRange = { since: t, until: t };
+    }
   }
 
-  const [campRes, adsetsRes, adsRes, accRes] = await Promise.all([
-    fetch(`${GRAPH_BASE_URL}/${actId}/campaigns?fields=id,name,status,effective_status,objective,daily_budget,lifetime_budget,bid_strategy,${insightField}&limit=100&access_token=${accessToken}`),
-    fetch(`${GRAPH_BASE_URL}/${actId}/adsets?fields=id,name,status,effective_status,campaign_id,daily_budget,lifetime_budget,bid_amount,bid_strategy,${insightField}&limit=100&access_token=${accessToken}`).catch(() => null),
-    fetch(`${GRAPH_BASE_URL}/${actId}/ads?fields=id,name,status,effective_status,campaign_id,adset_id,creative{id,name,thumbnail_url,image_url,video_id},${insightField}&limit=100&access_token=${accessToken}`).catch(() => null),
+  const timeRangeParam = encodeURIComponent(JSON.stringify({ since: effectiveRange.since, until: effectiveRange.until }));
+
+  // 2. Busca métricas direto da Insights API (imune a rate-limits de gerenciamento e no fuso correto)
+  const [campInsightsRes, adsetInsightsRes, adInsightsRes, campRes, adsetsRes, adsRes, accRes] = await Promise.all([
+    fetch(`${GRAPH_BASE_URL}/${actId}/insights?level=campaign&time_range=${timeRangeParam}&fields=campaign_id,campaign_name,spend,impressions,clicks,cpc,cpm,ctr,actions&limit=100&access_token=${accessToken}`).catch(() => null),
+    fetch(`${GRAPH_BASE_URL}/${actId}/insights?level=adset&time_range=${timeRangeParam}&fields=adset_id,adset_name,spend,impressions,clicks,cpc,cpm,ctr,actions&limit=100&access_token=${accessToken}`).catch(() => null),
+    fetch(`${GRAPH_BASE_URL}/${actId}/insights?level=ad&time_range=${timeRangeParam}&fields=ad_id,ad_name,spend,impressions,clicks,cpc,cpm,ctr,actions&limit=100&access_token=${accessToken}`).catch(() => null),
+    fetch(`${GRAPH_BASE_URL}/${actId}/campaigns?fields=id,name,status,effective_status,objective,daily_budget,lifetime_budget,bid_strategy&limit=100&access_token=${accessToken}`).catch(() => null),
+    fetch(`${GRAPH_BASE_URL}/${actId}/adsets?fields=id,name,status,effective_status,campaign_id,daily_budget,lifetime_budget,bid_amount,bid_strategy&limit=100&access_token=${accessToken}`).catch(() => null),
+    fetch(`${GRAPH_BASE_URL}/${actId}/ads?fields=id,name,status,effective_status,campaign_id,adset_id,creative{id,name,thumbnail_url,image_url,video_id}&limit=100&access_token=${accessToken}`).catch(() => null),
     fetch(`${GRAPH_BASE_URL}/${actId}?fields=currency&access_token=${accessToken}`).catch(() => null)
   ]);
-  
-  const data = await campRes.json();
-  if (data.error) throw new Error(data.error.message);
 
+  // Mapas de Insights reais para o período
+  const campInsightsMap = new Map();
+  try {
+    if (campInsightsRes) {
+      const ciData = await campInsightsRes.json();
+      (ciData.data || []).forEach(i => campInsightsMap.set(String(i.campaign_id), i));
+    }
+  } catch (e) {}
+
+  const adsetInsightsMap = new Map();
+  try {
+    if (adsetInsightsRes) {
+      const aiData = await adsetInsightsRes.json();
+      (aiData.data || []).forEach(i => adsetInsightsMap.set(String(i.adset_id), i));
+    }
+  } catch (e) {}
+
+  const adInsightsMap = new Map();
+  try {
+    if (adInsightsRes) {
+      const adiData = await adInsightsRes.json();
+      (adiData.data || []).forEach(i => adInsightsMap.set(String(i.ad_id), i));
+    }
+  } catch (e) {}
+
+  // Estrutura das campanhas
+  let data = { data: [] };
+  try {
+    if (campRes) {
+      const cd = await campRes.json();
+      if (Array.isArray(cd.data)) data = cd;
+    }
+  } catch (e) {}
+
+  // Fallback: se a Meta bloquear leitura da estrutura por rate limit, recupera do db local
+  const cleanAct = actId.replace('act_', '');
+  const storedCampaigns = (db.get('campaigns') || []).filter(c => 
+    (c.adAccountId || '').replace('act_', '') === cleanAct
+  );
+
+  if (!data.data || data.data.length === 0) {
+    if (storedCampaigns.length > 0) {
+      data = {
+        data: storedCampaigns.map(c => ({
+          id: c.id,
+          name: c.name,
+          status: c.rawStatus || (c.status ? 'ACTIVE' : 'PAUSED'),
+          effective_status: c.effectiveStatus || (c.status ? 'ACTIVE' : 'PAUSED'),
+          objective: c.objective,
+          daily_budget: c.budget ? Math.round(Number(c.budget) * 100) : null,
+          bid_strategy: c.bidStrategy
+        }))
+      };
+    }
+  }
+
+  // Estrutura dos conjuntos
   let adsetsData = { data: [] };
   try {
-    if (adsetsRes) adsetsData = await adsetsRes.json();
+    if (adsetsRes) {
+      const asd = await adsetsRes.json();
+      if (Array.isArray(asd.data)) adsetsData = asd;
+    }
   } catch (e) {}
+  if (!adsetsData.data || adsetsData.data.length === 0) {
+    const fallbackAdsets = storedCampaigns.flatMap(c => c.adsets || []);
+    if (fallbackAdsets.length > 0) {
+      adsetsData = { data: fallbackAdsets.map(a => ({
+        id: a.id || a.adsetId,
+        name: a.name,
+        campaign_id: a.campaignId,
+        status: a.status ? 'ACTIVE' : 'PAUSED',
+        effective_status: a.effectiveStatus || (a.status ? 'ACTIVE' : 'PAUSED'),
+        daily_budget: a.budget ? Math.round(Number(a.budget) * 100) : null,
+        bid_amount: a.bidCap ? Math.round(Number(a.bidCap) * 100) : null,
+        bid_strategy: a.bidStrategy
+      })) };
+    }
+  }
 
+  // Estrutura dos anúncios
   let adsData = { data: [] };
   try {
-    if (adsRes) adsData = await adsRes.json();
+    if (adsRes) {
+      const ad = await adsRes.json();
+      if (Array.isArray(ad.data)) adsData = ad;
+    }
   } catch (e) {}
+  if (!adsData.data || adsData.data.length === 0) {
+    const fallbackAds = storedCampaigns.flatMap(c => c.ads || []);
+    if (fallbackAds.length > 0) {
+      adsData = { data: fallbackAds.map(a => ({
+        id: a.id || a.adId,
+        name: a.name,
+        campaign_id: a.campaignId,
+        adset_id: a.adsetId,
+        status: a.status ? 'ACTIVE' : 'PAUSED',
+        effective_status: a.effectiveStatus || (a.status ? 'ACTIVE' : 'PAUSED'),
+        creative: {
+          id: a.creativeId || `cr_${a.id}`,
+          thumbnail_url: a.thumbnailUrl || a.mediaSrc,
+          image_url: a.mediaSrc
+        }
+      })) };
+    }
+  }
 
   let metaCurrency = 'BRL';
   try {
@@ -246,12 +374,12 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     }
   } catch (e) {}
 
-  const isUsd = metaCurrency === 'USD' || accountCurrency === 'USD' || actId.includes('1092137896602979');
+  const isUsd = metaCurrency === 'USD' || accountCurrency === 'USD' || actId.includes('1092137896602979') || actId.includes('2013649985959956') || actId.includes('1084136023986167') || actId.includes('1588922422580250');
   const usdRate = isUsd ? await getUsdToBrlRate() : 1.0;
 
-  // Processa os conjuntos reais vindos direto do Gerenciador de Anúncios da Meta
+  // Processa os conjuntos reais vinculando as métricas exatas do período
   const allAdsets = (adsetsData.data || []).map(adset => {
-    const insight = adset.insights?.data?.[0] || {};
+    const insight = adsetInsightsMap.get(String(adset.id)) || {};
     const rawSpend = Number(insight.spend || 0);
     const clicks = Number(insight.clicks || 0);
     const impressions = Number(insight.impressions || 0);
@@ -315,9 +443,9 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     };
   });
 
-  // Processa os anúncios reais vindos direto do Gerenciador de Anúncios da Meta
-  const allAds = await Promise.all((adsData.data || []).map(async ad => {
-    const insight = ad.insights?.data?.[0] || {};
+  // Processa os anúncios vinculando as métricas exatas do período
+  const allAds = (adsData.data || []).map(ad => {
+    const insight = adInsightsMap.get(String(ad.id)) || {};
     const rawSpend = Number(insight.spend || 0);
     const clicks = Number(insight.clicks || 0);
     const impressions = Number(insight.impressions || 0);
@@ -340,17 +468,6 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const costPerIc = metaInitCheckouts > 0 ? (realSpend / metaInitCheckouts).toFixed(2) : '0.00';
     const thumb = ad.creative?.thumbnail_url || ad.creative?.image_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=80';
 
-    let videoUrl = null;
-    if (ad.creative?.video_id) {
-      try {
-        const vidRes = await fetch(`${GRAPH_BASE_URL}/${ad.creative.video_id}?fields=source,picture&access_token=${accessToken}`);
-        const vidData = await vidRes.json();
-        if (vidData.source) {
-          videoUrl = vidData.source;
-        }
-      } catch (err) {}
-    }
-
     return {
       id: ad.id,
       adId: ad.id,
@@ -363,7 +480,7 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       effectiveStatus: ad.effective_status || ad.status,
       mediaSrc: thumb,
       thumbnailUrl: thumb,
-      videoUrl: videoUrl,
+      videoUrl: null,
       spend: realSpend.toFixed(2),
       rawSpendUsd: isUsd ? rawSpend.toFixed(2) : null,
       usdRate: isUsd ? usdRate : null,
@@ -384,10 +501,10 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       cpa: '0.00',
       arpu: '0.00'
     };
-  }));
+  });
 
   return (data.data || []).map(c => {
-    const insight = c.insights?.data?.[0] || {};
+    const insight = campInsightsMap.get(String(c.id)) || {};
     const rawSpend = Number(insight.spend || 0);
     const clicks = Number(insight.clicks || 0);
     const impressions = Number(insight.impressions || 0);
@@ -397,7 +514,6 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const rawDailyBudget = c.daily_budget ? (Number(c.daily_budget) / 100) : null;
     const rawLifetimeBudget = c.lifetime_budget ? (Number(c.lifetime_budget) / 100) : null;
 
-    // Se o nome tiver "ABO" ou a campanha não tiver orçamento no nível de campanha na Meta
     const isAbo = explicitAboInName || (!rawDailyBudget && !rawLifetimeBudget);
     const isCbo = !isAbo;
     let campBidStrategy = c.bid_strategy || 'LOWEST_COST_WITHOUT_CAP';
@@ -406,8 +522,6 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     }
 
     const baseBudget = rawDailyBudget !== null ? rawDailyBudget : (rawLifetimeBudget !== null ? rawLifetimeBudget : 25.00);
-
-    // Converte automaticamente para Real Brasileiro (BRL / R$) se a conta de anúncios for em Dólar
     const realBudget = baseBudget * usdRate;
     const realSpend = rawSpend * usdRate;
     const rawCtr = impressions > 0 ? ((clicks / impressions) * 100) : Number(insight.ctr || 0);
@@ -416,7 +530,6 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const rawCpm = impressions > 0 ? ((rawSpend / impressions) * 1000) : Number(insight.cpm || 0);
     const realCpm = rawCpm * usdRate;
 
-    // Extrai Initiate Checkouts registrados pela Meta
     let metaInitCheckouts = 0;
     if (Array.isArray(insight.actions)) {
       const icAction = insight.actions.find(a => 
@@ -428,7 +541,6 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     }
     const costPerIc = metaInitCheckouts > 0 ? (realSpend / metaInitCheckouts).toFixed(2) : '0.00';
 
-    // Anexa conjuntos e anúncios reais vinculados a esta campanha
     const campAdsets = allAdsets.filter(a => a.campaignId === c.id);
     campAdsets.forEach(as => {
       as.isCbo = isCbo;
@@ -439,23 +551,19 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
           as.budgetType = c.daily_budget ? 'Diário' : 'Vitalício';
         }
       } else {
-        // Campanha ABO: o conjunto tem seu próprio orçamento
         if (!as.budget) {
           as.budget = '10.00';
           as.budgetType = 'Diário';
         }
       }
 
-      // Se for ABO, os conjuntos são estritamente Volume Mais Alto (sem limite de lance)
       if (isAbo) {
         as.bidCap = null;
         as.bidStrategy = 'LOWEST_COST_WITHOUT_CAP';
       } else {
-        // Se a campanha for CBO e o conjunto não tem limite de lance próprio, herda da campanha
         const rawCampBidAmount = c.bid_amount ? (Number(c.bid_amount) / 100) : null;
         const realCampBidCap = rawCampBidAmount !== null ? (rawCampBidAmount * usdRate).toFixed(2) : null;
-
-        const effectiveBidCap = (as.bidCap && Number(as.bidCap) > 0)
+        const effectiveBidCap = (as.bidCap !== undefined && as.bidCap !== null && Number(as.bidCap) > 0)
           ? as.bidCap
           : realCampBidCap;
 
@@ -478,7 +586,6 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const totalAdsetsBudget = campAdsets.reduce((sum, a) => sum + Number(a.budget || 0), 0);
     const finalCampBudget = isCbo ? realBudget.toFixed(2) : (totalAdsetsBudget > 0 ? totalAdsetsBudget.toFixed(2) : realBudget.toFixed(2));
 
-    // Garante coerência e alinhamento exato de gastos entre campanha, conjuntos e anúncios
     let finalCampSpend = realSpend;
     if (isAbo && campAdsets.length > 0) {
       const sumAdsetsSpend = campAdsets.reduce((sum, a) => sum + Number(a.spend || 0), 0);
@@ -494,8 +601,6 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       }
     }
 
-    // A API da Meta é utilizada ESTRITAMENTE para coletar gastos, impressões, cliques, CPC, CPM, CTR e ICS
-    // As vendas e receitas vêm exclusivamente das plataformas integradas (MonsterPay) e do Pixel PrimeTrack
     return {
       id: c.id,
       name: c.name,
@@ -510,7 +615,7 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       budget: finalCampBudget,
       budgetType: isCbo ? (c.daily_budget ? 'Diário' : 'Vitalício') : 'Nível de Conjunto',
       spend: finalCampSpend.toFixed(2),
-      rawSpendUsd: isUsd ? rawSpend.toFixed(2) : null,
+      rawSpendUsd: isUsd ? (finalCampSpend / usdRate).toFixed(2) : null,
       rawBudgetUsd: isUsd ? baseBudget.toFixed(2) : null,
       usdRate: isUsd ? usdRate : null,
       impressions,
@@ -520,7 +625,7 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       ctr: `${rawCtr.toFixed(2)}%`,
       sales: 0,
       revenue: '0.00',
-      profit: (-realSpend).toFixed(2),
+      profit: (-finalCampSpend).toFixed(2),
       roas: '0.00',
       cpa: '0.00',
       initCheckouts: metaInitCheckouts,
@@ -529,7 +634,9 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       accountName: accountName || 'Conta de Anúncios',
       currency: 'BRL',
       adsets: campAdsets,
-      ads: campAds
+      ads: campAds,
+      date: effectiveRange.since,
+      dateRange: effectiveRange
     };
   });
 }

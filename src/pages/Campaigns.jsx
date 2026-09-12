@@ -37,6 +37,15 @@ import {
 } from 'lucide-react';
 import DateRangePicker from '../components/DateRangePicker';
 
+const getBrazilTodayYMD = () => {
+  const d = new Date();
+  const spDate = new Date(d.getTime() - (3 * 3600 * 1000));
+  const y = spDate.getUTCFullYear();
+  const m = String(spDate.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(spDate.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
 const COLUMN_DEFS = [
   { id: 'budget', label: 'Orçamento', defaultVisible: true, notAds: true },
   { id: 'bid', label: 'Lance', defaultVisible: false },
@@ -284,7 +293,68 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         try {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            return sanitizeCampaignsData(parsed);
+            const sanitized = sanitizeCampaignsData(parsed);
+            const savedDate = localStorage.getItem('primetrack_cached_campaigns_date');
+            const todayYMD = getBrazilTodayYMD();
+            if (savedDate && savedDate !== todayYMD) {
+              // O dia virou! Preserva estrutura das campanhas para não sumirem, mas zera métricas de ontem
+              return sanitized.map(c => ({
+                ...c,
+                spend: '0.00',
+                rawSpendUsd: c.rawSpendUsd !== null ? '0.00' : null,
+                impressions: 0,
+                clicks: 0,
+                cpc: '0.00',
+                cpm: '0.00',
+                ctr: '0.00%',
+                initCheckouts: 0,
+                costPerIc: '0.00',
+                sales: 0,
+                pendingSales: 0,
+                revenue: '0.00',
+                profit: '0.00',
+                roas: '0.00',
+                cpa: '0.00',
+                date: todayYMD,
+                adsets: (c.adsets || []).map(as => ({
+                  ...as,
+                  spend: '0.00',
+                  rawSpendUsd: as.rawSpendUsd !== null ? '0.00' : null,
+                  impressions: 0,
+                  clicks: 0,
+                  cpc: '0.00',
+                  cpm: '0.00',
+                  ctr: '0.00%',
+                  initCheckouts: 0,
+                  costPerIc: '0.00',
+                  sales: 0,
+                  pendingSales: 0,
+                  revenue: '0.00',
+                  profit: '0.00',
+                  roas: '0.00',
+                  cpa: '0.00'
+                })),
+                ads: (c.ads || []).map(ad => ({
+                  ...ad,
+                  spend: '0.00',
+                  rawSpendUsd: ad.rawSpendUsd !== null ? '0.00' : null,
+                  impressions: 0,
+                  clicks: 0,
+                  cpc: '0.00',
+                  cpm: '0.00',
+                  ctr: '0.00%',
+                  initCheckouts: 0,
+                  costPerIc: '0.00',
+                  sales: 0,
+                  pendingSales: 0,
+                  revenue: '0.00',
+                  profit: '0.00',
+                  roas: '0.00',
+                  cpa: '0.00'
+                }))
+              }));
+            }
+            return sanitized;
           }
         } catch (e) {}
       }
@@ -315,12 +385,21 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   });
 
   useEffect(() => {
+    let lastKnownDate = getBrazilTodayYMD();
     const timer = setInterval(() => {
       const d = new Date();
       setCurrentTime(`${d.toLocaleDateString('pt-BR')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`);
-    }, 30000);
+
+      const currentToday = getBrazilTodayYMD();
+      if (currentToday !== lastKnownDate) {
+        lastKnownDate = currentToday;
+        if (periodFilter === 'Hoje') {
+          loadData('Hoje');
+        }
+      }
+    }, 10000);
     return () => clearInterval(timer);
-  }, []);
+  }, [periodFilter]);
 
   const [editingItem, setEditingItem] = useState(null);
   const [editingField, setEditingField] = useState(null); // 'budget' | 'bid' | 'name'
@@ -476,6 +555,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         setCampaignsList(sanitized);
         if (typeof window !== 'undefined') {
           localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(sanitized));
+          if (customPreset === 'Hoje' || (!customPreset && periodFilter === 'Hoje')) {
+            localStorage.setItem('primetrack_cached_campaigns_date', getBrazilTodayYMD());
+          }
         }
       } else if (Array.isArray(cData) && cData.length === 0) {
         // Se o endpoint retornou vazio temporariamente, NUNCA limpa as campanhas existentes!
@@ -594,6 +676,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         setCampaignsList(syncData.campaigns);
         if (typeof window !== 'undefined') {
           localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(syncData.campaigns));
+          if (selectedPreset === 'Hoje') {
+            localStorage.setItem('primetrack_cached_campaigns_date', getBrazilTodayYMD());
+          }
         }
       }
 

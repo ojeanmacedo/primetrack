@@ -23,22 +23,22 @@
       "bidStrategy": "LOWEST_COST_WITH_BID_CAP",
       "budget": "128.16",
       "budgetType": "Diário",
-      "spend": "18.81",
-      "rawSpendUsd": "3.67",
+      "spend": "0.00",
+      "rawSpendUsd": "0.00",
       "rawBudgetUsd": "25.00",
       "usdRate": 5.1262,
-      "impressions": 536,
-      "clicks": 90,
-      "cpc": "0.21",
-      "cpm": "35.10",
-      "ctr": "16.79%",
+      "impressions": 0,
+      "clicks": 0,
+      "cpc": "0.00",
+      "cpm": "0.00",
+      "ctr": "0.00%",
       "sales": 0,
       "revenue": "0.00",
-      "profit": "-18.81",
+      "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "initCheckouts": 39,
-      "costPerIc": "0.48",
+      "initCheckouts": 0,
+      "costPerIc": "0.00",
       "adAccountId": "act_2013649985959956",
       "accountName": "CA03 JEFFREY",
       "currency": "BRL",
@@ -56,13 +56,13 @@
           "budgetType": "Diário",
           "bidCap": "11.28",
           "bidStrategy": "LOWEST_COST_WITH_BID_CAP",
-          "spend": "18.81",
-          "rawSpendUsd": "3.67",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "rawBudgetUsd": null,
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 536,
-          "clicks": 90,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "0.21",
           "cpm": "35.10",
           "ctr": "16.79%",
@@ -98,7 +98,7 @@
           "rawSpendUsd": "0.00",
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 1,
+          "impressions": 0,
           "clicks": 0,
           "cpc": "0.00",
           "cpm": "0.00",
@@ -127,12 +127,12 @@
           "mediaSrc": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/801917096_1094177432996322_2240466027311647573_n.jpg?_nc_cat=111&ccb=1-7&_nc_ohc=ZYdHctk-EtQQ7kNvwHIDrZn&_nc_oc=Adq2y3sf61raXAvX6W29nDmJp7fPbc2IMjDt3WcmXo1PqiZ8qGRn-SIFUMWLpqTw7oR86iajlNzttWlhM0bM-4ev&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=h_Q4MMOi24rRN7NGbFhISQ&_nc_tpa=Q5bMBQJ3Ig_faa-n_c435uZ11pr2GDp7sBFPzamfKTDEme8CaugLgMA88Xk_UGTM1bwPtfKRKf-1h3Xsng&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIn1d_hST3BkzCx2so6obY2uPGzXHhvKjy2xryS-UDGEQ&oe=6AAA87B6",
           "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/801917096_1094177432996322_2240466027311647573_n.jpg?_nc_cat=111&ccb=1-7&_nc_ohc=ZYdHctk-EtQQ7kNvwHIDrZn&_nc_oc=Adq2y3sf61raXAvX6W29nDmJp7fPbc2IMjDt3WcmXo1PqiZ8qGRn-SIFUMWLpqTw7oR86iajlNzttWlhM0bM-4ev&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=h_Q4MMOi24rRN7NGbFhISQ&_nc_tpa=Q5bMBQJ3Ig_faa-n_c435uZ11pr2GDp7sBFPzamfKTDEme8CaugLgMA88Xk_UGTM1bwPtfKRKf-1h3Xsng&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIn1d_hST3BkzCx2so6obY2uPGzXHhvKjy2xryS-UDGEQ&oe=6AAA87B6",
           "videoUrl": null,
-          "spend": "1.59",
-          "rawSpendUsd": "0.31",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 48,
-          "clicks": 10,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "0.16",
           "cpm": "33.11",
           "ctr": "20.83%",
@@ -160,12 +160,12 @@
           "mediaSrc": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/8763066609732216978?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQJAP2XjqoFsn5-r_si0fs7Tq6_F_YGIgugrR5Xxe0c9jXlRUaSWyaxj9TXAbEEamjSMPlCDh6IYzSF3q4lx7MtWUi3QE9A_w25NfHHe-vl10jCEc6iHBmPgFIYeeDy2vKe3Fe-LS3mTPReKE4nl7Fct&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=h_Q4MMOi24rRN7NGbFhISQ&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQIaGvx0syn4TfPKczy8kN6vFpDOYmFA3S6iWDZucrBRIuqFEiZWtNF-n12yNEKmtVxtkKTyPheglA&oh=06_Q3_DAQLypGgC5e_mVKp1d80rgSwWMyq-vIZKJhXlLBbJveB2&oe=6AA68461",
           "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/8763066609732216978?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQJAP2XjqoFsn5-r_si0fs7Tq6_F_YGIgugrR5Xxe0c9jXlRUaSWyaxj9TXAbEEamjSMPlCDh6IYzSF3q4lx7MtWUi3QE9A_w25NfHHe-vl10jCEc6iHBmPgFIYeeDy2vKe3Fe-LS3mTPReKE4nl7Fct&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=h_Q4MMOi24rRN7NGbFhISQ&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQIaGvx0syn4TfPKczy8kN6vFpDOYmFA3S6iWDZucrBRIuqFEiZWtNF-n12yNEKmtVxtkKTyPheglA&oh=06_Q3_DAQLypGgC5e_mVKp1d80rgSwWMyq-vIZKJhXlLBbJveB2&oe=6AA68461",
           "videoUrl": null,
-          "spend": "17.22",
-          "rawSpendUsd": "3.36",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 487,
-          "clicks": 80,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "0.22",
           "cpm": "35.37",
           "ctr": "16.43%",
@@ -180,7 +180,8 @@
           "cpa": "0.00",
           "arpu": "0.00"
         }
-      ]
+      ],
+      "date": "2026-09-12"
     },
     {
       "id": "52687589547178",
@@ -195,22 +196,22 @@
       "bidStrategy": "LOWEST_COST_WITH_BID_CAP",
       "budget": "128.16",
       "budgetType": "Diário",
-      "spend": "66.28",
-      "rawSpendUsd": "12.93",
+      "spend": "0.00",
+      "rawSpendUsd": "0.00",
       "rawBudgetUsd": "25.00",
       "usdRate": 5.1262,
-      "impressions": 2368,
-      "clicks": 315,
-      "cpc": "0.21",
-      "cpm": "27.99",
-      "ctr": "13.30%",
+      "impressions": 0,
+      "clicks": 0,
+      "cpc": "0.00",
+      "cpm": "0.00",
+      "ctr": "0.00%",
       "sales": 0,
       "revenue": "0.00",
-      "profit": "-66.28",
+      "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "initCheckouts": 150,
-      "costPerIc": "0.44",
+      "initCheckouts": 0,
+      "costPerIc": "0.00",
       "adAccountId": "act_1084136023986167",
       "accountName": "CA01 BM2",
       "currency": "BRL",
@@ -228,13 +229,13 @@
           "budgetType": "Diário",
           "bidCap": "11.28",
           "bidStrategy": "LOWEST_COST_WITH_BID_CAP",
-          "spend": "66.28",
-          "rawSpendUsd": "12.93",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "rawBudgetUsd": null,
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 2368,
-          "clicks": 315,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "0.21",
           "cpm": "27.99",
           "ctr": "13.30%",
@@ -299,12 +300,12 @@
           "mediaSrc": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/803504502_1585591093358104_5068263324101891419_n.jpg?_nc_cat=111&ccb=1-7&_nc_ohc=SPUbZC_gHgsQ7kNvwE44475&_nc_oc=AdpieIeROERW67Ex2MFTndiGPP6W0E9yCvGNzzVqc_6P9UN9QZUJjuwp1AJTot0iruLgKEhgB6NF58-tZFhtInNs&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=snNTRAmrYERe1czn1iErEg&_nc_tpa=Q5bMBQJo0vV8ETgTkJE371kUP4IUwxi-dUfEQ6xgZRdLgU3mPWiiX6L7ARKHF_rqSb0LiuOA1W-59KBdbg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=d2b52d&_nc_sid=58080a&oh=00_AQKoV4wez0ietUvVlK-HxOZ8Zjd3ebd7_J260KqZ8BxzBA&oe=6AAA6F5E",
           "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/803504502_1585591093358104_5068263324101891419_n.jpg?_nc_cat=111&ccb=1-7&_nc_ohc=SPUbZC_gHgsQ7kNvwE44475&_nc_oc=AdpieIeROERW67Ex2MFTndiGPP6W0E9yCvGNzzVqc_6P9UN9QZUJjuwp1AJTot0iruLgKEhgB6NF58-tZFhtInNs&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=snNTRAmrYERe1czn1iErEg&_nc_tpa=Q5bMBQJo0vV8ETgTkJE371kUP4IUwxi-dUfEQ6xgZRdLgU3mPWiiX6L7ARKHF_rqSb0LiuOA1W-59KBdbg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=d2b52d&_nc_sid=58080a&oh=00_AQKoV4wez0ietUvVlK-HxOZ8Zjd3ebd7_J260KqZ8BxzBA&oe=6AAA6F5E",
           "videoUrl": null,
-          "spend": "1.74",
-          "rawSpendUsd": "0.34",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 48,
-          "clicks": 3,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "0.58",
           "cpm": "36.31",
           "ctr": "6.25%",
@@ -332,12 +333,12 @@
           "mediaSrc": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/2318394901464425478?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQIRGqVVBU8z4ZmWbd8a5MW8Emfy_peTBz7drAsa5g3D-isq1pWdeZ2IpvxiRZmSZOjF4k1kQz2Ezz3BzoNik2rgDJjsD99FJHp-_IOdCKEKfuqCnDicLPF51dtPHeT776MiCf8lS2i5hVUe2W_fR0St&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=snNTRAmrYERe1czn1iErEg&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQLNeR1AJ-j5nAwonVNGU5rAAPDfv5yuk_Z9W3oAq4Rcn5RQegwJ3zQN02NJ2NwNa-uuXOiPBtnmtg&oh=06_Q3_DAdxpVZuZeTJejg2seg0uXi9lruQjR2VWPUfBMoPZYRYb&oe=6AA6A78F",
           "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/2318394901464425478?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQIRGqVVBU8z4ZmWbd8a5MW8Emfy_peTBz7drAsa5g3D-isq1pWdeZ2IpvxiRZmSZOjF4k1kQz2Ezz3BzoNik2rgDJjsD99FJHp-_IOdCKEKfuqCnDicLPF51dtPHeT776MiCf8lS2i5hVUe2W_fR0St&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=snNTRAmrYERe1czn1iErEg&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQLNeR1AJ-j5nAwonVNGU5rAAPDfv5yuk_Z9W3oAq4Rcn5RQegwJ3zQN02NJ2NwNa-uuXOiPBtnmtg&oh=06_Q3_DAdxpVZuZeTJejg2seg0uXi9lruQjR2VWPUfBMoPZYRYb&oe=6AA6A78F",
           "videoUrl": null,
-          "spend": "65.46",
-          "rawSpendUsd": "12.77",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 2346,
-          "clicks": 316,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "0.21",
           "cpm": "27.90",
           "ctr": "13.47%",
@@ -352,7 +353,8 @@
           "cpa": "0.00",
           "arpu": "0.00"
         }
-      ]
+      ],
+      "date": "2026-09-12"
     },
     {
       "id": "120250184790690459",
@@ -368,7 +370,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
-      "rawSpendUsd": null,
+      "rawSpendUsd": "0.00",
       "rawBudgetUsd": null,
       "usdRate": null,
       "impressions": 0,
@@ -401,7 +403,7 @@
           "bidCap": null,
           "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "rawBudgetUsd": null,
           "usdRate": null,
           "currency": "BRL",
@@ -439,7 +441,7 @@
           "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/787830800_2210268809821657_8956118940889240210_n.jpg?_nc_cat=104&ccb=1-7&_nc_ohc=NmzQQVQqNawQ7kNvwFfyEpO&_nc_oc=AdqQ8UD3ENTZd29YYspp-S6UhKP0La3-_imN2hqfhYGFxTaGkRzDxeGHm7WzmThPU5EkAUoxSCXsuTry1BQOsrcy&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=yNeB2siQO9ZZDXGRaA4UiA&_nc_tpa=Q5bMBQKQHue_zPK8OVosPfWaEuI6sl3oLPjC60kAe8sukZLv1IxwNdagghNFHTFPX5eMaXHv2aO4gN_qNg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJLAHRW_qqqwVCPlslUCnz2ghUIQmnva6UOY4LVrojbtw&oe=6AAA905A",
           "videoUrl": null,
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "usdRate": null,
           "currency": "BRL",
           "impressions": 0,
@@ -458,7 +460,8 @@
           "cpa": "0.00",
           "arpu": "0.00"
         }
-      ]
+      ],
+      "date": "2026-09-12"
     },
     {
       "id": "120250184790680459",
@@ -474,7 +477,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
-      "rawSpendUsd": null,
+      "rawSpendUsd": "0.00",
       "rawBudgetUsd": null,
       "usdRate": null,
       "impressions": 0,
@@ -507,7 +510,7 @@
           "bidCap": null,
           "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "rawBudgetUsd": null,
           "usdRate": null,
           "currency": "BRL",
@@ -545,7 +548,7 @@
           "thumbnailUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=80",
           "videoUrl": null,
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "usdRate": null,
           "currency": "BRL",
           "impressions": 0,
@@ -564,7 +567,8 @@
           "cpa": "0.00",
           "arpu": "0.00"
         }
-      ]
+      ],
+      "date": "2026-09-12"
     },
     {
       "id": "120250184683820459",
@@ -580,7 +584,7 @@
       "budget": "10.00",
       "budgetType": "Diário",
       "spend": "0.00",
-      "rawSpendUsd": null,
+      "rawSpendUsd": "0.00",
       "rawBudgetUsd": null,
       "usdRate": null,
       "impressions": 0,
@@ -613,7 +617,7 @@
           "bidCap": null,
           "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "rawBudgetUsd": null,
           "usdRate": null,
           "currency": "BRL",
@@ -651,7 +655,7 @@
           "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t45.1600-4/786423488_122139081015202796_3480327526304805234_n.png?_nc_cat=110&ccb=1-7&_nc_ohc=8RCACX6zkN8Q7kNvwFqOOYl&_nc_oc=AdqjI8LWW-fst4j6ZN4r_FVDnlGt9ORFXSNxbIf_ORFX3BsSmB1WKRInwyFpz8x0vAyH5VUxxmwMi36E2fOtqy3Y&_nc_zt=1&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=yNeB2siQO9ZZDXGRaA4UiA&_nc_tpa=Q5bMBQItEcC8Z4xcl0ajWRmyMc0srmVf-hotiEbkuSoDQ6twOl4HYjPjCIHvRzfjuqAv1Dc-sCtVyAuUwA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=52f3c4&_nc_sid=58080a&oh=00_AQIbTNbBgRr9XAlTZERPrud5unM775EEDkbj6SVABCuN5Q&oe=6AAA8A15",
           "videoUrl": null,
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "usdRate": null,
           "currency": "BRL",
           "impressions": 0,
@@ -670,7 +674,8 @@
           "cpa": "0.00",
           "arpu": "0.00"
         }
-      ]
+      ],
+      "date": "2026-09-12"
     },
     {
       "id": "120250051654810466",
@@ -686,7 +691,7 @@
       "budget": "25.00",
       "budgetType": "Diário",
       "spend": "0.00",
-      "rawSpendUsd": null,
+      "rawSpendUsd": "0.00",
       "rawBudgetUsd": null,
       "usdRate": null,
       "impressions": 0,
@@ -719,7 +724,7 @@
           "bidCap": null,
           "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "rawBudgetUsd": null,
           "usdRate": null,
           "currency": "BRL",
@@ -755,7 +760,7 @@
           "bidCap": null,
           "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "rawBudgetUsd": null,
           "usdRate": null,
           "currency": "BRL",
@@ -791,7 +796,7 @@
           "bidCap": null,
           "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "rawBudgetUsd": null,
           "usdRate": null,
           "currency": "BRL",
@@ -829,7 +834,7 @@
           "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/785857446_1316934606980655_2818514852799727825_n.jpg?_nc_cat=106&ccb=1-7&_nc_ohc=qICru4g8sTIQ7kNvwFkdDfj&_nc_oc=AdpecsWP1qgCDxJ3_p07RRhh4g0ZOFET03wc85BO8VUECGpVmMmn9kvF0TIvQioJ48JWaDNkrf1brtuTjRV2M6tY&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQL5jEkPsFvkTm2WD7cKG3HKtgV3ySHR964_jBmLKSC1SHf-J_omvGbuPYDWDTJuy4DmOw0eIuN6Xw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIfkiqyhvy8HOYiJ336R8UilE685n0HVlHPoPYFdnG4Mg&oe=6AAA72CA",
           "videoUrl": null,
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "usdRate": null,
           "currency": "BRL",
           "impressions": 0,
@@ -862,7 +867,7 @@
           "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/785857446_1316934606980655_2818514852799727825_n.jpg?_nc_cat=106&ccb=1-7&_nc_ohc=qICru4g8sTIQ7kNvwFkdDfj&_nc_oc=AdpecsWP1qgCDxJ3_p07RRhh4g0ZOFET03wc85BO8VUECGpVmMmn9kvF0TIvQioJ48JWaDNkrf1brtuTjRV2M6tY&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQL5jEkPsFvkTm2WD7cKG3HKtgV3ySHR964_jBmLKSC1SHf-J_omvGbuPYDWDTJuy4DmOw0eIuN6Xw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIfkiqyhvy8HOYiJ336R8UilE685n0HVlHPoPYFdnG4Mg&oe=6AAA72CA",
           "videoUrl": null,
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "usdRate": null,
           "currency": "BRL",
           "impressions": 0,
@@ -895,7 +900,7 @@
           "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/785857446_1316934606980655_2818514852799727825_n.jpg?_nc_cat=106&ccb=1-7&_nc_ohc=qICru4g8sTIQ7kNvwFkdDfj&_nc_oc=AdpecsWP1qgCDxJ3_p07RRhh4g0ZOFET03wc85BO8VUECGpVmMmn9kvF0TIvQioJ48JWaDNkrf1brtuTjRV2M6tY&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQL5jEkPsFvkTm2WD7cKG3HKtgV3ySHR964_jBmLKSC1SHf-J_omvGbuPYDWDTJuy4DmOw0eIuN6Xw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIfkiqyhvy8HOYiJ336R8UilE685n0HVlHPoPYFdnG4Mg&oe=6AAA72CA",
           "videoUrl": null,
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "usdRate": null,
           "currency": "BRL",
           "impressions": 0,
@@ -914,7 +919,8 @@
           "cpa": "0.00",
           "arpu": "0.00"
         }
-      ]
+      ],
+      "date": "2026-09-12"
     },
     {
       "id": "120250051654800466",
@@ -930,7 +936,7 @@
       "budget": "25.00",
       "budgetType": "Diário",
       "spend": "0.00",
-      "rawSpendUsd": null,
+      "rawSpendUsd": "0.00",
       "rawBudgetUsd": null,
       "usdRate": null,
       "impressions": 0,
@@ -963,7 +969,7 @@
           "bidCap": null,
           "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "rawBudgetUsd": null,
           "usdRate": null,
           "currency": "BRL",
@@ -999,7 +1005,7 @@
           "bidCap": null,
           "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "rawBudgetUsd": null,
           "usdRate": null,
           "currency": "BRL",
@@ -1035,7 +1041,7 @@
           "bidCap": null,
           "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "rawBudgetUsd": null,
           "usdRate": null,
           "currency": "BRL",
@@ -1073,7 +1079,7 @@
           "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/785362384_1068941282799188_4024625802814745334_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=ivnD9WrPMoAQ7kNvwEo6anU&_nc_oc=AdqLqYAI_P7nOWhi4kAGzxQoFOMZ4e12q1s8WR2gf2cEhBNymfPgpnLgJqtONmBEKSpaigbVYIs_iNtvE6DPASJ9&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQL_7Wd6xYDhmTd9RWahK0YDV1woXxb6Z3g_o4Qfyomha5znw8m8As6gm7Io0dLICgZlkgjGnEwZEw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLFMhGVdGC_3NjacjhUO03iWxU_yikSXOV83NwJCa_T5g&oe=6AAA6992",
           "videoUrl": null,
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "usdRate": null,
           "currency": "BRL",
           "impressions": 0,
@@ -1106,7 +1112,7 @@
           "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/785362384_1068941282799188_4024625802814745334_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=ivnD9WrPMoAQ7kNvwEo6anU&_nc_oc=AdqLqYAI_P7nOWhi4kAGzxQoFOMZ4e12q1s8WR2gf2cEhBNymfPgpnLgJqtONmBEKSpaigbVYIs_iNtvE6DPASJ9&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQJ4JeqUvbuT7SUubvhHmUyeHqMrsfWk6JgBTqqY1eIW9mjW96VdO2mx78KlRAEu2w6DeJhr8ZnnRA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIHkW5ejiVuFr-dEqAs7T2SZi06jwdvJVowwrBJVEvwCQ&oe=6AAA6992",
           "videoUrl": null,
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "usdRate": null,
           "currency": "BRL",
           "impressions": 0,
@@ -1139,7 +1145,7 @@
           "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/785362384_1068941282799188_4024625802814745334_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=ivnD9WrPMoAQ7kNvwEo6anU&_nc_oc=AdqLqYAI_P7nOWhi4kAGzxQoFOMZ4e12q1s8WR2gf2cEhBNymfPgpnLgJqtONmBEKSpaigbVYIs_iNtvE6DPASJ9&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQJ4JeqUvbuT7SUubvhHmUyeHqMrsfWk6JgBTqqY1eIW9mjW96VdO2mx78KlRAEu2w6DeJhr8ZnnRA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIHkW5ejiVuFr-dEqAs7T2SZi06jwdvJVowwrBJVEvwCQ&oe=6AAA6992",
           "videoUrl": null,
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "usdRate": null,
           "currency": "BRL",
           "impressions": 0,
@@ -1158,7 +1164,8 @@
           "cpa": "0.00",
           "arpu": "0.00"
         }
-      ]
+      ],
+      "date": "2026-09-12"
     },
     {
       "id": "120250051646620466",
@@ -1174,7 +1181,7 @@
       "budget": "25.00",
       "budgetType": "Diário",
       "spend": "0.00",
-      "rawSpendUsd": null,
+      "rawSpendUsd": "0.00",
       "rawBudgetUsd": null,
       "usdRate": null,
       "impressions": 0,
@@ -1207,7 +1214,7 @@
           "bidCap": null,
           "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "rawBudgetUsd": null,
           "usdRate": null,
           "currency": "BRL",
@@ -1243,7 +1250,7 @@
           "bidCap": null,
           "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "rawBudgetUsd": null,
           "usdRate": null,
           "currency": "BRL",
@@ -1279,7 +1286,7 @@
           "bidCap": null,
           "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "rawBudgetUsd": null,
           "usdRate": null,
           "currency": "BRL",
@@ -1317,7 +1324,7 @@
           "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/783374526_928646913001179_1563896876115122365_n.jpg?_nc_cat=102&ccb=1-7&_nc_ohc=EjChBcyiaVgQ7kNvwGAZGko&_nc_oc=AdoAeLkjo4wTPxd3OgXRLnoJgKn5d3UHviMYk1s_rDx_ORIbBoQVeRmHJqyU_WpWhJG2_dsE4-ZIXA6WQMIFCrsE&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQK-Um4B9hleMjVlyTuPN7rKt-DzkmOC8oO6OHhCXRV2nCLUgfQyf-4EK8_BG7XX7zFZ04yamzuDng&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKnuic-jNFRFmXJbQPwXfN6rrcjb7Ti1cZjDcn7F0M9-A&oe=6AAA801E",
           "videoUrl": null,
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "usdRate": null,
           "currency": "BRL",
           "impressions": 0,
@@ -1350,7 +1357,7 @@
           "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/783374526_928646913001179_1563896876115122365_n.jpg?_nc_cat=102&ccb=1-7&_nc_ohc=EjChBcyiaVgQ7kNvwGAZGko&_nc_oc=AdoAeLkjo4wTPxd3OgXRLnoJgKn5d3UHviMYk1s_rDx_ORIbBoQVeRmHJqyU_WpWhJG2_dsE4-ZIXA6WQMIFCrsE&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQLIxJSG2JKexEIZq5tIOjEb4HbEeq1Bd51_z2X53S61Ev0ISyCV1xSwRTanh6bb9qIOcuyLYwNldQ&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQI4iKpXfA9mNrhxoBRA1J_cHEE5INTmEUP7IwNzDx2Trg&oe=6AAA801E",
           "videoUrl": null,
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "usdRate": null,
           "currency": "BRL",
           "impressions": 0,
@@ -1383,7 +1390,7 @@
           "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/783374526_928646913001179_1563896876115122365_n.jpg?_nc_cat=102&ccb=1-7&_nc_ohc=EjChBcyiaVgQ7kNvwGAZGko&_nc_oc=AdoAeLkjo4wTPxd3OgXRLnoJgKn5d3UHviMYk1s_rDx_ORIbBoQVeRmHJqyU_WpWhJG2_dsE4-ZIXA6WQMIFCrsE&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQJuOprketAIyro9EAFDn9iHSREJwzIoBTSst8OjQxBkipbuR50fWDDcNNpqcM4COOxeV6Ni-uvuzA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQK-f1AzQSOqBN3MIus6uE_C9crPgPcYXMtzB9xA9KGPLQ&oe=6AAA801E",
           "videoUrl": null,
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "usdRate": null,
           "currency": "BRL",
           "impressions": 0,
@@ -1402,7 +1409,8 @@
           "cpa": "0.00",
           "arpu": "0.00"
         }
-      ]
+      ],
+      "date": "2026-09-12"
     },
     {
       "id": "120250031975610466",
@@ -1418,7 +1426,7 @@
       "budget": "25.00",
       "budgetType": "Diário",
       "spend": "0.00",
-      "rawSpendUsd": null,
+      "rawSpendUsd": "0.00",
       "rawBudgetUsd": null,
       "usdRate": null,
       "impressions": 0,
@@ -1451,7 +1459,7 @@
           "bidCap": null,
           "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "rawBudgetUsd": null,
           "usdRate": null,
           "currency": "BRL",
@@ -1489,7 +1497,7 @@
           "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/779357425_1582758523224260_4781639069062852364_n.jpg?_nc_cat=109&ccb=1-7&_nc_ohc=NbnqDEjFI1IQ7kNvwHoYy1x&_nc_oc=AdpjttxyUAHfSDqQSNLuxpPf9UX0N-bCvGDa6jUJdVRS-0_n5AlFo_kchYhDFrpFafhd69ZkaP72quA-H2Xz9EtH&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQJGmjEhdDlp2NcDePM09VBXR083AHGqAKxechpe2uAQIgKMtvgJGBytipmDQiBpxzBKgANZZY7IWg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKE-KeYuMo3cknbGoqyidbRKfAat6_PZ7nid9tD7vXdxA&oe=6AAA9BB4",
           "videoUrl": null,
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "usdRate": null,
           "currency": "BRL",
           "impressions": 0,
@@ -1522,7 +1530,7 @@
           "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t15.5256-10/782208354_1057945466649480_1277927918526791505_n.jpg?_nc_cat=100&ccb=1-7&_nc_ohc=JBmdsp5QK2cQ7kNvwF_-1n2&_nc_oc=AdpcgcxW_czxdoeKDwvGty2OZEUyYfyrUOb_xwMCNG322f3FO_v1KkxnthfH-wQuxl6YKoTTlZEVhOPoL4IFBC4c&_nc_zt=23&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQIi0En0rmHjob9T2wbTklcEiRnmtpDG1kb5uMT_7XJkPoNvQX0Kgb0BxVf446dZYa_Bv9bNYrKJMg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIwHHGovOBdNPBQJFro_fd5wgRPG_A8-F6Zr3D0bmkaYQ&oe=6AAA8790",
           "videoUrl": null,
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "usdRate": null,
           "currency": "BRL",
           "impressions": 0,
@@ -1555,7 +1563,7 @@
           "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/779753963_1741115976792499_3206863680339077008_n.jpg?_nc_cat=105&ccb=1-7&_nc_ohc=Mv6590JzhUsQ7kNvwH9n25I&_nc_oc=AdrmojpxUkVJWYuuwFft0lZbJsp5y-pBQsJoo7mrIL0pKrnsTT9GajgxaLL2JuQVeJVxjJgtiXMgKcJMbHCVCQ_0&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQJL_KtrL04rWnwZEuirW5RbPcD1EQwI8fAfbIQBPCJbrX0EPCtLaBFFARUke6vmno9ct6K3aGGnIw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJV7leGpWGlvjK-ddxsa4eKxVZksjtIBGYam4qtfrsBgQ&oe=6AAAA11A",
           "videoUrl": null,
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "usdRate": null,
           "currency": "BRL",
           "impressions": 0,
@@ -1588,7 +1596,7 @@
           "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/782455762_27583199328043028_8127436003177120614_n.jpg?_nc_cat=104&ccb=1-7&_nc_ohc=rB8BIwduJ54Q7kNvwF8f13X&_nc_oc=AdrXLUyelgWHcUBb-kXc6LEZ8pxeppKaXYLGjB3Q1ow4r6VHHMfQ3Inyz176EBFKZVrf-jd1bWSLOAUjPX8oGRG6&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQLB4lyzAc645gOoeC76GJHAPokXGKkgCucMVEU-QMQzU-NWvwKj-q08TwNmSAHQRZWPGi2lYg-2nw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIjso5KGKED31wK9os-ZRWxWuCUPIA-mUebTy7-ovSzyQ&oe=6AAA8458",
           "videoUrl": null,
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "usdRate": null,
           "currency": "BRL",
           "impressions": 0,
@@ -1621,7 +1629,7 @@
           "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/777260162_1038625415739701_1661183842236797124_n.jpg?_nc_cat=104&ccb=1-7&_nc_ohc=qpBI1aypFoMQ7kNvwF30L0L&_nc_oc=AdrhOI9MNIbQM8RsoywzBvHchrYGRNAxcmu8kac1SxgRmQXdZrrdhIjhT8gAHzVAy2CuUrU_qj8oeUQcmHgl_Oqk&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQJ_7AL7bjqA5BwGD1BlF32BkztvWV0ZTSFtcx-fcRXbE3ht1KT8_HOnzC4BGmv8A8c9v-0EsRPIYQ&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIq4xyz9ptPyb_G5GUIGnnJz4AMCSFjbbnFoPZCe8hEZg&oe=6AAA76BE",
           "videoUrl": null,
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "usdRate": null,
           "currency": "BRL",
           "impressions": 0,
@@ -1654,7 +1662,7 @@
           "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t15.5256-10/784181183_1836672050437958_6369446783421468508_n.jpg?_nc_cat=108&ccb=1-7&_nc_ohc=g9jgdxhsPzwQ7kNvwH0B-1D&_nc_oc=Adp-VgU45VDAI9PtYGsyWpO9hfRJ673iYYhwDkmWTtOemZCD8uTShLPpfXzb4KaQgHy1t_mWcSsfM3MQpOpPS58H&_nc_zt=23&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQKWOBzh037tfI2F6i3pTu0Tg2xyQMnakb7R5X5z7Yz7WecZ6fYia1nOOOgl6tUNQc_ZbO0w5vBzzw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQK26MwbdTcy46pE32_jS9tkz2-EtPcjIK-lAsHIPUh1ew&oe=6AAA891B",
           "videoUrl": null,
           "spend": "0.00",
-          "rawSpendUsd": null,
+          "rawSpendUsd": "0.00",
           "usdRate": null,
           "currency": "BRL",
           "impressions": 0,
@@ -1673,7 +1681,8 @@
           "cpa": "0.00",
           "arpu": "0.00"
         }
-      ]
+      ],
+      "date": "2026-09-12"
     },
     {
       "id": "120251314288690152",
@@ -1702,7 +1711,7 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "initCheckouts": 6,
+      "initCheckouts": 0,
       "costPerIc": "0.00",
       "adAccountId": "act_1101817232408751",
       "accountName": "CA02 JEFFREY",
@@ -1845,7 +1854,8 @@
           "cpa": "0.00",
           "arpu": "0.00"
         }
-      ]
+      ],
+      "date": "2026-09-12"
     },
     {
       "id": "120251192705120152",
@@ -2215,7 +2225,8 @@
           "cpa": "0.00",
           "arpu": "0.00"
         }
-      ]
+      ],
+      "date": "2026-09-12"
     },
     {
       "id": "120251162808980152",
@@ -2585,7 +2596,8 @@
           "cpa": "0.00",
           "arpu": "0.00"
         }
-      ]
+      ],
+      "date": "2026-09-12"
     },
     {
       "id": "120251147918390152",
@@ -3312,7 +3324,8 @@
           "cpa": "0.00",
           "arpu": "0.00"
         }
-      ]
+      ],
+      "date": "2026-09-12"
     },
     {
       "id": "120251147918370152",
@@ -4039,7 +4052,8 @@
           "cpa": "0.00",
           "arpu": "0.00"
         }
-      ]
+      ],
+      "date": "2026-09-12"
     },
     {
       "id": "120251147907780152",
@@ -4766,7 +4780,8 @@
           "cpa": "0.00",
           "arpu": "0.00"
         }
-      ]
+      ],
+      "date": "2026-09-12"
     },
     {
       "id": "120251147827730152",
@@ -5493,7 +5508,8 @@
           "cpa": "0.00",
           "arpu": "0.00"
         }
-      ]
+      ],
+      "date": "2026-09-12"
     },
     {
       "id": "120251147827720152",
@@ -6220,7 +6236,8 @@
           "cpa": "0.00",
           "arpu": "0.00"
         }
-      ]
+      ],
+      "date": "2026-09-12"
     },
     {
       "id": "120251147741930152",
@@ -6947,7 +6964,8 @@
           "cpa": "0.00",
           "arpu": "0.00"
         }
-      ]
+      ],
+      "date": "2026-09-12"
     },
     {
       "id": "120252757465170319",
@@ -6962,22 +6980,22 @@
       "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
       "budget": "102.50",
       "budgetType": "Nível de Conjunto",
-      "spend": "49.99",
-      "rawSpendUsd": "9.62",
+      "spend": "0.00",
+      "rawSpendUsd": "0.00",
       "rawBudgetUsd": "25.00",
       "usdRate": 5.1262,
-      "impressions": 1838,
-      "clicks": 91,
-      "cpc": "0.54",
-      "cpm": "26.83",
-      "ctr": "4.95%",
+      "impressions": 0,
+      "clicks": 0,
+      "cpc": "0.00",
+      "cpm": "0.00",
+      "ctr": "0.00%",
       "sales": 0,
       "revenue": "0.00",
-      "profit": "-49.31",
+      "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "initCheckouts": 22,
-      "costPerIc": "2.24",
+      "initCheckouts": 0,
+      "costPerIc": "0.00",
       "adAccountId": "act_1588922422580250",
       "accountName": "CA01 JEFFREY",
       "currency": "BRL",
@@ -6995,13 +7013,13 @@
           "budgetType": "Diário",
           "bidCap": null,
           "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
-          "spend": "4.05",
-          "rawSpendUsd": "0.79",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "rawBudgetUsd": "2.00",
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 142,
-          "clicks": 4,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "1.01",
           "cpm": "28.52",
           "ctr": "2.82%",
@@ -7031,13 +7049,13 @@
           "budgetType": "Diário",
           "bidCap": null,
           "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
-          "spend": "5.59",
-          "rawSpendUsd": "1.09",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "rawBudgetUsd": "2.00",
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 215,
-          "clicks": 5,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "1.12",
           "cpm": "25.99",
           "ctr": "2.33%",
@@ -7067,13 +7085,13 @@
           "budgetType": "Diário",
           "bidCap": null,
           "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
-          "spend": "5.64",
-          "rawSpendUsd": "1.10",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "rawBudgetUsd": "2.00",
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 201,
-          "clicks": 16,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "0.35",
           "cpm": "28.05",
           "ctr": "7.96%",
@@ -7103,13 +7121,13 @@
           "budgetType": "Diário",
           "bidCap": null,
           "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
-          "spend": "5.18",
-          "rawSpendUsd": "1.01",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "rawBudgetUsd": "2.00",
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 193,
-          "clicks": 8,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "0.65",
           "cpm": "26.83",
           "ctr": "4.15%",
@@ -7139,13 +7157,13 @@
           "budgetType": "Diário",
           "bidCap": null,
           "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
-          "spend": "5.13",
-          "rawSpendUsd": "1.00",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "rawBudgetUsd": "2.00",
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 170,
-          "clicks": 12,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "0.43",
           "cpm": "30.15",
           "ctr": "7.06%",
@@ -7175,13 +7193,13 @@
           "budgetType": "Diário",
           "bidCap": null,
           "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
-          "spend": "4.82",
-          "rawSpendUsd": "0.94",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "rawBudgetUsd": "2.00",
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 196,
-          "clicks": 10,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "0.48",
           "cpm": "24.58",
           "ctr": "5.10%",
@@ -7211,13 +7229,13 @@
           "budgetType": "Diário",
           "bidCap": null,
           "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
-          "spend": "5.23",
-          "rawSpendUsd": "1.02",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "rawBudgetUsd": "2.00",
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 226,
-          "clicks": 7,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "0.75",
           "cpm": "23.14",
           "ctr": "3.10%",
@@ -7247,13 +7265,13 @@
           "budgetType": "Diário",
           "bidCap": null,
           "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
-          "spend": "4.56",
-          "rawSpendUsd": "0.89",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "rawBudgetUsd": "2.00",
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 162,
-          "clicks": 7,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "0.65",
           "cpm": "28.16",
           "ctr": "4.32%",
@@ -7283,13 +7301,13 @@
           "budgetType": "Diário",
           "bidCap": null,
           "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
-          "spend": "5.23",
-          "rawSpendUsd": "1.02",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "rawBudgetUsd": "2.00",
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 182,
-          "clicks": 9,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "0.58",
           "cpm": "28.73",
           "ctr": "4.95%",
@@ -7319,13 +7337,13 @@
           "budgetType": "Diário",
           "bidCap": null,
           "bidStrategy": "LOWEST_COST_WITHOUT_CAP",
-          "spend": "4.56",
-          "rawSpendUsd": "0.89",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "rawBudgetUsd": "2.00",
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 178,
-          "clicks": 16,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "0.29",
           "cpm": "25.63",
           "ctr": "8.99%",
@@ -7357,12 +7375,12 @@
           "mediaSrc": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/787459535_1017742091262325_7549430361338328407_n.jpg?_nc_cat=109&ccb=1-7&_nc_ohc=swa3ZIg8rH0Q7kNvwHw6GV2&_nc_oc=Adqo3fmOyOX1gITFLJsLSyBMXfGsSItQfpqO5l-RaFKAFlRpB7Gzf9JiHKezowz139Pezjcc4XWVmJuwIA7cYtZm&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQKchOjfoXAk6sGlBqff58pfayf3HDIZIT2WSezefMnwT5in3vQiFZtKMq5Ol2B1MzLDlScxF1lW2Q&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJ5Lt0Tc7rB62aSEEGyJf1yazmVbb7a7Q_NjD1ca3gaig&oe=6AAA8661",
           "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/787459535_1017742091262325_7549430361338328407_n.jpg?_nc_cat=109&ccb=1-7&_nc_ohc=swa3ZIg8rH0Q7kNvwHw6GV2&_nc_oc=Adqo3fmOyOX1gITFLJsLSyBMXfGsSItQfpqO5l-RaFKAFlRpB7Gzf9JiHKezowz139Pezjcc4XWVmJuwIA7cYtZm&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQKchOjfoXAk6sGlBqff58pfayf3HDIZIT2WSezefMnwT5in3vQiFZtKMq5Ol2B1MzLDlScxF1lW2Q&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJ5Lt0Tc7rB62aSEEGyJf1yazmVbb7a7Q_NjD1ca3gaig&oe=6AAA8661",
           "videoUrl": null,
-          "spend": "4.00",
-          "rawSpendUsd": "0.78",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 141,
-          "clicks": 4,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "1.00",
           "cpm": "28.36",
           "ctr": "2.84%",
@@ -7390,12 +7408,12 @@
           "mediaSrc": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/787941163_1600291995035919_6719115363472530063_n.jpg?_nc_cat=107&ccb=1-7&_nc_ohc=88qSOZp-d08Q7kNvwEO66MK&_nc_oc=AdpOkfggREh6A5c6a2XHheSa1n74MD_K8uMf6wasDxtb1IMTM85J88HgmeKbTdI-HLbeAELJ_FEDozbR16Cy82WC&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQK91rYuX0EB7qQJEjRpR_cjx2HeGXROuLE-hrse4D7dprydZypaIaUOb0WN0qlQr1cmDkhy1DcL4Q&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLgleio-yoGrSMzjI9GtM6O-Q_0D8Xi0ww07cJb_miF_w&oe=6AAA755A",
           "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/787941163_1600291995035919_6719115363472530063_n.jpg?_nc_cat=107&ccb=1-7&_nc_ohc=88qSOZp-d08Q7kNvwEO66MK&_nc_oc=AdpOkfggREh6A5c6a2XHheSa1n74MD_K8uMf6wasDxtb1IMTM85J88HgmeKbTdI-HLbeAELJ_FEDozbR16Cy82WC&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQK91rYuX0EB7qQJEjRpR_cjx2HeGXROuLE-hrse4D7dprydZypaIaUOb0WN0qlQr1cmDkhy1DcL4Q&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLgleio-yoGrSMzjI9GtM6O-Q_0D8Xi0ww07cJb_miF_w&oe=6AAA755A",
           "videoUrl": null,
-          "spend": "4.56",
-          "rawSpendUsd": "0.89",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 158,
-          "clicks": 6,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "0.76",
           "cpm": "28.88",
           "ctr": "3.80%",
@@ -7423,12 +7441,12 @@
           "mediaSrc": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/782997249_1046232871611927_3739497100185838789_n.jpg?_nc_cat=105&ccb=1-7&_nc_ohc=v_xwr3DIaCYQ7kNvwE8JBXX&_nc_oc=AdqANfQKmZlWlTESw7wBHYcNyhiErP7zUXb4LnstVUfpl_0ZOBpqoUcjlURqXv_L4rQtK0XHrmBiddWefvBkoVN1&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQLWuCc94Cs4syhPux8mvfzVweMQfZ7jMdXDXgqogFLhTaELLqhBN4OvbEqNieuDnBlnXGjS7nS0Cw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJsVLwqjtq3k-XacLYMNk-or_MNxdAKOQXRopE86mXt8A&oe=6AAA8F0A",
           "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/782997249_1046232871611927_3739497100185838789_n.jpg?_nc_cat=105&ccb=1-7&_nc_ohc=v_xwr3DIaCYQ7kNvwE8JBXX&_nc_oc=AdqANfQKmZlWlTESw7wBHYcNyhiErP7zUXb4LnstVUfpl_0ZOBpqoUcjlURqXv_L4rQtK0XHrmBiddWefvBkoVN1&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQLWuCc94Cs4syhPux8mvfzVweMQfZ7jMdXDXgqogFLhTaELLqhBN4OvbEqNieuDnBlnXGjS7nS0Cw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJsVLwqjtq3k-XacLYMNk-or_MNxdAKOQXRopE86mXt8A&oe=6AAA8F0A",
           "videoUrl": null,
-          "spend": "5.23",
-          "rawSpendUsd": "1.02",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 180,
-          "clicks": 9,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "0.58",
           "cpm": "29.05",
           "ctr": "5.00%",
@@ -7456,12 +7474,12 @@
           "mediaSrc": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/789143123_1042551481903139_5789962801300051331_n.jpg?_nc_cat=104&ccb=1-7&_nc_ohc=2FiSYILXFFUQ7kNvwGfctXY&_nc_oc=Adq89vElEoAERkn6Wzx0xdwsr7Lut8hvAG84wTM-Er_SW7uNSixR2TV5aOaflqpkMwqCaIQR2pn9fiLDM6dIp9jl&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQJVdKqNi8kFIoP2rg9in6A3KTWtRao77HXUm8CaXQguVrm7xA-y7bUAAjafRsSprimG41m5vlWWoA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJ_tz3gpekJOn5P2hkkf8EpIjU6cm_cMdeDKdRb1FYiFQ&oe=6AAA7900",
           "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/789143123_1042551481903139_5789962801300051331_n.jpg?_nc_cat=104&ccb=1-7&_nc_ohc=2FiSYILXFFUQ7kNvwGfctXY&_nc_oc=Adq89vElEoAERkn6Wzx0xdwsr7Lut8hvAG84wTM-Er_SW7uNSixR2TV5aOaflqpkMwqCaIQR2pn9fiLDM6dIp9jl&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQJVdKqNi8kFIoP2rg9in6A3KTWtRao77HXUm8CaXQguVrm7xA-y7bUAAjafRsSprimG41m5vlWWoA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJ_tz3gpekJOn5P2hkkf8EpIjU6cm_cMdeDKdRb1FYiFQ&oe=6AAA7900",
           "videoUrl": null,
-          "spend": "5.18",
-          "rawSpendUsd": "1.01",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 222,
-          "clicks": 7,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "0.74",
           "cpm": "23.32",
           "ctr": "3.15%",
@@ -7489,12 +7507,12 @@
           "mediaSrc": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/787681189_2439220619945836_6038267176069983814_n.jpg?_nc_cat=102&ccb=1-7&_nc_ohc=CCOXP7rrrYoQ7kNvwH0wE5j&_nc_oc=AdqtcEhd5A7z77iOqdYZgnB95t0bcEsCt8ptD8pIAqSCjOH75v-SkS5h19YjMYg7z-bbX09uXt2qgN4by-DAsg_n&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQKy3pjglDCLBCzo4e_7GEcH56_CfLVDt09P9qWQ6_gK50hgr0RBisjQqQpg8k8_eN8hXwxkNpIoow&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQK6_yaScDTjt7ZaSbFoWDgEo5eWKM6JolUtJL8FF0Us0A&oe=6AAA9214",
           "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/787681189_2439220619945836_6038267176069983814_n.jpg?_nc_cat=102&ccb=1-7&_nc_ohc=CCOXP7rrrYoQ7kNvwH0wE5j&_nc_oc=AdqtcEhd5A7z77iOqdYZgnB95t0bcEsCt8ptD8pIAqSCjOH75v-SkS5h19YjMYg7z-bbX09uXt2qgN4by-DAsg_n&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQKy3pjglDCLBCzo4e_7GEcH56_CfLVDt09P9qWQ6_gK50hgr0RBisjQqQpg8k8_eN8hXwxkNpIoow&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQK6_yaScDTjt7ZaSbFoWDgEo5eWKM6JolUtJL8FF0Us0A&oe=6AAA9214",
           "videoUrl": null,
-          "spend": "5.54",
-          "rawSpendUsd": "1.08",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 214,
-          "clicks": 5,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "1.11",
           "cpm": "25.87",
           "ctr": "2.34%",
@@ -7522,12 +7540,12 @@
           "mediaSrc": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/788837672_1702235241911382_4176177684139767375_n.jpg?_nc_cat=104&ccb=1-7&_nc_ohc=rDk1KSFymYAQ7kNvwEyjdM1&_nc_oc=Adra4ro2fNcFZaNS85W5almvg07HpKSO3vwyzsRXbWXT-9Y-DlYAQ2BeZ-vFViHIfz1d6lXW2saWslNAnv8wnGZx&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQJjTkOnV0PGlfT3lKxDef4cX2fJr5OVJVOxAeNdpDyNh-Bfc1kAkeOnlP8DpZKrV5bu5KEKqWdTiw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKT7tcEvonvfKp5XJnNi_0ySaigCLcWOJM3LweSHjU46g&oe=6AAA6D2E",
           "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/788837672_1702235241911382_4176177684139767375_n.jpg?_nc_cat=104&ccb=1-7&_nc_ohc=rDk1KSFymYAQ7kNvwEyjdM1&_nc_oc=Adra4ro2fNcFZaNS85W5almvg07HpKSO3vwyzsRXbWXT-9Y-DlYAQ2BeZ-vFViHIfz1d6lXW2saWslNAnv8wnGZx&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQJjTkOnV0PGlfT3lKxDef4cX2fJr5OVJVOxAeNdpDyNh-Bfc1kAkeOnlP8DpZKrV5bu5KEKqWdTiw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKT7tcEvonvfKp5XJnNi_0ySaigCLcWOJM3LweSHjU46g&oe=6AAA6D2E",
           "videoUrl": null,
-          "spend": "4.72",
-          "rawSpendUsd": "0.92",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 192,
-          "clicks": 8,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "0.59",
           "cpm": "24.56",
           "ctr": "4.17%",
@@ -7555,12 +7573,12 @@
           "mediaSrc": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/789005820_1033075339623821_2808279048278616478_n.jpg?_nc_cat=105&ccb=1-7&_nc_ohc=DnUOyEKeazMQ7kNvwG3p9qw&_nc_oc=AdpbA1Ti9WQfURdqSdtMKyv_h58gCw2vFvDFp2-TJi9FzB-i4L0AJfJYDGK_2ut6jcCcEDEIyPHxkaVHPwifKXCL&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQIXjAfYECfalfgTYBSdtgK3iIK65yRB3ZUnkNeCf4KbQ_4QEIvfFvZPsibnfSYtP3WSZyHu-WwJoA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQL5eSZy3i8Bk2z0YG3eBoNwuOMbF5-lmipaZJokGXvK8A&oe=6AAA9E74",
           "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/789005820_1033075339623821_2808279048278616478_n.jpg?_nc_cat=105&ccb=1-7&_nc_ohc=DnUOyEKeazMQ7kNvwG3p9qw&_nc_oc=AdpbA1Ti9WQfURdqSdtMKyv_h58gCw2vFvDFp2-TJi9FzB-i4L0AJfJYDGK_2ut6jcCcEDEIyPHxkaVHPwifKXCL&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQIXjAfYECfalfgTYBSdtgK3iIK65yRB3ZUnkNeCf4KbQ_4QEIvfFvZPsibnfSYtP3WSZyHu-WwJoA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQL5eSZy3i8Bk2z0YG3eBoNwuOMbF5-lmipaZJokGXvK8A&oe=6AAA9E74",
           "videoUrl": null,
-          "spend": "4.87",
-          "rawSpendUsd": "0.95",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 165,
-          "clicks": 12,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "0.41",
           "cpm": "29.51",
           "ctr": "7.27%",
@@ -7588,12 +7606,12 @@
           "mediaSrc": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/784816535_1383891856470154_7328501539016096633_n.jpg?_nc_cat=106&ccb=1-7&_nc_ohc=6vx1y237A2oQ7kNvwEj7igf&_nc_oc=AdowxlGgYZThITJPubkiwguKE2IlcOkqQoM2TrhvhHbpL5QECWYIEMG_UxlSrgJt5MZ2rui-WFFshbVi8bwxYupV&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQLOjF8PSlNPATw69rRzR61zv_K62MjD5hbC7OVBpWIRHfVZ7lYL45W8QJmjdt2vhPFJUmyCMRN6pg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKBPoumzfgPwZ99PI2hKM8Ub0dkm0C1xzCANxgfP4B9kw&oe=6AAA8D03",
           "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/784816535_1383891856470154_7328501539016096633_n.jpg?_nc_cat=106&ccb=1-7&_nc_ohc=6vx1y237A2oQ7kNvwEj7igf&_nc_oc=AdowxlGgYZThITJPubkiwguKE2IlcOkqQoM2TrhvhHbpL5QECWYIEMG_UxlSrgJt5MZ2rui-WFFshbVi8bwxYupV&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQLOjF8PSlNPATw69rRzR61zv_K62MjD5hbC7OVBpWIRHfVZ7lYL45W8QJmjdt2vhPFJUmyCMRN6pg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKBPoumzfgPwZ99PI2hKM8Ub0dkm0C1xzCANxgfP4B9kw&oe=6AAA8D03",
           "videoUrl": null,
-          "spend": "4.51",
-          "rawSpendUsd": "0.88",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 174,
-          "clicks": 16,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "0.28",
           "cpm": "25.93",
           "ctr": "9.20%",
@@ -7621,12 +7639,12 @@
           "mediaSrc": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/787204828_1400503718733873_6704745120906792185_n.jpg?_nc_cat=107&ccb=1-7&_nc_ohc=mtrrRs5h1oIQ7kNvwEo7QC4&_nc_oc=AdqHeVhJBg9SBcSIvGQdCNX3C4MkuvLJja2HauDE0qjp6YNh030vtUccOKYDa5P5qWHmMI_Wxsf5n7Y9YbgePnVz&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQI48zz9QtaHVI7uQVuOGEvSC4_0S4pTCEGaCdEEpzP3jdmyxlIRs6p6atjVd7PqgG278Pw2eBYgaA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKUwvzy1vo71L5Y3fZl1xSkizYiF2GKgvxg1A4Fytc-QA&oe=6AAA6B7A",
           "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/787204828_1400503718733873_6704745120906792185_n.jpg?_nc_cat=107&ccb=1-7&_nc_ohc=mtrrRs5h1oIQ7kNvwEo7QC4&_nc_oc=AdqHeVhJBg9SBcSIvGQdCNX3C4MkuvLJja2HauDE0qjp6YNh030vtUccOKYDa5P5qWHmMI_Wxsf5n7Y9YbgePnVz&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQI48zz9QtaHVI7uQVuOGEvSC4_0S4pTCEGaCdEEpzP3jdmyxlIRs6p6atjVd7PqgG278Pw2eBYgaA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKUwvzy1vo71L5Y3fZl1xSkizYiF2GKgvxg1A4Fytc-QA&oe=6AAA6B7A",
           "videoUrl": null,
-          "spend": "5.07",
-          "rawSpendUsd": "0.99",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 191,
-          "clicks": 8,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "0.63",
           "cpm": "26.57",
           "ctr": "4.19%",
@@ -7654,12 +7672,12 @@
           "mediaSrc": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/788461325_1851629342672356_5979904265631702187_n.jpg?_nc_cat=106&ccb=1-7&_nc_ohc=lIlrSU0UMLsQ7kNvwGXGBnv&_nc_oc=Adr6iwVfAgSK_r-o8_2AbpOU_hZY4paArv9YKTt4zQtZxh6J2irzrNIG2GPzQIVV8b0O1h_GDQ3IdjNt21lnb0mj&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQIMJmC4Sqy6efiCf7y-emyR0OgNLW6JFi7vULte2aeaZJ-1wvF1aYM6sUHMFxVF3u_1_CZSjsQ3cw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLnICzwWcam4889MyP11GgJfmdEJoqwsrw4WW7GSgCcFw&oe=6AAA980F",
           "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/788461325_1851629342672356_5979904265631702187_n.jpg?_nc_cat=106&ccb=1-7&_nc_ohc=lIlrSU0UMLsQ7kNvwGXGBnv&_nc_oc=Adr6iwVfAgSK_r-o8_2AbpOU_hZY4paArv9YKTt4zQtZxh6J2irzrNIG2GPzQIVV8b0O1h_GDQ3IdjNt21lnb0mj&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQIMJmC4Sqy6efiCf7y-emyR0OgNLW6JFi7vULte2aeaZJ-1wvF1aYM6sUHMFxVF3u_1_CZSjsQ3cw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLnICzwWcam4889MyP11GgJfmdEJoqwsrw4WW7GSgCcFw&oe=6AAA980F",
           "videoUrl": null,
-          "spend": "5.64",
-          "rawSpendUsd": "1.10",
+          "spend": "0.00",
+          "rawSpendUsd": "0.00",
           "usdRate": 5.1262,
           "currency": "BRL",
-          "impressions": 201,
-          "clicks": 16,
+          "impressions": 0,
+          "clicks": 0,
           "cpc": "0.35",
           "cpm": "28.05",
           "ctr": "7.96%",
@@ -7674,7 +7692,8 @@
           "cpa": "0.00",
           "arpu": "0.00"
         }
-      ]
+      ],
+      "date": "2026-09-12"
     },
     {
       "id": "120252508853290319",
@@ -8401,7 +8420,8 @@
           "cpa": "0.00",
           "arpu": "0.00"
         }
-      ]
+      ],
+      "date": "2026-09-12"
     }
   ],
   "sessions": [],
@@ -8583,7 +8603,7 @@
       "rawSpendUsd": "0.00",
       "usdRate": 5.1262,
       "currency": "BRL",
-      "impressions": 1,
+      "impressions": 0,
       "clicks": 0,
       "cpc": "0.00",
       "cpm": "0.00",
@@ -8597,7 +8617,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "52573562929831",
@@ -8612,12 +8633,12 @@
       "mediaSrc": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/801917096_1094177432996322_2240466027311647573_n.jpg?_nc_cat=111&ccb=1-7&_nc_ohc=ZYdHctk-EtQQ7kNvwHIDrZn&_nc_oc=Adq2y3sf61raXAvX6W29nDmJp7fPbc2IMjDt3WcmXo1PqiZ8qGRn-SIFUMWLpqTw7oR86iajlNzttWlhM0bM-4ev&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=h_Q4MMOi24rRN7NGbFhISQ&_nc_tpa=Q5bMBQJ3Ig_faa-n_c435uZ11pr2GDp7sBFPzamfKTDEme8CaugLgMA88Xk_UGTM1bwPtfKRKf-1h3Xsng&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIn1d_hST3BkzCx2so6obY2uPGzXHhvKjy2xryS-UDGEQ&oe=6AAA87B6",
       "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/801917096_1094177432996322_2240466027311647573_n.jpg?_nc_cat=111&ccb=1-7&_nc_ohc=ZYdHctk-EtQQ7kNvwHIDrZn&_nc_oc=Adq2y3sf61raXAvX6W29nDmJp7fPbc2IMjDt3WcmXo1PqiZ8qGRn-SIFUMWLpqTw7oR86iajlNzttWlhM0bM-4ev&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=h_Q4MMOi24rRN7NGbFhISQ&_nc_tpa=Q5bMBQJ3Ig_faa-n_c435uZ11pr2GDp7sBFPzamfKTDEme8CaugLgMA88Xk_UGTM1bwPtfKRKf-1h3Xsng&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIn1d_hST3BkzCx2so6obY2uPGzXHhvKjy2xryS-UDGEQ&oe=6AAA87B6",
       "videoUrl": null,
-      "spend": "1.59",
-      "rawSpendUsd": "0.31",
+      "spend": "0.00",
+      "rawSpendUsd": "0.00",
       "usdRate": 5.1262,
       "currency": "BRL",
-      "impressions": 48,
-      "clicks": 10,
+      "impressions": 0,
+      "clicks": 0,
       "cpc": "0.16",
       "cpm": "33.11",
       "ctr": "20.83%",
@@ -8630,7 +8651,8 @@
       "profit": "-1.59",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "52573562908831",
@@ -8645,12 +8667,12 @@
       "mediaSrc": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/8763066609732216978?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQJAP2XjqoFsn5-r_si0fs7Tq6_F_YGIgugrR5Xxe0c9jXlRUaSWyaxj9TXAbEEamjSMPlCDh6IYzSF3q4lx7MtWUi3QE9A_w25NfHHe-vl10jCEc6iHBmPgFIYeeDy2vKe3Fe-LS3mTPReKE4nl7Fct&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=h_Q4MMOi24rRN7NGbFhISQ&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQIaGvx0syn4TfPKczy8kN6vFpDOYmFA3S6iWDZucrBRIuqFEiZWtNF-n12yNEKmtVxtkKTyPheglA&oh=06_Q3_DAQLypGgC5e_mVKp1d80rgSwWMyq-vIZKJhXlLBbJveB2&oe=6AA68461",
       "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/8763066609732216978?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQJAP2XjqoFsn5-r_si0fs7Tq6_F_YGIgugrR5Xxe0c9jXlRUaSWyaxj9TXAbEEamjSMPlCDh6IYzSF3q4lx7MtWUi3QE9A_w25NfHHe-vl10jCEc6iHBmPgFIYeeDy2vKe3Fe-LS3mTPReKE4nl7Fct&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=h_Q4MMOi24rRN7NGbFhISQ&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQIaGvx0syn4TfPKczy8kN6vFpDOYmFA3S6iWDZucrBRIuqFEiZWtNF-n12yNEKmtVxtkKTyPheglA&oh=06_Q3_DAQLypGgC5e_mVKp1d80rgSwWMyq-vIZKJhXlLBbJveB2&oe=6AA68461",
       "videoUrl": null,
-      "spend": "17.22",
-      "rawSpendUsd": "3.36",
+      "spend": "0.00",
+      "rawSpendUsd": "0.00",
       "usdRate": 5.1262,
       "currency": "BRL",
-      "impressions": 487,
-      "clicks": 80,
+      "impressions": 0,
+      "clicks": 0,
       "cpc": "0.22",
       "cpm": "35.37",
       "ctr": "16.43%",
@@ -8663,7 +8685,8 @@
       "profit": "-17.22",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "52687589657778",
@@ -8696,7 +8719,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "52687589696178",
@@ -8711,12 +8735,12 @@
       "mediaSrc": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/803504502_1585591093358104_5068263324101891419_n.jpg?_nc_cat=111&ccb=1-7&_nc_ohc=SPUbZC_gHgsQ7kNvwE44475&_nc_oc=AdpieIeROERW67Ex2MFTndiGPP6W0E9yCvGNzzVqc_6P9UN9QZUJjuwp1AJTot0iruLgKEhgB6NF58-tZFhtInNs&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=snNTRAmrYERe1czn1iErEg&_nc_tpa=Q5bMBQJo0vV8ETgTkJE371kUP4IUwxi-dUfEQ6xgZRdLgU3mPWiiX6L7ARKHF_rqSb0LiuOA1W-59KBdbg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=d2b52d&_nc_sid=58080a&oh=00_AQKoV4wez0ietUvVlK-HxOZ8Zjd3ebd7_J260KqZ8BxzBA&oe=6AAA6F5E",
       "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/803504502_1585591093358104_5068263324101891419_n.jpg?_nc_cat=111&ccb=1-7&_nc_ohc=SPUbZC_gHgsQ7kNvwE44475&_nc_oc=AdpieIeROERW67Ex2MFTndiGPP6W0E9yCvGNzzVqc_6P9UN9QZUJjuwp1AJTot0iruLgKEhgB6NF58-tZFhtInNs&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=snNTRAmrYERe1czn1iErEg&_nc_tpa=Q5bMBQJo0vV8ETgTkJE371kUP4IUwxi-dUfEQ6xgZRdLgU3mPWiiX6L7ARKHF_rqSb0LiuOA1W-59KBdbg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=d2b52d&_nc_sid=58080a&oh=00_AQKoV4wez0ietUvVlK-HxOZ8Zjd3ebd7_J260KqZ8BxzBA&oe=6AAA6F5E",
       "videoUrl": null,
-      "spend": "1.74",
-      "rawSpendUsd": "0.34",
+      "spend": "0.00",
+      "rawSpendUsd": "0.00",
       "usdRate": 5.1262,
       "currency": "BRL",
-      "impressions": 48,
-      "clicks": 3,
+      "impressions": 0,
+      "clicks": 0,
       "cpc": "0.58",
       "cpm": "36.31",
       "ctr": "6.25%",
@@ -8729,7 +8753,8 @@
       "profit": "-1.74",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "52687589571578",
@@ -8744,12 +8769,12 @@
       "mediaSrc": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/2318394901464425478?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQIRGqVVBU8z4ZmWbd8a5MW8Emfy_peTBz7drAsa5g3D-isq1pWdeZ2IpvxiRZmSZOjF4k1kQz2Ezz3BzoNik2rgDJjsD99FJHp-_IOdCKEKfuqCnDicLPF51dtPHeT776MiCf8lS2i5hVUe2W_fR0St&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=snNTRAmrYERe1czn1iErEg&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQLNeR1AJ-j5nAwonVNGU5rAAPDfv5yuk_Z9W3oAq4Rcn5RQegwJ3zQN02NJ2NwNa-uuXOiPBtnmtg&oh=06_Q3_DAdxpVZuZeTJejg2seg0uXi9lruQjR2VWPUfBMoPZYRYb&oe=6AA6A78F",
       "thumbnailUrl": "https://external-gru1-1.xx.fbcdn.net/emg1/v/t13/2318394901464425478?url=https%3A%2F%2Fwww.facebook.com%2Fads%2Fimage%2F%3Fd%3DAQIRGqVVBU8z4ZmWbd8a5MW8Emfy_peTBz7drAsa5g3D-isq1pWdeZ2IpvxiRZmSZOjF4k1kQz2Ezz3BzoNik2rgDJjsD99FJHp-_IOdCKEKfuqCnDicLPF51dtPHeT776MiCf8lS2i5hVUe2W_fR0St&fb_obo=1&utld=facebook.com&_nc_sid=58080a&_nc_ht=external-gru1-1.xx.fbcdn.net&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ccb=18-1&_nc_gid=snNTRAmrYERe1czn1iErEg&edm=AOgd6ZUEAAAA&_nc_zt=3&_nc_tpa=Q5bMBQLNeR1AJ-j5nAwonVNGU5rAAPDfv5yuk_Z9W3oAq4Rcn5RQegwJ3zQN02NJ2NwNa-uuXOiPBtnmtg&oh=06_Q3_DAdxpVZuZeTJejg2seg0uXi9lruQjR2VWPUfBMoPZYRYb&oe=6AA6A78F",
       "videoUrl": null,
-      "spend": "65.46",
-      "rawSpendUsd": "12.77",
+      "spend": "0.00",
+      "rawSpendUsd": "0.00",
       "usdRate": 5.1262,
       "currency": "BRL",
-      "impressions": 2346,
-      "clicks": 316,
+      "impressions": 0,
+      "clicks": 0,
       "cpc": "0.21",
       "cpm": "27.90",
       "ctr": "13.47%",
@@ -8762,7 +8787,8 @@
       "profit": "-65.46",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120250184790810459",
@@ -8778,7 +8804,7 @@
       "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/787830800_2210268809821657_8956118940889240210_n.jpg?_nc_cat=104&ccb=1-7&_nc_ohc=NmzQQVQqNawQ7kNvwFfyEpO&_nc_oc=AdqQ8UD3ENTZd29YYspp-S6UhKP0La3-_imN2hqfhYGFxTaGkRzDxeGHm7WzmThPU5EkAUoxSCXsuTry1BQOsrcy&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=yNeB2siQO9ZZDXGRaA4UiA&_nc_tpa=Q5bMBQKQHue_zPK8OVosPfWaEuI6sl3oLPjC60kAe8sukZLv1IxwNdagghNFHTFPX5eMaXHv2aO4gN_qNg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJLAHRW_qqqwVCPlslUCnz2ghUIQmnva6UOY4LVrojbtw&oe=6AAA905A",
       "videoUrl": null,
       "spend": "0.00",
-      "rawSpendUsd": null,
+      "rawSpendUsd": "0.00",
       "usdRate": null,
       "currency": "BRL",
       "impressions": 0,
@@ -8795,7 +8821,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120250184790790459",
@@ -8811,7 +8838,7 @@
       "thumbnailUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=80",
       "videoUrl": null,
       "spend": "0.00",
-      "rawSpendUsd": null,
+      "rawSpendUsd": "0.00",
       "usdRate": null,
       "currency": "BRL",
       "impressions": 0,
@@ -8828,7 +8855,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120250184683840459",
@@ -8844,7 +8872,7 @@
       "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t45.1600-4/786423488_122139081015202796_3480327526304805234_n.png?_nc_cat=110&ccb=1-7&_nc_ohc=8RCACX6zkN8Q7kNvwFqOOYl&_nc_oc=AdqjI8LWW-fst4j6ZN4r_FVDnlGt9ORFXSNxbIf_ORFX3BsSmB1WKRInwyFpz8x0vAyH5VUxxmwMi36E2fOtqy3Y&_nc_zt=1&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=yNeB2siQO9ZZDXGRaA4UiA&_nc_tpa=Q5bMBQItEcC8Z4xcl0ajWRmyMc0srmVf-hotiEbkuSoDQ6twOl4HYjPjCIHvRzfjuqAv1Dc-sCtVyAuUwA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=52f3c4&_nc_sid=58080a&oh=00_AQIbTNbBgRr9XAlTZERPrud5unM775EEDkbj6SVABCuN5Q&oe=6AAA8A15",
       "videoUrl": null,
       "spend": "0.00",
-      "rawSpendUsd": null,
+      "rawSpendUsd": "0.00",
       "usdRate": null,
       "currency": "BRL",
       "impressions": 0,
@@ -8861,7 +8889,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120250051661910466",
@@ -8877,7 +8906,7 @@
       "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/785857446_1316934606980655_2818514852799727825_n.jpg?_nc_cat=106&ccb=1-7&_nc_ohc=qICru4g8sTIQ7kNvwFkdDfj&_nc_oc=AdpecsWP1qgCDxJ3_p07RRhh4g0ZOFET03wc85BO8VUECGpVmMmn9kvF0TIvQioJ48JWaDNkrf1brtuTjRV2M6tY&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQL5jEkPsFvkTm2WD7cKG3HKtgV3ySHR964_jBmLKSC1SHf-J_omvGbuPYDWDTJuy4DmOw0eIuN6Xw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIfkiqyhvy8HOYiJ336R8UilE685n0HVlHPoPYFdnG4Mg&oe=6AAA72CA",
       "videoUrl": null,
       "spend": "0.00",
-      "rawSpendUsd": null,
+      "rawSpendUsd": "0.00",
       "usdRate": null,
       "currency": "BRL",
       "impressions": 0,
@@ -8894,7 +8923,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120250051661920466",
@@ -8910,7 +8940,7 @@
       "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/785857446_1316934606980655_2818514852799727825_n.jpg?_nc_cat=106&ccb=1-7&_nc_ohc=qICru4g8sTIQ7kNvwFkdDfj&_nc_oc=AdpecsWP1qgCDxJ3_p07RRhh4g0ZOFET03wc85BO8VUECGpVmMmn9kvF0TIvQioJ48JWaDNkrf1brtuTjRV2M6tY&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQL5jEkPsFvkTm2WD7cKG3HKtgV3ySHR964_jBmLKSC1SHf-J_omvGbuPYDWDTJuy4DmOw0eIuN6Xw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIfkiqyhvy8HOYiJ336R8UilE685n0HVlHPoPYFdnG4Mg&oe=6AAA72CA",
       "videoUrl": null,
       "spend": "0.00",
-      "rawSpendUsd": null,
+      "rawSpendUsd": "0.00",
       "usdRate": null,
       "currency": "BRL",
       "impressions": 0,
@@ -8927,7 +8957,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120250051654820466",
@@ -8943,7 +8974,7 @@
       "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/785857446_1316934606980655_2818514852799727825_n.jpg?_nc_cat=106&ccb=1-7&_nc_ohc=qICru4g8sTIQ7kNvwFkdDfj&_nc_oc=AdpecsWP1qgCDxJ3_p07RRhh4g0ZOFET03wc85BO8VUECGpVmMmn9kvF0TIvQioJ48JWaDNkrf1brtuTjRV2M6tY&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQL5jEkPsFvkTm2WD7cKG3HKtgV3ySHR964_jBmLKSC1SHf-J_omvGbuPYDWDTJuy4DmOw0eIuN6Xw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIfkiqyhvy8HOYiJ336R8UilE685n0HVlHPoPYFdnG4Mg&oe=6AAA72CA",
       "videoUrl": null,
       "spend": "0.00",
-      "rawSpendUsd": null,
+      "rawSpendUsd": "0.00",
       "usdRate": null,
       "currency": "BRL",
       "impressions": 0,
@@ -8960,7 +8991,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120250051661050466",
@@ -8976,7 +9008,7 @@
       "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/785362384_1068941282799188_4024625802814745334_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=ivnD9WrPMoAQ7kNvwEo6anU&_nc_oc=AdqLqYAI_P7nOWhi4kAGzxQoFOMZ4e12q1s8WR2gf2cEhBNymfPgpnLgJqtONmBEKSpaigbVYIs_iNtvE6DPASJ9&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQL_7Wd6xYDhmTd9RWahK0YDV1woXxb6Z3g_o4Qfyomha5znw8m8As6gm7Io0dLICgZlkgjGnEwZEw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLFMhGVdGC_3NjacjhUO03iWxU_yikSXOV83NwJCa_T5g&oe=6AAA6992",
       "videoUrl": null,
       "spend": "0.00",
-      "rawSpendUsd": null,
+      "rawSpendUsd": "0.00",
       "usdRate": null,
       "currency": "BRL",
       "impressions": 0,
@@ -8993,7 +9025,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120250051654830466",
@@ -9009,7 +9042,7 @@
       "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/785362384_1068941282799188_4024625802814745334_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=ivnD9WrPMoAQ7kNvwEo6anU&_nc_oc=AdqLqYAI_P7nOWhi4kAGzxQoFOMZ4e12q1s8WR2gf2cEhBNymfPgpnLgJqtONmBEKSpaigbVYIs_iNtvE6DPASJ9&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQJ4JeqUvbuT7SUubvhHmUyeHqMrsfWk6JgBTqqY1eIW9mjW96VdO2mx78KlRAEu2w6DeJhr8ZnnRA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIHkW5ejiVuFr-dEqAs7T2SZi06jwdvJVowwrBJVEvwCQ&oe=6AAA6992",
       "videoUrl": null,
       "spend": "0.00",
-      "rawSpendUsd": null,
+      "rawSpendUsd": "0.00",
       "usdRate": null,
       "currency": "BRL",
       "impressions": 0,
@@ -9026,7 +9059,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120250051661070466",
@@ -9042,7 +9076,7 @@
       "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/785362384_1068941282799188_4024625802814745334_n.jpg?_nc_cat=101&ccb=1-7&_nc_ohc=ivnD9WrPMoAQ7kNvwEo6anU&_nc_oc=AdqLqYAI_P7nOWhi4kAGzxQoFOMZ4e12q1s8WR2gf2cEhBNymfPgpnLgJqtONmBEKSpaigbVYIs_iNtvE6DPASJ9&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQJ4JeqUvbuT7SUubvhHmUyeHqMrsfWk6JgBTqqY1eIW9mjW96VdO2mx78KlRAEu2w6DeJhr8ZnnRA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIHkW5ejiVuFr-dEqAs7T2SZi06jwdvJVowwrBJVEvwCQ&oe=6AAA6992",
       "videoUrl": null,
       "spend": "0.00",
-      "rawSpendUsd": null,
+      "rawSpendUsd": "0.00",
       "usdRate": null,
       "currency": "BRL",
       "impressions": 0,
@@ -9059,7 +9093,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120250051660630466",
@@ -9075,7 +9110,7 @@
       "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/783374526_928646913001179_1563896876115122365_n.jpg?_nc_cat=102&ccb=1-7&_nc_ohc=EjChBcyiaVgQ7kNvwGAZGko&_nc_oc=AdoAeLkjo4wTPxd3OgXRLnoJgKn5d3UHviMYk1s_rDx_ORIbBoQVeRmHJqyU_WpWhJG2_dsE4-ZIXA6WQMIFCrsE&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQK-Um4B9hleMjVlyTuPN7rKt-DzkmOC8oO6OHhCXRV2nCLUgfQyf-4EK8_BG7XX7zFZ04yamzuDng&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKnuic-jNFRFmXJbQPwXfN6rrcjb7Ti1cZjDcn7F0M9-A&oe=6AAA801E",
       "videoUrl": null,
       "spend": "0.00",
-      "rawSpendUsd": null,
+      "rawSpendUsd": "0.00",
       "usdRate": null,
       "currency": "BRL",
       "impressions": 0,
@@ -9092,7 +9127,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120250051646600466",
@@ -9108,7 +9144,7 @@
       "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/783374526_928646913001179_1563896876115122365_n.jpg?_nc_cat=102&ccb=1-7&_nc_ohc=EjChBcyiaVgQ7kNvwGAZGko&_nc_oc=AdoAeLkjo4wTPxd3OgXRLnoJgKn5d3UHviMYk1s_rDx_ORIbBoQVeRmHJqyU_WpWhJG2_dsE4-ZIXA6WQMIFCrsE&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQLIxJSG2JKexEIZq5tIOjEb4HbEeq1Bd51_z2X53S61Ev0ISyCV1xSwRTanh6bb9qIOcuyLYwNldQ&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQI4iKpXfA9mNrhxoBRA1J_cHEE5INTmEUP7IwNzDx2Trg&oe=6AAA801E",
       "videoUrl": null,
       "spend": "0.00",
-      "rawSpendUsd": null,
+      "rawSpendUsd": "0.00",
       "usdRate": null,
       "currency": "BRL",
       "impressions": 0,
@@ -9125,7 +9161,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120250051660650466",
@@ -9141,7 +9178,7 @@
       "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/783374526_928646913001179_1563896876115122365_n.jpg?_nc_cat=102&ccb=1-7&_nc_ohc=EjChBcyiaVgQ7kNvwGAZGko&_nc_oc=AdoAeLkjo4wTPxd3OgXRLnoJgKn5d3UHviMYk1s_rDx_ORIbBoQVeRmHJqyU_WpWhJG2_dsE4-ZIXA6WQMIFCrsE&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQJuOprketAIyro9EAFDn9iHSREJwzIoBTSst8OjQxBkipbuR50fWDDcNNpqcM4COOxeV6Ni-uvuzA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQK-f1AzQSOqBN3MIus6uE_C9crPgPcYXMtzB9xA9KGPLQ&oe=6AAA801E",
       "videoUrl": null,
       "spend": "0.00",
-      "rawSpendUsd": null,
+      "rawSpendUsd": "0.00",
       "usdRate": null,
       "currency": "BRL",
       "impressions": 0,
@@ -9158,7 +9195,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120250032129980466",
@@ -9174,7 +9212,7 @@
       "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/779357425_1582758523224260_4781639069062852364_n.jpg?_nc_cat=109&ccb=1-7&_nc_ohc=NbnqDEjFI1IQ7kNvwHoYy1x&_nc_oc=AdpjttxyUAHfSDqQSNLuxpPf9UX0N-bCvGDa6jUJdVRS-0_n5AlFo_kchYhDFrpFafhd69ZkaP72quA-H2Xz9EtH&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQJGmjEhdDlp2NcDePM09VBXR083AHGqAKxechpe2uAQIgKMtvgJGBytipmDQiBpxzBKgANZZY7IWg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKE-KeYuMo3cknbGoqyidbRKfAat6_PZ7nid9tD7vXdxA&oe=6AAA9BB4",
       "videoUrl": null,
       "spend": "0.00",
-      "rawSpendUsd": null,
+      "rawSpendUsd": "0.00",
       "usdRate": null,
       "currency": "BRL",
       "impressions": 0,
@@ -9191,7 +9229,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120250032139350466",
@@ -9207,7 +9246,7 @@
       "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t15.5256-10/782208354_1057945466649480_1277927918526791505_n.jpg?_nc_cat=100&ccb=1-7&_nc_ohc=JBmdsp5QK2cQ7kNvwF_-1n2&_nc_oc=AdpcgcxW_czxdoeKDwvGty2OZEUyYfyrUOb_xwMCNG322f3FO_v1KkxnthfH-wQuxl6YKoTTlZEVhOPoL4IFBC4c&_nc_zt=23&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQIi0En0rmHjob9T2wbTklcEiRnmtpDG1kb5uMT_7XJkPoNvQX0Kgb0BxVf446dZYa_Bv9bNYrKJMg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIwHHGovOBdNPBQJFro_fd5wgRPG_A8-F6Zr3D0bmkaYQ&oe=6AAA8790",
       "videoUrl": null,
       "spend": "0.00",
-      "rawSpendUsd": null,
+      "rawSpendUsd": "0.00",
       "usdRate": null,
       "currency": "BRL",
       "impressions": 0,
@@ -9224,7 +9263,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120250031975600466",
@@ -9240,7 +9280,7 @@
       "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/779753963_1741115976792499_3206863680339077008_n.jpg?_nc_cat=105&ccb=1-7&_nc_ohc=Mv6590JzhUsQ7kNvwH9n25I&_nc_oc=AdrmojpxUkVJWYuuwFft0lZbJsp5y-pBQsJoo7mrIL0pKrnsTT9GajgxaLL2JuQVeJVxjJgtiXMgKcJMbHCVCQ_0&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQJL_KtrL04rWnwZEuirW5RbPcD1EQwI8fAfbIQBPCJbrX0EPCtLaBFFARUke6vmno9ct6K3aGGnIw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJV7leGpWGlvjK-ddxsa4eKxVZksjtIBGYam4qtfrsBgQ&oe=6AAAA11A",
       "videoUrl": null,
       "spend": "0.00",
-      "rawSpendUsd": null,
+      "rawSpendUsd": "0.00",
       "usdRate": null,
       "currency": "BRL",
       "impressions": 0,
@@ -9257,7 +9297,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120250032096830466",
@@ -9273,7 +9314,7 @@
       "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/782455762_27583199328043028_8127436003177120614_n.jpg?_nc_cat=104&ccb=1-7&_nc_ohc=rB8BIwduJ54Q7kNvwF8f13X&_nc_oc=AdrXLUyelgWHcUBb-kXc6LEZ8pxeppKaXYLGjB3Q1ow4r6VHHMfQ3Inyz176EBFKZVrf-jd1bWSLOAUjPX8oGRG6&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQLB4lyzAc645gOoeC76GJHAPokXGKkgCucMVEU-QMQzU-NWvwKj-q08TwNmSAHQRZWPGi2lYg-2nw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIjso5KGKED31wK9os-ZRWxWuCUPIA-mUebTy7-ovSzyQ&oe=6AAA8458",
       "videoUrl": null,
       "spend": "0.00",
-      "rawSpendUsd": null,
+      "rawSpendUsd": "0.00",
       "usdRate": null,
       "currency": "BRL",
       "impressions": 0,
@@ -9290,7 +9331,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120250032116610466",
@@ -9306,7 +9348,7 @@
       "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/777260162_1038625415739701_1661183842236797124_n.jpg?_nc_cat=104&ccb=1-7&_nc_ohc=qpBI1aypFoMQ7kNvwF30L0L&_nc_oc=AdrhOI9MNIbQM8RsoywzBvHchrYGRNAxcmu8kac1SxgRmQXdZrrdhIjhT8gAHzVAy2CuUrU_qj8oeUQcmHgl_Oqk&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQJ_7AL7bjqA5BwGD1BlF32BkztvWV0ZTSFtcx-fcRXbE3ht1KT8_HOnzC4BGmv8A8c9v-0EsRPIYQ&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQIq4xyz9ptPyb_G5GUIGnnJz4AMCSFjbbnFoPZCe8hEZg&oe=6AAA76BE",
       "videoUrl": null,
       "spend": "0.00",
-      "rawSpendUsd": null,
+      "rawSpendUsd": "0.00",
       "usdRate": null,
       "currency": "BRL",
       "impressions": 0,
@@ -9323,7 +9365,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120250032135230466",
@@ -9339,7 +9382,7 @@
       "thumbnailUrl": "https://scontent-gru1-2.xx.fbcdn.net/v/t15.5256-10/784181183_1836672050437958_6369446783421468508_n.jpg?_nc_cat=108&ccb=1-7&_nc_ohc=g9jgdxhsPzwQ7kNvwH0B-1D&_nc_oc=Adp-VgU45VDAI9PtYGsyWpO9hfRJ673iYYhwDkmWTtOemZCD8uTShLPpfXzb4KaQgHy1t_mWcSsfM3MQpOpPS58H&_nc_zt=23&_nc_ht=scontent-gru1-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=MTHmLV7ZXq-RCP3jipsacw&_nc_tpa=Q5bMBQKWOBzh037tfI2F6i3pTu0Tg2xyQMnakb7R5X5z7Yz7WecZ6fYia1nOOOgl6tUNQc_ZbO0w5vBzzw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQK26MwbdTcy46pE32_jS9tkz2-EtPcjIK-lAsHIPUh1ew&oe=6AAA891B",
       "videoUrl": null,
       "spend": "0.00",
-      "rawSpendUsd": null,
+      "rawSpendUsd": "0.00",
       "usdRate": null,
       "currency": "BRL",
       "impressions": 0,
@@ -9356,7 +9399,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251314349960152",
@@ -9389,7 +9433,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251314349950152",
@@ -9422,7 +9467,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251314288700152",
@@ -9455,7 +9501,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251192705140152",
@@ -9488,7 +9535,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251192705090152",
@@ -9521,7 +9569,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251192705170152",
@@ -9554,7 +9603,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251192705130152",
@@ -9587,7 +9637,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251192705190152",
@@ -9620,7 +9671,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251192705180152",
@@ -9653,7 +9705,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251192705100152",
@@ -9686,7 +9739,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251192705160152",
@@ -9719,7 +9773,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251192705110152",
@@ -9752,7 +9807,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251162827030152",
@@ -9785,7 +9841,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251162827000152",
@@ -9818,7 +9875,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251162826950152",
@@ -9851,7 +9909,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251162826970152",
@@ -9884,7 +9943,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251162827020152",
@@ -9917,7 +9977,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251162826960152",
@@ -9950,7 +10011,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251162826990152",
@@ -9983,7 +10045,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251162827010152",
@@ -10016,7 +10079,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251162808990152",
@@ -10049,7 +10113,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147918110152",
@@ -10082,7 +10147,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147918280152",
@@ -10115,7 +10181,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147918420152",
@@ -10148,7 +10215,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147918230152",
@@ -10181,7 +10249,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147918140152",
@@ -10214,7 +10283,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147918170152",
@@ -10247,7 +10317,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147918260152",
@@ -10280,7 +10351,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147918270152",
@@ -10313,7 +10385,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147918250152",
@@ -10346,7 +10419,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147918290152",
@@ -10379,7 +10453,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147918160152",
@@ -10412,7 +10487,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147918450152",
@@ -10445,7 +10521,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147918150152",
@@ -10478,7 +10555,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147918130152",
@@ -10511,7 +10589,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147918480152",
@@ -10544,7 +10623,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147918120152",
@@ -10577,7 +10657,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147918360152",
@@ -10610,7 +10691,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147918340152",
@@ -10643,7 +10725,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147918350152",
@@ -10676,7 +10759,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147918380152",
@@ -10709,7 +10793,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147916630152",
@@ -10742,7 +10827,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147916700152",
@@ -10775,7 +10861,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147916680152",
@@ -10808,7 +10895,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147907770152",
@@ -10841,7 +10929,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147916640152",
@@ -10874,7 +10963,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147916650152",
@@ -10907,7 +10997,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147916570152",
@@ -10940,7 +11031,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147916670152",
@@ -10973,7 +11065,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147916560152",
@@ -11006,7 +11099,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147916710152",
@@ -11039,7 +11133,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147827830152",
@@ -11072,7 +11167,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147827890152",
@@ -11105,7 +11201,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147828000152",
@@ -11138,7 +11235,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147828020152",
@@ -11171,7 +11269,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147827900152",
@@ -11204,7 +11303,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147828030152",
@@ -11237,7 +11337,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147827760152",
@@ -11270,7 +11371,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147827990152",
@@ -11303,7 +11405,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147827910152",
@@ -11336,7 +11439,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147828050152",
@@ -11369,7 +11473,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147827840152",
@@ -11402,7 +11507,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147827880152",
@@ -11435,7 +11541,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147827970152",
@@ -11468,7 +11575,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147827740152",
@@ -11501,7 +11609,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147827770152",
@@ -11534,7 +11643,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147827750152",
@@ -11567,7 +11677,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147827780152",
@@ -11600,7 +11711,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147827980152",
@@ -11633,7 +11745,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147828010152",
@@ -11666,7 +11779,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147828040152",
@@ -11699,7 +11813,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147815750152",
@@ -11732,7 +11847,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147741920152",
@@ -11765,7 +11881,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147815770152",
@@ -11798,7 +11915,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147815760152",
@@ -11831,7 +11949,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147815810152",
@@ -11864,7 +11983,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147815730152",
@@ -11897,7 +12017,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147815780152",
@@ -11930,7 +12051,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147815710152",
@@ -11963,7 +12085,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147815800152",
@@ -11996,7 +12119,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120251147815740152",
@@ -12029,7 +12153,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120252757543930319",
@@ -12044,12 +12169,12 @@
       "mediaSrc": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/787459535_1017742091262325_7549430361338328407_n.jpg?_nc_cat=109&ccb=1-7&_nc_ohc=swa3ZIg8rH0Q7kNvwHw6GV2&_nc_oc=Adqo3fmOyOX1gITFLJsLSyBMXfGsSItQfpqO5l-RaFKAFlRpB7Gzf9JiHKezowz139Pezjcc4XWVmJuwIA7cYtZm&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQKchOjfoXAk6sGlBqff58pfayf3HDIZIT2WSezefMnwT5in3vQiFZtKMq5Ol2B1MzLDlScxF1lW2Q&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJ5Lt0Tc7rB62aSEEGyJf1yazmVbb7a7Q_NjD1ca3gaig&oe=6AAA8661",
       "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/787459535_1017742091262325_7549430361338328407_n.jpg?_nc_cat=109&ccb=1-7&_nc_ohc=swa3ZIg8rH0Q7kNvwHw6GV2&_nc_oc=Adqo3fmOyOX1gITFLJsLSyBMXfGsSItQfpqO5l-RaFKAFlRpB7Gzf9JiHKezowz139Pezjcc4XWVmJuwIA7cYtZm&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQKchOjfoXAk6sGlBqff58pfayf3HDIZIT2WSezefMnwT5in3vQiFZtKMq5Ol2B1MzLDlScxF1lW2Q&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJ5Lt0Tc7rB62aSEEGyJf1yazmVbb7a7Q_NjD1ca3gaig&oe=6AAA8661",
       "videoUrl": null,
-      "spend": "4.00",
-      "rawSpendUsd": "0.78",
+      "spend": "0.00",
+      "rawSpendUsd": "0.00",
       "usdRate": 5.1262,
       "currency": "BRL",
-      "impressions": 141,
-      "clicks": 4,
+      "impressions": 0,
+      "clicks": 0,
       "cpc": "1.00",
       "cpm": "28.36",
       "ctr": "2.84%",
@@ -12062,7 +12187,8 @@
       "profit": "-4.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120252757544020319",
@@ -12077,12 +12203,12 @@
       "mediaSrc": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/787941163_1600291995035919_6719115363472530063_n.jpg?_nc_cat=107&ccb=1-7&_nc_ohc=88qSOZp-d08Q7kNvwEO66MK&_nc_oc=AdpOkfggREh6A5c6a2XHheSa1n74MD_K8uMf6wasDxtb1IMTM85J88HgmeKbTdI-HLbeAELJ_FEDozbR16Cy82WC&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQK91rYuX0EB7qQJEjRpR_cjx2HeGXROuLE-hrse4D7dprydZypaIaUOb0WN0qlQr1cmDkhy1DcL4Q&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLgleio-yoGrSMzjI9GtM6O-Q_0D8Xi0ww07cJb_miF_w&oe=6AAA755A",
       "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/787941163_1600291995035919_6719115363472530063_n.jpg?_nc_cat=107&ccb=1-7&_nc_ohc=88qSOZp-d08Q7kNvwEO66MK&_nc_oc=AdpOkfggREh6A5c6a2XHheSa1n74MD_K8uMf6wasDxtb1IMTM85J88HgmeKbTdI-HLbeAELJ_FEDozbR16Cy82WC&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQK91rYuX0EB7qQJEjRpR_cjx2HeGXROuLE-hrse4D7dprydZypaIaUOb0WN0qlQr1cmDkhy1DcL4Q&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLgleio-yoGrSMzjI9GtM6O-Q_0D8Xi0ww07cJb_miF_w&oe=6AAA755A",
       "videoUrl": null,
-      "spend": "4.56",
-      "rawSpendUsd": "0.89",
+      "spend": "0.00",
+      "rawSpendUsd": "0.00",
       "usdRate": 5.1262,
       "currency": "BRL",
-      "impressions": 158,
-      "clicks": 6,
+      "impressions": 0,
+      "clicks": 0,
       "cpc": "0.76",
       "cpm": "28.88",
       "ctr": "3.80%",
@@ -12095,7 +12221,8 @@
       "profit": "-4.56",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120252757543960319",
@@ -12110,12 +12237,12 @@
       "mediaSrc": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/782997249_1046232871611927_3739497100185838789_n.jpg?_nc_cat=105&ccb=1-7&_nc_ohc=v_xwr3DIaCYQ7kNvwE8JBXX&_nc_oc=AdqANfQKmZlWlTESw7wBHYcNyhiErP7zUXb4LnstVUfpl_0ZOBpqoUcjlURqXv_L4rQtK0XHrmBiddWefvBkoVN1&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQLWuCc94Cs4syhPux8mvfzVweMQfZ7jMdXDXgqogFLhTaELLqhBN4OvbEqNieuDnBlnXGjS7nS0Cw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJsVLwqjtq3k-XacLYMNk-or_MNxdAKOQXRopE86mXt8A&oe=6AAA8F0A",
       "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/782997249_1046232871611927_3739497100185838789_n.jpg?_nc_cat=105&ccb=1-7&_nc_ohc=v_xwr3DIaCYQ7kNvwE8JBXX&_nc_oc=AdqANfQKmZlWlTESw7wBHYcNyhiErP7zUXb4LnstVUfpl_0ZOBpqoUcjlURqXv_L4rQtK0XHrmBiddWefvBkoVN1&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQLWuCc94Cs4syhPux8mvfzVweMQfZ7jMdXDXgqogFLhTaELLqhBN4OvbEqNieuDnBlnXGjS7nS0Cw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJsVLwqjtq3k-XacLYMNk-or_MNxdAKOQXRopE86mXt8A&oe=6AAA8F0A",
       "videoUrl": null,
-      "spend": "5.23",
-      "rawSpendUsd": "1.02",
+      "spend": "0.00",
+      "rawSpendUsd": "0.00",
       "usdRate": 5.1262,
       "currency": "BRL",
-      "impressions": 180,
-      "clicks": 9,
+      "impressions": 0,
+      "clicks": 0,
       "cpc": "0.58",
       "cpm": "29.05",
       "ctr": "5.00%",
@@ -12128,7 +12255,8 @@
       "profit": "-5.23",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120252757544030319",
@@ -12143,12 +12271,12 @@
       "mediaSrc": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/789143123_1042551481903139_5789962801300051331_n.jpg?_nc_cat=104&ccb=1-7&_nc_ohc=2FiSYILXFFUQ7kNvwGfctXY&_nc_oc=Adq89vElEoAERkn6Wzx0xdwsr7Lut8hvAG84wTM-Er_SW7uNSixR2TV5aOaflqpkMwqCaIQR2pn9fiLDM6dIp9jl&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQJVdKqNi8kFIoP2rg9in6A3KTWtRao77HXUm8CaXQguVrm7xA-y7bUAAjafRsSprimG41m5vlWWoA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJ_tz3gpekJOn5P2hkkf8EpIjU6cm_cMdeDKdRb1FYiFQ&oe=6AAA7900",
       "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/789143123_1042551481903139_5789962801300051331_n.jpg?_nc_cat=104&ccb=1-7&_nc_ohc=2FiSYILXFFUQ7kNvwGfctXY&_nc_oc=Adq89vElEoAERkn6Wzx0xdwsr7Lut8hvAG84wTM-Er_SW7uNSixR2TV5aOaflqpkMwqCaIQR2pn9fiLDM6dIp9jl&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQJVdKqNi8kFIoP2rg9in6A3KTWtRao77HXUm8CaXQguVrm7xA-y7bUAAjafRsSprimG41m5vlWWoA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQJ_tz3gpekJOn5P2hkkf8EpIjU6cm_cMdeDKdRb1FYiFQ&oe=6AAA7900",
       "videoUrl": null,
-      "spend": "5.18",
-      "rawSpendUsd": "1.01",
+      "spend": "0.00",
+      "rawSpendUsd": "0.00",
       "usdRate": 5.1262,
       "currency": "BRL",
-      "impressions": 222,
-      "clicks": 7,
+      "impressions": 0,
+      "clicks": 0,
       "cpc": "0.74",
       "cpm": "23.32",
       "ctr": "3.15%",
@@ -12161,7 +12289,8 @@
       "profit": "-5.18",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120252757544060319",
@@ -12176,12 +12305,12 @@
       "mediaSrc": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/787681189_2439220619945836_6038267176069983814_n.jpg?_nc_cat=102&ccb=1-7&_nc_ohc=CCOXP7rrrYoQ7kNvwH0wE5j&_nc_oc=AdqtcEhd5A7z77iOqdYZgnB95t0bcEsCt8ptD8pIAqSCjOH75v-SkS5h19YjMYg7z-bbX09uXt2qgN4by-DAsg_n&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQKy3pjglDCLBCzo4e_7GEcH56_CfLVDt09P9qWQ6_gK50hgr0RBisjQqQpg8k8_eN8hXwxkNpIoow&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQK6_yaScDTjt7ZaSbFoWDgEo5eWKM6JolUtJL8FF0Us0A&oe=6AAA9214",
       "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/787681189_2439220619945836_6038267176069983814_n.jpg?_nc_cat=102&ccb=1-7&_nc_ohc=CCOXP7rrrYoQ7kNvwH0wE5j&_nc_oc=AdqtcEhd5A7z77iOqdYZgnB95t0bcEsCt8ptD8pIAqSCjOH75v-SkS5h19YjMYg7z-bbX09uXt2qgN4by-DAsg_n&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQKy3pjglDCLBCzo4e_7GEcH56_CfLVDt09P9qWQ6_gK50hgr0RBisjQqQpg8k8_eN8hXwxkNpIoow&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQK6_yaScDTjt7ZaSbFoWDgEo5eWKM6JolUtJL8FF0Us0A&oe=6AAA9214",
       "videoUrl": null,
-      "spend": "5.54",
-      "rawSpendUsd": "1.08",
+      "spend": "0.00",
+      "rawSpendUsd": "0.00",
       "usdRate": 5.1262,
       "currency": "BRL",
-      "impressions": 214,
-      "clicks": 5,
+      "impressions": 0,
+      "clicks": 0,
       "cpc": "1.11",
       "cpm": "25.87",
       "ctr": "2.34%",
@@ -12194,7 +12323,8 @@
       "profit": "-5.54",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120252757544080319",
@@ -12209,12 +12339,12 @@
       "mediaSrc": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/788837672_1702235241911382_4176177684139767375_n.jpg?_nc_cat=104&ccb=1-7&_nc_ohc=rDk1KSFymYAQ7kNvwEyjdM1&_nc_oc=Adra4ro2fNcFZaNS85W5almvg07HpKSO3vwyzsRXbWXT-9Y-DlYAQ2BeZ-vFViHIfz1d6lXW2saWslNAnv8wnGZx&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQJjTkOnV0PGlfT3lKxDef4cX2fJr5OVJVOxAeNdpDyNh-Bfc1kAkeOnlP8DpZKrV5bu5KEKqWdTiw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKT7tcEvonvfKp5XJnNi_0ySaigCLcWOJM3LweSHjU46g&oe=6AAA6D2E",
       "thumbnailUrl": "https://scontent-gru1-1.xx.fbcdn.net/v/t15.5256-10/788837672_1702235241911382_4176177684139767375_n.jpg?_nc_cat=104&ccb=1-7&_nc_ohc=rDk1KSFymYAQ7kNvwEyjdM1&_nc_oc=Adra4ro2fNcFZaNS85W5almvg07HpKSO3vwyzsRXbWXT-9Y-DlYAQ2BeZ-vFViHIfz1d6lXW2saWslNAnv8wnGZx&_nc_zt=23&_nc_ht=scontent-gru1-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQJjTkOnV0PGlfT3lKxDef4cX2fJr5OVJVOxAeNdpDyNh-Bfc1kAkeOnlP8DpZKrV5bu5KEKqWdTiw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKT7tcEvonvfKp5XJnNi_0ySaigCLcWOJM3LweSHjU46g&oe=6AAA6D2E",
       "videoUrl": null,
-      "spend": "4.72",
-      "rawSpendUsd": "0.92",
+      "spend": "0.00",
+      "rawSpendUsd": "0.00",
       "usdRate": 5.1262,
       "currency": "BRL",
-      "impressions": 192,
-      "clicks": 8,
+      "impressions": 0,
+      "clicks": 0,
       "cpc": "0.59",
       "cpm": "24.56",
       "ctr": "4.17%",
@@ -12227,7 +12357,8 @@
       "profit": "-4.72",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120252757544090319",
@@ -12242,12 +12373,12 @@
       "mediaSrc": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/789005820_1033075339623821_2808279048278616478_n.jpg?_nc_cat=105&ccb=1-7&_nc_ohc=DnUOyEKeazMQ7kNvwG3p9qw&_nc_oc=AdpbA1Ti9WQfURdqSdtMKyv_h58gCw2vFvDFp2-TJi9FzB-i4L0AJfJYDGK_2ut6jcCcEDEIyPHxkaVHPwifKXCL&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQIXjAfYECfalfgTYBSdtgK3iIK65yRB3ZUnkNeCf4KbQ_4QEIvfFvZPsibnfSYtP3WSZyHu-WwJoA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQL5eSZy3i8Bk2z0YG3eBoNwuOMbF5-lmipaZJokGXvK8A&oe=6AAA9E74",
       "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/789005820_1033075339623821_2808279048278616478_n.jpg?_nc_cat=105&ccb=1-7&_nc_ohc=DnUOyEKeazMQ7kNvwG3p9qw&_nc_oc=AdpbA1Ti9WQfURdqSdtMKyv_h58gCw2vFvDFp2-TJi9FzB-i4L0AJfJYDGK_2ut6jcCcEDEIyPHxkaVHPwifKXCL&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQIXjAfYECfalfgTYBSdtgK3iIK65yRB3ZUnkNeCf4KbQ_4QEIvfFvZPsibnfSYtP3WSZyHu-WwJoA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQL5eSZy3i8Bk2z0YG3eBoNwuOMbF5-lmipaZJokGXvK8A&oe=6AAA9E74",
       "videoUrl": null,
-      "spend": "4.87",
-      "rawSpendUsd": "0.95",
+      "spend": "0.00",
+      "rawSpendUsd": "0.00",
       "usdRate": 5.1262,
       "currency": "BRL",
-      "impressions": 165,
-      "clicks": 12,
+      "impressions": 0,
+      "clicks": 0,
       "cpc": "0.41",
       "cpm": "29.51",
       "ctr": "7.27%",
@@ -12260,7 +12391,8 @@
       "profit": "-4.87",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120252757465150319",
@@ -12275,12 +12407,12 @@
       "mediaSrc": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/784816535_1383891856470154_7328501539016096633_n.jpg?_nc_cat=106&ccb=1-7&_nc_ohc=6vx1y237A2oQ7kNvwEj7igf&_nc_oc=AdowxlGgYZThITJPubkiwguKE2IlcOkqQoM2TrhvhHbpL5QECWYIEMG_UxlSrgJt5MZ2rui-WFFshbVi8bwxYupV&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQLOjF8PSlNPATw69rRzR61zv_K62MjD5hbC7OVBpWIRHfVZ7lYL45W8QJmjdt2vhPFJUmyCMRN6pg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKBPoumzfgPwZ99PI2hKM8Ub0dkm0C1xzCANxgfP4B9kw&oe=6AAA8D03",
       "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/784816535_1383891856470154_7328501539016096633_n.jpg?_nc_cat=106&ccb=1-7&_nc_ohc=6vx1y237A2oQ7kNvwEj7igf&_nc_oc=AdowxlGgYZThITJPubkiwguKE2IlcOkqQoM2TrhvhHbpL5QECWYIEMG_UxlSrgJt5MZ2rui-WFFshbVi8bwxYupV&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQLOjF8PSlNPATw69rRzR61zv_K62MjD5hbC7OVBpWIRHfVZ7lYL45W8QJmjdt2vhPFJUmyCMRN6pg&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKBPoumzfgPwZ99PI2hKM8Ub0dkm0C1xzCANxgfP4B9kw&oe=6AAA8D03",
       "videoUrl": null,
-      "spend": "4.51",
-      "rawSpendUsd": "0.88",
+      "spend": "0.00",
+      "rawSpendUsd": "0.00",
       "usdRate": 5.1262,
       "currency": "BRL",
-      "impressions": 174,
-      "clicks": 16,
+      "impressions": 0,
+      "clicks": 0,
       "cpc": "0.28",
       "cpm": "25.93",
       "ctr": "9.20%",
@@ -12293,7 +12425,8 @@
       "profit": "-4.51",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120252757544040319",
@@ -12308,12 +12441,12 @@
       "mediaSrc": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/787204828_1400503718733873_6704745120906792185_n.jpg?_nc_cat=107&ccb=1-7&_nc_ohc=mtrrRs5h1oIQ7kNvwEo7QC4&_nc_oc=AdqHeVhJBg9SBcSIvGQdCNX3C4MkuvLJja2HauDE0qjp6YNh030vtUccOKYDa5P5qWHmMI_Wxsf5n7Y9YbgePnVz&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQI48zz9QtaHVI7uQVuOGEvSC4_0S4pTCEGaCdEEpzP3jdmyxlIRs6p6atjVd7PqgG278Pw2eBYgaA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKUwvzy1vo71L5Y3fZl1xSkizYiF2GKgvxg1A4Fytc-QA&oe=6AAA6B7A",
       "thumbnailUrl": "https://scontent-gru2-1.xx.fbcdn.net/v/t15.5256-10/787204828_1400503718733873_6704745120906792185_n.jpg?_nc_cat=107&ccb=1-7&_nc_ohc=mtrrRs5h1oIQ7kNvwEo7QC4&_nc_oc=AdqHeVhJBg9SBcSIvGQdCNX3C4MkuvLJja2HauDE0qjp6YNh030vtUccOKYDa5P5qWHmMI_Wxsf5n7Y9YbgePnVz&_nc_zt=23&_nc_ht=scontent-gru2-1.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQI48zz9QtaHVI7uQVuOGEvSC4_0S4pTCEGaCdEEpzP3jdmyxlIRs6p6atjVd7PqgG278Pw2eBYgaA&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQKUwvzy1vo71L5Y3fZl1xSkizYiF2GKgvxg1A4Fytc-QA&oe=6AAA6B7A",
       "videoUrl": null,
-      "spend": "5.07",
-      "rawSpendUsd": "0.99",
+      "spend": "0.00",
+      "rawSpendUsd": "0.00",
       "usdRate": 5.1262,
       "currency": "BRL",
-      "impressions": 191,
-      "clicks": 8,
+      "impressions": 0,
+      "clicks": 0,
       "cpc": "0.63",
       "cpm": "26.57",
       "ctr": "4.19%",
@@ -12326,7 +12459,8 @@
       "profit": "-5.07",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120252757544050319",
@@ -12341,12 +12475,12 @@
       "mediaSrc": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/788461325_1851629342672356_5979904265631702187_n.jpg?_nc_cat=106&ccb=1-7&_nc_ohc=lIlrSU0UMLsQ7kNvwGXGBnv&_nc_oc=Adr6iwVfAgSK_r-o8_2AbpOU_hZY4paArv9YKTt4zQtZxh6J2irzrNIG2GPzQIVV8b0O1h_GDQ3IdjNt21lnb0mj&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQIMJmC4Sqy6efiCf7y-emyR0OgNLW6JFi7vULte2aeaZJ-1wvF1aYM6sUHMFxVF3u_1_CZSjsQ3cw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLnICzwWcam4889MyP11GgJfmdEJoqwsrw4WW7GSgCcFw&oe=6AAA980F",
       "thumbnailUrl": "https://scontent-gru2-2.xx.fbcdn.net/v/t15.5256-10/788461325_1851629342672356_5979904265631702187_n.jpg?_nc_cat=106&ccb=1-7&_nc_ohc=lIlrSU0UMLsQ7kNvwGXGBnv&_nc_oc=Adr6iwVfAgSK_r-o8_2AbpOU_hZY4paArv9YKTt4zQtZxh6J2irzrNIG2GPzQIVV8b0O1h_GDQ3IdjNt21lnb0mj&_nc_zt=23&_nc_ht=scontent-gru2-2.xx&edm=AOgd6ZUEAAAA&_nc_gid=lSwzqHfs70pqD_lgeD63rg&_nc_tpa=Q5bMBQIMJmC4Sqy6efiCf7y-emyR0OgNLW6JFi7vULte2aeaZJ-1wvF1aYM6sUHMFxVF3u_1_CZSjsQ3cw&stp=c0.5000x0.5000f_dst-emg0_p64x64_q75_tt6&ur=5fad0e&_nc_sid=58080a&oh=00_AQLnICzwWcam4889MyP11GgJfmdEJoqwsrw4WW7GSgCcFw&oe=6AAA980F",
       "videoUrl": null,
-      "spend": "5.64",
-      "rawSpendUsd": "1.10",
+      "spend": "0.00",
+      "rawSpendUsd": "0.00",
       "usdRate": 5.1262,
       "currency": "BRL",
-      "impressions": 201,
-      "clicks": 16,
+      "impressions": 0,
+      "clicks": 0,
       "cpc": "0.35",
       "cpm": "28.05",
       "ctr": "7.96%",
@@ -12359,7 +12493,8 @@
       "profit": "-5.64",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120252508917820319",
@@ -12392,7 +12527,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120252508917840319",
@@ -12425,7 +12561,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120252508917800319",
@@ -12458,7 +12595,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120252508917830319",
@@ -12491,7 +12629,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120252508853310319",
@@ -12524,7 +12663,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120252508917780319",
@@ -12557,7 +12697,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120252508917810319",
@@ -12590,7 +12731,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120252508917790319",
@@ -12623,7 +12765,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120252508917760319",
@@ -12656,7 +12799,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     },
     {
       "id": "120252508917770319",
@@ -12689,7 +12833,8 @@
       "profit": "0.00",
       "roas": "0.00",
       "cpa": "0.00",
-      "arpu": "0.00"
+      "arpu": "0.00",
+      "date": "2026-09-12"
     }
   ],
   "webhook_tokens": [

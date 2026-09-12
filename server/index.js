@@ -1587,8 +1587,9 @@ app.get('/api/campaigns', async (req, res) => {
   }
 
   const { datePreset = 'today', since, until, refresh } = req.query;
-  const timeRange = (since && until) ? { since, until } : null;
-  const cacheKey = timeRange ? `${since}_${until}` : datePreset;
+  const resolvedRange = resolveDateRange(datePreset, since, until);
+  const timeRange = (resolvedRange.since && resolvedRange.until) ? resolvedRange : null;
+  const cacheKey = timeRange ? `${timeRange.since}_${timeRange.until}` : datePreset;
   const now = Date.now();
   const cached = campaignsCache.get(cacheKey);
 
@@ -1609,12 +1610,77 @@ app.get('/api/campaigns', async (req, res) => {
     ? syncResult.campaigns
     : (db.get('campaigns') || []);
 
-  // Proteção máxima: se por instabilidade da Meta ou rate limit allCampaigns vier vazio, preserva o cache anterior
+  // Proteção máxima: se por instabilidade da Meta allCampaigns vier vazio, preserva o cache anterior ou db local
   if ((!allCampaigns || allCampaigns.length === 0) && cached && Array.isArray(cached.campaigns) && cached.campaigns.length > 0) {
     allCampaigns = cached.campaigns;
   }
   if ((!allCampaigns || allCampaigns.length === 0) && savedCampaigns.length > 0) {
     allCampaigns = savedCampaigns;
+  }
+
+  const todayBrazil = toBrazilYMD(new Date());
+  // Se for a consulta de hoje e o dia virou (dados no banco eram de ontem ou sem data), zera gastos para não vazar gasto do dia anterior
+  if (resolvedRange.since === todayBrazil && resolvedRange.until === todayBrazil) {
+    allCampaigns = allCampaigns.map(c => {
+      if (!c.date || c.date !== todayBrazil) {
+        return {
+          ...c,
+          spend: '0.00',
+          rawSpendUsd: '0.00',
+          impressions: 0,
+          clicks: 0,
+          cpc: '0.00',
+          cpm: '0.00',
+          ctr: '0.00%',
+          initCheckouts: 0,
+          costPerIc: '0.00',
+          profit: '0.00',
+          sales: 0,
+          pendingSales: 0,
+          revenue: '0.00',
+          roas: '0.00',
+          cpa: '0.00',
+          date: todayBrazil,
+          adsets: (c.adsets || []).map(as => ({
+            ...as,
+            spend: '0.00',
+            rawSpendUsd: as.rawSpendUsd !== null ? '0.00' : null,
+            impressions: 0,
+            clicks: 0,
+            cpc: '0.00',
+            cpm: '0.00',
+            ctr: '0.00%',
+            initCheckouts: 0,
+            costPerIc: '0.00',
+            sales: 0,
+            pendingSales: 0,
+            revenue: '0.00',
+            profit: '0.00',
+            roas: '0.00',
+            cpa: '0.00'
+          })),
+          ads: (c.ads || []).map(ad => ({
+            ...ad,
+            spend: '0.00',
+            rawSpendUsd: ad.rawSpendUsd !== null ? '0.00' : null,
+            impressions: 0,
+            clicks: 0,
+            cpc: '0.00',
+            cpm: '0.00',
+            ctr: '0.00%',
+            initCheckouts: 0,
+            costPerIc: '0.00',
+            sales: 0,
+            pendingSales: 0,
+            revenue: '0.00',
+            profit: '0.00',
+            roas: '0.00',
+            cpa: '0.00'
+          }))
+        };
+      }
+      return c;
+    });
   }
 
   const allOrders = await getAllOrders();
@@ -2594,11 +2660,74 @@ async function executeMetaSync({ datePreset = 'today', timeRange = null, account
   const allCampaigns = results.flatMap(r => r.campaigns);
   const allAds = results.flatMap(r => r.ads);
 
+  const todayBrazil = toBrazilYMD(new Date());
+  const isTodaySync = (!timeRange && datePreset === 'today') || (timeRange && timeRange.since === todayBrazil && timeRange.until === todayBrazil);
+
   // Preserva 100% das campanhas existentes no banco e apenas atualiza/insere novas
   const existingCamps = db.get('campaigns') || [];
   const campMap = new Map();
   existingCamps.forEach(c => {
-    if (c && c.id) campMap.set(String(c.id), c);
+    if (c && c.id) {
+      if (isTodaySync && (!c.date || c.date !== todayBrazil)) {
+        campMap.set(String(c.id), {
+          ...c,
+          date: todayBrazil,
+          spend: '0.00',
+          rawSpendUsd: '0.00',
+          impressions: 0,
+          clicks: 0,
+          cpc: '0.00',
+          cpm: '0.00',
+          ctr: '0.00%',
+          initCheckouts: 0,
+          costPerIc: '0.00',
+          profit: '0.00',
+          sales: 0,
+          pendingSales: 0,
+          revenue: '0.00',
+          roas: '0.00',
+          cpa: '0.00',
+          adsets: (c.adsets || []).map(as => ({
+            ...as,
+            spend: '0.00',
+            rawSpendUsd: as.rawSpendUsd !== null ? '0.00' : null,
+            impressions: 0,
+            clicks: 0,
+            cpc: '0.00',
+            cpm: '0.00',
+            ctr: '0.00%',
+            initCheckouts: 0,
+            costPerIc: '0.00',
+            sales: 0,
+            pendingSales: 0,
+            revenue: '0.00',
+            profit: '0.00',
+            roas: '0.00',
+            cpa: '0.00'
+          })),
+          ads: (c.ads || []).map(ad => ({
+            ...ad,
+            spend: '0.00',
+            rawSpendUsd: ad.rawSpendUsd !== null ? '0.00' : null,
+            impressions: 0,
+            clicks: 0,
+            cpc: '0.00',
+            cpm: '0.00',
+            ctr: '0.00%',
+            initCheckouts: 0,
+            costPerIc: '0.00',
+            sales: 0,
+            pendingSales: 0,
+            revenue: '0.00',
+            profit: '0.00',
+            roas: '0.00',
+            cpa: '0.00'
+          }))
+        });
+      } else {
+        campMap.set(String(c.id), c);
+      }
+    }
   });
   allCampaigns.forEach(c => {
     if (c && c.id) {
@@ -2615,7 +2744,31 @@ async function executeMetaSync({ datePreset = 'today', timeRange = null, account
   const existingAds = db.get('meta_ads') || [];
   const adsMap = new Map();
   existingAds.forEach(a => {
-    if (a && a.id) adsMap.set(String(a.id), a);
+    if (a && a.id) {
+      if (isTodaySync && (!a.date || a.date !== todayBrazil)) {
+        adsMap.set(String(a.id), {
+          ...a,
+          date: todayBrazil,
+          spend: '0.00',
+          rawSpendUsd: a.rawSpendUsd !== null ? '0.00' : null,
+          impressions: 0,
+          clicks: 0,
+          cpc: '0.00',
+          cpm: '0.00',
+          ctr: '0.00%',
+          initCheckouts: 0,
+          costPerIc: '0.00',
+          profit: '0.00',
+          sales: 0,
+          pendingSales: 0,
+          revenue: '0.00',
+          roas: '0.00',
+          cpa: '0.00'
+        });
+      } else {
+        adsMap.set(String(a.id), a);
+      }
+    }
   });
   allAds.forEach(a => {
     if (a && a.id) {
