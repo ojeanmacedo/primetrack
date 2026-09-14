@@ -461,7 +461,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const [bulkModalAction, setBulkModalAction] = useState(null); // 'budget' | 'bid'
   const [bulkInputValue, setBulkInputValue] = useState('');
   const [bulkProcessing, setBulkProcessing] = useState(false);
-  const [onlySelectedFilter, setOnlySelectedFilter] = useState(false);
+  // Filtro persistente de campanhas (fixado até que o usuário clique explicitamente para remover o filtro)
+  const [activeCampaignFilterIds, setActiveCampaignFilterIds] = useState(new Set());
 
   // Estados do Modal de Duplicar Campanhas (Estilo Utmify)
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
@@ -1282,22 +1283,25 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   // Limpa seleções de níveis inferiores ao trocar de conta se a campanha selecionada não pertencer à nova conta
   useEffect(() => {
     if (accountFilter !== 'Todas') {
-      setSelectedCampaignIds(prev => {
+      const filterValidByAcc = (prevSet) => {
         const next = new Set();
-        prev.forEach(id => {
+        prevSet.forEach(id => {
           const camp = campaignsList.find(c => String(c.id) === String(id));
           if (camp) {
             const cAdId = String(camp.adAccountId || '').replace('act_', '');
             const selectedAcc = adAccountsList.find(a => a.name === accountFilter || a.id === accountFilter);
             if (selectedAcc && cAdId === String(selectedAcc.id)) {
-              next.add(id);
+              next.add(String(id));
             } else if (camp.accountName === accountFilter || cAdId === accountFilter) {
-              next.add(id);
+              next.add(String(id));
             }
           }
         });
         return next;
-      });
+      };
+
+      setSelectedCampaignIds(prev => filterValidByAcc(prev));
+      setActiveCampaignFilterIds(prev => filterValidByAcc(prev));
       setSelectedAdsetIds(new Set());
       setSelectedAdIds(new Set());
     }
@@ -1345,10 +1349,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   };
 
   // Filtragem - se campaignsList já possui dados, exibe imediatamente
+  // O filtro activeCampaignFilterIds só é removido se o usuário clicar explicitamente para remover o filtro
   const filteredCampaigns = campaignsList.filter(c => {
-    const selectedCampIdStrings = new Set(Array.from(selectedCampaignIds).map(String));
-    // Filtro de Selecionadas
-    if (onlySelectedFilter && selectedCampIdStrings.size > 0 && !selectedCampIdStrings.has(String(c.id))) {
+    const cIdStr = String(c.id);
+    if (activeCampaignFilterIds.size > 0 && !activeCampaignFilterIds.has(cIdStr)) {
       return false;
     }
 
@@ -1368,12 +1372,31 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     return true;
   });
 
+  // Campanhas no escopo de exibição de conjuntos e anúncios:
+  // 1. Se há filtro ativo de campanhas fixado: exibe os conjuntos dessas campanhas (ou se o usuário marcou alguma especificamente dentro do filtro, foca nela)
+  // 2. Se não há filtro fixado, mas há campanhas marcadas via checkbox: foca nas marcadas
+  // 3. Caso contrário: exibe todas as campanhas de filteredCampaigns
+  const effectiveCampaignScopeIds = React.useMemo(() => {
+    if (activeCampaignFilterIds.size > 0) {
+      const checkedWithinFilter = Array.from(selectedCampaignIds)
+        .map(String)
+        .filter(id => activeCampaignFilterIds.has(id));
+      if (checkedWithinFilter.length > 0) {
+        return new Set(checkedWithinFilter);
+      }
+      return activeCampaignFilterIds;
+    }
+    if (selectedCampaignIds.size > 0) {
+      return new Set(Array.from(selectedCampaignIds).map(String));
+    }
+    return new Set();
+  }, [activeCampaignFilterIds, selectedCampaignIds]);
+
   // Derivação de conjuntos vindos diretamente do Gerenciador de Anúncios da Meta
-  // Se houver campanhas selecionadas na aba Campanhas, filtra apenas os conjuntos dessas campanhas
+  // Se houver filtro ativo de campanhas, filtra apenas os conjuntos dessas campanhas mesmo desmarcando checkboxes
   const adsetsList = React.useMemo(() => {
-    const selectedCampIdStrings = new Set(Array.from(selectedCampaignIds).map(String));
-    const parentCampaigns = (selectedCampIdStrings.size > 0)
-      ? campaignsList.filter(c => selectedCampIdStrings.has(String(c.id)) || (c.campaignId && selectedCampIdStrings.has(String(c.campaignId))))
+    const parentCampaigns = (effectiveCampaignScopeIds.size > 0)
+      ? campaignsList.filter(c => effectiveCampaignScopeIds.has(String(c.id)) || (c.campaignId && effectiveCampaignScopeIds.has(String(c.campaignId))))
       : filteredCampaigns;
 
     const allAdsets = parentCampaigns.flatMap(camp => {
@@ -1512,16 +1535,15 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       if (statusFilter === 'Desativadas' && as.status) return false;
       return true;
     });
-  }, [filteredCampaigns, selectedCampaignIds, statusFilter, itemNamesOverride]);
+  }, [filteredCampaigns, campaignsList, effectiveCampaignScopeIds, statusFilter, itemNamesOverride]);
 
   // Derivação de anúncios reais vindos diretamente do Gerenciador de Anúncios da Meta
-  // Se houver conjuntos selecionados filtra por eles; senão se houver campanhas selecionadas filtra por elas
+  // Se houver conjuntos selecionados filtra por eles; senão se houver escopo ativo de campanhas filtra por elas
   const adsList = React.useMemo(() => {
-    const selectedCampIdStrings = new Set(Array.from(selectedCampaignIds).map(String));
     const selectedAdsetIdStrings = new Set(Array.from(selectedAdsetIds).map(String));
     let parentCampaigns = filteredCampaigns;
-    if (selectedCampIdStrings.size > 0) {
-      parentCampaigns = campaignsList.filter(c => selectedCampIdStrings.has(String(c.id)) || (c.campaignId && selectedCampIdStrings.has(String(c.campaignId))));
+    if (effectiveCampaignScopeIds.size > 0) {
+      parentCampaigns = campaignsList.filter(c => effectiveCampaignScopeIds.has(String(c.id)) || (c.campaignId && effectiveCampaignScopeIds.has(String(c.campaignId))));
     }
 
     const allAdsExtracted = parentCampaigns.flatMap(camp => {
@@ -1661,7 +1683,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       if (statusFilter === 'Desativadas' && ad.status) return false;
       return true;
     });
-  }, [filteredCampaigns, selectedCampaignIds, selectedAdsetIds, statusFilter, itemNamesOverride]);
+  }, [filteredCampaigns, campaignsList, effectiveCampaignScopeIds, selectedAdsetIds, statusFilter, itemNamesOverride]);
 
   // Itens da sub-aba ativa
   const currentItems = subTab === 'Campanhas' ? filteredCampaigns : (subTab === 'Conjuntos' ? adsetsList : adsList);
@@ -2473,16 +2495,16 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             <span className="text-zinc-500 font-mono text-[10px] uppercase">Campanha:</span>
             <select
               value={
-                selectedCampaignIds.size === 1
-                  ? String(Array.from(selectedCampaignIds)[0])
-                  : (selectedCampaignIds.size > 1 ? '__MULTIPLE__' : 'Todas')
+                activeCampaignFilterIds.size === 1
+                  ? String(Array.from(activeCampaignFilterIds)[0])
+                  : (activeCampaignFilterIds.size > 1 ? '__MULTIPLE__' : 'Todas')
               }
               onChange={e => {
                 const val = e.target.value;
                 if (val === 'Todas') {
-                  setSelectedCampaignIds(new Set());
+                  setActiveCampaignFilterIds(new Set());
                 } else if (val !== '__MULTIPLE__') {
-                  setSelectedCampaignIds(new Set([String(val)]));
+                  setActiveCampaignFilterIds(new Set([String(val)]));
                 }
               }}
               className="bg-transparent text-white font-semibold text-xs focus:outline-none cursor-pointer max-w-[160px] sm:max-w-[200px] truncate"
@@ -2490,9 +2512,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               <option value="Todas" className="bg-[#0A1426] text-white">
                 Todas as Campanhas ({campaignsList.length})
               </option>
-              {selectedCampaignIds.size > 1 && (
+              {activeCampaignFilterIds.size > 1 && (
                 <option value="__MULTIPLE__" className="bg-[#0A1426] text-[#5C9BFF]">
-                  {selectedCampaignIds.size} selecionadas
+                  {activeCampaignFilterIds.size} campanhas filtradas
                 </option>
               )}
               {campaignsList.map(camp => (
@@ -2501,12 +2523,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 </option>
               ))}
             </select>
-            {selectedCampaignIds.size > 0 && (
+            {activeCampaignFilterIds.size > 0 && (
               <button
                 type="button"
-                onClick={() => setSelectedCampaignIds(new Set())}
+                onClick={() => setActiveCampaignFilterIds(new Set())}
                 className="text-zinc-400 hover:text-white p-0.5 hover:bg-white/10 rounded transition-colors cursor-pointer"
-                title="Limpar seleção de campanha"
+                title="Remover filtro de campanhas"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -2550,21 +2572,25 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   <button
                     type="button"
                     onClick={() => {
-                      setOnlySelectedFilter(prev => !prev);
+                      if (activeCampaignFilterIds.size > 0) {
+                        setActiveCampaignFilterIds(new Set());
+                      } else {
+                        setActiveCampaignFilterIds(new Set(Array.from(activeSelectedSet).map(String)));
+                      }
                       setBulkMenuOpen(false);
                     }}
-                    disabled={activeSelectedSet.size === 0 && !onlySelectedFilter}
+                    disabled={activeSelectedSet.size === 0 && activeCampaignFilterIds.size === 0}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
-                      onlySelectedFilter
+                      activeCampaignFilterIds.size > 0
                         ? 'bg-[#1A6DFF]/20 text-[#5C9BFF] font-bold'
                         : 'text-zinc-200 hover:text-white hover:bg-[#12223D]'
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <Filter className={`w-4 h-4 ${onlySelectedFilter ? 'text-[#5C9BFF]' : 'text-zinc-400'}`} />
-                      <span>{onlySelectedFilter ? 'Exibindo selecionadas' : 'Filtrar selecionadas'}</span>
+                      <Filter className={`w-4 h-4 ${activeCampaignFilterIds.size > 0 ? 'text-[#5C9BFF]' : 'text-zinc-400'}`} />
+                      <span>{activeCampaignFilterIds.size > 0 ? 'Remover filtro de campanhas' : 'Filtrar selecionadas'}</span>
                     </div>
-                    {onlySelectedFilter && (
+                    {activeCampaignFilterIds.size > 0 && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#1A6DFF] text-white">Ativo</span>
                     )}
                   </button>
@@ -2783,34 +2809,44 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       )}
 
       {/* Banner informativo de filtro ativo por campanha */}
-      {subTab !== 'Contas' && selectedCampaignIds.size > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 bg-[#0E1A30] border border-[#1A6DFF]/30 rounded-xl text-xs shadow-md">
+      {subTab !== 'Contas' && (activeCampaignFilterIds.size > 0 || (subTab !== 'Campanhas' && selectedCampaignIds.size > 0)) && (
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 bg-[#0E1A30] border border-[#1A6DFF]/40 rounded-xl text-xs shadow-md">
           <div className="flex items-center gap-2 text-zinc-300">
             <span className="inline-flex items-center gap-1.5 font-bold text-[#5C9BFF]">
               <Filter className="w-3.5 h-3.5" />
-              Filtrando por {selectedCampaignIds.size === 1 ? '1 campanha selecionada' : `${selectedCampaignIds.size} campanhas selecionadas`}:
+              {activeCampaignFilterIds.size > 0
+                ? `Filtro ativo: ${activeCampaignFilterIds.size === 1 ? '1 campanha' : `${activeCampaignFilterIds.size} campanhas`}:`
+                : `Filtrando por ${selectedCampaignIds.size === 1 ? '1 campanha selecionada' : `${selectedCampaignIds.size} campanhas selecionadas`}:`
+              }
             </span>
             <span className="font-semibold text-white truncate max-w-[260px] sm:max-w-md">
               {(() => {
+                const targetSet = activeCampaignFilterIds.size > 0 ? activeCampaignFilterIds : selectedCampaignIds;
                 const names = campaignsList
-                  .filter(c => selectedCampaignIds.has(c.id) || selectedCampaignIds.has(String(c.id)))
+                  .filter(c => targetSet.has(c.id) || targetSet.has(String(c.id)))
                   .map(c => c.name);
-                return names.length > 0 ? names.join(', ') : 'Campanha selecionada';
+                return names.length > 0 ? names.join(', ') : 'Campanhas filtradas';
               })()}
             </span>
             {subTab !== 'Campanhas' && (
               <span className="text-[11px] text-zinc-400 bg-white/5 px-2 py-0.5 rounded-md border border-white/5 hidden sm:inline-block">
-                Exibindo apenas {subTab.toLowerCase()} desta campanha
+                Exibindo apenas {subTab.toLowerCase()} {((activeCampaignFilterIds.size > 0 ? activeCampaignFilterIds.size : selectedCampaignIds.size) === 1) ? 'desta campanha' : 'destas campanhas'}
               </span>
             )}
           </div>
           <button
             type="button"
-            onClick={() => setSelectedCampaignIds(new Set())}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer text-[11px] font-medium ml-auto"
+            onClick={() => {
+              if (activeCampaignFilterIds.size > 0) {
+                setActiveCampaignFilterIds(new Set());
+              } else {
+                setSelectedCampaignIds(new Set());
+              }
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#1A6DFF]/20 hover:bg-[#1A6DFF]/30 text-[#5C9BFF] hover:text-white border border-[#1A6DFF]/40 transition-colors cursor-pointer text-[11px] font-semibold ml-auto"
             title="Remover filtro e exibir todas as campanhas"
           >
-            <span>Ver todas</span>
+            <span>Remover filtro</span>
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
