@@ -1279,12 +1279,29 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setSelectedAdIds(new Set());
   }, [selectedAdsetIds]);
 
-  // Limpa seleções ao trocar de filtros globais
+  // Limpa seleções de níveis inferiores ao trocar de conta se a campanha selecionada não pertencer à nova conta
   useEffect(() => {
-    setSelectedCampaignIds(new Set());
-    setSelectedAdsetIds(new Set());
-    setSelectedAdIds(new Set());
-  }, [statusFilter, periodFilter, accountFilter]);
+    if (accountFilter !== 'Todas') {
+      setSelectedCampaignIds(prev => {
+        const next = new Set();
+        prev.forEach(id => {
+          const camp = campaignsList.find(c => String(c.id) === String(id));
+          if (camp) {
+            const cAdId = String(camp.adAccountId || '').replace('act_', '');
+            const selectedAcc = adAccountsList.find(a => a.name === accountFilter || a.id === accountFilter);
+            if (selectedAcc && cAdId === String(selectedAcc.id)) {
+              next.add(id);
+            } else if (camp.accountName === accountFilter || cAdId === accountFilter) {
+              next.add(id);
+            }
+          }
+        });
+        return next;
+      });
+      setSelectedAdsetIds(new Set());
+      setSelectedAdIds(new Set());
+    }
+  }, [accountFilter]);
 
   const activeSelectedSet = subTab === 'Campanhas' 
     ? selectedCampaignIds 
@@ -1304,17 +1321,24 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     if (activeSelectedSet.size === currentItems.length && currentItems.length > 0) {
       setActiveSelectedSet(new Set());
     } else {
-      setActiveSelectedSet(new Set(currentItems.map(i => i.id)));
+      setActiveSelectedSet(new Set(currentItems.map(i => String(i.id))));
     }
   };
 
   const handleToggleSelectItem = (id) => {
     setActiveSelectedSet(prev => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
+      const strId = String(id);
+      let found = false;
+      for (const item of next) {
+        if (String(item) === strId) {
+          next.delete(item);
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        next.add(strId);
       }
       return next;
     });
@@ -1322,8 +1346,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   // Filtragem - se campaignsList já possui dados, exibe imediatamente
   const filteredCampaigns = campaignsList.filter(c => {
+    const selectedCampIdStrings = new Set(Array.from(selectedCampaignIds).map(String));
     // Filtro de Selecionadas
-    if (onlySelectedFilter && selectedCampaignIds.size > 0 && !selectedCampaignIds.has(c.id)) {
+    if (onlySelectedFilter && selectedCampIdStrings.size > 0 && !selectedCampIdStrings.has(String(c.id))) {
       return false;
     }
 
@@ -1346,8 +1371,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   // Derivação de conjuntos vindos diretamente do Gerenciador de Anúncios da Meta
   // Se houver campanhas selecionadas na aba Campanhas, filtra apenas os conjuntos dessas campanhas
   const adsetsList = React.useMemo(() => {
-    const parentCampaigns = (selectedCampaignIds.size > 0)
-      ? filteredCampaigns.filter(c => selectedCampaignIds.has(c.id))
+    const selectedCampIdStrings = new Set(Array.from(selectedCampaignIds).map(String));
+    const parentCampaigns = (selectedCampIdStrings.size > 0)
+      ? campaignsList.filter(c => selectedCampIdStrings.has(String(c.id)) || (c.campaignId && selectedCampIdStrings.has(String(c.campaignId))))
       : filteredCampaigns;
 
     const allAdsets = parentCampaigns.flatMap(camp => {
@@ -1491,9 +1517,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   // Derivação de anúncios reais vindos diretamente do Gerenciador de Anúncios da Meta
   // Se houver conjuntos selecionados filtra por eles; senão se houver campanhas selecionadas filtra por elas
   const adsList = React.useMemo(() => {
+    const selectedCampIdStrings = new Set(Array.from(selectedCampaignIds).map(String));
+    const selectedAdsetIdStrings = new Set(Array.from(selectedAdsetIds).map(String));
     let parentCampaigns = filteredCampaigns;
-    if (selectedCampaignIds.size > 0) {
-      parentCampaigns = parentCampaigns.filter(c => selectedCampaignIds.has(c.id));
+    if (selectedCampIdStrings.size > 0) {
+      parentCampaigns = campaignsList.filter(c => selectedCampIdStrings.has(String(c.id)) || (c.campaignId && selectedCampIdStrings.has(String(c.campaignId))));
     }
 
     const allAdsExtracted = parentCampaigns.flatMap(camp => {
@@ -1540,15 +1568,15 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
       return [
         {
-          id: '52604662342655',
-          adId: '52604662342655',
+          id: camp.id === '52604661655655' ? '52604661656055_2' : `${camp.id}_ad_2`,
+          adId: camp.id === '52604661655655' ? '52604661656055_2' : `${camp.id}_ad_2`,
           campaignId: camp.id,
           adsetId: camp.id === '52604661655655' ? '52604661655855' : `${camp.id}_adset_1`,
-          name: itemNamesOverride['52604662342655'] || 'AD02',
+          name: itemNamesOverride['52604661656055_2'] || 'AD02',
           accountName: camp.accountName || 'CA01',
           status: true,
           mediaSrc: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=80',
-          videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-woman-posing-for-a-fashion-photoshoot-40291-large.mp4',
+          videoUrl: null,
           spend: ad2Spend.toFixed(2),
           sales: ad2Sales,
           pendingSales: ad2Pending,
@@ -1594,8 +1622,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           costPerIc: '0.00'
         },
         {
-          id: '52604661656055',
-          adId: '52604661656055',
+          id: camp.id === '52604661655655' ? '52604661656055' : `${camp.id}_ad_1`,
+          adId: camp.id === '52604661655655' ? '52604661656055' : `${camp.id}_ad_1`,
           campaignId: camp.id,
           adsetId: camp.id === '52604661655655' ? '52604661655855' : `${camp.id}_adset_1`,
           name: itemNamesOverride['52604661656055'] || 'AD01',
@@ -1624,8 +1652,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     });
 
     let result = allAdsExtracted;
-    if (selectedAdsetIds.size > 0) {
-      result = result.filter(ad => selectedAdsetIds.has(ad.adsetId || ad.id));
+    if (selectedAdsetIdStrings.size > 0) {
+      result = result.filter(ad => selectedAdsetIdStrings.has(String(ad.adsetId || ad.id)));
     }
 
     return result.filter(ad => {
@@ -2440,6 +2468,51 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             </select>
           </div>
 
+          {/* Campaign Dropdown Filter */}
+          <div className="flex items-center gap-1.5 bg-[#0A1426] border border-[#13233E] px-3 py-1.5 rounded-xl text-zinc-300">
+            <span className="text-zinc-500 font-mono text-[10px] uppercase">Campanha:</span>
+            <select
+              value={
+                selectedCampaignIds.size === 1
+                  ? String(Array.from(selectedCampaignIds)[0])
+                  : (selectedCampaignIds.size > 1 ? '__MULTIPLE__' : 'Todas')
+              }
+              onChange={e => {
+                const val = e.target.value;
+                if (val === 'Todas') {
+                  setSelectedCampaignIds(new Set());
+                } else if (val !== '__MULTIPLE__') {
+                  setSelectedCampaignIds(new Set([String(val)]));
+                }
+              }}
+              className="bg-transparent text-white font-semibold text-xs focus:outline-none cursor-pointer max-w-[160px] sm:max-w-[200px] truncate"
+            >
+              <option value="Todas" className="bg-[#0A1426] text-white">
+                Todas as Campanhas ({campaignsList.length})
+              </option>
+              {selectedCampaignIds.size > 1 && (
+                <option value="__MULTIPLE__" className="bg-[#0A1426] text-[#5C9BFF]">
+                  {selectedCampaignIds.size} selecionadas
+                </option>
+              )}
+              {campaignsList.map(camp => (
+                <option key={camp.id} value={String(camp.id)} className="bg-[#0A1426] text-white">
+                  {camp.name}
+                </option>
+              ))}
+            </select>
+            {selectedCampaignIds.size > 0 && (
+              <button
+                type="button"
+                onClick={() => setSelectedCampaignIds(new Set())}
+                className="text-zinc-400 hover:text-white p-0.5 hover:bg-white/10 rounded transition-colors cursor-pointer"
+                title="Limpar seleção de campanha"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+
         </div>
 
         {/* Action Toolbar */}
@@ -2709,6 +2782,40 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         </div>
       )}
 
+      {/* Banner informativo de filtro ativo por campanha */}
+      {subTab !== 'Contas' && selectedCampaignIds.size > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 bg-[#0E1A30] border border-[#1A6DFF]/30 rounded-xl text-xs shadow-md">
+          <div className="flex items-center gap-2 text-zinc-300">
+            <span className="inline-flex items-center gap-1.5 font-bold text-[#5C9BFF]">
+              <Filter className="w-3.5 h-3.5" />
+              Filtrando por {selectedCampaignIds.size === 1 ? '1 campanha selecionada' : `${selectedCampaignIds.size} campanhas selecionadas`}:
+            </span>
+            <span className="font-semibold text-white truncate max-w-[260px] sm:max-w-md">
+              {(() => {
+                const names = campaignsList
+                  .filter(c => selectedCampaignIds.has(c.id) || selectedCampaignIds.has(String(c.id)))
+                  .map(c => c.name);
+                return names.length > 0 ? names.join(', ') : 'Campanha selecionada';
+              })()}
+            </span>
+            {subTab !== 'Campanhas' && (
+              <span className="text-[11px] text-zinc-400 bg-white/5 px-2 py-0.5 rounded-md border border-white/5 hidden sm:inline-block">
+                Exibindo apenas {subTab.toLowerCase()} desta campanha
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setSelectedCampaignIds(new Set())}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer text-[11px] font-medium ml-auto"
+            title="Remover filtro e exibir todas as campanhas"
+          >
+            <span>Ver todas</span>
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* ── VIEWS 1, 2, 3: SUB-ABAS CAMPANHAS, CONJUNTOS, ANÚNCIOS (TABELA COM SCROLL INTERNO E CABEÇALHO/RODAPÉ FIXOS) ── */}
       {subTab !== 'Contas' && (
         <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl overflow-hidden shadow-xl flex flex-col">
@@ -2813,14 +2920,16 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 </thead>
 
                 <tbody className="divide-y divide-[#13233E]/60 font-mono">
-                  {paginatedItems.map((item, idx) => (
-                    <tr key={item.id || idx} className={`group hover:bg-[#0e1b33] transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#1A6DFF]/10' : ''}`}>
+                  {paginatedItems.map((item, idx) => {
+                    const isRowSelected = activeSelectedSet.has(item.id) || activeSelectedSet.has(String(item.id));
+                    return (
+                    <tr key={item.id || idx} className={`group hover:bg-[#0e1b33] transition-colors ${isRowSelected ? 'bg-[#1A6DFF]/10' : ''}`}>
                       {/* Checkbox fixo na lateral apenas em desktop */}
-                      <td className={`py-4 pl-4 pr-3 w-[48px] min-w-[48px] max-w-[48px] md:sticky md:left-0 md:z-10 transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0f1d38]' : 'bg-[#0A1426] group-hover:bg-[#0e1b33]'}`}>
+                      <td className={`py-4 pl-4 pr-3 w-[48px] min-w-[48px] max-w-[48px] md:sticky md:left-0 md:z-10 transition-colors ${isRowSelected ? 'bg-[#0f1d38]' : 'bg-[#0A1426] group-hover:bg-[#0e1b33]'}`}>
                         <input 
                           type="checkbox" 
                           className="rounded bg-[#03060D] border-white/10 cursor-pointer accent-[#1A6DFF]" 
-                          checked={activeSelectedSet.has(item.id)}
+                          checked={isRowSelected}
                           onChange={() => handleToggleSelectItem(item.id)}
                         />
                       </td>
@@ -2841,7 +2950,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       </td>
 
                       {/* Nome do Item fixo na lateral apenas em desktop */}
-                      <td className={`py-4 px-4 font-sans md:sticky md:left-[142px] md:z-10 min-w-[220px] max-w-[320px] transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0f1d38]' : 'bg-[#0A1426] group-hover:bg-[#0e1b33]'}`}>
+                      <td className={`py-4 px-4 font-sans md:sticky md:left-[142px] md:z-10 min-w-[220px] max-w-[320px] transition-colors ${isRowSelected ? 'bg-[#0f1d38]' : 'bg-[#0A1426] group-hover:bg-[#0e1b33]'}`}>
                         <div className="truncate">
                           <div 
                             onClick={() => handleOpenEdit(item, 'name')}
@@ -2866,7 +2975,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                         </td>
                       ))}
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
 
                 {/* Rodapé com totais reais sticky embaixo */}
