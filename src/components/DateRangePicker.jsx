@@ -101,6 +101,19 @@ export default function DateRangePicker({
     } else if (preset === 'Este mês') {
       s = new Date(now.getFullYear(), now.getMonth(), 1);
       u = now;
+    } else if (preset === 'Mês passado' || preset === 'mes passado') {
+      const y = now.getFullYear();
+      const m = now.getMonth();
+      s = new Date(y, m - 1, 1);
+      u = new Date(y, m, 0);
+    } else if (preset === 'Máximo' || preset === 'maximo') {
+      if (typeof onSelectPeriod === 'function') {
+        onSelectPeriod('Máximo');
+        setIsOpen(false);
+        return;
+      }
+      s = new Date(2020, 0, 1);
+      u = now;
     }
 
     const sinceStr = formatISODate(s);
@@ -249,7 +262,7 @@ export default function DateRangePicker({
         <div className="absolute left-0 top-full mt-2 z-50 w-[310px] sm:w-[560px] bg-[#070D1A] border border-[#13233E] rounded-2xl p-4 shadow-2xl animate-in fade-in zoom-in-95">
           {/* Top Quick Presets */}
           <div className="flex flex-wrap items-center gap-1.5 pb-3.5 mb-3.5 border-b border-[#13233E]">
-            {['Hoje', 'Ontem', '7 dias', '15 dias', '30 dias', 'Este mês'].map((p) => (
+            {['Hoje', 'Ontem', '7 dias', '15 dias', '30 dias', 'Este mês', 'Mês passado', 'Máximo'].map((p) => (
               <button
                 key={p}
                 type="button"

@@ -164,8 +164,52 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       localStorage.setItem('primetrack_status_filter', val);
     }
   };
-  const [periodFilter, setPeriodFilter] = useState('Hoje');
-  const [customRange, setCustomRange] = useState(null);
+
+  const [periodFilter, setPeriodFilter] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('primetrack_campaigns_period_filter');
+      if (saved === '14 dias' || saved === 'Últimos 14 dias') return '15 dias';
+      if (saved) return saved;
+    }
+    return 'Hoje';
+  });
+  const [customRange, setCustomRange] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('primetrack_campaigns_custom_range');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {}
+      }
+    }
+    return null;
+  });
+
+  const periodFilterRef = React.useRef(periodFilter);
+  const customRangeRef = React.useRef(customRange);
+  const latestRequestIdRef = React.useRef(0);
+
+  useEffect(() => {
+    periodFilterRef.current = periodFilter;
+    customRangeRef.current = customRange;
+  }, [periodFilter, customRange]);
+
+  const handlePeriodChange = (newPeriod, newRange = null) => {
+    setPeriodFilter(newPeriod);
+    setCustomRange(newRange);
+    periodFilterRef.current = newPeriod;
+    customRangeRef.current = newRange;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('primetrack_campaigns_period_filter', newPeriod);
+      if (newRange) {
+        localStorage.setItem('primetrack_campaigns_custom_range', JSON.stringify(newRange));
+      } else {
+        localStorage.removeItem('primetrack_campaigns_custom_range');
+      }
+    }
+    loadData(newPeriod, newRange);
+  };
+
   const [accountFilter, setAccountFilter] = useState('Todas');
   
   // Configuração padrão de colunas por aba para novas contas na PrimeTrack:
@@ -294,9 +338,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
             const sanitized = sanitizeCampaignsData(parsed);
+            const savedPeriod = localStorage.getItem('primetrack_campaigns_period_filter') || 'Hoje';
             const savedDate = localStorage.getItem('primetrack_cached_campaigns_date');
             const todayYMD = getBrazilTodayYMD();
-            if (savedDate && savedDate !== todayYMD) {
+            if (savedPeriod === 'Hoje' && savedDate && savedDate !== todayYMD) {
               // O dia virou! Preserva estrutura das campanhas para não sumirem, mas zera métricas de ontem
               return sanitized.map(c => ({
                 ...c,
@@ -393,13 +438,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       const currentToday = getBrazilTodayYMD();
       if (currentToday !== lastKnownDate) {
         lastKnownDate = currentToday;
-        if (periodFilter === 'Hoje') {
+        if (periodFilterRef.current === 'Hoje') {
           loadData('Hoje');
         }
       }
     }, 10000);
     return () => clearInterval(timer);
-  }, [periodFilter]);
+  }, []);
 
   const [editingItem, setEditingItem] = useState(null);
   const [editingField, setEditingField] = useState(null); // 'budget' | 'bid' | 'name'
@@ -461,7 +506,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     });
   };
 
-  const loadData = async (customPreset = periodFilter, customRangeObj = customRange) => {
+  const loadData = async (customPreset = periodFilterRef.current, customRangeObj = customRangeRef.current) => {
+    const reqId = ++latestRequestIdRef.current;
     const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
     let localSyncMap = {};
     if (saved) {
@@ -488,12 +534,17 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         'Ontem': 'yesterday',
         'Últimos 7 dias': 'last_7d',
         '7 dias': 'last_7d',
-        'Últimos 14 dias': 'last_14d',
-        '14 dias': 'last_14d',
-        '15 dias': 'last_14d',
+        'Últimos 14 dias': 'last_15d',
+        '14 dias': 'last_15d',
+        'Últimos 15 dias': 'last_15d',
+        '15 dias': 'last_15d',
         'Últimos 30 dias': 'last_30d',
         '30 dias': 'last_30d',
         'Este mês': 'this_month',
+        'Mês passado': 'last_month',
+        'mes passado': 'last_month',
+        'Máximo': 'maximum',
+        'maximo': 'maximum',
         'Personalizado': 'maximum'
       };
       const datePreset = periodMap[customPreset] || 'today';
@@ -550,12 +601,16 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       }
 
       const cData = await crRes.json().catch(() => null);
+      if (reqId !== latestRequestIdRef.current) {
+        // Descarta requisição obsoleta
+        return;
+      }
       if (Array.isArray(cData) && cData.length > 0) {
         const sanitized = sanitizeCampaignsData(cData);
         setCampaignsList(sanitized);
         if (typeof window !== 'undefined') {
           localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(sanitized));
-          if (customPreset === 'Hoje' || (!customPreset && periodFilter === 'Hoje')) {
+          if (customPreset === 'Hoje' || (!customPreset && periodFilterRef.current === 'Hoje')) {
             localStorage.setItem('primetrack_cached_campaigns_date', getBrazilTodayYMD());
           }
         }
@@ -592,21 +647,21 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       });
     }
 
-    loadData(periodFilter, customRange);
+    loadData(periodFilterRef.current, customRangeRef.current);
 
     const handleProfileSync = () => {
-      loadData(periodFilter, customRange);
+      loadData(periodFilterRef.current, customRangeRef.current);
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        loadData(periodFilter, customRange);
+        loadData(periodFilterRef.current, customRangeRef.current);
       }
     };
 
     // Auto-refresh a cada 45 segundos para refletir vendas em tempo real sem estourar limite de taxa da Meta
     const autoRefreshInterval = setInterval(() => {
-      loadData(periodFilter, customRange);
+      loadData(periodFilterRef.current, customRangeRef.current);
     }, 45000);
 
     window.addEventListener('primetrack_profile_sync', handleProfileSync);
@@ -621,31 +676,26 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     };
   }, []);
 
-  useEffect(() => {
-    if (isFirstMount.current) {
-      isFirstMount.current = false;
-      return;
-    }
-    if (periodFilter !== 'Personalizado') {
-      loadData(periodFilter, null);
-    }
-  }, [periodFilter]);
-
-  const handleSyncNow = async (preset = periodFilter, customRangeObj = customRange) => {
+  const handleSyncNow = async (preset = periodFilterRef.current, customRangeObj = customRangeRef.current) => {
     setSyncing(true);
     try {
-      const selectedPreset = typeof preset === 'string' ? preset : periodFilter;
+      const selectedPreset = typeof preset === 'string' ? preset : periodFilterRef.current;
       const periodMap = {
         'Hoje': 'today',
         'Ontem': 'yesterday',
         'Últimos 7 dias': 'last_7d',
         '7 dias': 'last_7d',
-        'Últimos 14 dias': 'last_14d',
-        '14 dias': 'last_14d',
-        '15 dias': 'last_14d',
+        'Últimos 14 dias': 'last_15d',
+        '14 dias': 'last_15d',
+        'Últimos 15 dias': 'last_15d',
+        '15 dias': 'last_15d',
         'Últimos 30 dias': 'last_30d',
         '30 dias': 'last_30d',
         'Este mês': 'this_month',
+        'Mês passado': 'last_month',
+        'mes passado': 'last_month',
+        'Máximo': 'maximum',
+        'maximo': 'maximum',
         'Personalizado': 'maximum'
       };
       const datePreset = periodMap[selectedPreset] || selectedPreset || 'today';
@@ -2347,15 +2397,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           {/* Period Filter (Scrollable em telas pequenas) */}
           <div className="flex items-center gap-1 bg-[#0A1426] border border-[#13233E] rounded-xl p-1 text-xs overflow-x-auto max-w-full scrollbar-none">
             <span className="text-zinc-500 font-mono text-[10px] uppercase px-1 sm:px-2 shrink-0">Período:</span>
-            {['Hoje', 'Ontem', '7 dias', '15 dias', '30 dias'].map(p => (
+            {['Hoje', 'Ontem', '7 dias', '15 dias', '30 dias', 'Este mês', 'Mês passado', 'Máximo'].map(p => (
               <button
                 key={p}
                 type="button"
-                onClick={() => {
-                  setPeriodFilter(p);
-                  setCustomRange(null);
-                  loadData(p, null);
-                }}
+                onClick={() => handlePeriodChange(p, null)}
                 className={`px-2 sm:px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer shrink-0 ${
                   periodFilter === p && !customRange
                     ? 'bg-[#12223D] text-[#5C9BFF] font-bold shadow-sm'
@@ -2369,14 +2415,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               currentPeriod={periodFilter}
               customRange={customRange}
               onSelectPeriod={(p) => {
-                setPeriodFilter(p);
-                setCustomRange(null);
-                loadData(p, null);
+                handlePeriodChange(p, null);
               }}
               onApplyCustomRange={(range) => {
-                setPeriodFilter('Personalizado');
-                setCustomRange(range);
-                loadData('Personalizado', range);
+                handlePeriodChange('Personalizado', range);
               }}
             />
           </div>

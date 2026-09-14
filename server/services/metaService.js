@@ -213,9 +213,11 @@ export async function fetchLiveAccountDetails(adAccountId, accessToken) {
 export async function fetchCampaigns(adAccountId, accessToken, accountName = '', datePreset = 'today', timeRange = null, accountCurrency = null) {
   const actId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`;
 
+  const isMaximum = datePreset === 'maximum' || datePreset === 'maximo' || timeRange?.isMaximum;
+
   // 1. Calcula o intervalo exato de datas (time_range) com base no fuso horário de Brasília (UTC-3)
   let effectiveRange = timeRange;
-  if (!effectiveRange || !effectiveRange.since || !effectiveRange.until) {
+  if (!isMaximum && (!effectiveRange || !effectiveRange.since || !effectiveRange.until)) {
     const now = new Date();
     const spNow = new Date(now.getTime() - (3 * 3600 * 1000));
     const formatYMD = (d) => {
@@ -230,15 +232,25 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     } else if (datePreset === 'last_7d') {
       const d7 = formatYMD(new Date(spNow.getTime() - 6 * 86400000));
       effectiveRange = { since: d7, until: formatYMD(spNow) };
-    } else if (datePreset === 'last_14d') {
-      const d14 = formatYMD(new Date(spNow.getTime() - 13 * 86400000));
-      effectiveRange = { since: d14, until: formatYMD(spNow) };
+    } else if (datePreset === 'last_14d' || datePreset === 'last_15d') {
+      const d15 = formatYMD(new Date(spNow.getTime() - 14 * 86400000));
+      effectiveRange = { since: d15, until: formatYMD(spNow) };
     } else if (datePreset === 'last_30d') {
       const d30 = formatYMD(new Date(spNow.getTime() - 29 * 86400000));
       effectiveRange = { since: d30, until: formatYMD(spNow) };
     } else if (datePreset === 'this_month') {
       const mStart = `${spNow.getUTCFullYear()}-${String(spNow.getUTCMonth() + 1).padStart(2, '0')}-01`;
       effectiveRange = { since: mStart, until: formatYMD(spNow) };
+    } else if (datePreset === 'last_month') {
+      const y = spNow.getUTCFullYear();
+      const m = spNow.getUTCMonth();
+      const prevMonthDate = new Date(Date.UTC(y, m - 1, 1));
+      const lastDayPrevMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+      const prevYear = prevMonthDate.getUTCFullYear();
+      const prevMonthStr = String(prevMonthDate.getUTCMonth() + 1).padStart(2, '0');
+      const since = `${prevYear}-${prevMonthStr}-01`;
+      const until = `${prevYear}-${prevMonthStr}-${String(lastDayPrevMonth).padStart(2, '0')}`;
+      effectiveRange = { since, until };
     } else {
       // Padrão: 'today' (dia de hoje em Brasília)
       const t = formatYMD(spNow);
@@ -246,13 +258,15 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     }
   }
 
-  const timeRangeParam = encodeURIComponent(JSON.stringify({ since: effectiveRange.since, until: effectiveRange.until }));
+  const timeParam = isMaximum 
+    ? 'date_preset=maximum' 
+    : `time_range=${encodeURIComponent(JSON.stringify({ since: effectiveRange.since, until: effectiveRange.until }))}`;
 
   // 2. Busca métricas direto da Insights API (imune a rate-limits de gerenciamento e no fuso correto)
   const [campInsightsRes, adsetInsightsRes, adInsightsRes, campRes, adsetsRes, adsRes, accRes] = await Promise.all([
-    fetch(`${GRAPH_BASE_URL}/${actId}/insights?level=campaign&time_range=${timeRangeParam}&fields=campaign_id,campaign_name,spend,impressions,clicks,cpc,cpm,ctr,actions&limit=100&access_token=${accessToken}`).catch(() => null),
-    fetch(`${GRAPH_BASE_URL}/${actId}/insights?level=adset&time_range=${timeRangeParam}&fields=adset_id,adset_name,spend,impressions,clicks,cpc,cpm,ctr,actions&limit=100&access_token=${accessToken}`).catch(() => null),
-    fetch(`${GRAPH_BASE_URL}/${actId}/insights?level=ad&time_range=${timeRangeParam}&fields=ad_id,ad_name,spend,impressions,clicks,cpc,cpm,ctr,actions&limit=100&access_token=${accessToken}`).catch(() => null),
+    fetch(`${GRAPH_BASE_URL}/${actId}/insights?level=campaign&${timeParam}&fields=campaign_id,campaign_name,spend,impressions,clicks,cpc,cpm,ctr,actions&limit=100&access_token=${accessToken}`).catch(() => null),
+    fetch(`${GRAPH_BASE_URL}/${actId}/insights?level=adset&${timeParam}&fields=adset_id,adset_name,spend,impressions,clicks,cpc,cpm,ctr,actions&limit=100&access_token=${accessToken}`).catch(() => null),
+    fetch(`${GRAPH_BASE_URL}/${actId}/insights?level=ad&${timeParam}&fields=ad_id,ad_name,spend,impressions,clicks,cpc,cpm,ctr,actions&limit=100&access_token=${accessToken}`).catch(() => null),
     fetch(`${GRAPH_BASE_URL}/${actId}/campaigns?fields=id,name,status,effective_status,objective,daily_budget,lifetime_budget,bid_strategy&limit=100&access_token=${accessToken}`).catch(() => null),
     fetch(`${GRAPH_BASE_URL}/${actId}/adsets?fields=id,name,status,effective_status,campaign_id,daily_budget,lifetime_budget,bid_amount,bid_strategy&limit=100&access_token=${accessToken}`).catch(() => null),
     fetch(`${GRAPH_BASE_URL}/${actId}/ads?fields=id,name,status,effective_status,campaign_id,adset_id,creative{id,name,thumbnail_url,image_url,video_id}&limit=100&access_token=${accessToken}`).catch(() => null),
@@ -682,8 +696,8 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       currency: 'BRL',
       adsets: campAdsets,
       ads: campAds,
-      date: effectiveRange.since,
-      dateRange: effectiveRange
+      date: isMaximum ? 'Máximo' : (effectiveRange?.since || 'Hoje'),
+      dateRange: isMaximum ? { isMaximum: true } : effectiveRange
     };
   });
 }

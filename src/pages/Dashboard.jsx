@@ -96,8 +96,32 @@ export default function Dashboard() {
   const user = getCurrentUser();
   const trialStatus = getTrialStatus(user);
 
-  const [period, setPeriod] = useState('Hoje');
-  const [customRange, setCustomRange] = useState(null);
+  const [period, setPeriod] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('primetrack_dashboard_period');
+      if (saved === '14 dias') return '15 dias';
+      if (saved) return saved;
+    }
+    return 'Hoje';
+  });
+  const [customRange, setCustomRange] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('primetrack_dashboard_custom_range');
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) {}
+      }
+    }
+    return null;
+  });
+
+  const periodRef = useRef(period);
+  const customRangeRef = useRef(customRange);
+
+  useEffect(() => {
+    periodRef.current = period;
+    customRangeRef.current = customRange;
+  }, [period, customRange]);
+
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [minsAgo, setMinsAgo] = useState(0);
@@ -369,9 +393,14 @@ export default function Dashboard() {
     'Hoje': 'today',
     'Ontem': 'yesterday',
     '7 dias': 'last_7d',
-    '14 dias': 'last_14d',
+    '14 dias': 'last_15d',
+    '15 dias': 'last_15d',
     '30 dias': 'last_30d',
     'Este mês': 'this_month',
+    'Mês passado': 'last_month',
+    'mes passado': 'last_month',
+    'Máximo': 'maximum',
+    'maximo': 'maximum',
     'Personalizado': 'maximum'
   };
 
@@ -521,10 +550,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     let lastKnownDate = toBrazilYMD(new Date());
-    loadDashboardData(period, customRange);
+    loadDashboardData(periodRef.current, customRangeRef.current);
 
     const handleProfileSync = () => {
-      loadDashboardData(period, customRange);
+      loadDashboardData(periodRef.current, customRangeRef.current);
     };
 
     const ordersPollInterval = setInterval(() => {
@@ -532,7 +561,7 @@ export default function Dashboard() {
       const currentToday = toBrazilYMD(new Date());
       if (currentToday !== lastKnownDate) {
         lastKnownDate = currentToday;
-        if (period === 'Hoje') {
+        if (periodRef.current === 'Hoje') {
           loadDashboardData('Hoje');
         }
       }
@@ -548,7 +577,7 @@ export default function Dashboard() {
         })
         .catch(() => {});
 
-      const currentPreset = periodToPreset[period] || 'today';
+      const currentPreset = periodToPreset[periodRef.current] || 'today';
       fetch(`/api/pixel/stats?datePreset=${currentPreset}`)
         .then(res => res.json())
         .then(pData => {
@@ -659,9 +688,24 @@ export default function Dashboard() {
     const todayYMD = toBrazilYMD(new Date());
     const yesterdayYMD = toBrazilYMD(new Date(Date.now() - 86400000));
     const sevenDaysAgoYMD = toBrazilYMD(new Date(Date.now() - 6 * 86400000));
-    const fourteenDaysAgoYMD = toBrazilYMD(new Date(Date.now() - 13 * 86400000));
+    const fifteenDaysAgoYMD = toBrazilYMD(new Date(Date.now() - 14 * 86400000));
     const thirtyDaysAgoYMD = toBrazilYMD(new Date(Date.now() - 29 * 86400000));
     const currentMonthPrefix = todayYMD ? todayYMD.slice(0, 7) : '';
+
+    let prevMonthSince = '';
+    let prevMonthUntil = '';
+    if (todayYMD) {
+      const [yearStr, monthStr] = todayYMD.split('-');
+      const y = parseInt(yearStr, 10);
+      const m = parseInt(monthStr, 10) - 1;
+      const prevMonthDate = new Date(Date.UTC(y, m - 1, 1));
+      const lastDayPrevMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+      const prevYear = prevMonthDate.getUTCFullYear();
+      const prevMonthStr = String(prevMonthDate.getUTCMonth() + 1).padStart(2, '0');
+      const prevMonthPrefix = `${prevYear}-${prevMonthStr}`;
+      prevMonthSince = `${prevMonthPrefix}-01`;
+      prevMonthUntil = `${prevMonthPrefix}-${String(lastDayPrevMonth).padStart(2, '0')}`;
+    }
 
     return deduplicatedOrders.filter(o => {
       if (!o.createdAt) return true;
@@ -679,12 +723,16 @@ export default function Dashboard() {
         if (orderYMD !== yesterdayYMD) return false;
       } else if (period === '7 dias') {
         if (orderYMD < sevenDaysAgoYMD || orderYMD > todayYMD) return false;
-      } else if (period === '14 dias') {
-        if (orderYMD < fourteenDaysAgoYMD || orderYMD > todayYMD) return false;
+      } else if (period === '15 dias') {
+        if (orderYMD < fifteenDaysAgoYMD || orderYMD > todayYMD) return false;
       } else if (period === '30 dias') {
         if (orderYMD < thirtyDaysAgoYMD || orderYMD > todayYMD) return false;
       } else if (period === 'Este mês') {
         if (!orderYMD.startsWith(currentMonthPrefix)) return false;
+      } else if (period === 'Mês passado' || period === 'mes passado') {
+        if (orderYMD < prevMonthSince || orderYMD > prevMonthUntil) return false;
+      } else if (period === 'Máximo' || period === 'maximo') {
+        // Todas as vendas sem restrição de data
       }
 
       // Filtro de fonte
@@ -1610,10 +1658,18 @@ export default function Dashboard() {
                 onChange={(e) => {
                   const val = e.target.value;
                   setPeriod(val);
+                  periodRef.current = val;
+                  if (typeof window !== 'undefined') {
+                    localStorage.setItem('primetrack_dashboard_period', val);
+                  }
                   if (val === 'Personalizado') {
                     setIsCalendarOpen(true);
                   } else {
                     setCustomRange(null);
+                    customRangeRef.current = null;
+                    if (typeof window !== 'undefined') {
+                      localStorage.removeItem('primetrack_dashboard_custom_range');
+                    }
                     setIsCalendarOpen(false);
                     loadDashboardData(val, null);
                   }
@@ -1623,9 +1679,11 @@ export default function Dashboard() {
                 <option value="Hoje">Hoje</option>
                 <option value="Ontem">Ontem</option>
                 <option value="7 dias">7 dias</option>
-                <option value="14 dias">14 dias</option>
+                <option value="15 dias">15 dias</option>
                 <option value="30 dias">30 dias</option>
                 <option value="Este mês">Este mês</option>
+                <option value="Mês passado">Mês passado</option>
+                <option value="Máximo">Máximo</option>
                 <option value="Personalizado">
                   {period === 'Personalizado' && customRange?.since && customRange?.until
                     ? `Personalizado (${customRange.since.split('-').reverse().slice(0, 2).join('/')} - ${customRange.until.split('-').reverse().slice(0, 2).join('/')})`
@@ -1643,13 +1701,25 @@ export default function Dashboard() {
               hideTriggerButton={true}
               onSelectPeriod={(p) => {
                 setPeriod(p);
+                periodRef.current = p;
                 setCustomRange(null);
+                customRangeRef.current = null;
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('primetrack_dashboard_period', p);
+                  localStorage.removeItem('primetrack_dashboard_custom_range');
+                }
                 setIsCalendarOpen(false);
                 loadDashboardData(p, null);
               }}
               onApplyCustomRange={(range) => {
                 setPeriod('Personalizado');
+                periodRef.current = 'Personalizado';
                 setCustomRange(range);
+                customRangeRef.current = range;
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('primetrack_dashboard_period', 'Personalizado');
+                  localStorage.setItem('primetrack_dashboard_custom_range', JSON.stringify(range));
+                }
                 setIsCalendarOpen(false);
                 loadDashboardData('Personalizado', range);
               }}

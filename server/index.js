@@ -65,17 +65,29 @@ export function resolveDateRange(datePreset = 'today', since = null, until = nul
   } else if (datePreset === 'last_7d') {
     const d7 = formatYMD(new Date(spNow.getTime() - 6 * 86400000));
     return { since: d7, until: formatYMD(spNow) };
-  } else if (datePreset === 'last_14d') {
-    const d14 = formatYMD(new Date(spNow.getTime() - 13 * 86400000));
-    return { since: d14, until: formatYMD(spNow) };
+  } else if (datePreset === 'last_14d' || datePreset === 'last_15d') {
+    const d15 = formatYMD(new Date(spNow.getTime() - 14 * 86400000));
+    return { since: d15, until: formatYMD(spNow), isMaximum: false };
   } else if (datePreset === 'last_30d') {
     const d30 = formatYMD(new Date(spNow.getTime() - 29 * 86400000));
-    return { since: d30, until: formatYMD(spNow) };
+    return { since: d30, until: formatYMD(spNow), isMaximum: false };
   } else if (datePreset === 'this_month') {
     const mStart = `${spNow.getUTCFullYear()}-${String(spNow.getUTCMonth() + 1).padStart(2, '0')}-01`;
-    return { since: mStart, until: formatYMD(spNow) };
+    return { since: mStart, until: formatYMD(spNow), isMaximum: false };
+  } else if (datePreset === 'last_month') {
+    const y = spNow.getUTCFullYear();
+    const m = spNow.getUTCMonth();
+    const prevMonthDate = new Date(Date.UTC(y, m - 1, 1));
+    const lastDayPrevMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    const prevYear = prevMonthDate.getUTCFullYear();
+    const prevMonthStr = String(prevMonthDate.getUTCMonth() + 1).padStart(2, '0');
+    const since = `${prevYear}-${prevMonthStr}-01`;
+    const until = `${prevYear}-${prevMonthStr}-${String(lastDayPrevMonth).padStart(2, '0')}`;
+    return { since, until, isMaximum: false };
+  } else if (datePreset === 'maximum' || datePreset === 'maximo') {
+    return { since: null, until: null, isMaximum: true };
   }
-  return { since: null, until: null };
+  return { since: null, until: null, isMaximum: false };
 }
 
 app.use(cors());
@@ -1153,27 +1165,32 @@ export function isMatchCampaign(campaignNameOrId, camp, orderOrEvent = null, all
   }
 
   // 5. Proteção de Campanha Recém-Criada / Sem Tráfego:
-  // Se a campanha tem 0 gasto e 0 cliques, ela NUNCA pode herdar vendas por simples igualdade de nome!
-  // Vendas de campanhas ativas/gastando ou pausadas no passado não podem ser canibalizadas por uma cópia zerada.
+  // Se a campanha tem 0 gasto, 0 cliques e 0 impressões E houver outra cópia ativa com mesmo nome,
+  // evita que a cópia zerada canibalize a campanha que realmente rodou.
   const campSpend = Number(camp.spend || 0);
   const campClicks = Number(camp.clicks || 0);
-  const isZeroTraffic = campSpend === 0 || campClicks === 0;
+  const campImpressions = Number(camp.impressions || 0);
+  const isZeroTraffic = campSpend === 0 && campClicks === 0 && campImpressions === 0;
 
   // Match exato por UTM campaign ou ID literal
   if (cId && target === cId.toLowerCase()) return true;
   if (cUtm && target === cUtm) {
-    if (isZeroTraffic) return false;
     return true;
   }
 
   if (target === cName) {
-    // Se a campanha nunca teve tráfego, rejeita terminantemente match por nome (exige ID exato)
+    const candidateCampaigns = (allCampaignsList || []).filter(ac => (ac.name || '').toLowerCase().trim() === cName);
+    // Se for a única campanha com este nome, atribui diretamente
+    if (candidateCampaigns.length <= 1) {
+      return true;
+    }
+
+    // Se houver múltiplas com o mesmo nome e esta nunca teve tráfego, não pontua
     if (isZeroTraffic) {
       return false;
     }
 
     // Desambiguação inteligente caso existam múltiplas campanhas com mesmo nome
-    const candidateCampaigns = (allCampaignsList || []).filter(ac => (ac.name || '').toLowerCase().trim() === cName);
     if (candidateCampaigns.length > 1) {
       // A. Filtra por conta se conhecida
       if (orderAccName) {
@@ -1588,8 +1605,8 @@ app.get('/api/campaigns', async (req, res) => {
 
   const { datePreset = 'today', since, until, refresh } = req.query;
   const resolvedRange = resolveDateRange(datePreset, since, until);
-  const timeRange = (resolvedRange.since && resolvedRange.until) ? resolvedRange : null;
-  const cacheKey = timeRange ? `${timeRange.since}_${timeRange.until}` : datePreset;
+  const timeRange = (resolvedRange.since && resolvedRange.until) ? resolvedRange : (resolvedRange.isMaximum ? { isMaximum: true } : null);
+  const cacheKey = resolvedRange.isMaximum ? 'maximum' : (timeRange ? `${timeRange.since}_${timeRange.until}` : datePreset);
   const now = Date.now();
   const cached = campaignsCache.get(cacheKey);
 
@@ -1687,8 +1704,9 @@ app.get('/api/campaigns', async (req, res) => {
   const approvedOrders = allOrders.filter(o => o.status === 'approved' || o.status === 'paid' || o.status === 'pago');
   const pendingOrders = allOrders.filter(o => o.status === 'pending' || o.status === 'waiting_payment' || o.status === 'aguardando_pagamento');
 
-  const { since: filterSince, until: filterUntil } = resolveDateRange(datePreset, since, until);
+  const { since: filterSince, until: filterUntil, isMaximum } = resolvedRange;
   const filteredOrders = approvedOrders.filter(o => {
+    if (isMaximum) return true;
     if (filterSince && filterUntil && o.createdAt) {
       const oDate = toBrazilYMD(o.createdAt);
       return oDate >= filterSince && oDate <= filterUntil;
@@ -1697,6 +1715,7 @@ app.get('/api/campaigns', async (req, res) => {
   });
 
   const filteredPendingOrders = pendingOrders.filter(o => {
+    if (isMaximum) return true;
     if (filterSince && filterUntil && o.createdAt) {
       const oDate = toBrazilYMD(o.createdAt);
       return oDate >= filterSince && oDate <= filterUntil;
@@ -1726,6 +1745,7 @@ app.get('/api/campaigns', async (req, res) => {
 
   const pixelPurchases = events.filter(e => {
     if (e.eventName !== 'Purchase') return false;
+    if (isMaximum) return true;
     if (filterSince && filterUntil && e.timestamp) {
       const eDate = toBrazilYMD(e.timestamp);
       return eDate >= filterSince && eDate <= filterUntil;
@@ -1735,6 +1755,7 @@ app.get('/api/campaigns', async (req, res) => {
 
   const pixelICs = events.filter(e => {
     if (e.eventName !== 'InitiateCheckout') return false;
+    if (isMaximum) return true;
     if (filterSince && filterUntil && e.timestamp) {
       const eDate = toBrazilYMD(e.timestamp);
       return eDate >= filterSince && eDate <= filterUntil;
@@ -1880,9 +1901,10 @@ app.get('/api/pixel/stats', async (req, res) => {
   const sessions = db.get('sessions') || [];
   const { datePreset, since, until } = req.query;
 
-  const { since: filterSince, until: filterUntil } = resolveDateRange(datePreset, since, until);
+  const { since: filterSince, until: filterUntil, isMaximum } = resolveDateRange(datePreset, since, until);
 
   const filterByDate = (itemDate) => {
+    if (isMaximum) return true;
     if (!itemDate) return true;
     if (filterSince && filterUntil) {
       const itemYMD = toBrazilYMD(itemDate);
@@ -2480,7 +2502,7 @@ app.post('/api/meta/connect-token', async (req, res) => {
 });
 
 // D. Função central para sincronizar campanhas e saldos reais das contas ativas em integrações
-async function executeMetaSync({ datePreset = 'today', timeRange = null, accountIds = null, accountId = null } = {}) {
+export async function executeMetaSync({ datePreset = 'today', timeRange = null, accountIds = null, accountId = null } = {}) {
   let connections = db.get('facebook_connections') || [];
   let allAdAccounts = db.get('ad_accounts') || [];
 
@@ -2615,13 +2637,13 @@ async function executeMetaSync({ datePreset = 'today', timeRange = null, account
     };
   }
 
-  // Garante que só consulta contas ativas para não tomar rate limit em contas desativadas da BM
-  const accountsToQuery = targetAccounts.filter(a => a.status !== 'DISABLED' && a.status !== 'Bloqueada' && a.account_status !== 2 && a.account_status !== 3 && a.account_status !== 101);
+  // Consulta todas as contas selecionadas com syncActive ou no filtro (contas com restrição de criação de anúncios ainda têm métricas e campanhas ativas acessíveis na Graph API)
+  const accountsToQuery = targetAccounts.filter(a => a.status !== 'DELETED' && a.account_status !== 101);
 
   if (accountsToQuery.length === 0) {
     return { 
       success: true, 
-      message: 'Contas selecionadas estão desativadas no Meta Ads.',
+      message: 'Nenhuma conta ativa para sincronização.',
       syncedCampaigns: 0,
       syncedAds: 0,
       campaigns: [] 
@@ -2821,15 +2843,17 @@ async function executeMetaSync({ datePreset = 'today', timeRange = null, account
 app.post('/api/meta/sync', async (req, res) => {
   try {
     const { datePreset = 'today', since, until, accountId, accountIds } = req.body || {};
-    const timeRange = (since && until) ? { since, until } : null;
+    const resolvedRange = resolveDateRange(datePreset, since, until);
+    const timeRange = (since && until) ? { since, until } : (resolvedRange.isMaximum ? { isMaximum: true } : null);
     const result = await executeMetaSync({ datePreset, timeRange, accountId, accountIds });
 
     const allOrders = await getAllOrders();
     const approvedOrders = allOrders.filter(o => o.status === 'approved' || o.status === 'paid' || o.status === 'pago');
     const pendingOrders = allOrders.filter(o => o.status === 'pending' || o.status === 'waiting_payment' || o.status === 'aguardando_pagamento');
 
-    const { since: filterSince, until: filterUntil } = resolveDateRange(datePreset, since, until);
+    const { since: filterSince, until: filterUntil, isMaximum } = resolvedRange;
     const filteredOrders = approvedOrders.filter(o => {
+      if (isMaximum) return true;
       if (filterSince && filterUntil && o.createdAt) {
         const oDate = toBrazilYMD(o.createdAt);
         return oDate >= filterSince && oDate <= filterUntil;
@@ -2838,6 +2862,7 @@ app.post('/api/meta/sync', async (req, res) => {
     });
 
     const filteredPendingOrders = pendingOrders.filter(o => {
+      if (isMaximum) return true;
       if (filterSince && filterUntil && o.createdAt) {
         const oDate = toBrazilYMD(o.createdAt);
         return oDate >= filterSince && oDate <= filterUntil;
@@ -2848,6 +2873,7 @@ app.post('/api/meta/sync', async (req, res) => {
     const events = db.get('events') || [];
     const pixelPurchases = events.filter(e => {
       if (e.eventName !== 'Purchase') return false;
+      if (isMaximum) return true;
       if (filterSince && filterUntil && e.timestamp) {
         const eDate = toBrazilYMD(e.timestamp);
         return eDate >= filterSince && eDate <= filterUntil;
@@ -2857,6 +2883,7 @@ app.post('/api/meta/sync', async (req, res) => {
 
     const pixelICs = events.filter(e => {
       if (e.eventName !== 'InitiateCheckout') return false;
+      if (isMaximum) return true;
       if (filterSince && filterUntil && e.timestamp) {
         const eDate = toBrazilYMD(e.timestamp);
         return eDate >= filterSince && eDate <= filterUntil;
@@ -2872,7 +2899,7 @@ app.post('/api/meta/sync', async (req, res) => {
       pixelICs
     });
 
-    const cacheKey = timeRange ? `${since}_${until}` : datePreset;
+    const cacheKey = (isMaximum || datePreset === 'maximum') ? 'maximum' : (timeRange ? `${since}_${until}` : datePreset);
     campaignsCache.set(cacheKey, {
       timestamp: Date.now(),
       campaigns: enrichedCampaigns
