@@ -2490,51 +2490,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             </select>
           </div>
 
-          {/* Campaign Dropdown Filter */}
-          <div className="flex items-center gap-1.5 bg-[#0A1426] border border-[#13233E] px-3 py-1.5 rounded-xl text-zinc-300">
-            <span className="text-zinc-500 font-mono text-[10px] uppercase">Campanha:</span>
-            <select
-              value={
-                activeCampaignFilterIds.size === 1
-                  ? String(Array.from(activeCampaignFilterIds)[0])
-                  : (activeCampaignFilterIds.size > 1 ? '__MULTIPLE__' : 'Todas')
-              }
-              onChange={e => {
-                const val = e.target.value;
-                if (val === 'Todas') {
-                  setActiveCampaignFilterIds(new Set());
-                } else if (val !== '__MULTIPLE__') {
-                  setActiveCampaignFilterIds(new Set([String(val)]));
-                }
-              }}
-              className="bg-transparent text-white font-semibold text-xs focus:outline-none cursor-pointer max-w-[160px] sm:max-w-[200px] truncate"
-            >
-              <option value="Todas" className="bg-[#0A1426] text-white">
-                Todas as Campanhas ({campaignsList.length})
-              </option>
-              {activeCampaignFilterIds.size > 1 && (
-                <option value="__MULTIPLE__" className="bg-[#0A1426] text-[#5C9BFF]">
-                  {activeCampaignFilterIds.size} campanhas filtradas
-                </option>
-              )}
-              {campaignsList.map(camp => (
-                <option key={camp.id} value={String(camp.id)} className="bg-[#0A1426] text-white">
-                  {camp.name}
-                </option>
-              ))}
-            </select>
-            {activeCampaignFilterIds.size > 0 && (
-              <button
-                type="button"
-                onClick={() => setActiveCampaignFilterIds(new Set())}
-                className="text-zinc-400 hover:text-white p-0.5 hover:bg-white/10 rounded transition-colors cursor-pointer"
-                title="Remover filtro de campanhas"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            )}
-          </div>
-
         </div>
 
         {/* Action Toolbar */}
@@ -2700,14 +2655,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               </>
             )}
           </div>
-
-          <button 
-            onClick={() => window.open('https://adsmanager.facebook.com', '_blank')}
-            className="px-3 py-1.5 rounded-xl bg-[#0A1426] border border-[#13233E] text-zinc-300 hover:text-white flex items-center gap-1.5 cursor-pointer transition-colors"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-            <span>Gerenciador</span>
-          </button>
 
           <button 
             onClick={handleOpenColumnsModal}
