@@ -165,29 +165,21 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     }
   };
 
-  const [periodFilter, setPeriodFilter] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('primetrack_campaigns_period_filter');
-      if (saved === '14 dias' || saved === 'Últimos 14 dias') return '15 dias';
-      if (saved) return saved;
-    }
-    return 'Hoje';
-  });
-  const [customRange, setCustomRange] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('primetrack_campaigns_custom_range');
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch (e) {}
-      }
-    }
-    return null;
-  });
+  // Sempre inicia no filtro 'Hoje' ao entrar ou retornar à página de Campanhas
+  const [periodFilter, setPeriodFilter] = useState('Hoje');
+  const [customRange, setCustomRange] = useState(null);
 
   const periodFilterRef = React.useRef(periodFilter);
   const customRangeRef = React.useRef(customRange);
   const latestRequestIdRef = React.useRef(0);
+
+  useEffect(() => {
+    // Remove qualquer filtro de período salvo anteriormente no navegador
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('primetrack_campaigns_period_filter');
+      localStorage.removeItem('primetrack_campaigns_custom_range');
+    }
+  }, []);
 
   useEffect(() => {
     periodFilterRef.current = periodFilter;
@@ -199,14 +191,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setCustomRange(newRange);
     periodFilterRef.current = newPeriod;
     customRangeRef.current = newRange;
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('primetrack_campaigns_period_filter', newPeriod);
-      if (newRange) {
-        localStorage.setItem('primetrack_campaigns_custom_range', JSON.stringify(newRange));
-      } else {
-        localStorage.removeItem('primetrack_campaigns_custom_range');
-      }
-    }
     loadData(newPeriod, newRange);
   };
 
@@ -338,7 +322,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
             const sanitized = sanitizeCampaignsData(parsed);
-            const savedPeriod = localStorage.getItem('primetrack_campaigns_period_filter') || 'Hoje';
+            const savedPeriod = 'Hoje';
             const savedDate = localStorage.getItem('primetrack_cached_campaigns_date');
             const todayYMD = getBrazilTodayYMD();
             if (savedPeriod === 'Hoje' && savedDate && savedDate !== todayYMD) {
