@@ -74,6 +74,23 @@ const COLUMN_DEFS = [
   { id: 'adId', label: 'ID Anúncio', defaultVisible: false }
 ];
 
+export const isStatusActive = (item) => {
+  if (!item) return false;
+  // Se explicitamente desligado em qualquer formato (booleano false, string 'false', 'PAUSED', etc)
+  if (
+    item.status === false ||
+    item.status === 'false' ||
+    item.status === 'PAUSED' ||
+    item.rawStatus === 'PAUSED' ||
+    item.effectiveStatus === 'PAUSED' ||
+    item.effectiveStatus === 'ADSET_PAUSED' ||
+    item.effectiveStatus === 'AD_PAUSED'
+  ) {
+    return false;
+  }
+  return item.status === true || item.status === 'ACTIVE' || item.rawStatus === 'ACTIVE' || item.effectiveStatus === 'ACTIVE';
+};
+
 export const sanitizeCampaignsData = (cData) => {
   if (!Array.isArray(cData)) return [];
   return cData.map(c => {
@@ -120,8 +137,13 @@ export const sanitizeCampaignsData = (cData) => {
         asBidStrategy = asIsCost ? 'COST_CAP' : 'LOWEST_COST_WITH_BID_CAP';
       }
 
+      const active = isStatusActive(a);
+
       return {
         ...a,
+        status: active,
+        rawStatus: active ? 'ACTIVE' : 'PAUSED',
+        effectiveStatus: active ? 'ACTIVE' : 'PAUSED',
         isAbo,
         isCbo,
         budget: isCbo ? (c.budget || a.budget || '127.58') : (a.budget || '10.00'),
@@ -131,15 +153,31 @@ export const sanitizeCampaignsData = (cData) => {
       };
     });
 
+    const cleanAds = (c.ads || []).map(ad => {
+      const adActive = isStatusActive(ad);
+      return {
+        ...ad,
+        status: adActive,
+        rawStatus: adActive ? 'ACTIVE' : 'PAUSED',
+        effectiveStatus: adActive ? 'ACTIVE' : 'PAUSED'
+      };
+    });
+
+    const campActive = isStatusActive(c);
+
     let updatedC = {
       ...c,
+      status: campActive,
+      rawStatus: campActive ? 'ACTIVE' : 'PAUSED',
+      effectiveStatus: campActive ? 'ACTIVE' : 'PAUSED',
       isAbo,
       isCbo,
       budget: c.budget || '127.58',
       budgetType: isAbo ? 'Nível de Conjunto' : (c.budgetType || 'Diário'),
       bidCap: rawCampBid,
       bidStrategy: campBidStrategy,
-      adsets: cleanAdsets
+      adsets: cleanAdsets,
+      ads: cleanAds
     };
 
     return updatedC;
@@ -734,7 +772,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setCampaignsList(prev => {
       const updated = prev.map(c => {
         if (String(c.id) === targetId) {
-          nextStatus = !c.status;
+          nextStatus = !isStatusActive(c);
           return {
             ...c,
             status: nextStatus,
@@ -747,7 +785,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
         const newAdsets = c.adsets ? c.adsets.map(as => {
           if (String(as.id) === targetId || String(as.adsetId) === targetId) {
-            nextStatus = !as.status;
+            nextStatus = !isStatusActive(as);
             targetId = as.id || as.adsetId;
             adsetsUpdated = true;
             return {
@@ -762,7 +800,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
         const newAds = c.ads ? c.ads.map(ad => {
           if (String(ad.id) === targetId || String(ad.adId) === targetId) {
-            nextStatus = !ad.status;
+            nextStatus = !isStatusActive(ad);
             targetId = ad.id || ad.adId;
             adsUpdated = true;
             return {
@@ -1444,8 +1482,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     }
 
     // Filtro de Status
-    if (statusFilter === 'Ativo' && !c.status) return false;
-    if (statusFilter === 'Desativadas' && c.status) return false;
+    if (statusFilter === 'Ativo' && !isStatusActive(c)) return false;
+    if (statusFilter === 'Desativadas' && isStatusActive(c)) return false;
 
     const cAdId = String(c.adAccountId || '').replace('act_', '');
     if (accountFilter !== 'Todas') {
@@ -1498,16 +1536,22 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       if (campIsAbo) {
         // Campanha ABO: todos os conjuntos são padrão Volume Mais Alto (sem limite de lance)
         if (camp.adsets && camp.adsets.length > 0) {
-          return camp.adsets.map(a => ({
-            ...a,
-            name: itemNamesOverride[a.id] || a.name,
-            isCbo: false,
-            isAbo: true,
-            budget: a.budget || '10.00',
-            budgetType: a.budgetType || 'Diário',
-            bidStrategy: 'LOWEST_COST_WITHOUT_CAP',
-            bidCap: null
-          }));
+          return camp.adsets.map(a => {
+            const active = isStatusActive(a);
+            return {
+              ...a,
+              status: active,
+              rawStatus: active ? 'ACTIVE' : 'PAUSED',
+              effectiveStatus: active ? 'ACTIVE' : 'PAUSED',
+              name: itemNamesOverride[a.id] || a.name,
+              isCbo: false,
+              isAbo: true,
+              budget: a.budget || '10.00',
+              budgetType: a.budgetType || 'Diário',
+              bidStrategy: 'LOWEST_COST_WITHOUT_CAP',
+              bidCap: null
+            };
+          });
         }
         const adsetId = camp.id === '52604661655655' ? '52604661655855' : `${camp.id}_adset_1`;
         const defaultName = (camp.name.includes('TESTE MI') || camp.id === '52604661655655') ? 'Novo conjunto de anúncios de Vendas' : `${camp.name} — Conjunto 01`;
@@ -1517,7 +1561,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           adsetId: adsetId,
           name: itemNamesOverride[adsetId] || defaultName,
           accountName: camp.accountName || 'CA01',
-          status: camp.status,
+          status: isStatusActive(camp),
           isCbo: false,
           isAbo: true,
           budget: '10.00',
@@ -1565,8 +1609,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             asBidStrategy = asIsCost ? 'COST_CAP' : 'LOWEST_COST_WITH_BID_CAP';
           }
 
+          const active = isStatusActive(a);
+
           return {
             ...a,
+            status: active,
+            rawStatus: active ? 'ACTIVE' : 'PAUSED',
+            effectiveStatus: active ? 'ACTIVE' : 'PAUSED',
             name: itemNamesOverride[a.id] || a.name,
             isCbo: true,
             isAbo: false,
@@ -1591,7 +1640,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         adsetId: adsetId,
         name: itemNamesOverride[adsetId] || defaultName,
         accountName: camp.accountName || 'CA01',
-        status: camp.status,
+        status: isStatusActive(camp),
         isCbo: true,
         isAbo: false,
         budget: camp.budget || '127.58',
@@ -1618,8 +1667,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     });
 
     return allAdsets.filter(as => {
-      if (statusFilter === 'Ativo' && !as.status) return false;
-      if (statusFilter === 'Desativadas' && as.status) return false;
+      if (statusFilter === 'Ativo' && !isStatusActive(as)) return false;
+      if (statusFilter === 'Desativadas' && isStatusActive(as)) return false;
       return true;
     });
   }, [filteredCampaigns, campaignsList, effectiveCampaignScopeIds, statusFilter, itemNamesOverride]);
@@ -1635,10 +1684,16 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
     const allAdsExtracted = parentCampaigns.flatMap(camp => {
       if (camp.ads && camp.ads.length > 0) {
-        return camp.ads.map(ad => ({
-          ...ad,
-          name: itemNamesOverride[ad.id] || ad.name
-        }));
+        return camp.ads.map(ad => {
+          const active = isStatusActive(ad);
+          return {
+            ...ad,
+            status: active,
+            rawStatus: active ? 'ACTIVE' : 'PAUSED',
+            effectiveStatus: active ? 'ACTIVE' : 'PAUSED',
+            name: itemNamesOverride[ad.id] || ad.name
+          };
+        });
       }
       const totalSpend = Number(camp.spend || 0);
       const totalSales = Number(camp.sales || 0);
@@ -1766,8 +1821,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     }
 
     return result.filter(ad => {
-      if (statusFilter === 'Ativo' && !ad.status) return false;
-      if (statusFilter === 'Desativadas' && ad.status) return false;
+      if (statusFilter === 'Ativo' && !isStatusActive(ad)) return false;
+      if (statusFilter === 'Desativadas' && isStatusActive(ad)) return false;
       return true;
     });
   }, [filteredCampaigns, campaignsList, effectiveCampaignScopeIds, selectedAdsetIds, statusFilter, itemNamesOverride]);
@@ -1809,7 +1864,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const getItemSortValue = (item, key) => {
     if (!item) return 0;
     if (key === 'status') {
-      return item.status ? 1 : 0;
+      return isStatusActive(item) ? 1 : 0;
     }
     if (key === 'name') {
       return String(item.name || '').toLowerCase();
@@ -3040,11 +3095,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                           type="button"
                           onClick={() => handleToggleStatus(item.id || item.adsetId || item.adId || item.campaignId)}
                           className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
-                            item.status ? 'bg-[#2B66E3]' : 'bg-zinc-700'
+                            isStatusActive(item) ? 'bg-[#2B66E3]' : 'bg-zinc-700'
                           }`}
                         >
                           <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                            item.status ? 'translate-x-4' : 'translate-x-0'
+                            isStatusActive(item) ? 'translate-x-4' : 'translate-x-0'
                           }`} />
                         </button>
                       </td>

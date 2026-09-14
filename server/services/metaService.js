@@ -370,6 +370,46 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       }));
     });
     if (fallbackAdsets.length > 0) {
+      // Quando a leitura em nível de conta é bloqueada por rate limit (erro 17),
+      // a chamada em lote direta aos IDs individuais dos conjuntos consulta o status real em tempo real
+      try {
+        const adsetIdsToQuery = fallbackAdsets.map(a => a.id || a.adsetId).filter(Boolean);
+        if (adsetIdsToQuery.length > 0 && accessToken) {
+          const batch = adsetIdsToQuery.slice(0, 50).map(id => ({
+            method: 'GET',
+            relative_url: `${id}?fields=id,name,status,effective_status`
+          }));
+          const batchRes = await fetch(`${GRAPH_BASE_URL}/?access_token=${accessToken}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ batch })
+          }).catch(() => null);
+          if (batchRes) {
+            const batchResults = await batchRes.json().catch(() => []);
+            if (Array.isArray(batchResults)) {
+              const statusMap = new Map();
+              batchResults.forEach(item => {
+                if (item.code === 200 && item.body) {
+                  try {
+                    const b = JSON.parse(item.body);
+                    if (b.id) statusMap.set(String(b.id), b);
+                  } catch (e) {}
+                }
+              });
+              fallbackAdsets.forEach(a => {
+                const live = statusMap.get(String(a.id || a.adsetId));
+                if (live) {
+                  const isLivePaused = live.status === 'PAUSED' || live.effective_status === 'PAUSED' || live.effective_status === 'ADSET_PAUSED';
+                  a.rawStatus = live.status;
+                  a.effectiveStatus = live.effective_status;
+                  a.status = !isLivePaused;
+                }
+              });
+            }
+          }
+        }
+      } catch (eBatch) {}
+
       adsetsData = { data: fallbackAdsets.map(a => {
         const isAboAdset = Boolean(a._parentIsAbo || a.isAbo);
         const rawBudgetVal = (a.rawBudgetUsd !== null && a.rawBudgetUsd !== undefined && Number(a.rawBudgetUsd) > 0)
@@ -412,19 +452,60 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
   if (!adsData.data || adsData.data.length === 0) {
     const fallbackAds = storedCampaigns.flatMap(c => c.ads || []);
     if (fallbackAds.length > 0) {
-      adsData = { data: fallbackAds.map(a => ({
-        id: a.id || a.adId,
-        name: a.name,
-        campaign_id: a.campaignId,
-        adset_id: a.adsetId,
-        status: a.status ? 'ACTIVE' : 'PAUSED',
-        effective_status: a.effectiveStatus || (a.status ? 'ACTIVE' : 'PAUSED'),
-        creative: {
-          id: a.creativeId || `cr_${a.id}`,
-          thumbnail_url: a.thumbnailUrl || a.mediaSrc,
-          image_url: a.mediaSrc
+      try {
+        const adIdsToQuery = fallbackAds.map(a => a.id || a.adId).filter(Boolean);
+        if (adIdsToQuery.length > 0 && accessToken) {
+          const batch = adIdsToQuery.slice(0, 50).map(id => ({
+            method: 'GET',
+            relative_url: `${id}?fields=id,name,status,effective_status`
+          }));
+          const batchRes = await fetch(`${GRAPH_BASE_URL}/?access_token=${accessToken}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ batch })
+          }).catch(() => null);
+          if (batchRes) {
+            const batchResults = await batchRes.json().catch(() => []);
+            if (Array.isArray(batchResults)) {
+              const statusMap = new Map();
+              batchResults.forEach(item => {
+                if (item.code === 200 && item.body) {
+                  try {
+                    const b = JSON.parse(item.body);
+                    if (b.id) statusMap.set(String(b.id), b);
+                  } catch (e) {}
+                }
+              });
+              fallbackAds.forEach(a => {
+                const live = statusMap.get(String(a.id || a.adId));
+                if (live) {
+                  const isLivePaused = live.status === 'PAUSED' || live.effective_status === 'PAUSED' || live.effective_status === 'AD_PAUSED';
+                  a.rawStatus = live.status;
+                  a.effectiveStatus = live.effective_status;
+                  a.status = !isLivePaused;
+                }
+              });
+            }
+          }
         }
-      })) };
+      } catch (eBatchAd) {}
+
+      adsData = { data: fallbackAds.map(a => {
+        const isPaused = !a.status || a.rawStatus === 'PAUSED' || a.effectiveStatus === 'PAUSED' || a.effectiveStatus === 'AD_PAUSED';
+        return {
+          id: a.id || a.adId,
+          name: a.name,
+          campaign_id: a.campaignId,
+          adset_id: a.adsetId,
+          status: isPaused ? 'PAUSED' : 'ACTIVE',
+          effective_status: isPaused ? 'PAUSED' : (a.effectiveStatus || 'ACTIVE'),
+          creative: {
+            id: a.creativeId || `cr_${a.id}`,
+            thumbnail_url: a.thumbnailUrl || a.mediaSrc,
+            image_url: a.mediaSrc
+          }
+        };
+      }) };
     }
   }
 

@@ -2760,8 +2760,12 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
       } else if (Array.isArray(resolvedAdsets) && prev.adsets && prev.adsets.length > 0) {
         resolvedAdsets = resolvedAdsets.map(as => {
           const prevAs = prev.adsets.find(p => String(p.id) === String(as.id) || String(p.adsetId) === String(as.id));
-          // Se o conjunto foi desativado no banco e a leitura da Meta veio vazia ou ativa por atraso de replicação, preserva desativado
-          if (prevAs && prevAs.status === false && (as.status === true && as.rawStatus !== 'ACTIVE')) {
+          const isAsPaused = as.status === false || as.rawStatus === 'PAUSED' || as.effectiveStatus === 'PAUSED' || as.effectiveStatus === 'ADSET_PAUSED';
+          if (isAsPaused) {
+            return { ...as, status: false, rawStatus: 'PAUSED', effectiveStatus: 'PAUSED' };
+          }
+          // Se o conjunto estava desativado no banco e veio sem confirmação explícita de ativação, preserva desativado
+          if (prevAs && (prevAs.status === false || prevAs.rawStatus === 'PAUSED') && as._fromFallback) {
             return { ...as, status: false, rawStatus: 'PAUSED', effectiveStatus: 'PAUSED' };
           }
           return as;
