@@ -1074,6 +1074,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       if (data.success) {
         setSaveSuccessMsg(`🗑️ ${data.deletedCount || ids.length} ${subTab.toLowerCase()} excluída(s) com sucesso!`);
         setActiveSelectedSet(new Set());
+        setLastSelectedId(null);
         loadData();
       } else {
         setSaveSuccessMsg(`⚠️ Erro ao excluir: ${data.error || 'Falha na exclusão'}`);
@@ -1247,6 +1248,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         setSaveSuccessMsg(`🎉 ${data.duplicatedCount} campanha(s) duplicada(s) com sucesso na Meta!`);
         setShowDuplicateModal(false);
         setActiveSelectedSet(new Set());
+        setLastSelectedId(null);
         // Força sincronização imediata com a Meta para listar a campanha recém-criada
         await handleSyncNow();
       } else {
@@ -1268,6 +1270,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const [selectedCampaignIds, setSelectedCampaignIds] = useState(new Set());
   const [selectedAdsetIds, setSelectedAdsetIds] = useState(new Set());
   const [selectedAdIds, setSelectedAdIds] = useState(new Set());
+  const [lastSelectedId, setLastSelectedId] = useState(null);
+
+  // Reseta âncora de seleção contígua (Shift + Click) ao alternar de aba
+  useEffect(() => {
+    setLastSelectedId(null);
+  }, [subTab]);
 
   // Limpa seleções de níveis inferiores quando a seleção de campanhas mudar
   useEffect(() => {
@@ -1324,15 +1332,64 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const handleToggleSelectAll = () => {
     if (activeSelectedSet.size === currentItems.length && currentItems.length > 0) {
       setActiveSelectedSet(new Set());
+      setLastSelectedId(null);
     } else {
       setActiveSelectedSet(new Set(currentItems.map(i => String(i.id))));
+      if (currentItems.length > 0) {
+        setLastSelectedId(String(currentItems[0].id));
+      }
     }
   };
 
-  const handleToggleSelectItem = (id) => {
+  const handleToggleSelectItem = (id, event) => {
+    const strId = String(id);
+    const isShift = Boolean(event && event.shiftKey);
+    const items = sortedItems && sortedItems.length > 0 ? sortedItems : currentItems;
+
+    // Seleção contígua em lote segurando Shift (Estilo Facebook Ads / Gmail)
+    if (isShift && lastSelectedId !== null) {
+      if (typeof window !== 'undefined' && window.getSelection) {
+        window.getSelection().removeAllRanges();
+      }
+
+      const lastIdx = items.findIndex(item => String(item.id) === String(lastSelectedId));
+      const currIdx = items.findIndex(item => String(item.id) === strId);
+
+      if (lastIdx !== -1 && currIdx !== -1) {
+        const start = Math.min(lastIdx, currIdx);
+        const end = Math.max(lastIdx, currIdx);
+        const rangeItems = items.slice(start, end + 1);
+
+        // Se o item de destino já estava marcado, desmarca o intervalo.
+        // Se o item de destino não estava marcado, marca todo o intervalo contíguo.
+        const shouldSelect = !activeSelectedSet.has(strId);
+
+        setActiveSelectedSet(prev => {
+          const next = new Set(prev);
+          rangeItems.forEach(item => {
+            const itemStrId = String(item.id);
+            if (shouldSelect) {
+              next.add(itemStrId);
+            } else {
+              for (const existingId of next) {
+                if (String(existingId) === itemStrId) {
+                  next.delete(existingId);
+                }
+              }
+            }
+          });
+          return next;
+        });
+
+        setLastSelectedId(strId);
+        return;
+      }
+    }
+
+    // Seleção individual normal (sem Shift ou primeiro clique)
+    setLastSelectedId(strId);
     setActiveSelectedSet(prev => {
       const next = new Set(prev);
-      const strId = String(id);
       let found = false;
       for (const item of next) {
         if (String(item) === strId) {
@@ -2087,7 +2144,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         return (
           <div 
             className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group" 
-            onClick={() => handleOpenEdit(item, 'budget')}
+            onClick={(e) => {
+              if (e.shiftKey) return;
+              handleOpenEdit(item, 'budget');
+            }}
             title={isConjunto ? "Clique para alterar orçamento deste conjunto" : "Clique para alterar orçamento da campanha"}
           >
             <div className="font-bold text-white font-mono flex items-center gap-1.5">
@@ -2141,7 +2201,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
         return (
           <div 
-            onClick={() => handleOpenEdit(item, 'bid')}
+            onClick={(e) => {
+              if (e.shiftKey) return;
+              handleOpenEdit(item, 'bid');
+            }}
             className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group"
             title={`Clique para alterar ${strategyLabel.toLowerCase()}`}
           >
@@ -2643,6 +2706,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     type="button"
                     onClick={() => {
                       setActiveSelectedSet(new Set());
+                      setLastSelectedId(null);
                       setBulkMenuOpen(false);
                     }}
                     disabled={activeSelectedSet.size === 0}
@@ -2906,14 +2970,37 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   {paginatedItems.map((item, idx) => {
                     const isRowSelected = activeSelectedSet.has(item.id) || activeSelectedSet.has(String(item.id));
                     return (
-                    <tr key={item.id || idx} className={`group hover:bg-[#0e1b33] transition-colors ${isRowSelected ? 'bg-[#1A6DFF]/10' : ''}`}>
+                    <tr 
+                      key={item.id || idx} 
+                      onClick={(e) => {
+                        if (e.shiftKey) {
+                          if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) {
+                            return;
+                          }
+                          e.preventDefault();
+                          handleToggleSelectItem(item.id, e);
+                        }
+                      }}
+                      className={`group hover:bg-[#0e1b33] transition-colors ${isRowSelected ? 'bg-[#1A6DFF]/10' : ''}`}
+                    >
                       {/* Checkbox fixo na lateral apenas em desktop */}
-                      <td className={`py-4 pl-4 pr-3 w-[48px] min-w-[48px] max-w-[48px] md:sticky md:left-0 md:z-10 transition-colors ${isRowSelected ? 'bg-[#0f1d38]' : 'bg-[#0A1426] group-hover:bg-[#0e1b33]'}`}>
+                      <td 
+                        onClick={(e) => {
+                          if (e.target.tagName !== 'INPUT') {
+                            handleToggleSelectItem(item.id, e);
+                          }
+                        }}
+                        className={`py-4 pl-4 pr-3 w-[48px] min-w-[48px] max-w-[48px] md:sticky md:left-0 md:z-10 transition-colors select-none cursor-pointer ${isRowSelected ? 'bg-[#0f1d38]' : 'bg-[#0A1426] group-hover:bg-[#0e1b33]'}`}
+                      >
                         <input 
                           type="checkbox" 
                           className="rounded bg-[#03060D] border-white/10 cursor-pointer accent-[#1A6DFF]" 
                           checked={isRowSelected}
-                          onChange={() => handleToggleSelectItem(item.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleSelectItem(item.id, e);
+                          }}
+                          onChange={() => {}}
                         />
                       </td>
 
@@ -2936,7 +3023,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       <td className={`py-4 px-4 font-sans md:sticky md:left-[142px] md:z-10 min-w-[220px] max-w-[320px] transition-colors ${isRowSelected ? 'bg-[#0f1d38]' : 'bg-[#0A1426] group-hover:bg-[#0e1b33]'}`}>
                         <div className="truncate">
                           <div 
-                            onClick={() => handleOpenEdit(item, 'name')}
+                            onClick={(e) => {
+                              if (e.shiftKey) return;
+                              handleOpenEdit(item, 'name');
+                            }}
                             className="font-bold text-white text-xs sm:text-sm flex items-center gap-2 hover:text-[#5C9BFF] cursor-pointer truncate"
                             title="Clique para editar nome"
                           >
