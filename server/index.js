@@ -2754,7 +2754,20 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
   allCampaigns.forEach(c => {
     if (c && c.id) {
       const prev = campMap.get(String(c.id)) || {};
-      campMap.set(String(c.id), { ...prev, ...c });
+      let resolvedAdsets = c.adsets;
+      if ((!resolvedAdsets || resolvedAdsets.length === 0) && prev.adsets && prev.adsets.length > 0) {
+        resolvedAdsets = prev.adsets;
+      } else if (Array.isArray(resolvedAdsets) && prev.adsets && prev.adsets.length > 0) {
+        resolvedAdsets = resolvedAdsets.map(as => {
+          const prevAs = prev.adsets.find(p => String(p.id) === String(as.id) || String(p.adsetId) === String(as.id));
+          // Se o conjunto foi desativado no banco e a leitura da Meta veio vazia ou ativa por atraso de replicação, preserva desativado
+          if (prevAs && prevAs.status === false && (as.status === true && as.rawStatus !== 'ACTIVE')) {
+            return { ...as, status: false, rawStatus: 'PAUSED', effectiveStatus: 'PAUSED' };
+          }
+          return as;
+        });
+      }
+      campMap.set(String(c.id), { ...prev, ...c, adsets: resolvedAdsets || [] });
     }
   });
   const mergedCampaigns = Array.from(campMap.values());
@@ -3042,7 +3055,61 @@ app.post('/api/campaigns/status', async (req, res) => {
   try {
     const { id, status } = req.body;
     if (!id) return res.status(400).json({ error: 'ID é obrigatório' });
+    const strId = String(id);
+    const boolStatus = Boolean(status);
+    const statusText = boolStatus ? 'ACTIVE' : 'PAUSED';
 
+    // 1. Atualiza status IMEDIATAMENTE no banco local para não depender de roundtrip da Meta
+    const campaigns = db.get('campaigns') || [];
+    const updatedCampaigns = campaigns.map(c => {
+      const campMatches = String(c.id) === strId;
+      let adsetsUpdated = false;
+      let adsUpdated = false;
+
+      const newAdsets = c.adsets ? c.adsets.map(as => {
+        if (String(as.id) === strId || String(as.adsetId) === strId) {
+          adsetsUpdated = true;
+          return {
+            ...as,
+            status: boolStatus,
+            rawStatus: statusText,
+            effectiveStatus: statusText
+          };
+        }
+        return as;
+      }) : c.adsets;
+
+      const newAds = c.ads ? c.ads.map(ad => {
+        if (String(ad.id) === strId || String(ad.adId) === strId) {
+          adsUpdated = true;
+          return {
+            ...ad,
+            status: boolStatus,
+            rawStatus: statusText,
+            effectiveStatus: statusText
+          };
+        }
+        return ad;
+      }) : c.ads;
+
+      if (campMatches || adsetsUpdated || adsUpdated) {
+        return {
+          ...c,
+          ...(campMatches ? {
+            status: boolStatus,
+            rawStatus: statusText,
+            effectiveStatus: statusText
+          } : {}),
+          adsets: newAdsets,
+          ads: newAds
+        };
+      }
+      return c;
+    });
+    db.set('campaigns', updatedCampaigns);
+    campaignsCache.clear();
+
+    // 2. Dispara sincronização com a API da Meta
     let connections = db.get('facebook_connections') || [];
     if (connections.length === 0) {
       try {
@@ -3057,7 +3124,7 @@ app.post('/api/campaigns/status', async (req, res) => {
 
     if (token) {
       try {
-        await updateMetaItemStatus(id, Boolean(status), token);
+        await updateMetaItemStatus(strId, boolStatus, token);
         metaSuccess = true;
       } catch (err) {
         console.warn(`[Meta Status Update Error]:`, err.message);
@@ -3065,28 +3132,110 @@ app.post('/api/campaigns/status', async (req, res) => {
       }
     }
 
-    // Atualiza status na memória local/cache
+    res.json({
+      success: true,
+      metaSynced: metaSuccess,
+      metaError,
+      message: metaSuccess ? 'Status atualizado com sucesso no Gerenciador da Meta!' : 'Status atualizado localmente na PrimeTrack.'
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// F1.1 Atualizar Status em Massa no Gerenciador Meta Ads com proteção contra rate-limit
+app.post('/api/campaigns/status-bulk', async (req, res) => {
+  try {
+    const { ids, status } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'Lista de IDs é obrigatória' });
+    }
+    const strIds = new Set(ids.map(String));
+    const boolStatus = Boolean(status);
+    const statusText = boolStatus ? 'ACTIVE' : 'PAUSED';
+
+    // 1. Atualiza status IMEDIATAMENTE no banco local para todos os IDs de uma só vez
     const campaigns = db.get('campaigns') || [];
     const updatedCampaigns = campaigns.map(c => {
-      if (c.id === id) {
-        return { ...c, status: Boolean(status) };
-      }
-      if (c.adsets) {
-        c.adsets = c.adsets.map(as => as.id === id ? { ...as, status: Boolean(status) } : as);
-      }
-      if (c.ads) {
-        c.ads = c.ads.map(ad => ad.id === id ? { ...ad, status: Boolean(status) } : ad);
+      const campMatches = strIds.has(String(c.id));
+      let adsetsUpdated = false;
+      let adsUpdated = false;
+
+      const newAdsets = c.adsets ? c.adsets.map(as => {
+        if (strIds.has(String(as.id)) || strIds.has(String(as.adsetId))) {
+          adsetsUpdated = true;
+          return {
+            ...as,
+            status: boolStatus,
+            rawStatus: statusText,
+            effectiveStatus: statusText
+          };
+        }
+        return as;
+      }) : c.adsets;
+
+      const newAds = c.ads ? c.ads.map(ad => {
+        if (strIds.has(String(ad.id)) || strIds.has(String(ad.adId))) {
+          adsUpdated = true;
+          return {
+            ...ad,
+            status: boolStatus,
+            rawStatus: statusText,
+            effectiveStatus: statusText
+          };
+        }
+        return ad;
+      }) : c.ads;
+
+      if (campMatches || adsetsUpdated || adsUpdated) {
+        return {
+          ...c,
+          ...(campMatches ? {
+            status: boolStatus,
+            rawStatus: statusText,
+            effectiveStatus: statusText
+          } : {}),
+          adsets: newAdsets,
+          ads: newAds
+        };
       }
       return c;
     });
     db.set('campaigns', updatedCampaigns);
     campaignsCache.clear();
 
+    // 2. Dispara atualizações para a Meta sequencialmente com delay de 120ms para evitar rate-limit #17
+    let connections = db.get('facebook_connections') || [];
+    if (connections.length === 0) {
+      try {
+        const { data: supaConns } = await supabaseAdmin.from('facebook_connections').select('*');
+        if (supaConns && supaConns.length > 0) connections = supaConns;
+      } catch (e) {}
+    }
+
+    const token = connections[0]?.access_token || connections[0]?.accessToken;
+    let successCount = 0;
+    let lastError = null;
+
+    if (token) {
+      for (const targetId of ids) {
+        try {
+          await updateMetaItemStatus(String(targetId), boolStatus, token);
+          successCount++;
+          await new Promise(r => setTimeout(r, 120));
+        } catch (err) {
+          console.warn(`[Meta Bulk Status Error for ${targetId}]:`, err.message);
+          lastError = err.message;
+        }
+      }
+    }
+
     res.json({
       success: true,
-      metaSynced: metaSuccess,
-      metaError,
-      message: metaSuccess ? 'Status atualizado com sucesso no Gerenciador da Meta!' : 'Status atualizado localmente na PrimeTrack.'
+      syncedCount: successCount,
+      totalRequested: ids.length,
+      metaError: lastError,
+      message: `${successCount} item(ns) ${boolStatus ? 'ativados' : 'desativados'} com sucesso!`
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

@@ -728,61 +728,73 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   const handleToggleStatus = async (itemId) => {
     let nextStatus = false;
-    let targetId = itemId;
+    let targetId = String(itemId);
+    const statusText = (status) => status ? 'ACTIVE' : 'PAUSED';
 
-    setCampaignsList(prev => prev.map(c => {
-      if (c.id === itemId) {
-        nextStatus = !c.status;
-        return { ...c, status: nextStatus };
-      }
-      let adsetsUpdated = false;
-      let adsUpdated = false;
-
-      const newAdsets = c.adsets ? c.adsets.map(as => {
-        if (as.id === itemId || as.adsetId === itemId) {
-          nextStatus = !as.status;
-          targetId = as.id || as.adsetId;
-          adsetsUpdated = true;
-          return { ...as, status: nextStatus };
+    setCampaignsList(prev => {
+      const updated = prev.map(c => {
+        if (String(c.id) === targetId) {
+          nextStatus = !c.status;
+          return {
+            ...c,
+            status: nextStatus,
+            rawStatus: statusText(nextStatus),
+            effectiveStatus: statusText(nextStatus)
+          };
         }
-        return as;
-      }) : c.adsets;
+        let adsetsUpdated = false;
+        let adsUpdated = false;
 
-      const newAds = c.ads ? c.ads.map(ad => {
-        if (ad.id === itemId || ad.adId === itemId) {
-          nextStatus = !ad.status;
-          targetId = ad.id || ad.adId;
-          adsUpdated = true;
-          return { ...ad, status: nextStatus };
+        const newAdsets = c.adsets ? c.adsets.map(as => {
+          if (String(as.id) === targetId || String(as.adsetId) === targetId) {
+            nextStatus = !as.status;
+            targetId = as.id || as.adsetId;
+            adsetsUpdated = true;
+            return {
+              ...as,
+              status: nextStatus,
+              rawStatus: statusText(nextStatus),
+              effectiveStatus: statusText(nextStatus)
+            };
+          }
+          return as;
+        }) : c.adsets;
+
+        const newAds = c.ads ? c.ads.map(ad => {
+          if (String(ad.id) === targetId || String(ad.adId) === targetId) {
+            nextStatus = !ad.status;
+            targetId = ad.id || ad.adId;
+            adsUpdated = true;
+            return {
+              ...ad,
+              status: nextStatus,
+              rawStatus: statusText(nextStatus),
+              effectiveStatus: statusText(nextStatus)
+            };
+          }
+          return ad;
+        }) : c.ads;
+
+        if (adsetsUpdated || adsUpdated) {
+          return {
+            ...c,
+            adsets: newAdsets,
+            ads: newAds
+          };
         }
-        return ad;
-      }) : c.ads;
 
-      if (adsetsUpdated || adsUpdated) {
-        return {
-          ...c,
-          adsets: newAdsets,
-          ads: newAds
-        };
-      }
+        return c;
+      });
 
-      return c;
-    }));
+      // Persiste imediatamente no cache local do navegador
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(updated));
+        }
+      } catch (e) {}
 
-    // Persiste no cache local do navegador
-    try {
-      const saved = localStorage.getItem('primetrack_cached_campaigns');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        const updated = parsed.map(c => {
-          if (c.id === targetId) return { ...c, status: nextStatus };
-          if (c.adsets) c.adsets = c.adsets.map(as => (as.id === targetId || as.adsetId === targetId) ? { ...as, status: nextStatus } : as);
-          if (c.ads) c.ads = c.ads.map(ad => (ad.id === targetId || ad.adId === targetId) ? { ...ad, status: nextStatus } : ad);
-          return c;
-        });
-        localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(updated));
-      }
-    } catch (e) {}
+      return updated;
+    });
 
     // Dispara sincronização direta com a API do Meta Ads
     try {
@@ -970,52 +982,86 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setBulkMenuOpen(false);
     setBulkProcessing(true);
 
-    // Atualiza otimista na tabela
-    setCampaignsList(prev => prev.map(c => {
-      if (ids.includes(c.id)) {
-        return { ...c, status: enable };
-      }
-      let adsetsUpdated = false;
-      let adsUpdated = false;
+    const strIds = new Set(ids.map(String));
+    const statusText = enable ? 'ACTIVE' : 'PAUSED';
 
-      const newAdsets = c.adsets ? c.adsets.map(as => {
-        if (ids.includes(as.id) || ids.includes(as.adsetId)) {
-          adsetsUpdated = true;
-          return { ...as, status: enable };
+    // 1. Atualiza imediatamente e com precisão na tabela
+    setCampaignsList(prev => {
+      const updated = prev.map(c => {
+        const campMatches = strIds.has(String(c.id));
+        let adsetsUpdated = false;
+        let adsUpdated = false;
+
+        const newAdsets = c.adsets ? c.adsets.map(as => {
+          if (strIds.has(String(as.id)) || strIds.has(String(as.adsetId))) {
+            adsetsUpdated = true;
+            return {
+              ...as,
+              status: enable,
+              rawStatus: statusText,
+              effectiveStatus: statusText
+            };
+          }
+          return as;
+        }) : c.adsets;
+
+        const newAds = c.ads ? c.ads.map(ad => {
+          if (strIds.has(String(ad.id)) || strIds.has(String(ad.adId))) {
+            adsUpdated = true;
+            return {
+              ...ad,
+              status: enable,
+              rawStatus: statusText,
+              effectiveStatus: statusText
+            };
+          }
+          return ad;
+        }) : c.ads;
+
+        if (campMatches || adsetsUpdated || adsUpdated) {
+          return {
+            ...c,
+            ...(campMatches ? {
+              status: enable,
+              rawStatus: statusText,
+              effectiveStatus: statusText
+            } : {}),
+            adsets: newAdsets,
+            ads: newAds
+          };
         }
-        return as;
-      }) : c.adsets;
+        return c;
+      });
 
-      const newAds = c.ads ? c.ads.map(ad => {
-        if (ids.includes(ad.id) || ids.includes(ad.adId)) {
-          adsUpdated = true;
-          return { ...ad, status: enable };
+      // 2. Salva no cache local do navegador para persistir após recarregar a página
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(updated));
         }
-        return ad;
-      }) : c.ads;
+      } catch (e) {}
 
-      if (adsetsUpdated || adsUpdated) {
-        return { ...c, adsets: newAdsets, ads: newAds };
-      }
-      return c;
-    }));
+      return updated;
+    });
 
     setSaveSuccessMsg(`${enable ? 'Ativando' : 'Desativando'} ${ids.length} ${subTab.toLowerCase()}...`);
 
-    // Dispara chamadas de atualização para a Meta
-    let successCount = 0;
-    for (const targetId of ids) {
-      try {
-        await fetch('/api/campaigns/status', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: targetId, status: enable })
-        });
-        successCount++;
-      } catch (e) {}
+    // 3. Dispara chamada em lote para o backend
+    try {
+      const res = await fetch('/api/campaigns/status-bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids, status: enable })
+      });
+      const data = await res.json();
+      if (data && data.success) {
+        setSaveSuccessMsg(`${ids.length} ${subTab.toLowerCase()} ${enable ? 'ativadas' : 'desativadas'} com sucesso!`);
+      } else {
+        setSaveSuccessMsg(`⚠️ ${data.error || 'Erro ao sincronizar com a Meta'}`);
+      }
+    } catch (e) {
+      setSaveSuccessMsg(`${ids.length} ${subTab.toLowerCase()} ${enable ? 'ativadas' : 'desativadas'} localmente!`);
     }
 
-    setSaveSuccessMsg(`${successCount} ${subTab.toLowerCase()} ${enable ? 'ativadas' : 'desativadas'} com sucesso!`);
     setTimeout(() => setSaveSuccessMsg(null), 5000);
     setBulkProcessing(false);
   };
@@ -2992,7 +3038,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       <td className={`py-4 pl-4 pr-3 w-[94px] min-w-[94px] max-w-[94px] md:sticky md:left-[48px] md:z-10 transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0f1d38]' : 'bg-[#0A1426] group-hover:bg-[#0e1b33]'}`}>
                         <button
                           type="button"
-                          onClick={() => handleToggleStatus(item.id || item.campaignId || item.adsetId || item.adId)}
+                          onClick={() => handleToggleStatus(item.id || item.adsetId || item.adId || item.campaignId)}
                           className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
                             item.status ? 'bg-[#2B66E3]' : 'bg-zinc-700'
                           }`}

@@ -268,8 +268,8 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     fetch(`${GRAPH_BASE_URL}/${actId}/insights?level=adset&${timeParam}&fields=adset_id,adset_name,spend,impressions,clicks,cpc,cpm,ctr,actions&limit=100&access_token=${accessToken}`).catch(() => null),
     fetch(`${GRAPH_BASE_URL}/${actId}/insights?level=ad&${timeParam}&fields=ad_id,ad_name,spend,impressions,clicks,cpc,cpm,ctr,actions&limit=100&access_token=${accessToken}`).catch(() => null),
     fetch(`${GRAPH_BASE_URL}/${actId}/campaigns?fields=id,name,status,effective_status,objective,daily_budget,lifetime_budget,bid_strategy&limit=100&access_token=${accessToken}`).catch(() => null),
-    fetch(`${GRAPH_BASE_URL}/${actId}/adsets?fields=id,name,status,effective_status,campaign_id,daily_budget,lifetime_budget,bid_amount,bid_strategy&limit=100&access_token=${accessToken}`).catch(() => null),
-    fetch(`${GRAPH_BASE_URL}/${actId}/ads?fields=id,name,status,effective_status,campaign_id,adset_id,creative{id,name,thumbnail_url,image_url,video_id}&limit=100&access_token=${accessToken}`).catch(() => null),
+    fetch(`${GRAPH_BASE_URL}/${actId}/adsets?fields=id,name,status,effective_status,campaign_id,daily_budget,lifetime_budget,bid_amount,bid_strategy&limit=250&access_token=${accessToken}`).catch(() => null),
+    fetch(`${GRAPH_BASE_URL}/${actId}/ads?fields=id,name,status,effective_status,campaign_id,adset_id,creative{id,name,thumbnail_url,image_url,video_id}&limit=250&access_token=${accessToken}`).catch(() => null),
     fetch(`${GRAPH_BASE_URL}/${actId}?fields=currency&access_token=${accessToken}`).catch(() => null)
   ]);
 
@@ -383,12 +383,13 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
             : (isUsd ? (Number(a.bidCap) / usdRate) : Number(a.bidCap));
         }
 
+        const isPaused = !a.status || a.rawStatus === 'PAUSED' || a.effectiveStatus === 'PAUSED' || a.effectiveStatus === 'ADSET_PAUSED';
         return {
           id: a.id || a.adsetId,
           name: a.name,
           campaign_id: a.campaignId,
-          status: a.status ? 'ACTIVE' : 'PAUSED',
-          effective_status: a.effectiveStatus || (a.status ? 'ACTIVE' : 'PAUSED'),
+          status: isPaused ? 'PAUSED' : 'ACTIVE',
+          effective_status: isPaused ? 'PAUSED' : (a.effectiveStatus || 'ACTIVE'),
           daily_budget: Math.round(rawBudgetVal * 100),
           bid_amount: rawBidVal !== null ? Math.round(rawBidVal * 100) : null,
           bid_strategy: isAboAdset ? 'LOWEST_COST_WITHOUT_CAP' : (a.bidStrategy || 'LOWEST_COST_WITHOUT_CAP'),
@@ -470,7 +471,10 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       campaignId: adset.campaign_id,
       name: adset.name,
       accountName: accountName || 'Conta de Anúncios',
-      status: adset.status === 'ACTIVE' || adset.effective_status === 'ACTIVE',
+      status: (adset.status === 'ACTIVE' || adset.status === true) && 
+              adset.status !== 'PAUSED' && 
+              adset.effective_status !== 'PAUSED' && 
+              adset.effective_status !== 'ADSET_PAUSED',
       rawStatus: adset.status,
       effectiveStatus: adset.effective_status || adset.status,
       budget: realBudget,
@@ -532,7 +536,10 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       adsetId: ad.adset_id,
       name: ad.name,
       accountName: accountName || 'Conta de Anúncios',
-      status: ad.status === 'ACTIVE' || ad.effective_status === 'ACTIVE',
+      status: (ad.status === 'ACTIVE' || ad.status === true) && 
+              ad.status !== 'PAUSED' && 
+              ad.effective_status !== 'PAUSED' && 
+              ad.effective_status !== 'AD_PAUSED',
       rawStatus: ad.status,
       effectiveStatus: ad.effective_status || ad.status,
       mediaSrc: thumb,
@@ -602,7 +609,7 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     }
     const costPerIc = metaInitCheckouts > 0 ? (realSpend / metaInitCheckouts).toFixed(2) : '0.00';
 
-    const campAdsets = allAdsets.filter(a => a.campaignId === c.id);
+    const campAdsets = allAdsets.filter(a => String(a.campaignId) === String(c.id));
     campAdsets.forEach(as => {
       as.isCbo = isCbo;
       as.isAbo = isAbo;
@@ -643,7 +650,7 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       ? ((realCampBidCap && Number(realCampBidCap) < 500 ? realCampBidCap : null) || (campAdsets.find(a => a.bidCap && Number(a.bidCap) > 0 && Number(a.bidCap) < 500)?.bidCap || null)) 
       : null;
 
-    const campAds = allAds.filter(a => a.campaignId === c.id);
+    const campAds = allAds.filter(a => String(a.campaignId) === String(c.id));
     const totalAdsetsBudget = campAdsets.reduce((sum, a) => sum + Number(a.budget || 0), 0);
     const finalCampBudget = isCbo ? realBudget.toFixed(2) : (totalAdsetsBudget > 0 ? totalAdsetsBudget.toFixed(2) : '10.00');
 
