@@ -101,18 +101,34 @@ function parseTrackingEntity(val) {
   return { name, id };
 }
 
-  const rawAdset = tracking.utm_medium || (matchedSession && matchedSession.utms && matchedSession.utms.utm_medium) || '';
+  // Extrai UTMs diretamente da landingUrl se disponível
+  const landingUrl = tracking.landingUrl || parsedOrder.raw?.landingUrl || parsedOrder.raw?.src || (matchedSession && matchedSession.landingUrl) || '';
+  let urlUtms = {};
+  if (landingUrl && landingUrl.includes('?')) {
+    try {
+      const q = new URLSearchParams(landingUrl.split('?')[1]);
+      urlUtms = {
+        utm_source: q.get('utm_source'),
+        utm_medium: q.get('utm_medium'),
+        utm_campaign: q.get('utm_campaign'),
+        utm_content: q.get('utm_content'),
+        utm_term: q.get('utm_term')
+      };
+    } catch (e) {}
+  }
+
+  const rawAdset = tracking.utm_medium || urlUtms.utm_medium || (matchedSession && matchedSession.utms && matchedSession.utms.utm_medium) || '';
   const parsedAdset = parseTrackingEntity(rawAdset);
   const resolvedAdset = parsedAdset.name || 'conjunto_padrao';
   const resolvedAdsetId = parsedAdset.id || tracking.adsetId || (matchedSession && matchedSession.utms && matchedSession.utms.adsetId) || null;
 
-  const rawAd = tracking.utm_content || (matchedSession && matchedSession.utms && matchedSession.utms.utm_content) || '';
+  const rawAd = tracking.utm_content || urlUtms.utm_content || (matchedSession && matchedSession.utms && matchedSession.utms.utm_content) || '';
   const parsedAd = parseTrackingEntity(rawAd);
   const resolvedAd = parsedAd.name || 'criativo_padrao';
   const resolvedAdId = parsedAd.id || tracking.adId || (matchedSession && matchedSession.utms && matchedSession.utms.adId) || null;
 
   // Extrai e normaliza o nome e ID da campanha estritamente do tracking real (UTM ou Pixel)
-  let rawCampaign = tracking.utm_campaign || (matchedSession && matchedSession.utms && matchedSession.utms.utm_campaign) || '';
+  let rawCampaign = tracking.utm_campaign || urlUtms.utm_campaign || (matchedSession && matchedSession.utms && matchedSession.utms.utm_campaign) || '';
   const parsedCamp = parseTrackingEntity(rawCampaign);
   let resolvedCampaign = parsedCamp.name;
   if (!resolvedCampaign || resolvedCampaign === 'campanha_direta' || resolvedCampaign.toLowerCase().includes('direta')) {
@@ -120,7 +136,7 @@ function parseTrackingEntity(val) {
   }
   const resolvedCampaignId = parsedCamp.id || tracking.campaignId || (matchedSession && matchedSession.utms && matchedSession.utms.campaignId) || null;
 
-  const rawSource = tracking.utm_source || (matchedSession && matchedSession.utms && matchedSession.utms.utm_source) || '';
+  const rawSource = tracking.utm_source || urlUtms.utm_source || (matchedSession && matchedSession.utms && matchedSession.utms.utm_source) || '';
   let resolvedSource = resolvedCampaign === 'Orgânico' ? 'Orgânico' : (rawSource || 'facebook');
   let resolvedAccountId = tracking.accountId || (matchedSession && matchedSession.accountId) || null;
   let resolvedAccountName = tracking.accountName || (matchedSession && matchedSession.accountName) || null;
