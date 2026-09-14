@@ -264,9 +264,9 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
 
   // 2. Busca métricas direto da Insights API (imune a rate-limits de gerenciamento e no fuso correto)
   const [campInsightsRes, adsetInsightsRes, adInsightsRes, campRes, adsetsRes, adsRes, accRes] = await Promise.all([
-    fetch(`${GRAPH_BASE_URL}/${actId}/insights?level=campaign&${timeParam}&fields=campaign_id,campaign_name,spend,impressions,clicks,cpc,cpm,ctr,actions&limit=100&access_token=${accessToken}`).catch(() => null),
-    fetch(`${GRAPH_BASE_URL}/${actId}/insights?level=adset&${timeParam}&fields=adset_id,adset_name,spend,impressions,clicks,cpc,cpm,ctr,actions&limit=100&access_token=${accessToken}`).catch(() => null),
-    fetch(`${GRAPH_BASE_URL}/${actId}/insights?level=ad&${timeParam}&fields=ad_id,ad_name,spend,impressions,clicks,cpc,cpm,ctr,actions&limit=100&access_token=${accessToken}`).catch(() => null),
+    fetch(`${GRAPH_BASE_URL}/${actId}/insights?level=campaign&${timeParam}&fields=campaign_id,campaign_name,spend,impressions,clicks,cpc,cpm,ctr,actions,action_values&limit=100&access_token=${accessToken}`).catch(() => null),
+    fetch(`${GRAPH_BASE_URL}/${actId}/insights?level=adset&${timeParam}&fields=adset_id,adset_name,spend,impressions,clicks,cpc,cpm,ctr,actions,action_values&limit=250&access_token=${accessToken}`).catch(() => null),
+    fetch(`${GRAPH_BASE_URL}/${actId}/insights?level=ad&${timeParam}&fields=ad_id,ad_name,spend,impressions,clicks,cpc,cpm,ctr,actions,action_values&limit=250&access_token=${accessToken}`).catch(() => null),
     fetch(`${GRAPH_BASE_URL}/${actId}/campaigns?fields=id,name,status,effective_status,objective,daily_budget,lifetime_budget,bid_strategy&limit=100&access_token=${accessToken}`).catch(() => null),
     fetch(`${GRAPH_BASE_URL}/${actId}/adsets?fields=id,name,status,effective_status,campaign_id,daily_budget,lifetime_budget,bid_amount,bid_strategy&limit=250&access_token=${accessToken}`).catch(() => null),
     fetch(`${GRAPH_BASE_URL}/${actId}/ads?fields=id,name,status,effective_status,campaign_id,adset_id,creative{id,name,thumbnail_url,image_url,video_id}&limit=250&access_token=${accessToken}`).catch(() => null),
@@ -523,6 +523,9 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const realCpm = rawCpm * usdRate;
 
     let metaInitCheckouts = 0;
+    let metaPurchases = 0;
+    let metaRevenue = 0;
+
     if (Array.isArray(insight.actions)) {
       const icAction = insight.actions.find(a => 
         a.action_type === 'initiate_checkout' || 
@@ -530,7 +533,24 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
         a.action_type === 'onsite_web_initiated_checkout'
       );
       if (icAction) metaInitCheckouts = Number(icAction.value || 0);
+
+      const pAction = insight.actions.find(a => 
+        a.action_type === 'purchase' || 
+        a.action_type === 'omni_purchase' ||
+        a.action_type === 'onsite_web_purchase'
+      );
+      if (pAction) metaPurchases = Number(pAction.value || 0);
     }
+
+    if (Array.isArray(insight.action_values)) {
+      const pVal = insight.action_values.find(a => 
+        a.action_type === 'purchase' || 
+        a.action_type === 'omni_purchase' ||
+        a.action_type === 'onsite_web_purchase'
+      );
+      if (pVal) metaRevenue = Number(pVal.value || 0) * usdRate;
+    }
+
     const costPerIc = metaInitCheckouts > 0 ? (realSpend / metaInitCheckouts).toFixed(2) : '0.00';
 
     const rawBidAmount = adset.bid_amount ? (Number(adset.bid_amount) / 100) : null;
@@ -575,13 +595,15 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       visits: Math.round(clicks * 0.75),
       ic: metaInitCheckouts,
       costPerIc,
-      sales: 0,
+      metaPurchases,
+      metaRevenue: metaRevenue.toFixed(2),
+      sales: metaPurchases,
       pendingSales: 0,
-      revenue: '0.00',
-      profit: (-realSpend).toFixed(2),
-      roas: '0.00',
-      cpa: '0.00',
-      arpu: '0.00'
+      revenue: metaRevenue > 0 ? metaRevenue.toFixed(2) : '0.00',
+      profit: (metaRevenue - realSpend).toFixed(2),
+      roas: realSpend > 0 ? (metaRevenue / realSpend).toFixed(2) : '0.00',
+      cpa: metaPurchases > 0 ? (realSpend / metaPurchases).toFixed(2) : '0.00',
+      arpu: metaPurchases > 0 ? (metaRevenue / metaPurchases).toFixed(2) : '0.00'
     };
   });
 
@@ -599,6 +621,8 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const realCpm = rawCpm * usdRate;
 
     let metaInitCheckouts = 0;
+    let metaPurchases = 0;
+    let metaRevenue = 0;
     if (Array.isArray(insight.actions)) {
       const icAction = insight.actions.find(a => 
         a.action_type === 'initiate_checkout' || 
@@ -606,7 +630,24 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
         a.action_type === 'onsite_web_initiated_checkout'
       );
       if (icAction) metaInitCheckouts = Number(icAction.value || 0);
+
+      const pAction = insight.actions.find(a => 
+        a.action_type === 'purchase' || 
+        a.action_type === 'omni_purchase' ||
+        a.action_type === 'onsite_web_purchase'
+      );
+      if (pAction) metaPurchases = Number(pAction.value || 0);
     }
+
+    if (Array.isArray(insight.action_values)) {
+      const pVal = insight.action_values.find(a => 
+        a.action_type === 'purchase' || 
+        a.action_type === 'omni_purchase' ||
+        a.action_type === 'onsite_web_purchase'
+      );
+      if (pVal) metaRevenue = Number(pVal.value || 0) * usdRate;
+    }
+
     const costPerIc = metaInitCheckouts > 0 ? (realSpend / metaInitCheckouts).toFixed(2) : '0.00';
     const thumb = ad.creative?.thumbnail_url || ad.creative?.image_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=80';
 
@@ -638,13 +679,15 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       visits: Math.round(clicks * 0.75),
       ic: metaInitCheckouts,
       costPerIc,
-      sales: 0,
+      metaPurchases,
+      metaRevenue: metaRevenue.toFixed(2),
+      sales: metaPurchases,
       pendingSales: 0,
-      revenue: '0.00',
-      profit: (-realSpend).toFixed(2),
-      roas: '0.00',
-      cpa: '0.00',
-      arpu: '0.00'
+      revenue: metaRevenue > 0 ? metaRevenue.toFixed(2) : '0.00',
+      profit: (metaRevenue - realSpend).toFixed(2),
+      roas: realSpend > 0 ? (metaRevenue / realSpend).toFixed(2) : '0.00',
+      cpa: metaPurchases > 0 ? (realSpend / metaPurchases).toFixed(2) : '0.00',
+      arpu: metaPurchases > 0 ? (metaRevenue / metaPurchases).toFixed(2) : '0.00'
     };
   });
 
@@ -680,6 +723,9 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const realCpm = rawCpm * usdRate;
 
     let metaInitCheckouts = 0;
+    let metaPurchases = 0;
+    let metaRevenue = 0;
+
     if (Array.isArray(insight.actions)) {
       const icAction = insight.actions.find(a => 
         a.action_type === 'initiate_checkout' || 
@@ -687,7 +733,24 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
         a.action_type === 'onsite_web_initiated_checkout'
       );
       if (icAction) metaInitCheckouts = Number(icAction.value || 0);
+
+      const pAction = insight.actions.find(a => 
+        a.action_type === 'purchase' || 
+        a.action_type === 'omni_purchase' ||
+        a.action_type === 'onsite_web_purchase'
+      );
+      if (pAction) metaPurchases = Number(pAction.value || 0);
     }
+
+    if (Array.isArray(insight.action_values)) {
+      const pVal = insight.action_values.find(a => 
+        a.action_type === 'purchase' || 
+        a.action_type === 'omni_purchase' ||
+        a.action_type === 'onsite_web_purchase'
+      );
+      if (pVal) metaRevenue = Number(pVal.value || 0) * usdRate;
+    }
+
     const costPerIc = metaInitCheckouts > 0 ? (realSpend / metaInitCheckouts).toFixed(2) : '0.00';
 
     const campAdsets = allAdsets.filter(a => String(a.campaignId) === String(c.id));
@@ -772,11 +835,13 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       cpc: realCpc.toFixed(2),
       cpm: realCpm.toFixed(2),
       ctr: `${rawCtr.toFixed(2)}%`,
-      sales: 0,
-      revenue: '0.00',
-      profit: (-finalCampSpend).toFixed(2),
-      roas: '0.00',
-      cpa: '0.00',
+      metaPurchases,
+      metaRevenue: metaRevenue > 0 ? metaRevenue.toFixed(2) : '0.00',
+      sales: metaPurchases,
+      revenue: metaRevenue > 0 ? metaRevenue.toFixed(2) : '0.00',
+      profit: (metaRevenue - finalCampSpend).toFixed(2),
+      roas: finalCampSpend > 0 ? (metaRevenue / finalCampSpend).toFixed(2) : '0.00',
+      cpa: metaPurchases > 0 ? (finalCampSpend / metaPurchases).toFixed(2) : '0.00',
       initCheckouts: metaInitCheckouts,
       costPerIc: costPerIc,
       adAccountId: actId,

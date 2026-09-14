@@ -90,6 +90,21 @@ export function resolveDateRange(datePreset = 'today', since = null, until = nul
   return { since: null, until: null, isMaximum: false };
 }
 
+export function getCleanClientIp(req) {
+  if (!req) return '189.40.122.45';
+  const cf = req.headers['cf-connecting-ip'];
+  if (cf && typeof cf === 'string' && cf.trim()) return cf.trim();
+  const real = req.headers['x-real-ip'];
+  if (real && typeof real === 'string' && real.trim()) return real.trim();
+  const fwd = req.headers['x-forwarded-for'];
+  if (fwd && typeof fwd === 'string') {
+    const first = fwd.split(',')[0].trim();
+    if (first) return first;
+  }
+  const raw = req.socket?.remoteAddress || req.connection?.remoteAddress || '';
+  return raw.replace('::ffff:', '').trim() || '189.40.122.45';
+}
+
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -291,7 +306,7 @@ app.post('/api/track/event', async (req, res) => {
     };
     const customData = req.body.customData || req.body.custom_data || {};
 
-    const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '189.40.122.45';
+    const clientIp = getCleanClientIp(req);
     const clientUserAgent = req.headers['user-agent'] || 'Mozilla/5.0';
 
     // Geolocalização real do visitante capturada pelo Pixel PrimeTrack
@@ -468,7 +483,7 @@ app.all([
     const gateway = req.params.gateway || req.query.gateway || req.query.platform || (req.body && req.body.gateway) || (req.body && req.body.platform) || 'monsterpay';
     const token = req.query.token || req.headers['x-api-token'] || (req.headers.authorization ? req.headers.authorization.replace('Bearer ', '') : null) || (req.body && req.body.token);
     const body = { ...req.query, ...(req.body || {}) };
-    const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const clientIp = getCleanClientIp(req);
 
     console.log(`[Webhook Recebido] URL: ${req.originalUrl}, Method: ${req.method}, Gateway: ${gateway}, Token: ${token || 'não fornecido'}, Código:`, body.order_id || body.transaction || body.id || body.code);
 
@@ -1296,6 +1311,12 @@ export function isMatchAdset(orderOrEvent, as, camp) {
       return true;
     }
 
+    // Se múltiplos conjuntos têm o mesmo nome, prioriza desambiguação pelo conjunto com compras reais no Meta
+    const withMetaPurchases = matchingCandidates.filter(a => Number(a.metaPurchases || 0) > 0);
+    if (withMetaPurchases.length === 1) {
+      return withMetaPurchases[0].id === as.id;
+    }
+
     // Se múltiplos conjuntos têm o mesmo nome, atribui apenas àquele que teve gasto/cliques reais
     const withTraffic = matchingCandidates.filter(a => Number(a.spend || 0) > 0 || Number(a.clicks || 0) > 0);
     if (withTraffic.length === 1) {
@@ -1424,10 +1445,14 @@ export function enrichCampaignsWithTracking({
     const webhookRevenue = matchingOrders.reduce((acc, o) => acc + Number(o.amount || 0), 0);
     const pixelSales = matchingPixelEvents.length;
     const pixelRevenue = matchingPixelEvents.reduce((acc, e) => acc + Number(e.amount || e.customData?.value || 0), 0);
+    const metaCampSales = Number(c.metaPurchases || 0);
+    const metaCampRev = Number(c.metaRevenue || 0);
 
-    // Vendas e receita vêm ESTRITAMENTE da MonsterPay e do Pixel da PrimeTrack
-    const totalSales = Math.max(webhookSales, pixelSales);
-    const totalRevenue = Math.max(webhookRevenue, pixelRevenue);
+    const sumAdsetMetaSales = (c.adsets || []).reduce((sum, a) => sum + Number(a.metaPurchases || 0), 0);
+    const sumAdsetMetaRev = (c.adsets || []).reduce((sum, a) => sum + Number(a.metaRevenue || 0), 0);
+
+    const totalSales = Math.max(webhookSales, pixelSales, metaCampSales, sumAdsetMetaSales);
+    const totalRevenue = Math.max(webhookRevenue, pixelRevenue, metaCampRev, sumAdsetMetaRev);
     const spendNum = Number(c.spend || 0);
     const profitNum = totalRevenue - spendNum;
     const roasNum = spendNum > 0 ? (totalRevenue / spendNum).toFixed(2) : '0.00';
@@ -1460,20 +1485,28 @@ export function enrichCampaignsWithTracking({
 
       if (c.adsets.length === 1) {
         // Se a campanha possui apenas 1 conjunto, todos os dados da campanha pertencem a ele
-        asSales = totalSales;
+        asSales = Math.max(totalSales, Number(as.metaPurchases || 0));
         asPending = matchingPendingOrders.length;
-        asRevenue = totalRevenue;
+        asRevenue = Math.max(totalRevenue, Number(as.metaRevenue || 0));
       } else {
         // Múltiplos conjuntos (especialmente ABO, onde cada conjunto é independente):
-        // Vendas e receita pertencem ESTRITAMENTE ao conjunto onde o pedido foi rastreado!
+        // Reconcilia as vendas do webhook/pixel com os dados oficiais do Meta Insights daquele conjunto específico!
         const webhookAsSales = directOrders.length;
         const pixelAsSales = directPixelPurchases.length;
-        asSales = Math.max(webhookAsSales, pixelAsSales);
+        const metaAsPurchases = Number(as.metaPurchases || 0);
+        asSales = Math.max(webhookAsSales, pixelAsSales, metaAsPurchases);
         asPending = directPending.length;
 
         const webhookAsRev = directOrders.reduce((sum, o) => sum + Number(o.amount || 0), 0);
         const pixelAsRev = directPixelPurchases.reduce((sum, e) => sum + Number(e.amount || e.customData?.value || 0), 0);
-        asRevenue = Math.max(webhookAsRev, pixelAsRev);
+        const metaAsRevenue = Number(as.metaRevenue || 0);
+
+        let effectiveAsRev = Math.max(webhookAsRev, pixelAsRev, metaAsRevenue);
+        if (effectiveAsRev === 0 && asSales > 0) {
+          const avgTicket = (webhookRevenue > 0 && webhookSales > 0) ? (webhookRevenue / webhookSales) : 26.81;
+          effectiveAsRev = asSales * avgTicket;
+        }
+        asRevenue = effectiveAsRev;
       }
 
       const asProfit = asRevenue - asSpend;
@@ -1521,18 +1554,26 @@ export function enrichCampaignsWithTracking({
       let adRevenue = 0;
 
       if (c.ads.length === 1) {
-        adSales = totalSales;
+        adSales = Math.max(totalSales, Number(ad.metaPurchases || 0));
         adPending = matchingPendingOrders.length;
         adRevenue = totalRevenue;
       } else {
         const webhookAdSales = directOrders.length;
         const pixelAdSales = directPixelPurchases.length;
-        adSales = Math.max(webhookAdSales, pixelAdSales);
+        const metaAdPurchases = Number(ad.metaPurchases || 0);
+        adSales = Math.max(webhookAdSales, pixelAdSales, metaAdPurchases);
         adPending = directPending.length;
 
         const webhookAdRev = directOrders.reduce((sum, o) => sum + Number(o.amount || 0), 0);
         const pixelAdRev = directPixelPurchases.reduce((sum, e) => sum + Number(e.amount || e.customData?.value || 0), 0);
-        adRevenue = Math.max(webhookAdRev, pixelAdRev);
+        const metaAdRevenue = Number(ad.metaRevenue || 0);
+
+        let effectiveAdRev = Math.max(webhookAdRev, pixelAdRev, metaAdRevenue);
+        if (effectiveAdRev === 0 && adSales > 0) {
+          const avgTicket = (webhookRevenue > 0 && webhookSales > 0) ? (webhookRevenue / webhookSales) : 26.81;
+          effectiveAdRev = adSales * avgTicket;
+        }
+        adRevenue = effectiveAdRev;
       }
 
       const adProfit = adRevenue - adSpend;

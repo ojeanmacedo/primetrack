@@ -1,5 +1,28 @@
 import { db } from '../db.js';
 
+export function isSharedProxyIp(ip) {
+  if (!ip || typeof ip !== 'string') return true;
+  const clean = ip.replace('::ffff:', '').trim();
+  if (!clean || clean === '127.0.0.1' || clean === '::1' || clean === 'localhost') return true;
+  
+  // Faixas privadas locais
+  if (clean.startsWith('10.') || clean.startsWith('192.168.')) return true;
+  if (/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(clean)) return true;
+
+  // Faixas de Proxy / CDN Cloudflare (compartilhadas por múltiplos visitantes)
+  if (/^172\.(6[4-9]|7[0-1])\./.test(clean)) return true;
+  if (/^104\.(1[6-9]|2[0-9]|3[0-1])\./.test(clean)) return true;
+  if (/^162\.(158|159)\./.test(clean)) return true;
+  if (clean.startsWith('108.162.') || clean.startsWith('198.41.') || clean.startsWith('141.101.') || 
+      clean.startsWith('190.93.') || clean.startsWith('188.114.') || clean.startsWith('197.234.') || 
+      clean.startsWith('173.245.') || clean.startsWith('103.21.') || clean.startsWith('103.22.') || 
+      clean.startsWith('103.31.') || clean.startsWith('131.0.72.')) {
+    return true;
+  }
+
+  return false;
+}
+
 /**
  * Motor de Atribuição Cross-Session e Resolução de Anúncios
  */
@@ -36,8 +59,9 @@ export function attributeOrder(parsedOrder, clientIp = null) {
   }
 
   // 4. Match por IP dentro da janela de 30 dias (Cross-Session / Link da Bio)
-  if (!matchedSession && clientIp) {
-    matchedSession = sessions.find(s => s.ip === clientIp);
+  // Ignora IPs compartilhados de proxies/CDNs (Cloudflare, etc.) para evitar contaminação cruzada entre visitantes distintos
+  if (!matchedSession && clientIp && !isSharedProxyIp(clientIp)) {
+    matchedSession = sessions.find(s => s.ip === clientIp && !isSharedProxyIp(s.ip));
     if (matchedSession) matchType = 'ip_cross_session';
   }
 
