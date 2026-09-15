@@ -192,7 +192,35 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const navigate = useNavigate();
   const user = getCurrentUser();
   const isAdmin = isMasterAdmin(user);
-  const [subTab, setSubTab] = useState('Campanhas');
+  const [subTab, setSubTabState] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabFromUrl = params.get('tab');
+      const validTabs = ['Contas', 'Campanhas', 'Conjuntos', 'Anúncios'];
+      if (tabFromUrl) {
+        const match = validTabs.find(t => t.toLowerCase() === tabFromUrl.toLowerCase());
+        if (match) return match;
+        if (tabFromUrl.toLowerCase() === 'anuncios') return 'Anúncios';
+      }
+      const saved = localStorage.getItem('primetrack_campaigns_subtab');
+      if (saved && validTabs.includes(saved)) {
+        return saved;
+      }
+    }
+    return 'Campanhas';
+  });
+
+  const setSubTab = (newTab) => {
+    setSubTabState(newTab);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('primetrack_campaigns_subtab', newTab);
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', newTab);
+        window.history.replaceState({}, '', url.toString());
+      } catch (e) {}
+    }
+  };
   const [activeCreativePreview, setActiveCreativePreview] = useState(null);
   const [statusFilter, setStatusFilter] = useState(() => {
     if (typeof window !== 'undefined') {
