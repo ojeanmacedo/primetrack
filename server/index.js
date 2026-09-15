@@ -971,11 +971,18 @@ app.all([
 /**
  * 3. Estatísticas e Métricas em Tempo Real
  */
-app.get('/api/stats', (req, res) => {
+app.get('/api/stats', async (req, res) => {
+  const userId = req.headers['x-user-id'] || req.query.userId || null;
   try {
-    const orders = db.get('orders') || [];
-    const campaigns = db.get('campaigns') || [];
-    const events = db.get('events') || [];
+    const orders = await getAllOrders(false, userId);
+    let campaigns = db.get('campaigns') || [];
+    if (userId && !isOwnerUserId(userId)) {
+      campaigns = campaigns.filter(c => c.userId === userId);
+    }
+    let events = db.get('events') || [];
+    if (userId && !isOwnerUserId(userId)) {
+      events = events.filter(e => e.userId === userId);
+    }
 
     const approvedOrders = orders.filter(o => o.status === 'approved');
     const totalRevenue = approvedOrders.reduce((acc, o) => acc + (o.amount || 0), 0);
@@ -1125,12 +1132,20 @@ async function getAllOrders(forceFresh = false, userId = null) {
     console.warn('Erro ao buscar pedidos no Supabase:', e.message);
   }
 
-  // Fallback para orders locais apenas se for o admin ou se não tiver userId especificado
-  if (orders.length === 0 && isOwnerUserId(userId)) {
-    orders = (db.get('orders') || []).map(o => ({
-      ...o,
-      attribution: sanitizeAttribution(o.attribution)
-    }));
+  // Fallback para orders locais com isolamento estrito por usuário
+  if (orders.length === 0) {
+    const localOrders = db.get('orders') || [];
+    if (isOwnerUserId(userId)) {
+      orders = localOrders.map(o => ({
+        ...o,
+        attribution: sanitizeAttribution(o.attribution)
+      }));
+    } else if (userId) {
+      orders = localOrders.filter(o => o.userId === userId).map(o => ({
+        ...o,
+        attribution: sanitizeAttribution(o.attribution)
+      }));
+    }
   }
 
   // Se o usuário não possui pedidos, retorna lista vazia imediatamente
@@ -2077,7 +2092,7 @@ app.get('/api/pixel/stats', async (req, res) => {
   // Reconcilia com os pedidos reais da MonsterPay para garantir funil perfeito:
   // Se saíram pedidos no período, com certeza houve no mínimo essa quantidade de Initiate Checkouts e PageViews
   try {
-    const allOrders = await getAllOrders();
+    const allOrders = await getAllOrders(false, userId);
     const ordersInPeriod = allOrders.filter(o => filterByDate(o.createdAt));
     const orderCount = ordersInPeriod.length;
     if (orderCount > 0) {
@@ -3080,12 +3095,13 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
 // Endpoint de sincronização manual ou acionado pela dashboard/campanhas
 app.post('/api/meta/sync', async (req, res) => {
   try {
+    const userId = req.headers['x-user-id'] || req.body?.userId || req.query.userId || null;
     const { datePreset = 'today', since, until, accountId, accountIds } = req.body || {};
     const resolvedRange = resolveDateRange(datePreset, since, until);
     const timeRange = (since && until) ? { since, until } : (resolvedRange.isMaximum ? { isMaximum: true } : null);
-    const result = await executeMetaSync({ datePreset, timeRange, accountId, accountIds });
+    const result = await executeMetaSync({ datePreset, timeRange, accountId, accountIds, userId });
 
-    const allOrders = await getAllOrders();
+    const allOrders = await getAllOrders(false, userId);
     const approvedOrders = allOrders.filter(o => o.status === 'approved' || o.status === 'paid' || o.status === 'pago');
     const pendingOrders = allOrders.filter(o => o.status === 'pending' || o.status === 'waiting_payment' || o.status === 'aguardando_pagamento');
 
