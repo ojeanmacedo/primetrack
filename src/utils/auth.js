@@ -103,7 +103,7 @@ export async function loginUser(email, password) {
     console.warn('Backend auth endpoint indisponível, usando fallback:', apiErr.message);
   }
 
-  // 2. Fallback: Conta administradora principal Digital JM Soluções
+  // 2. Fallback: Conta administradora principal Digital JM Soluções e Conta de Teste do Analista Meta
   if (cleanEmail === 'digitaljmsolucoes@gmail.com') {
     if (inputPass !== 'jean031522') {
       return { success: false, error: 'Senha incorreta para a conta administradora.' };
@@ -114,6 +114,25 @@ export async function loginUser(email, password) {
     };
     setCurrentUser(adminUser);
     return { success: true, user: adminUser };
+  }
+
+  // Conta de Teste dedicada para Revisão de App da Meta (App Review)
+  if (cleanEmail === 'teste@primetrack.top') {
+    if (inputPass !== 'PrimeTrack2026!') {
+      return { success: false, error: 'Senha incorreta para a conta de teste.' };
+    }
+    const testReviewUser = {
+      id: 'usr_meta_reviewer',
+      name: 'Meta Reviewer',
+      email: 'teste@primetrack.top',
+      role: 'admin',
+      plan: 'pro',
+      avatarLetter: 'M',
+      createdAt: '2026-09-14T00:00:00.000Z',
+      hasSetPassword: true
+    };
+    setCurrentUser(testReviewUser);
+    return { success: true, user: testReviewUser };
   }
 
   // 3. Fallback: Busca o usuário no Supabase direto

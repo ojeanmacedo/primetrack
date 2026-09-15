@@ -3797,6 +3797,25 @@ app.post('/api/auth/login', async (req, res) => {
       });
     }
 
+    // Conta de teste dedicada para o analista da Meta (App Review)
+    if (cleanEmail === 'teste@primetrack.top') {
+      if (inputPass !== 'PrimeTrack2026!') {
+        return res.status(401).json({ success: false, error: 'Senha incorreta para a conta de teste.' });
+      }
+      return res.json({
+        success: true,
+        user: {
+          id: 'usr_meta_reviewer',
+          name: 'Meta Reviewer',
+          email: 'teste@primetrack.top',
+          role: 'admin',
+          plan: 'pro',
+          avatarLetter: 'M',
+          hasSetPassword: true
+        }
+      });
+    }
+
     // Busca usuário no Supabase sem bloqueio de RLS
     const { data: userRecord, error: fetchErr } = await supabaseAdmin
       .from('users')
