@@ -1111,7 +1111,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     try {
       const res = await fetch('/api/campaigns/status-bulk', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(user?.id ? { 'x-user-id': user.id } : {}) },
         body: JSON.stringify({ ids, status: enable })
       });
       const data = await res.json();
@@ -1158,7 +1158,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     try {
       const res = await fetch('/api/campaigns/delete-bulk', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(user?.id ? { 'x-user-id': user.id } : {}) },
         body: JSON.stringify({ ids })
       });
       const data = await res.json();
@@ -1291,7 +1291,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     }
 
     try {
-      const res = await fetch('/api/campaigns/duplicate-targets');
+      const res = await fetch('/api/campaigns/duplicate-targets', {
+        headers: user?.id ? { 'x-user-id': user.id } : {}
+      });
       const data = await res.json();
       if (data.success) {
         if (data.profiles && data.profiles.length > 0) {
@@ -1331,7 +1333,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
       const res = await fetch('/api/campaigns/duplicate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(user?.id ? { 'x-user-id': user.id } : {}) },
         body: JSON.stringify(payload)
       });
       const data = await res.json();

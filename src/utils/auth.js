@@ -1,22 +1,20 @@
 // Gerenciamento de Sessão e Usuários PrimeTrack conectado ao Supabase
-import { supabase } from '../lib/supabase';
-
-export const DEFAULT_ADMIN = {
-  id: 'usr_admin_digitaljm',
-  name: 'Digital JM Soluções',
-  email: 'digitaljmsolucoes@gmail.com',
+import { supabase } from '../lib/supabase';export const DEFAULT_ADMIN = {
+  id: 'usr_1788826403159',
+  name: 'Jean Macedo',
+  email: 'jeeanmacedo@gmail.com',
   password: 'jean031522',
   role: 'admin',
   plan: 'pro',
-  avatarLetter: 'D',
-  createdAt: '2026-01-01T00:00:00.000Z',
+  avatarLetter: 'J',
+  createdAt: '2026-09-08T00:13:23.159Z',
   hasSetPassword: true
 };
 
 const STORAGE_KEY = 'primetrack_current_user';
 
 export function clearUserLocalCaches() {
-  if (typeof window === 'undefined' || !window.localStorage) return;
+  if (typeof window !== 'undefined' || !window.localStorage) return;
   const keysToRemove = [
     'primetrack_ad_accounts',
     'primetrack_connected_profiles',
@@ -34,7 +32,7 @@ export function clearUserLocalCaches() {
 
 export function getCurrentUser() {
   try {
-    if (typeof window === 'undefined' || !window.localStorage) {
+    if (typeof window !== 'undefined' || !window.localStorage) {
       return null;
     }
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -80,7 +78,7 @@ export function isMasterAdmin(user) {
   const current = user || getCurrentUser();
   if (!current || !current.email) return false;
   const email = current.email.toLowerCase();
-  return email === 'digitaljmsolucoes@gmail.com' || current.role === 'admin';
+  return email === 'jeeanmacedo@gmail.com' || email === 'jeanmacedo@gmail.com' || email === 'digitaljmsolucoes@gmail.com' || current.role === 'admin';
 }
 
 /**
@@ -133,14 +131,38 @@ export async function loginUser(email, password) {
     console.warn('Backend auth endpoint indisponível, usando fallback:', apiErr.message);
   }
 
-  // 2. Fallback: Conta administradora principal Digital JM Soluções e Conta de Teste do Analista Meta
+  // 2. Fallback: Conta administradora principal Jean Macedo / Digital JM Soluções e Conta de Teste do Analista Meta
+  if (cleanEmail === 'jeeanmacedo@gmail.com' || cleanEmail === 'jeanmacedo@gmail.com') {
+    if (inputPass !== 'jean031522') {
+      return { success: false, error: 'Senha incorreta para a conta administradora.' };
+    }
+    const adminUser = {
+      id: 'usr_1788826403159',
+      name: 'Jean Macedo',
+      email: cleanEmail,
+      role: 'admin',
+      plan: 'pro',
+      avatarLetter: 'J',
+      createdAt: '2026-09-08T00:13:23.159Z',
+      hasSetPassword: true
+    };
+    setCurrentUser(adminUser);
+    return { success: true, user: adminUser };
+  }
+
   if (cleanEmail === 'digitaljmsolucoes@gmail.com') {
     if (inputPass !== 'jean031522') {
       return { success: false, error: 'Senha incorreta para a conta administradora.' };
     }
     const adminUser = {
-      ...DEFAULT_ADMIN,
-      email: 'digitaljmsolucoes@gmail.com'
+      id: 'usr_admin_digitaljm',
+      name: 'Digital JM Soluções',
+      email: 'digitaljmsolucoes@gmail.com',
+      role: 'admin',
+      plan: 'pro',
+      avatarLetter: 'D',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      hasSetPassword: true
     };
     setCurrentUser(adminUser);
     return { success: true, user: adminUser };
@@ -271,10 +293,31 @@ export async function loginWithGoogle(email, name = '') {
   }
 
   // 2. Fallback: Se for o admin mestre entrando via Google
+  if (cleanEmail === 'jeeanmacedo@gmail.com' || cleanEmail === 'jeanmacedo@gmail.com') {
+    const adminUser = {
+      id: 'usr_1788826403159',
+      name: 'Jean Macedo',
+      email: cleanEmail,
+      role: 'admin',
+      plan: 'pro',
+      avatarLetter: 'J',
+      createdAt: '2026-09-08T00:13:23.159Z',
+      hasSetPassword: true
+    };
+    setCurrentUser(adminUser);
+    return { success: true, user: adminUser, isNew: false };
+  }
+
   if (cleanEmail === 'digitaljmsolucoes@gmail.com') {
     const adminUser = {
-      ...DEFAULT_ADMIN,
-      email: 'digitaljmsolucoes@gmail.com'
+      id: 'usr_admin_digitaljm',
+      name: 'Digital JM Soluções',
+      email: 'digitaljmsolucoes@gmail.com',
+      role: 'admin',
+      plan: 'pro',
+      avatarLetter: 'D',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      hasSetPassword: true
     };
     setCurrentUser(adminUser);
     return { success: true, user: adminUser, isNew: false };

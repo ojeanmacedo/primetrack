@@ -43,6 +43,12 @@ export function toBrazilYMD(dateInput) {
   return `${y}-${m}-${day}`;
 }
 
+export const OWNER_USER_IDS = ['usr_1788826403159', 'usr_admin_digitaljm'];
+export function isOwnerUserId(id) {
+  if (!id) return true; // fallback to master account
+  return OWNER_USER_IDS.includes(id);
+}
+
 export function resolveDateRange(datePreset = 'today', since = null, until = null) {
   if (since && until) {
     return { since, until };
@@ -210,7 +216,11 @@ app.get('/api/pixels', async (req, res) => {
   try {
     let query = supabaseAdmin.from('pixels').select('*');
     if (userId) {
-      query = query.eq('user_id', userId);
+      if (isOwnerUserId(userId)) {
+        query = query.or(`user_id.in.(${OWNER_USER_IDS.join(',')}),user_id.is.null`);
+      } else {
+        query = query.eq('user_id', userId);
+      }
     }
     const { data } = await query;
     if (data && data.length > 0) {
@@ -238,12 +248,12 @@ app.get('/api/pixels', async (req, res) => {
       return res.json(mapped);
     }
     // Se foi fornecido userId e o usuário não possui pixels, NUNCA retorna pixels de demo/outros usuários
-    if (userId) {
+    if (userId && !isOwnerUserId(userId)) {
       return res.json([]);
     }
   } catch (e) {}
 
-  res.json(userId ? [] : (db.get('pixels') || []));
+  res.json((userId && !isOwnerUserId(userId)) ? [] : (db.get('pixels') || []));
 });
 
 app.post('/api/pixels', async (req, res) => {
@@ -445,7 +455,7 @@ app.post('/api/track/event', async (req, res) => {
     try {
       await supabaseAdmin.from('events').insert({
         id: eventRecord.id,
-        user_id: 'usr_admin_digitaljm',
+        user_id: 'usr_1788826403159',
         pixel_id: pixelId || 'pt_pixel',
         event_name: eventName,
         event_id: eventId,
@@ -829,9 +839,10 @@ app.all([
           })
           .eq('order_code', parsed.orderCode);
       } else {
+        const orderUserId = specificPixel?.userId || (isOwnerUserId(req.query.userId) ? req.query.userId : 'usr_1788826403159');
         await supabaseAdmin.from('orders').insert({
           id: orderRecord.id,
-          user_id: 'usr_admin_digitaljm',
+          user_id: orderUserId,
           order_code: parsed.orderCode,
           gateway: parsed.gateway || 'MonsterPay',
           product_name: parsed.productName,
@@ -1046,7 +1057,11 @@ async function getAllOrders(forceFresh = false, userId = null) {
       .order('created_at', { ascending: false })
       .limit(200);
     if (userId) {
-      query = query.eq('user_id', userId);
+      if (isOwnerUserId(userId)) {
+        query = query.or(`user_id.in.(${OWNER_USER_IDS.join(',')}),user_id.is.null`);
+      } else {
+        query = query.eq('user_id', userId);
+      }
     }
     const { data } = await query;
     if (Array.isArray(data) && data.length > 0) {
@@ -1075,7 +1090,7 @@ async function getAllOrders(forceFresh = false, userId = null) {
   }
 
   // Fallback para orders locais apenas se for o admin ou se não tiver userId especificado
-  if (orders.length === 0 && (!userId || userId === 'usr_admin_digitaljm')) {
+  if (orders.length === 0 && isOwnerUserId(userId)) {
     orders = (db.get('orders') || []).map(o => ({
       ...o,
       attribution: sanitizeAttribution(o.attribution)
@@ -1634,10 +1649,13 @@ app.get('/api/campaigns', async (req, res) => {
   
   if (userId) {
     try {
-      const { data: supaConns } = await supabaseAdmin
-        .from('facebook_connections')
-        .select('*')
-        .eq('user_id', userId);
+      let q = supabaseAdmin.from('facebook_connections').select('*');
+      if (isOwnerUserId(userId)) {
+        q = q.or(`user_id.in.(${OWNER_USER_IDS.join(',')}),user_id.is.null`);
+      } else {
+        q = q.eq('user_id', userId);
+      }
+      const { data: supaConns } = await q;
       if (supaConns && supaConns.length > 0) {
         connections = supaConns.map(c => ({
           id: c.id,
@@ -1653,7 +1671,7 @@ app.get('/api/campaigns', async (req, res) => {
 
     if (connections.length === 0) {
       const allLocal = db.get('facebook_connections') || [];
-      connections = allLocal.filter(c => c.userId === userId || c.user_id === userId);
+      connections = allLocal.filter(c => isOwnerUserId(userId) ? (!c.userId || isOwnerUserId(c.userId) || !c.user_id || isOwnerUserId(c.user_id)) : (c.userId === userId || c.user_id === userId));
     }
 
     // Se o usuário não possui conexão com Facebook, NUNCA retorna campanhas de outros usuários!
@@ -1686,7 +1704,7 @@ app.get('/api/campaigns', async (req, res) => {
     }
   }
 
-  const savedCampaigns = (db.get('campaigns') || []).filter(c => !userId || c.userId === userId || (!c.userId && userId === 'usr_admin_digitaljm'));
+  const savedCampaigns = (db.get('campaigns') || []).filter(c => isOwnerUserId(userId) ? (!c.userId || isOwnerUserId(c.userId)) : (c.userId === userId));
 
   const { datePreset = 'today', since, until, refresh } = req.query;
   const resolvedRange = resolveDateRange(datePreset, since, until);
@@ -1874,7 +1892,7 @@ app.get('/api/orders', async (req, res) => {
     const orders = await getAllOrders(false, userId);
     res.json(orders);
   } catch (err) {
-    if (!userId || userId === 'usr_admin_digitaljm') {
+    if (isOwnerUserId(userId)) {
       const orders = db.get('orders') || [];
       res.json(orders.filter(o => !o.gateway || o.gateway.toLowerCase().includes('monster')));
     } else {
@@ -1937,15 +1955,15 @@ app.get('/api/webhook/tokens', (req, res) => {
   let allTokens = db.get('webhook_tokens') || [];
   
   if (userId) {
-    // Retorna apenas tokens criados pelo usuário (admin vê também legados sem userId)
-    const userTokens = allTokens.filter(t => t.userId === userId || (!t.userId && userId === 'usr_admin_digitaljm'));
+    // Retorna tokens criados pelo usuário (owner vê todos os tokens do owner)
+    const userTokens = allTokens.filter(t => isOwnerUserId(userId) ? (!t.userId || isOwnerUserId(t.userId)) : (t.userId === userId));
     return res.json(userTokens);
   }
   res.json(allTokens);
 });
 
 app.post('/api/webhook/tokens', (req, res) => {
-  const userId = req.headers['x-user-id'] || req.body?.userId || req.query.userId || 'usr_admin_digitaljm';
+  const userId = req.headers['x-user-id'] || req.body?.userId || req.query.userId || 'usr_1788826403159';
   const { tokens } = req.body;
   if (Array.isArray(tokens)) {
     let allTokens = db.get('webhook_tokens') || [];
@@ -1962,7 +1980,7 @@ app.post('/api/webhook/tokens', (req, res) => {
  */
 app.get('/api/pixel/stats', async (req, res) => {
   const userId = req.headers['x-user-id'] || req.query.userId || null;
-  if (userId && userId !== 'usr_admin_digitaljm') {
+  if (userId && !isOwnerUserId(userId)) {
     try {
       const { data: userPixels } = await supabaseAdmin.from('pixels').select('id').eq('user_id', userId);
       if (!userPixels || userPixels.length === 0) {
@@ -2171,7 +2189,7 @@ app.get('/api/auth/facebook', (req, res) => {
   try {
     const baseUrl = getBaseUrl(req);
     const redirectUri = `${baseUrl}/api/auth/facebook/callback`;
-    const userId = req.query.userId || req.headers['x-user-id'] || 'usr_admin_digitaljm';
+    const userId = req.query.userId || req.headers['x-user-id'] || 'usr_1788826403159';
     const stateObj = { userId, nonce: Date.now() };
     const authUrl = getAuthorizationUrl(encodeURIComponent(JSON.stringify(stateObj)), redirectUri);
     if (req.headers.accept && req.headers.accept.includes('application/json')) {
@@ -2193,7 +2211,7 @@ app.get('/api/auth/facebook/callback', async (req, res) => {
     return res.redirect(`${baseUrl}/integracoes?error=${encodeURIComponent(error_description || 'Autorização cancelada')}`);
   }
 
-  let callbackUserId = 'usr_admin_digitaljm';
+  let callbackUserId = 'usr_1788826403159';
   if (state) {
     try {
       const parsed = JSON.parse(decodeURIComponent(state));
@@ -2320,7 +2338,11 @@ export async function reconcileFacebookData(force = false, userId = null) {
       .select('*')
       .order('connected_at', { ascending: false });
     if (userId) {
-      query = query.eq('user_id', userId);
+      if (isOwnerUserId(userId)) {
+        query = query.or(`user_id.in.(${OWNER_USER_IDS.join(',')}),user_id.is.null`);
+      } else {
+        query = query.eq('user_id', userId);
+      }
     }
     const { data: supaConns } = await query;
     if (supaConns && supaConns.length > 0) {
@@ -2334,7 +2356,7 @@ export async function reconcileFacebookData(force = false, userId = null) {
   if (connections.length === 0) {
     const allConns = db.get('facebook_connections') || [];
     connections = userId
-      ? allConns.filter(c => c.userId === userId || c.user_id === userId)
+      ? allConns.filter(c => isOwnerUserId(userId) ? (!c.userId || isOwnerUserId(c.userId) || !c.user_id || isOwnerUserId(c.user_id)) : (c.userId === userId || c.user_id === userId))
       : allConns;
   }
 
@@ -2347,11 +2369,11 @@ export async function reconcileFacebookData(force = false, userId = null) {
 
   // 2. Atualiza conexões locais preservando as dos outros usuários
   const existingAllConns = db.get('facebook_connections') || [];
-  const otherConns = existingAllConns.filter(c => userId && c.userId !== userId && c.user_id !== userId);
+  const otherConns = existingAllConns.filter(c => isOwnerUserId(userId) ? (!c.userId && !isOwnerUserId(c.userId) && !isOwnerUserId(c.user_id)) : (c.userId !== userId && c.user_id !== userId));
   const updatedUserConns = connections.map(c => ({
     id: c.id,
-    userId: userId || c.user_id || 'usr_admin_digitaljm',
-    user_id: userId || c.user_id || 'usr_admin_digitaljm',
+    userId: userId || c.user_id || 'usr_1788826403159',
+    user_id: userId || c.user_id || 'usr_1788826403159',
     name: c.name,
     email: c.email,
     avatarUrl: c.avatar_url || c.avatarUrl,
@@ -2374,76 +2396,49 @@ export async function reconcileFacebookData(force = false, userId = null) {
     }
   });
 
-  // 4. Busca contas da Meta diretamente para cada perfil conectado
-  const validAccountCleanIds = new Set();
-  const validAccounts = [];
-
-  for (const conn of connections) {
-    const token = conn.access_token || conn.accessToken;
-    if (token) {
-      try {
-        const liveAccs = await fetchAdAccounts(token);
-        if (Array.isArray(liveAccs)) {
-          for (const acc of liveAccs) {
-            const cleanId = (acc.accountId || acc.id || '').replace('act_', '');
-            if (!validAccountCleanIds.has(cleanId)) {
-              validAccountCleanIds.add(cleanId);
-              validAccounts.push({
-                id: acc.id || `act_${cleanId}`,
-                accountId: cleanId,
-                userId: userId || conn.user_id || 'usr_admin_digitaljm',
-                user_id: userId || conn.user_id || 'usr_admin_digitaljm',
-                profileId: conn.id,
-                profileName: conn.name,
-                name: acc.name,
-                businessName: acc.businessName,
-                currency: acc.currency,
-                status: acc.status,
-                amountSpent: String(acc.amountSpent || '0.00'),
-                balance: String(acc.balance || '0.00'),
-                syncActive: activeSet.size === 0 ? true : activeSet.has(cleanId)
-              });
-            }
-          }
-
-          if (conn.accounts_count !== liveAccs.length) {
-            try {
-              await supabaseAdmin.from('facebook_connections').update({
-                accounts_count: liveAccs.length
-              }).eq('id', conn.id);
-            } catch (e) {}
-          }
-        }
-      } catch (err) {
-        console.warn(`[Reconcile FB] Erro ao buscar contas do perfil ${conn.name}:`, err.message);
-      }
-    }
-  }
-
-  // Só atualiza contas se a busca na Meta retornou contas com sucesso para não apagar dados em caso de rate limit
-  if (validAccounts.length > 0) {
-    // 5. Deleta do Supabase ad_accounts apenas contas que comprovadamente não existem mais
+  // 4. Busca em paralelo todas as contas oficiais de cada perfil conectado
+  const fetchPromises = connections.map(async (conn) => {
+    const token = conn.accessToken || conn.access_token;
+    if (!token) return [];
     try {
-      let query = supabaseAdmin.from('ad_accounts').select('id');
-      if (userId) query = query.eq('user_id', userId);
-      const { data: supaAccs } = await query;
-      if (supaAccs && supaAccs.length > 0) {
-        const orphanIds = supaAccs
-          .map(a => a.id)
-          .filter(id => !validAccountCleanIds.has(String(id).replace('act_', '')));
-        if (orphanIds.length > 0) {
-          await supabaseAdmin.from('ad_accounts').delete().in('id', orphanIds);
-        }
-      }
-    } catch (e) {
-      console.warn('[Reconcile FB] Erro ao limpar contas órfãs do Supabase:', e.message);
+      const accounts = await fetchAdAccounts(token);
+      return (accounts || []).map(acc => {
+        const cleanId = (acc.accountId || acc.id || '').replace('act_', '');
+        return {
+          id: acc.id?.startsWith('act_') ? acc.id : `act_${cleanId}`,
+          accountId: cleanId,
+          userId: userId || conn.user_id || 'usr_1788826403159',
+          user_id: userId || conn.user_id || 'usr_1788826403159',
+          profileId: conn.id,
+          profileName: conn.name,
+          name: acc.name || 'Conta de Anúncio',
+          businessName: acc.businessName || 'BM Principal',
+          currency: acc.currency || 'BRL',
+          status: acc.status || 'Ativa',
+          amountSpent: String(acc.amountSpent || '0.00'),
+          balance: String(acc.balance || '0.00'),
+          syncActive: activeSet.size === 0 ? true : activeSet.has(cleanId)
+        };
+      });
+    } catch (err) {
+      console.warn(`[Reconcile FB] Erro ao buscar contas do perfil ${conn.name}:`, err.message);
+      return [];
     }
+  });
 
-    // 6. Atualiza contas válidas no Supabase
+  const accountsByProfile = await Promise.all(fetchPromises);
+  const liveAccounts = accountsByProfile.flat();
+
+  // 5. Se encontrou contas ao vivo na Meta, atualiza caches
+  let validAccounts = [];
+  if (liveAccounts.length > 0) {
+    validAccounts = liveAccounts;
+
+    // 6. Persiste contas no Supabase
     try {
       const rows = validAccounts.map(acc => ({
         id: acc.id,
-        user_id: userId || acc.user_id || 'usr_admin_digitaljm',
+        user_id: userId || acc.user_id || 'usr_1788826403159',
         name: acc.name || 'Conta de Anúncio',
         bm_name: acc.businessName || null,
         currency: acc.currency || 'BRL',
@@ -2456,7 +2451,7 @@ export async function reconcileFacebookData(force = false, userId = null) {
 
     // 7. Atualiza db local de contas
     const allLocalAccs = db.get('ad_accounts') || [];
-    const otherLocalAccs = allLocalAccs.filter(a => userId && a.userId !== userId && a.user_id !== userId);
+    const otherLocalAccs = allLocalAccs.filter(a => isOwnerUserId(userId) ? (!a.userId && !isOwnerUserId(a.userId) && !isOwnerUserId(a.user_id)) : (a.userId !== userId && a.user_id !== userId));
     db.set('ad_accounts', [...otherLocalAccs, ...validAccounts]);
   } else if (connections.length > 0) {
     // Se a busca ao vivo na Meta falhou (ex: rate limit ou erro de rede temporário),
@@ -2464,7 +2459,13 @@ export async function reconcileFacebookData(force = false, userId = null) {
     let existingAccounts = [];
     try {
       let query = supabaseAdmin.from('ad_accounts').select('*');
-      if (userId) query = query.eq('user_id', userId);
+      if (userId) {
+        if (isOwnerUserId(userId)) {
+          query = query.or(`user_id.in.(${OWNER_USER_IDS.join(',')}),user_id.is.null`);
+        } else {
+          query = query.eq('user_id', userId);
+        }
+      }
       const { data: supaAccs } = await query;
       if (supaAccs && supaAccs.length > 0) {
         existingAccounts = supaAccs.map(a => {
@@ -2472,8 +2473,8 @@ export async function reconcileFacebookData(force = false, userId = null) {
           return {
             id: a.id?.startsWith('act_') ? a.id : `act_${cleanId}`,
             accountId: cleanId,
-            userId: userId || a.user_id || 'usr_admin_digitaljm',
-            user_id: userId || a.user_id || 'usr_admin_digitaljm',
+            userId: userId || a.user_id || 'usr_1788826403159',
+            user_id: userId || a.user_id || 'usr_1788826403159',
             profileId: connections[0]?.id,
             profileName: connections[0]?.name,
             name: a.name,
@@ -2493,7 +2494,7 @@ export async function reconcileFacebookData(force = false, userId = null) {
     if (existingAccounts.length === 0) {
       const allAccs = db.get('ad_accounts') || [];
       existingAccounts = userId
-        ? allAccs.filter(a => a.userId === userId || a.user_id === userId)
+        ? allAccs.filter(a => isOwnerUserId(userId) ? (!a.userId || isOwnerUserId(a.userId) || !a.user_id || isOwnerUserId(a.user_id)) : (a.userId === userId || a.user_id === userId))
         : allAccs;
     }
 
@@ -2558,7 +2559,7 @@ app.post('/api/meta/refresh-accounts', async (req, res) => {
 app.post('/api/meta/connect-token', async (req, res) => {
   try {
     const { token, name, userId: bodyUserId } = req.body;
-    const targetUserId = req.headers['x-user-id'] || bodyUserId || req.query.userId || 'usr_admin_digitaljm';
+    const targetUserId = req.headers['x-user-id'] || bodyUserId || req.query.userId || 'usr_1788826403159';
     if (!token || !token.trim()) {
       return res.status(400).json({ success: false, error: 'Token de acesso é obrigatório.' });
     }
@@ -2667,7 +2668,13 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
   // Em ambiente serverless (Vercel), restaura do Supabase sempre filtrando por userId se fornecido
   try {
     let qConn = supabaseAdmin.from('facebook_connections').select('*');
-    if (userId) qConn = qConn.eq('user_id', userId);
+    if (userId) {
+      if (isOwnerUserId(userId)) {
+        qConn = qConn.or(`user_id.in.(${OWNER_USER_IDS.join(',')}),user_id.is.null`);
+      } else {
+        qConn = qConn.eq('user_id', userId);
+      }
+    }
     const { data: supaConns } = await qConn;
     if (supaConns && supaConns.length > 0) {
       connections = supaConns.map(c => ({
@@ -2685,7 +2692,7 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
   if (connections.length === 0) {
     const allLocal = db.get('facebook_connections') || [];
     connections = userId
-      ? allLocal.filter(c => c.userId === userId || c.user_id === userId)
+      ? allLocal.filter(c => isOwnerUserId(userId) ? (!c.userId || isOwnerUserId(c.userId) || !c.user_id || isOwnerUserId(c.user_id)) : (c.userId === userId || c.user_id === userId))
       : allLocal;
   }
 
@@ -2708,7 +2715,13 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
 
   try {
     let qAcc = supabaseAdmin.from('ad_accounts').select('*');
-    if (userId) qAcc = qAcc.eq('user_id', userId);
+    if (userId) {
+      if (isOwnerUserId(userId)) {
+        qAcc = qAcc.or(`user_id.in.(${OWNER_USER_IDS.join(',')}),user_id.is.null`);
+      } else {
+        qAcc = qAcc.eq('user_id', userId);
+      }
+    }
     const { data: supaAccs } = await qAcc;
     if (supaAccs && supaAccs.length > 0) {
       allAdAccounts = supaAccs.map(a => {
@@ -2731,7 +2744,7 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
   if (allAdAccounts.length === 0) {
     const localAccs = db.get('ad_accounts') || [];
     allAdAccounts = userId
-      ? localAccs.filter(a => a.userId === userId || a.user_id === userId)
+      ? localAccs.filter(a => isOwnerUserId(userId) ? (!a.userId || isOwnerUserId(a.userId) || !a.user_id || isOwnerUserId(a.user_id)) : (a.userId === userId || a.user_id === userId))
       : localAccs;
   }
 
@@ -3114,7 +3127,13 @@ app.post('/api/meta/accounts/sync-status', async (req, res) => {
     if (adAccounts.length === 0) {
       try {
         let q = supabaseAdmin.from('ad_accounts').select('*');
-        if (userId) q = q.eq('user_id', userId);
+        if (userId) {
+          if (isOwnerUserId(userId)) {
+            q = q.or(`user_id.in.(${OWNER_USER_IDS.join(',')}),user_id.is.null`);
+          } else {
+            q = q.eq('user_id', userId);
+          }
+        }
         const { data: supaAccs } = await q;
         if (supaAccs && supaAccs.length > 0) {
           adAccounts = supaAccs.map(a => ({
@@ -3137,7 +3156,7 @@ app.post('/api/meta/accounts/sync-status', async (req, res) => {
       const activeSet = new Set(activeAccounts.map(id => String(id).replace('act_', '')));
       adAccounts = adAccounts.map(acc => {
         const clean = (acc.accountId || acc.id || '').replace('act_', '');
-        if (!userId || acc.userId === userId || (!acc.userId && userId === 'usr_admin_digitaljm')) {
+        if (!userId || acc.userId === userId || (isOwnerUserId(userId) && (isOwnerUserId(acc.userId) || !acc.userId))) {
           return {
             ...acc,
             syncActive: activeSet.has(clean)
@@ -3160,10 +3179,16 @@ app.post('/api/meta/accounts/sync-status', async (req, res) => {
     // Salva o mapa de contas ativas no Supabase (no registro do perfil do Facebook)
     try {
       const activeIds = adAccounts
-        .filter(a => a.syncActive && (!userId || a.userId === userId || (!a.userId && userId === 'usr_admin_digitaljm')))
+        .filter(a => a.syncActive && (!userId || a.userId === userId || (isOwnerUserId(userId) && (isOwnerUserId(a.userId) || !a.userId))))
         .map(a => (a.accountId || a.id || '').replace('act_', ''));
       let connQuery = supabaseAdmin.from('facebook_connections').select('id');
-      if (userId) connQuery = connQuery.eq('user_id', userId);
+      if (userId) {
+        if (isOwnerUserId(userId)) {
+          connQuery = connQuery.or(`user_id.in.(${OWNER_USER_IDS.join(',')}),user_id.is.null`);
+        } else {
+          connQuery = connQuery.eq('user_id', userId);
+        }
+      }
       const { data: conns } = await connQuery.limit(1);
       if (conns && conns.length > 0) {
         await supabaseAdmin.from('facebook_connections').update({
@@ -3175,7 +3200,7 @@ app.post('/api/meta/accounts/sync-status', async (req, res) => {
     }
 
     const filteredReturn = userId 
-      ? adAccounts.filter(a => a.userId === userId || (!a.userId && userId === 'usr_admin_digitaljm'))
+      ? adAccounts.filter(a => a.userId === userId || (isOwnerUserId(userId) && (isOwnerUserId(a.userId) || !a.userId)))
       : adAccounts;
     res.json({ success: true, adAccounts: filteredReturn });
   } catch (err) {
@@ -3564,14 +3589,28 @@ app.post('/api/campaigns/update', async (req, res) => {
 // F3. Duplicar Campanhas no Gerenciador Meta Ads (Na mesma conta ou em outra conta de anúncio)
 app.get('/api/campaigns/duplicate-targets', async (req, res) => {
   try {
+    const userId = req.headers['x-user-id'] || req.query.userId || null;
     let connections = [];
 
     try {
-      const { data: supaConns } = await supabaseAdmin.from('facebook_connections').select('*').order('connected_at', { ascending: false });
+      let q = supabaseAdmin.from('facebook_connections').select('*').order('connected_at', { ascending: false });
+      if (userId) {
+        if (isOwnerUserId(userId)) {
+          q = q.or(`user_id.in.(${OWNER_USER_IDS.join(',')}),user_id.is.null`);
+        } else {
+          q = q.eq('user_id', userId);
+        }
+      }
+      const { data: supaConns } = await q;
       if (supaConns && supaConns.length > 0) connections = supaConns;
     } catch (e) {}
 
-    if (connections.length === 0) connections = db.get('facebook_connections') || [];
+    if (connections.length === 0) {
+      const allLocal = db.get('facebook_connections') || [];
+      connections = userId
+        ? allLocal.filter(c => isOwnerUserId(userId) ? (!c.userId || isOwnerUserId(c.userId) || !c.user_id || isOwnerUserId(c.user_id)) : (c.userId === userId || c.user_id === userId))
+        : allLocal;
+    }
 
     if (connections.length === 0) {
       return res.json({ success: true, profiles: [], accounts: [] });
@@ -3941,6 +3980,25 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Por favor, preencha o e-mail e a senha.' });
     }
 
+    // Conta administradora principal Jean Macedo
+    if (cleanEmail === 'jeeanmacedo@gmail.com' || cleanEmail === 'jeanmacedo@gmail.com') {
+      if (inputPass !== 'jean031522') {
+        return res.status(401).json({ success: false, error: 'Senha incorreta para a conta administradora.' });
+      }
+      return res.json({
+        success: true,
+        user: {
+          id: 'usr_1788826403159',
+          name: 'Jean Macedo',
+          email: 'jeeanmacedo@gmail.com',
+          role: 'admin',
+          plan: 'pro',
+          avatarLetter: 'J',
+          hasSetPassword: true
+        }
+      });
+    }
+
     // Conta administradora principal Digital JM Soluções
     if (cleanEmail === 'digitaljmsolucoes@gmail.com') {
       if (inputPass !== 'jean031522') {
@@ -4040,6 +4098,22 @@ app.post('/api/auth/google-login', async (req, res) => {
 
     if (!cleanEmail || !cleanEmail.includes('@')) {
       return res.status(400).json({ success: false, error: 'E-mail do Google inválido.' });
+    }
+
+    if (cleanEmail === 'jeeanmacedo@gmail.com' || cleanEmail === 'jeanmacedo@gmail.com') {
+      return res.json({
+        success: true,
+        user: {
+          id: 'usr_1788826403159',
+          name: 'Jean Macedo',
+          email: 'jeeanmacedo@gmail.com',
+          role: 'admin',
+          plan: 'pro',
+          avatarLetter: 'J',
+          hasSetPassword: true
+        },
+        isNew: false
+      });
     }
 
     if (cleanEmail === 'digitaljmsolucoes@gmail.com') {
