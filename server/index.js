@@ -485,9 +485,12 @@ app.all([
   '/api/webhook',
   '/api/webhooks',
   '/api/webhooks/:gateway',
+  '/api/webhooks/:token/:gateway',
+  '/api/webhook/:token/:gateway',
   '/webhook',
   '/webhooks',
   '/webhooks/:gateway',
+  '/webhook/:token/:gateway',
   '/webhook/monsterpay',
   '/monsterpay',
   '/monsterpay/webhook',
@@ -495,9 +498,22 @@ app.all([
 ], async (req, res) => {
   try {
     const gateway = req.params.gateway || req.query.gateway || req.query.platform || (req.body && req.body.gateway) || (req.body && req.body.platform) || 'monsterpay';
-    const token = req.query.token || req.headers['x-api-token'] || (req.headers.authorization ? req.headers.authorization.replace('Bearer ', '') : null) || (req.body && req.body.token);
+    const token = req.params.token || req.query.token || req.headers['x-api-token'] || (req.headers.authorization ? req.headers.authorization.replace('Bearer ', '') : null) || (req.body && req.body.token);
     const body = { ...req.query, ...(req.body || {}) };
     const clientIp = getCleanClientIp(req);
+
+    // Atualiza data de último uso do token se fornecido
+    if (token) {
+      try {
+        const allToks = db.get('webhook_tokens') || [];
+        const matchIdx = allToks.findIndex(t => t.token === token);
+        if (matchIdx >= 0) {
+          const now = new Date();
+          allToks[matchIdx].lastUsed = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+          db.set('webhook_tokens', allToks);
+        }
+      } catch (e) {}
+    }
 
     console.log(`[Webhook Recebido] URL: ${req.originalUrl}, Method: ${req.method}, Gateway: ${gateway}, Token: ${token || 'não fornecido'}, Código:`, body.order_id || body.transaction || body.id || body.code);
 
@@ -839,7 +855,21 @@ app.all([
           })
           .eq('order_code', parsed.orderCode);
       } else {
-        const orderUserId = specificPixel?.userId || (isOwnerUserId(req.query.userId) ? req.query.userId : 'usr_1788826403159');
+        let tokenUserId = null;
+        if (token) {
+          try {
+            const { data: tokData } = await supabaseAdmin.from('webhook_tokens').select('user_id').eq('token', token).limit(1);
+            if (tokData && tokData[0]?.user_id) tokenUserId = tokData[0].user_id;
+          } catch (e) {}
+          if (!tokenUserId) {
+            const allTokens = db.get('webhook_tokens') || [];
+            const foundTok = allTokens.find(t => t.token === token);
+            if (foundTok && (foundTok.userId || foundTok.user_id)) {
+              tokenUserId = foundTok.userId || foundTok.user_id;
+            }
+          }
+        }
+        const orderUserId = tokenUserId || specificPixel?.userId || (isOwnerUserId(req.query.userId) ? req.query.userId : 'usr_1788826403159');
         await supabaseAdmin.from('orders').insert({
           id: orderRecord.id,
           user_id: orderUserId,

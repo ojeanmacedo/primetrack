@@ -141,20 +141,23 @@ export default function Integrations() {
   const [newMetaSubPixelName, setNewMetaSubPixelName] = useState('');
   const [showAddSubPixelForm, setShowAddSubPixelForm] = useState(false);
 
-  // Modal Conectar Plataforma Flow States (Monsterpay)
+  // Modal Conectar Plataforma Flow States (Monsterpay, Perfect Pay, Hotmart, Kiwify)
   const [showConnectPlatformModal, setShowConnectPlatformModal] = useState(false);
   const [connectPlatformStep, setConnectPlatformStep] = useState(1); // 1 = select, 2 = alias, 3 = result
   const [searchPlatform, setSearchPlatform] = useState('');
   const [selectedPlatformName, setSelectedPlatformName] = useState('Monsterpay');
+  const [selectedPlatformType, setSelectedPlatformType] = useState('token'); // 'token' ou 'webhook_url'
   const [tokenAliasInput, setTokenAliasInput] = useState('monsterpay');
   const [generatedPlatformToken, setGeneratedPlatformToken] = useState('');
+  const [generatedPlatformWebhookUrl, setGeneratedPlatformWebhookUrl] = useState('');
   const [copiedToken, setCopiedToken] = useState(false);
   const [copiedWebhookUrl, setCopiedWebhookUrl] = useState(false);
+  const [copiedDocEndpoint, setCopiedDocEndpoint] = useState(false);
 
   const [showNewTokenModal, setShowNewTokenModal] = useState(false);
   const [newTokenStep, setNewTokenStep] = useState(1); // 1 = input, 2 = popup com o token gerado
-  const [newTokenCreatedPlatform, setNewTokenCreatedPlatform] = useState('');
-  const [tokenInputName, setTokenInputName] = useState('');
+  const [newTokenCreatedPlatform, setNewTokenCreatedPlatform] = useState('Documentação');
+  const [tokenInputName, setTokenInputName] = useState('Documentação');
   const [recentCreatedToken, setRecentCreatedToken] = useState(null);
   const [copiedRecentToken, setCopiedRecentToken] = useState(false);
   const [tokenToDelete, setTokenToDelete] = useState(null);
@@ -288,11 +291,54 @@ export default function Integrations() {
     }
   };
 
+  const SUPPORTED_GATEWAY_PLATFORMS = [
+    {
+      id: 'monsterpay',
+      name: 'Monsterpay',
+      slug: 'monsterpay',
+      badge: 'Nativa',
+      badgeColor: 'emerald',
+      type: 'token',
+      tutorialUrl: 'https://docs.primetrack.top',
+      description: 'Integração direta via token no painel da Monsterpay'
+    },
+    {
+      id: 'perfectpay',
+      name: 'Perfect Pay',
+      slug: 'perfectpay',
+      badge: 'Webhook',
+      badgeColor: 'blue',
+      type: 'webhook_url',
+      tutorialUrl: 'https://docs.primetrack.top',
+      description: 'Envio automático de pedidos via URL de Webhook'
+    },
+    {
+      id: 'hotmart',
+      name: 'Hotmart',
+      slug: 'hotmart',
+      badge: 'Webhook',
+      badgeColor: 'blue',
+      type: 'webhook_url',
+      tutorialUrl: 'https://docs.primetrack.top',
+      description: 'Integração via Webhook no painel da Hotmart'
+    },
+    {
+      id: 'kiwify',
+      name: 'Kiwify',
+      slug: 'kiwify',
+      badge: 'Webhook',
+      badgeColor: 'blue',
+      type: 'webhook_url',
+      tutorialUrl: 'https://docs.primetrack.top',
+      description: 'Integração via Webhook no painel da Kiwify'
+    }
+  ];
+
   const handleGenerateToken = (e) => {
     if (e) e.preventDefault();
-    const rawName = tokenInputName.trim() || 'Hotmart';
+    const rawName = tokenInputName.trim() || 'Documentação';
     
-    // Gera token de 48 caracteres hexadecimais no padrão pt_ (igual ao lt_ do screenshot 2)
+    // Gera token de 48 caracteres hexadecimais no padrão pt_
     const chars = '0123456789abcdef';
     let randomHex = '';
     for (let i = 0; i < 48; i++) {
@@ -300,18 +346,21 @@ export default function Integrations() {
     }
     const fullToken = `pt_${randomHex}`;
 
-    // Plataforma é o nome inserido pelo usuário
-    const platformName = rawName.toLowerCase();
-
     // Data formatada DD/MM/YYYY
     const today = new Date();
     const formattedDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
 
+    const baseUrl = typeof window !== 'undefined' && window.location.origin.includes('localhost') 
+      ? window.location.origin 
+      : 'https://app.primetrack.top';
+
     const newTokenItem = {
       id: `tok_${Date.now()}`,
       name: rawName,
-      platform: platformName,
+      platform: 'documentacao',
+      type: 'token',
       token: fullToken,
+      webhookUrl: `${baseUrl}/api/webhooks`,
       status: 'Ativo',
       lastUsed: '—',
       createdAt: formattedDate
@@ -336,7 +385,13 @@ export default function Integrations() {
 
   const handleGenerateConnectToken = (e) => {
     if (e) e.preventDefault();
-    const rawAlias = tokenAliasInput.trim() || selectedPlatformName.toLowerCase();
+    const platform = SUPPORTED_GATEWAY_PLATFORMS.find(p => p.name.toLowerCase() === selectedPlatformName.toLowerCase() || p.slug === selectedPlatformName.toLowerCase()) || {
+      name: selectedPlatformName,
+      slug: selectedPlatformName.toLowerCase().replace(/\s+/g, ''),
+      type: selectedPlatformName.toLowerCase().includes('monster') ? 'token' : 'webhook_url'
+    };
+
+    const rawAlias = tokenAliasInput.trim() || platform.name;
     
     // Gera token de 48 caracteres hexadecimais no padrão pt_
     const chars = '0123456789abcdef';
@@ -346,14 +401,22 @@ export default function Integrations() {
     }
     const fullToken = `pt_${randomHex}`;
 
+    const baseUrl = typeof window !== 'undefined' && window.location.origin.includes('localhost') 
+      ? window.location.origin 
+      : 'https://app.primetrack.top';
+
+    const webhookUrl = `${baseUrl}/webhook/${fullToken}/${platform.slug}`;
+
     const today = new Date();
     const formattedDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
 
     const newTokenItem = {
       id: `tok_${Date.now()}`,
       name: rawAlias,
-      platform: selectedPlatformName.toLowerCase(),
+      platform: platform.slug,
+      type: platform.type,
       token: fullToken,
+      webhookUrl: platform.type === 'webhook_url' ? webhookUrl : '',
       status: 'Ativo',
       lastUsed: '—',
       createdAt: formattedDate
@@ -371,12 +434,25 @@ export default function Integrations() {
     }).catch(() => {});
 
     setGeneratedPlatformToken(fullToken);
+    setGeneratedPlatformWebhookUrl(webhookUrl);
+    setSelectedPlatformType(platform.type);
+    setCopiedToken(false);
+    setCopiedWebhookUrl(false);
     setConnectPlatformStep(3);
   };
 
-  const handleQuickConnectPlatform = (platform = 'Monsterpay') => {
-    setSelectedPlatformName(platform);
-    const rawAlias = platform.toLowerCase();
+  const handleQuickConnectPlatform = (platformOrName = 'Monsterpay') => {
+    const platform = typeof platformOrName === 'object'
+      ? platformOrName
+      : SUPPORTED_GATEWAY_PLATFORMS.find(p => p.name.toLowerCase() === platformOrName.toLowerCase() || p.slug === platformOrName.toLowerCase()) || {
+          id: platformOrName.toLowerCase(),
+          name: platformOrName,
+          slug: platformOrName.toLowerCase().replace(/\s+/g, ''),
+          type: platformOrName.toLowerCase().includes('monster') ? 'token' : 'webhook_url'
+        };
+
+    setSelectedPlatformName(platform.name);
+    setSelectedPlatformType(platform.type || 'webhook_url');
 
     // Gera token de 48 caracteres hexadecimais no padrão pt_
     const chars = '0123456789abcdef';
@@ -386,14 +462,22 @@ export default function Integrations() {
     }
     const fullToken = `pt_${randomHex}`;
 
+    const baseUrl = typeof window !== 'undefined' && window.location.origin.includes('localhost') 
+      ? window.location.origin 
+      : 'https://app.primetrack.top';
+
+    const webhookUrl = `${baseUrl}/webhook/${fullToken}/${platform.slug}`;
+
     const today = new Date();
     const formattedDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
 
     const newTokenItem = {
       id: `tok_${Date.now()}`,
-      name: rawAlias,
-      platform: rawAlias,
+      name: platform.name,
+      platform: platform.slug,
+      type: platform.type,
       token: fullToken,
+      webhookUrl: platform.type === 'webhook_url' ? webhookUrl : '',
       status: 'Ativo',
       lastUsed: '—',
       createdAt: formattedDate
@@ -411,8 +495,10 @@ export default function Integrations() {
     }).catch(() => {});
 
     setGeneratedPlatformToken(fullToken);
+    setGeneratedPlatformWebhookUrl(webhookUrl);
     setCopiedToken(false);
-    setConnectPlatformStep(3); // Vai direto para a tela do token
+    setCopiedWebhookUrl(false);
+    setConnectPlatformStep(3); // Vai direto para a tela final
   };
 
   const copyPlatformField = (text, type) => {
@@ -1652,8 +1738,10 @@ export default function Integrations() {
                     setConnectPlatformStep(1);
                     setSearchPlatform('');
                     setSelectedPlatformName('Monsterpay');
+                    setSelectedPlatformType('token');
                     setTokenAliasInput('monsterpay');
                     setGeneratedPlatformToken('');
+                    setGeneratedPlatformWebhookUrl('');
                   }}
                   className="px-3 py-1.5 rounded-lg bg-[#070D1A] hover:bg-white/5 border border-white/10 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
@@ -1664,7 +1752,7 @@ export default function Integrations() {
                   onClick={() => {
                     setShowNewTokenModal(true);
                     setNewTokenStep(1);
-                    setTokenInputName('');
+                    setTokenInputName('Documentação');
                     setCopiedRecentToken(false);
                   }}
                   className="px-3 py-1.5 rounded-lg bg-[#070D1A] hover:bg-white/5 border border-white/10 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
@@ -1680,7 +1768,7 @@ export default function Integrations() {
                 <thead className="bg-[#070D1A] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E]">
                   <tr>
                     <th className="py-3 px-4">PLATAFORMA</th>
-                    <th className="py-3 px-4">TOKEN</th>
+                    <th className="py-3 px-4">TOKEN / WEBHOOK URL</th>
                     <th className="py-3 px-4 text-center">STATUS</th>
                     <th className="py-3 px-4">ÚLTIMO USO</th>
                     <th className="py-3 px-4">CRIADO EM</th>
@@ -1692,43 +1780,97 @@ export default function Integrations() {
                     <tr>
                       <td colSpan={6} className="py-10 px-4 text-center">
                         <div className="text-zinc-400 font-bold text-xs">
-                          Nenhum token de API criado ainda
+                          Nenhum token de API ou webhook criado ainda
                         </div>
                         <div className="text-[11px] text-zinc-500 mt-1">
-                          Clique em <span className="text-[#5C9BFF] font-semibold">"Conectar Plataforma"</span> ou <span className="text-[#5C9BFF] font-semibold">"Token Padrão"</span> acima para gerar seu primeiro token.
+                          Clique em <span className="text-[#5C9BFF] font-semibold">"Conectar Plataforma"</span> para gerar URLs de webhook (Hotmart, Kiwify, Perfect Pay) ou <span className="text-[#5C9BFF] font-semibold">"Token Padrão"</span> para Documentação.
                         </div>
                       </td>
                     </tr>
                   ) : (
                     apiTokens.map((tok) => {
-                      const isMonster = (tok.platform || tok.name || '').toLowerCase().includes('monster');
-                      
+                      const norm = (tok.platform || tok.name || '').toLowerCase();
+                      const isMonster = norm.includes('monster');
+                      const isDoc = norm.includes('doc');
+                      const isPerfect = norm.includes('perfect');
+                      const isHotmart = norm.includes('hotmart');
+                      const isKiwify = norm.includes('kiwify');
+
+                      const displayName = isMonster 
+                        ? 'Monsterpay' 
+                        : isPerfect 
+                        ? 'Perfect Pay' 
+                        : isHotmart 
+                        ? 'Hotmart' 
+                        : isKiwify 
+                        ? 'Kiwify' 
+                        : isDoc 
+                        ? 'Documentação' 
+                        : (tok.name || tok.platform);
+
+                      const badgeText = isMonster 
+                        ? 'Nativa' 
+                        : isDoc 
+                        ? 'API' 
+                        : 'Webhook';
+
+                      const baseUrl = typeof window !== 'undefined' && window.location.origin.includes('localhost') 
+                        ? window.location.origin 
+                        : 'https://app.primetrack.top';
+
+                      const effectiveWebhookUrl = tok.webhookUrl || (
+                        (isPerfect || isHotmart || isKiwify) 
+                          ? `${baseUrl}/webhook/${tok.token}/${tok.platform || 'webhook'}`
+                          : null
+                      );
+
                       return (
                         <tr key={tok.id} className="hover:bg-white/[0.02] transition-colors">
                           <td className="py-4 px-4 font-bold text-white">
                             <div className="flex items-center gap-2">
                               <span className="px-2.5 py-0.5 rounded-full bg-[#1A6DFF] text-white font-mono text-[10px] font-bold">
-                                {isMonster ? 'MonsterPay' : (tok.platform || tok.name)}
+                                {displayName}
                               </span>
-                              {isMonster && (
-                                <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono text-[9px] font-bold uppercase tracking-wider">
-                                  Conectada
-                                </span>
-                              )}
+                              <span className={`px-2 py-0.5 rounded-full font-mono text-[9px] font-bold uppercase tracking-wider ${
+                                badgeText === 'Nativa'
+                                  ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400'
+                                  : badgeText === 'API'
+                                  ? 'bg-purple-500/15 border border-purple-500/30 text-purple-400'
+                                  : 'bg-cyan-500/15 border border-cyan-500/30 text-cyan-400'
+                              }`}>
+                                {badgeText}
+                              </span>
                             </div>
                           </td>
                           <td className="py-4 px-4 font-mono text-zinc-300">
-                            <div className="flex items-center gap-1.5">
-                              <span>{tok.token ? `${tok.token.slice(0, 7)}••••${tok.token.slice(-6)}` : 'pt_****1775a8'}</span>
-                              <button
-                                type="button"
-                                onClick={() => copyPlatformField(tok.token, 'token')}
-                                className="p-0.5 hover:text-white text-zinc-400 transition-colors cursor-pointer"
-                                title="Copiar Token"
-                              >
-                                <Copy className="w-3 h-3 text-zinc-500 hover:text-white" />
-                              </button>
-                            </div>
+                            {effectiveWebhookUrl ? (
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] text-zinc-300 max-w-[280px] truncate" title={effectiveWebhookUrl}>
+                                  {effectiveWebhookUrl}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => copyPlatformField(effectiveWebhookUrl, 'url')}
+                                  className="px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-[10px] text-[#5C9BFF] hover:text-white transition-colors cursor-pointer border border-white/10 flex items-center gap-1 shrink-0"
+                                  title="Copiar URL do Webhook"
+                                >
+                                  <Copy className="w-3 h-3" />
+                                  <span>Copiar URL</span>
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1.5">
+                                <span>{tok.token ? `${tok.token.slice(0, 7)}••••${tok.token.slice(-6)}` : 'pt_****1775a8'}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => copyPlatformField(tok.token, 'token')}
+                                  className="p-0.5 hover:text-white text-zinc-400 transition-colors cursor-pointer"
+                                  title="Copiar Token"
+                                >
+                                  <Copy className="w-3 h-3 text-zinc-500 hover:text-white" />
+                                </button>
+                              </div>
+                            )}
                           </td>
                           <td className="py-4 px-4 text-center">
                             <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono text-[10px] font-bold">
@@ -2089,7 +2231,7 @@ export default function Integrations() {
           onClick={() => {
             setShowNewTokenModal(false);
             setNewTokenStep(1);
-            setTokenInputName('');
+            setTokenInputName('Documentação');
           }}
         >
           <div 
@@ -2097,14 +2239,15 @@ export default function Integrations() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-2 border-b border-[#1E3254]/60">
-              <h3 className="text-base font-bold text-white tracking-tight">
-                Novo Token de API
+              <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                <Code2 className="w-4 h-4 text-[#38BDF8]" />
+                <span>Novo Token de API (Documentação)</span>
               </h3>
               <button 
                 onClick={() => {
                   setShowNewTokenModal(false);
                   setNewTokenStep(1);
-                  setTokenInputName('');
+                  setTokenInputName('Documentação');
                 }} 
                 className="text-zinc-400 hover:text-white transition-colors cursor-pointer p-1"
               >
@@ -2114,16 +2257,34 @@ export default function Integrations() {
 
             {newTokenStep === 1 && (
               <form onSubmit={handleGenerateToken} className="space-y-4">
+                <div className="p-3.5 rounded-xl bg-[#08202A] border border-[#0D404F] text-xs text-zinc-300 space-y-1.5 font-sans">
+                  <div className="flex items-center gap-1.5 text-[#38BDF8] font-bold text-xs">
+                    <span>Integração via Documentação Oficial</span>
+                  </div>
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
+                    Gere um token de autenticação para integrar seu sistema, checkout ou backend personalizado utilizando a nossa documentação oficial de Webhooks.
+                  </p>
+                  <a
+                    href="https://docs.primetrack.top"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] text-[#5C9BFF] hover:underline font-semibold pt-0.5"
+                  >
+                    <span>Acessar documentação da API</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+
                 <div>
                   <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-wider mb-2 font-mono">
-                    NOME DA PLATAFORMA
+                    IDENTIFICADOR DA INTEGRAÇÃO
                   </label>
                   <input 
                     type="text"
                     autoFocus
                     value={tokenInputName}
                     onChange={(e) => setTokenInputName(e.target.value)}
-                    placeholder="Ex: Hotmart, Kiwify, Monetizze..."
+                    placeholder="Ex: Documentação Oficial, API Própria, Meu Sistema..."
                     className="w-full px-4 py-2.5 rounded-xl bg-[#060D1A] border border-[#1E3254] text-white placeholder:text-zinc-600 text-xs focus:outline-none focus:border-[#1A6DFF] transition-colors"
                   />
                 </div>
@@ -2134,7 +2295,7 @@ export default function Integrations() {
                     onClick={() => {
                       setShowNewTokenModal(false);
                       setNewTokenStep(1);
-                      setTokenInputName('');
+                      setTokenInputName('Documentação');
                     }}
                     className="px-4 py-2 rounded-lg bg-[#070D1A] hover:bg-white/5 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white transition-colors cursor-pointer"
                   >
@@ -2151,19 +2312,19 @@ export default function Integrations() {
             )}
 
             {newTokenStep === 2 && (
-              <div className="space-y-5 animate-in fade-in duration-150">
+              <div className="space-y-4 animate-in fade-in duration-150">
                 {/* Banner de Sucesso verde */}
-                <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2 font-medium">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <div className="p-3.5 rounded-xl bg-[#08202A] border border-[#0D404F] text-[#4ADE80] text-xs flex items-center gap-2 font-medium">
+                  <CheckCircle2 className="w-4 h-4 text-[#4ADE80] shrink-0" />
                   <span>
-                    Pronto! Copie abaixo e cole no painel da <strong className="text-[#5C9BFF] font-bold">{newTokenCreatedPlatform}</strong>.
+                    Pronto! Copie as credenciais abaixo para usar na <strong className="text-[#38BDF8] font-bold">Documentação da API</strong>.
                   </span>
                 </div>
 
                 {/* Campo do TOKEN */}
                 <div>
                   <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
-                    TOKEN
+                    TOKEN DE AUTENTICAÇÃO
                   </label>
                   <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#060D1A] border border-[#1E3254]">
                     <span className="font-mono text-xs text-zinc-200 select-all truncate pl-1">
@@ -2181,7 +2342,38 @@ export default function Integrations() {
                       {copiedRecentToken ? (
                         <>
                           <Check className="w-3.5 h-3.5 text-emerald-400" />
-                          <span className="text-emerald-400">Copiado</span>
+                          <span className="text-emerald-400 font-semibold">Copiado!</span>
+                        </>
+                      ) : (
+                        <span>Copiar</span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Campo do ENDPOINT */}
+                <div>
+                  <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
+                    URL DO ENDPOINT (POST)
+                  </label>
+                  <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#060D1A] border border-[#1E3254]">
+                    <span className="font-mono text-xs text-zinc-200 select-all truncate pl-1">
+                      {(typeof window !== 'undefined' && window.location.origin.includes('localhost') ? window.location.origin : 'https://app.primetrack.top') + '/api/webhooks'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const url = (typeof window !== 'undefined' && window.location.origin.includes('localhost') ? window.location.origin : 'https://app.primetrack.top') + '/api/webhooks';
+                        navigator.clipboard?.writeText(url);
+                        setCopiedDocEndpoint(true);
+                        setTimeout(() => setCopiedDocEndpoint(false), 2000);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-xs text-zinc-200 font-medium transition-colors shrink-0 cursor-pointer flex items-center gap-1"
+                    >
+                      {copiedDocEndpoint ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="text-emerald-400 font-semibold">Copiado!</span>
                         </>
                       ) : (
                         <span>Copiar</span>
@@ -2197,7 +2389,7 @@ export default function Integrations() {
                     onClick={() => {
                       setShowNewTokenModal(false);
                       setNewTokenStep(1);
-                      setTokenInputName('');
+                      setTokenInputName('Documentação');
                     }}
                     className="px-6 py-2 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-colors cursor-pointer"
                   >
@@ -2235,7 +2427,7 @@ export default function Integrations() {
               </button>
             </div>
 
-            {/* PASSO 1: Seleção de Plataforma (Screenshot 1) - Deixa somente Monsterpay */}
+            {/* PASSO 1: Seleção de Plataforma (Monsterpay, Perfect Pay, Hotmart, Kiwify) */}
             {connectPlatformStep === 1 && (
               <div className="space-y-4 animate-in fade-in duration-150">
                 <div className="relative">
@@ -2250,29 +2442,42 @@ export default function Integrations() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[320px] overflow-y-auto pr-1">
-                  {'monsterpay'.includes(searchPlatform.toLowerCase().trim()) ? (
-                    <div 
-                      onClick={() => handleQuickConnectPlatform('Monsterpay')}
-                      className="bg-[#070D1A] hover:bg-[#0E1B33] border border-[#1E3254] hover:border-[#1A6DFF] rounded-xl p-4 transition-all cursor-pointer group flex items-center justify-between shadow-sm"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-white text-sm">Monsterpay</span>
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-mono text-[9px] font-bold uppercase tracking-wider">
-                          Nativa
-                        </span>
-                      </div>
-                      <button 
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.open('https://docs.primetrack.top', '_blank');
-                        }}
-                        className="px-2.5 py-1 rounded bg-[#10203D] hover:bg-[#1A3360] text-[#5C9BFF] text-[10px] font-semibold flex items-center gap-1 border border-[#1E3254] cursor-pointer"
+                  {SUPPORTED_GATEWAY_PLATFORMS.filter(p => 
+                    p.name.toLowerCase().includes(searchPlatform.toLowerCase().trim()) ||
+                    p.slug.toLowerCase().includes(searchPlatform.toLowerCase().trim())
+                  ).length > 0 ? (
+                    SUPPORTED_GATEWAY_PLATFORMS.filter(p => 
+                      p.name.toLowerCase().includes(searchPlatform.toLowerCase().trim()) ||
+                      p.slug.toLowerCase().includes(searchPlatform.toLowerCase().trim())
+                    ).map((platform) => (
+                      <div 
+                        key={platform.id}
+                        onClick={() => handleQuickConnectPlatform(platform)}
+                        className="bg-[#070D1A] hover:bg-[#0E1B33] border border-[#1E3254] hover:border-[#1A6DFF] rounded-xl p-4 transition-all cursor-pointer group flex items-center justify-between shadow-sm"
                       >
-                        <Play className="w-2.5 h-2.5 fill-current" />
-                        <span>Tutorial</span>
-                      </button>
-                    </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white text-sm">{platform.name}</span>
+                          <span className={`px-2 py-0.5 rounded-full font-mono text-[9px] font-bold uppercase tracking-wider ${
+                            platform.type === 'token'
+                              ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400'
+                              : 'bg-blue-500/15 border border-blue-500/30 text-[#5C9BFF]'
+                          }`}>
+                            {platform.type === 'token' ? 'Nativa' : 'Webhook'}
+                          </span>
+                        </div>
+                        <button 
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(platform.tutorialUrl || 'https://docs.primetrack.top', '_blank');
+                          }}
+                          className="px-2.5 py-1 rounded bg-[#10203D] hover:bg-[#1A3360] text-[#5C9BFF] text-[10px] font-semibold flex items-center gap-1 border border-[#1E3254] cursor-pointer"
+                        >
+                          <Play className="w-2.5 h-2.5 fill-current" />
+                          <span>Tutorial</span>
+                        </button>
+                      </div>
+                    ))
                   ) : (
                     <div className="col-span-full py-8 text-center text-xs text-zinc-500 font-sans">
                       Nenhuma plataforma encontrada com "{searchPlatform}".
@@ -2282,11 +2487,11 @@ export default function Integrations() {
               </div>
             )}
 
-            {/* PASSO 2: Apelido do Token (Screenshot 2) */}
+            {/* PASSO 2: Apelido do Token (Opcional) */}
             {connectPlatformStep === 2 && (
               <form onSubmit={handleGenerateConnectToken} className="space-y-5 animate-in fade-in duration-150">
                 <div className="text-xs text-zinc-400 font-sans">
-                  Plataforma: <strong className="text-[#5C9BFF] font-bold">{selectedPlatformName.toLowerCase()}</strong>
+                  Plataforma: <strong className="text-[#5C9BFF] font-bold">{selectedPlatformName}</strong>
                 </div>
 
                 <div>
@@ -2298,7 +2503,7 @@ export default function Integrations() {
                     autoFocus
                     value={tokenAliasInput}
                     onChange={(e) => setTokenAliasInput(e.target.value)}
-                    placeholder="monsterpay"
+                    placeholder={selectedPlatformName.toLowerCase()}
                     className="w-full px-4 py-2.5 rounded-xl bg-[#060D1A] border border-[#1E3254] text-white text-xs focus:outline-none focus:border-[#1A6DFF] transition-colors font-sans"
                   />
                 </div>
@@ -2316,54 +2521,85 @@ export default function Integrations() {
                     type="submit"
                     className="px-5 py-2 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-all cursor-pointer"
                   >
-                    Gerar Token
+                    Gerar
                   </button>
                 </div>
               </form>
             )}
 
-            {/* PASSO 3: Token Gerado (Print 3) - Somente o Token */}
+            {/* PASSO 3: Resultado Gerado (Conforme Screenshot do Usuário) */}
             {connectPlatformStep === 3 && (
               <div className="space-y-5 animate-in fade-in duration-150">
-                {/* Banner de Sucesso verde */}
-                <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2 font-medium">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                {/* Banner de Sucesso verde idêntico ao print */}
+                <div className="p-3.5 rounded-xl bg-[#08202A] border border-[#0D404F] text-[#4ADE80] text-xs flex items-center gap-2 font-medium">
+                  <CheckCircle2 className="w-4 h-4 text-[#4ADE80] shrink-0" />
                   <span>
-                    Pronto! Copie abaixo e cole no painel da <strong className="text-[#5C9BFF] font-bold">{selectedPlatformName.toLowerCase()}</strong>.
+                    Pronto! Copie abaixo e cole no painel da <strong className="text-[#38BDF8] font-bold">{selectedPlatformName}</strong>.
                   </span>
                 </div>
 
-                {/* Campo do TOKEN */}
-                <div>
-                  <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
-                    TOKEN
-                  </label>
-                  <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#060D1A] border border-[#1E3254]">
-                    <span className="font-mono text-xs text-zinc-200 select-all truncate pl-1">
-                      {generatedPlatformToken}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => copyPlatformField(generatedPlatformToken, 'token')}
-                      className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-xs text-zinc-200 font-medium transition-colors shrink-0 cursor-pointer flex items-center gap-1"
-                    >
-                      {copiedToken ? (
-                        <>
-                          <Check className="w-3.5 h-3.5 text-emerald-400" />
-                          <span className="text-emerald-400">Copiado</span>
-                        </>
-                      ) : (
-                        <span>Copiar</span>
-                      )}
-                    </button>
+                {/* Se a plataforma selecionada for Webhook URL (Hotmart, Kiwify, Perfect Pay) */}
+                {selectedPlatformType === 'webhook_url' ? (
+                  <div>
+                    <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
+                      URL DO WEBHOOK
+                    </label>
+                    <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-[#060D1A] border border-[#1E3254]">
+                      <span className="font-mono text-xs text-zinc-200 select-all truncate pl-1">
+                        {generatedPlatformWebhookUrl}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => copyPlatformField(generatedPlatformWebhookUrl, 'url')}
+                        className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-xs text-zinc-200 font-medium transition-colors shrink-0 cursor-pointer flex items-center gap-1.5"
+                      >
+                        {copiedWebhookUrl ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            <span className="text-emerald-400 font-semibold">Copiado!</span>
+                          </>
+                        ) : (
+                          <span>Copiar</span>
+                        )}
+                      </button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  /* Se a plataforma for Monsterpay (Token) */
+                  <div>
+                    <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
+                      TOKEN
+                    </label>
+                    <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-[#060D1A] border border-[#1E3254]">
+                      <span className="font-mono text-xs text-zinc-200 select-all truncate pl-1">
+                        {generatedPlatformToken}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => copyPlatformField(generatedPlatformToken, 'token')}
+                        className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-xs text-zinc-200 font-medium transition-colors shrink-0 cursor-pointer flex items-center gap-1.5"
+                      >
+                        {copiedToken ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            <span className="text-emerald-400 font-semibold">Copiado!</span>
+                          </>
+                        ) : (
+                          <span>Copiar</span>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Botão Concluir */}
                 <div className="flex justify-end pt-2">
                   <button
                     type="button"
-                    onClick={() => setShowConnectPlatformModal(false)}
+                    onClick={() => {
+                      setShowConnectPlatformModal(false);
+                      setConnectPlatformStep(1);
+                    }}
                     className="px-6 py-2 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-colors cursor-pointer"
                   >
                     Concluir
