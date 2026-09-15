@@ -222,17 +222,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     }
   };
   const [activeCreativePreview, setActiveCreativePreview] = useState(null);
-  const [statusFilter, setStatusFilter] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('primetrack_status_filter') || 'Todas';
-    }
-    return 'Todas';
-  });
+  // Sempre inicia no status 'Todas' ao entrar ou retornar à página de Campanhas
+  const [statusFilter, setStatusFilter] = useState('Todas');
   const handleStatusFilterChange = (val) => {
     setStatusFilter(val);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('primetrack_status_filter', val);
-    }
   };
 
   // Sempre inicia no filtro 'Hoje' ao entrar ou retornar à página de Campanhas
@@ -244,10 +237,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const latestRequestIdRef = React.useRef(0);
 
   useEffect(() => {
-    // Remove qualquer filtro de período salvo anteriormente no navegador
+    // Remove qualquer filtro de período ou status salvo anteriormente no navegador
     if (typeof window !== 'undefined') {
       localStorage.removeItem('primetrack_campaigns_period_filter');
       localStorage.removeItem('primetrack_campaigns_custom_range');
+      localStorage.removeItem('primetrack_status_filter');
     }
   }, []);
 
@@ -1549,6 +1543,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     }
     // Quando 'Todas as Contas' está selecionado, exibe todas as campanhas retornadas da Meta
     return true;
+  }).sort((a, b) => {
+    const aActive = isStatusActive(a) ? 1 : 0;
+    const bActive = isStatusActive(b) ? 1 : 0;
+    if (bActive !== aActive) return bActive - aActive;
+    return 0;
   });
 
   // Campanhas no escopo de exibição de conjuntos e anúncios:
@@ -1724,6 +1723,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       if (statusFilter === 'Ativo' && !isStatusActive(as)) return false;
       if (statusFilter === 'Desativadas' && isStatusActive(as)) return false;
       return true;
+    }).sort((a, b) => {
+      const aActive = isStatusActive(a) ? 1 : 0;
+      const bActive = isStatusActive(b) ? 1 : 0;
+      if (bActive !== aActive) return bActive - aActive;
+      return 0;
     });
   }, [filteredCampaigns, campaignsList, effectiveCampaignScopeIds, statusFilter, itemNamesOverride]);
 
@@ -1878,6 +1882,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       if (statusFilter === 'Ativo' && !isStatusActive(ad)) return false;
       if (statusFilter === 'Desativadas' && isStatusActive(ad)) return false;
       return true;
+    }).sort((a, b) => {
+      const aActive = isStatusActive(a) ? 1 : 0;
+      const bActive = isStatusActive(b) ? 1 : 0;
+      if (bActive !== aActive) return bActive - aActive;
+      return 0;
     });
   }, [filteredCampaigns, campaignsList, effectiveCampaignScopeIds, selectedAdsetIds, statusFilter, itemNamesOverride]);
 
@@ -1999,7 +2008,15 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   };
 
   const sortedItems = React.useMemo(() => {
-    if (!sortKey || !sortDirection) return currentItems;
+    if (!sortKey || !sortDirection) {
+      // Prioridade padrão: itens ativos sempre no topo
+      return [...currentItems].sort((a, b) => {
+        const aActive = isStatusActive(a) ? 1 : 0;
+        const bActive = isStatusActive(b) ? 1 : 0;
+        if (bActive !== aActive) return bActive - aActive;
+        return 0;
+      });
+    }
 
     return [...currentItems].sort((a, b) => {
       const valA = getItemSortValue(a, sortKey);
