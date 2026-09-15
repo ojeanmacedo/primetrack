@@ -32,13 +32,20 @@ export default function Sales() {
   const [loading, setLoading] = useState(() => liveOrders.length === 0);
 
   const fetchSales = () => {
-    fetch('/api/orders')
+    const userHeaders = user?.id ? { 'x-user-id': user.id } : {};
+    const userParam = user?.id ? `?userId=${encodeURIComponent(user.id)}` : '';
+
+    fetch('/api/orders' + userParam, { headers: userHeaders })
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
           setLiveOrders(data);
           try {
-            localStorage.setItem('primetrack_cached_orders', JSON.stringify(data));
+            if (data.length > 0) {
+              localStorage.setItem('primetrack_cached_orders', JSON.stringify(data));
+            } else {
+              localStorage.removeItem('primetrack_cached_orders');
+            }
           } catch (e) {}
         }
       })

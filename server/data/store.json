@@ -186,7 +186,8 @@
       "dateRange": {
         "since": "2026-09-14",
         "until": "2026-09-14"
-      }
+      },
+      "userId": "usr_admin_digitaljm"
     },
     {
       "id": "52687589547178",
@@ -364,7 +365,8 @@
       "dateRange": {
         "since": "2026-09-14",
         "until": "2026-09-14"
-      }
+      },
+      "userId": "usr_admin_digitaljm"
     },
     {
       "id": "120250184790690459",
@@ -476,7 +478,8 @@
       "dateRange": {
         "since": "2026-09-14",
         "until": "2026-09-14"
-      }
+      },
+      "userId": "usr_admin_digitaljm"
     },
     {
       "id": "120250184790680459",
@@ -588,7 +591,8 @@
       "dateRange": {
         "since": "2026-09-14",
         "until": "2026-09-14"
-      }
+      },
+      "userId": "usr_admin_digitaljm"
     },
     {
       "id": "120250184683820459",
@@ -700,7 +704,8 @@
       "dateRange": {
         "since": "2026-09-14",
         "until": "2026-09-14"
-      }
+      },
+      "userId": "usr_admin_digitaljm"
     },
     {
       "id": "120250051654810466",
@@ -950,7 +955,8 @@
       "dateRange": {
         "since": "2026-09-14",
         "until": "2026-09-14"
-      }
+      },
+      "userId": "usr_admin_digitaljm"
     },
     {
       "id": "120250051654800466",
@@ -1200,7 +1206,8 @@
       "dateRange": {
         "since": "2026-09-14",
         "until": "2026-09-14"
-      }
+      },
+      "userId": "usr_admin_digitaljm"
     },
     {
       "id": "120250051646620466",
@@ -1450,7 +1457,8 @@
       "dateRange": {
         "since": "2026-09-14",
         "until": "2026-09-14"
-      }
+      },
+      "userId": "usr_admin_digitaljm"
     },
     {
       "id": "120250031975610466",
@@ -1727,7 +1735,8 @@
       "dateRange": {
         "since": "2026-09-14",
         "until": "2026-09-14"
-      }
+      },
+      "userId": "usr_admin_digitaljm"
     },
     {
       "id": "120251314288690152",
@@ -1905,7 +1914,8 @@
       "dateRange": {
         "since": "2026-09-14",
         "until": "2026-09-14"
-      }
+      },
+      "userId": "usr_admin_digitaljm"
     },
     {
       "id": "120251192705120152",
@@ -2281,7 +2291,8 @@
       "dateRange": {
         "since": "2026-09-14",
         "until": "2026-09-14"
-      }
+      },
+      "userId": "usr_admin_digitaljm"
     },
     {
       "id": "120251162808980152",
@@ -2657,7 +2668,8 @@
       "dateRange": {
         "since": "2026-09-14",
         "until": "2026-09-14"
-      }
+      },
+      "userId": "usr_admin_digitaljm"
     },
     {
       "id": "120251147918390152",
@@ -3390,7 +3402,8 @@
       "dateRange": {
         "since": "2026-09-14",
         "until": "2026-09-14"
-      }
+      },
+      "userId": "usr_admin_digitaljm"
     },
     {
       "id": "120251147918370152",
@@ -4123,7 +4136,8 @@
       "dateRange": {
         "since": "2026-09-14",
         "until": "2026-09-14"
-      }
+      },
+      "userId": "usr_admin_digitaljm"
     },
     {
       "id": "120251147907780152",
@@ -4856,7 +4870,8 @@
       "dateRange": {
         "since": "2026-09-14",
         "until": "2026-09-14"
-      }
+      },
+      "userId": "usr_admin_digitaljm"
     },
     {
       "id": "120251147827730152",
@@ -5589,7 +5604,8 @@
       "dateRange": {
         "since": "2026-09-14",
         "until": "2026-09-14"
-      }
+      },
+      "userId": "usr_admin_digitaljm"
     },
     {
       "id": "120251147827720152",
@@ -6322,7 +6338,8 @@
       "dateRange": {
         "since": "2026-09-14",
         "until": "2026-09-14"
-      }
+      },
+      "userId": "usr_admin_digitaljm"
     },
     {
       "id": "120251147741930152",
@@ -7055,7 +7072,8 @@
       "dateRange": {
         "since": "2026-09-14",
         "until": "2026-09-14"
-      }
+      },
+      "userId": "usr_admin_digitaljm"
     },
     {
       "id": "52523982161917",
@@ -7754,7 +7772,8 @@
       "dateRange": {
         "since": "2026-09-14",
         "until": "2026-09-14"
-      }
+      },
+      "userId": "usr_admin_digitaljm"
     },
     {
       "id": "120252815158940319",
@@ -8090,7 +8109,8 @@
       "dateRange": {
         "since": "2026-09-14",
         "until": "2026-09-14"
-      }
+      },
+      "userId": "usr_admin_digitaljm"
     },
     {
       "id": "120252757465170319",
@@ -8864,7 +8884,8 @@
       "dateRange": {
         "since": "2026-09-14",
         "until": "2026-09-14"
-      }
+      },
+      "userId": "usr_admin_digitaljm"
     },
     {
       "id": "120252508853290319",
@@ -9638,7 +9659,8 @@
       "dateRange": {
         "since": "2026-09-14",
         "until": "2026-09-14"
-      }
+      },
+      "userId": "usr_admin_digitaljm"
     }
   ],
   "sessions": [],
@@ -13673,8 +13695,10 @@
   "facebook_connections": [
     {
       "id": "122109599696599930",
+      "userId": "usr_admin_digitaljm",
+      "user_id": "usr_admin_digitaljm",
       "name": "Angel Kerry",
-      "email": null,
+      "email": "{\"activeAccounts\":[\"1095793299643643\",\"2013649985959956\",\"719933136445425\",\"4357287371268652\",\"1101817232408751\",\"1588922422580250\",\"1387392810034708\"]}",
       "avatarUrl": "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=122109599696599930&height=200&width=200&ext=1791750901&hash=AfuRPM5C4M3vhYUtaqouDSEs",
       "accessToken": "EAAXc4rzj1ukBSTcASkKPXisoeeyxx5gZAUZA7gcvjr9YnGBZCOc8SoxMHJP5X6ru3ZC7ArzWwCmwMM38OhYJJcurVJAithNMWi9MrQn0ZCVD4AAvoYT0ybsZCjruuwKAIUeH869tEylxiCXasGLkxPpEW0PLF6DlS4HOsRNiZCQ3UDQARdoX0vjYAC0fLalnumGV0gTtjbBevg7",
       "accountsCount": 8,
@@ -13693,7 +13717,9 @@
       "status": "Bloqueada",
       "amountSpent": "321.27",
       "balance": "0.00",
-      "syncActive": true
+      "syncActive": true,
+      "userId": "usr_admin_digitaljm",
+      "user_id": "usr_admin_digitaljm"
     },
     {
       "id": "act_2013649985959956",
@@ -13706,7 +13732,9 @@
       "status": "Ativa",
       "amountSpent": "59.7",
       "balance": "0.00",
-      "syncActive": true
+      "syncActive": true,
+      "userId": "usr_admin_digitaljm",
+      "user_id": "usr_admin_digitaljm"
     },
     {
       "id": "act_1084136023986167",
@@ -13719,7 +13747,9 @@
       "status": "Bloqueada",
       "amountSpent": "426.16",
       "balance": "0.00",
-      "syncActive": true
+      "syncActive": true,
+      "userId": "usr_admin_digitaljm",
+      "user_id": "usr_admin_digitaljm"
     },
     {
       "id": "act_719933136445425",
@@ -13732,7 +13762,9 @@
       "status": "Bloqueada",
       "amountSpent": "329.47",
       "balance": "0.00",
-      "syncActive": true
+      "syncActive": true,
+      "userId": "usr_admin_digitaljm",
+      "user_id": "usr_admin_digitaljm"
     },
     {
       "id": "act_4357287371268652",
@@ -13745,7 +13777,9 @@
       "status": "Bloqueada",
       "amountSpent": "74.15",
       "balance": "0.00",
-      "syncActive": true
+      "syncActive": true,
+      "userId": "usr_admin_digitaljm",
+      "user_id": "usr_admin_digitaljm"
     },
     {
       "id": "act_1101817232408751",
@@ -13758,7 +13792,9 @@
       "status": "Ativa",
       "amountSpent": "443.41",
       "balance": "0.00",
-      "syncActive": true
+      "syncActive": true,
+      "userId": "usr_admin_digitaljm",
+      "user_id": "usr_admin_digitaljm"
     },
     {
       "id": "act_1588922422580250",
@@ -13771,7 +13807,9 @@
       "status": "Ativa",
       "amountSpent": "343.46",
       "balance": "0.00",
-      "syncActive": true
+      "syncActive": true,
+      "userId": "usr_admin_digitaljm",
+      "user_id": "usr_admin_digitaljm"
     },
     {
       "id": "act_1387392810034708",
@@ -13784,7 +13822,9 @@
       "status": "Ativa",
       "amountSpent": "0.00",
       "balance": "0.00",
-      "syncActive": true
+      "syncActive": true,
+      "userId": "usr_admin_digitaljm",
+      "user_id": "usr_admin_digitaljm"
     }
   ],
   "meta_ads": [
@@ -18488,7 +18528,8 @@
       "webhookUrl": "https://app.primetrack.top/api/webhooks/monsterpay",
       "status": "Ativo",
       "lastUsed": "Hoje",
-      "createdAt": "08/09/2026"
+      "createdAt": "08/09/2026",
+      "userId": "usr_admin_digitaljm"
     }
   ]
 }

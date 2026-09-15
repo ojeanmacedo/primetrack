@@ -15,6 +15,23 @@ export const DEFAULT_ADMIN = {
 
 const STORAGE_KEY = 'primetrack_current_user';
 
+export function clearUserLocalCaches() {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  const keysToRemove = [
+    'primetrack_ad_accounts',
+    'primetrack_connected_profiles',
+    'primetrack_cached_campaigns',
+    'primetrack_cached_campaigns_date',
+    'primetrack_cached_orders',
+    'primetrack_cached_pixel_stats',
+    'primetrack_webhook_tokens',
+    'primetrack_pixels',
+    'primetrack_meta_disconnected',
+    'primetrack_status_filter'
+  ];
+  keysToRemove.forEach(k => localStorage.removeItem(k));
+}
+
 export function getCurrentUser() {
   try {
     if (typeof window === 'undefined' || !window.localStorage) {
@@ -37,8 +54,21 @@ export function getCurrentUser() {
 export function setCurrentUser(user) {
   try {
     if (!user) {
+      clearUserLocalCaches();
       localStorage.removeItem(STORAGE_KEY);
     } else {
+      const prevUserRaw = localStorage.getItem(STORAGE_KEY);
+      if (prevUserRaw) {
+        try {
+          const prevUser = JSON.parse(prevUserRaw);
+          if (prevUser && prevUser.id !== user.id) {
+            clearUserLocalCaches();
+          }
+        } catch (e) {}
+      }
+      if (user.id === 'usr_meta_reviewer' || user.isNew) {
+        clearUserLocalCaches();
+      }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
     }
   } catch (e) {
@@ -342,6 +372,7 @@ export async function loginWithGoogle(email, name = '') {
 
 export async function logoutUser() {
   try {
+    clearUserLocalCaches();
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem('primetrack_needs_password_setup');
     sessionStorage.setItem('primetrack_manual_logout', 'true');

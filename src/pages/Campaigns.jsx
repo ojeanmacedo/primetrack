@@ -578,16 +578,27 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       query = `datePreset=${datePreset}`;
     }
 
+    const userHeaders = user?.id ? { 'x-user-id': user.id } : {};
+    const userParam = user?.id ? `&userId=${encodeURIComponent(user.id)}` : '';
+    const userParamFirst = user?.id ? `?userId=${encodeURIComponent(user.id)}` : '';
+
     try {
       const [statusRes, crRes] = await Promise.all([
-        fetch('/api/meta/status'),
-        fetch(`/api/campaigns?${query}`)
+        fetch('/api/meta/status' + userParamFirst, { headers: userHeaders }),
+        fetch(`/api/campaigns?${query}${userParam}`, { headers: userHeaders })
       ]);
 
       const data = await statusRes.json().catch(() => ({}));
 
       if (data && data.connections && data.connections.length > 0) {
         localStorage.removeItem('primetrack_meta_disconnected');
+      } else if (data && Array.isArray(data.connections) && data.connections.length === 0) {
+        setAdAccountsList([]);
+        setCampaignsList([]);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('primetrack_ad_accounts');
+          localStorage.removeItem('primetrack_cached_campaigns');
+        }
       }
 
       if (data && Array.isArray(data.adAccounts) && data.adAccounts.length > 0) {
@@ -625,6 +636,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             setAccountFilter('Todas');
           }
         }
+      } else if (data && Array.isArray(data.adAccounts) && data.adAccounts.length === 0) {
+        setAdAccountsList([]);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('primetrack_ad_accounts');
+        }
       }
 
       const cData = await crRes.json().catch(() => null);
@@ -642,8 +658,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           }
         }
       } else if (Array.isArray(cData) && cData.length === 0) {
-        // Se o endpoint retornou vazio temporariamente, NUNCA limpa as campanhas existentes!
-        console.warn('[Campaigns] Nenhuma campanha retornada no período. Preservando lista existente.');
+        if (!data?.connections || data.connections.length === 0) {
+          setCampaignsList([]);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('primetrack_cached_campaigns');
+          }
+        } else {
+          console.warn('[Campaigns] Nenhuma campanha retornada no período para o usuário.');
+        }
       }
     } catch (err) {
       console.log('Erro ao carregar dados:', err);
@@ -743,9 +765,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         syncPayload.datePreset = datePreset;
       }
 
+      syncPayload.userId = user?.id;
       const syncRes = await fetch('/api/meta/sync', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-user-id': user?.id || '' },
         body: JSON.stringify(syncPayload)
       });
       const syncData = await syncRes.json();

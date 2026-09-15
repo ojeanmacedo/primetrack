@@ -36,7 +36,14 @@ export default function AppLayout() {
   }
 
   useEffect(() => {
-    fetch('/api/orders')
+    if (!user) {
+      setTotalFaturado(0);
+      return;
+    }
+    const userHeaders = user.id ? { 'x-user-id': user.id } : {};
+    const userParam = user.id ? `?userId=${encodeURIComponent(user.id)}` : '';
+
+    fetch('/api/orders' + userParam, { headers: userHeaders })
       .then(r => r.json())
       .then(orders => {
         if (Array.isArray(orders)) {
@@ -44,10 +51,12 @@ export default function AppLayout() {
             .filter(o => o.status === 'approved' || o.status === 'paid' || o.status === 'pago')
             .reduce((acc, o) => acc + Number(o.amount || 0), 0);
           setTotalFaturado(approvedSum);
+        } else {
+          setTotalFaturado(0);
         }
       })
-      .catch(() => {});
-  }, [location.pathname]);
+      .catch(() => setTotalFaturado(0));
+  }, [location.pathname, user?.id]);
 
   const userName = user?.name || user?.email?.split('@')[0] || 'Jean Macedo';
   const userInitials = user?.name 

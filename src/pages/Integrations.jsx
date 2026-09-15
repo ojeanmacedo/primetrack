@@ -84,21 +84,18 @@ export default function Integrations() {
     createdAt: '08/09/2026'
   };
 
-  // Webhook API Tokens State (Inicia com MonsterPay nativo ativo)
+  // Webhook API Tokens State (Inicia 100% Zerado para novos cadastros e conta de teste)
   const [apiTokens, setApiTokens] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('primetrack_webhook_tokens');
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            const hasMonster = parsed.some(t => (t.platform || t.name || '').toLowerCase().includes('monster'));
-            return hasMonster ? parsed : [DEFAULT_MONSTERPAY_TOKEN, ...parsed];
-          }
+          if (Array.isArray(parsed)) return parsed;
         } catch (e) {}
       }
     }
-    return [DEFAULT_MONSTERPAY_TOKEN];
+    return [];
   });
 
   // Pixel de Rastreio State (Inicia 100% Zerado para novos cadastros)
@@ -325,6 +322,11 @@ export default function Integrations() {
     if (typeof window !== 'undefined') {
       localStorage.setItem('primetrack_webhook_tokens', JSON.stringify(updated));
     }
+    fetch('/api/webhook/tokens', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
+      body: JSON.stringify({ tokens: updated, userId: currentUser?.id })
+    }).catch(() => {});
 
     setRecentCreatedToken(fullToken);
     setNewTokenCreatedPlatform(rawName);
@@ -362,6 +364,11 @@ export default function Integrations() {
     if (typeof window !== 'undefined') {
       localStorage.setItem('primetrack_webhook_tokens', JSON.stringify(updated));
     }
+    fetch('/api/webhook/tokens', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
+      body: JSON.stringify({ tokens: updated, userId: currentUser?.id })
+    }).catch(() => {});
 
     setGeneratedPlatformToken(fullToken);
     setConnectPlatformStep(3);
@@ -397,6 +404,11 @@ export default function Integrations() {
     if (typeof window !== 'undefined') {
       localStorage.setItem('primetrack_webhook_tokens', JSON.stringify(updated));
     }
+    fetch('/api/webhook/tokens', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
+      body: JSON.stringify({ tokens: updated, userId: currentUser?.id })
+    }).catch(() => {});
 
     setGeneratedPlatformToken(fullToken);
     setCopiedToken(false);
@@ -420,6 +432,11 @@ export default function Integrations() {
     if (typeof window !== 'undefined') {
       localStorage.setItem('primetrack_webhook_tokens', JSON.stringify(updated));
     }
+    fetch('/api/webhook/tokens', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
+      body: JSON.stringify({ tokens: updated, userId: currentUser?.id })
+    }).catch(() => {});
   };
 
   const handleToggleSync = (accountId) => {
@@ -456,16 +473,16 @@ export default function Integrations() {
     // Persiste no backend imediatamente para nunca perder a configuração
     fetch('/api/meta/accounts/sync-status', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ activeAccounts: activeIds })
+      headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
+      body: JSON.stringify({ activeAccounts: activeIds, userId: currentUser?.id })
     }).catch(err => console.warn('Erro ao salvar status da conta no servidor:', err.message));
 
     // Se ativou conta(s), dispara sincronização com o Meta Ads imediatamente
     if (activeIds.length > 0) {
       fetch('/api/meta/sync', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accountIds: activeIds, datePreset: 'today' })
+        headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
+        body: JSON.stringify({ accountIds: activeIds, datePreset: 'today', userId: currentUser?.id })
       }).catch(err => console.warn('Erro ao sincronizar Meta:', err.message));
     }
 
@@ -517,8 +534,8 @@ export default function Integrations() {
     }
     fetch('/api/pixels', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pixels: updated })
+      headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
+      body: JSON.stringify({ pixels: updated, userId: currentUser?.id })
     }).catch(() => {});
     setShowNewPixelModal(false);
     setNewPixelName('');
@@ -638,8 +655,8 @@ export default function Integrations() {
     }
     fetch('/api/pixels', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pixels: updated })
+      headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
+      body: JSON.stringify({ pixels: updated, userId: currentUser?.id })
     }).catch(() => {});
     setPixelToEdit(null);
     setPixelSuccessMsg(`Pixel "${editPixelName.trim()}" atualizado com sucesso!`);
@@ -692,6 +709,11 @@ export default function Integrations() {
     if (typeof window !== 'undefined') {
       localStorage.setItem('primetrack_pixels', JSON.stringify(updated));
     }
+    fetch('/api/pixels', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
+      body: JSON.stringify({ pixels: updated, userId: currentUser?.id })
+    }).catch(() => {});
   };
 
   const handleDeletePixel = (pxId) => {
@@ -700,6 +722,11 @@ export default function Integrations() {
     if (typeof window !== 'undefined') {
       localStorage.setItem('primetrack_pixels', JSON.stringify(updated));
     }
+    fetch('/api/pixels', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
+      body: JSON.stringify({ pixels: updated, userId: currentUser?.id })
+    }).catch(() => {});
     setPixelToDelete(null);
   };
 
@@ -710,8 +737,8 @@ export default function Integrations() {
     try {
       const res = await fetch('/api/meta/disconnect', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profileId })
+        headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
+        body: JSON.stringify({ profileId, userId: currentUser?.id })
       });
       const data = await res.json().catch(() => ({}));
 
@@ -778,7 +805,9 @@ export default function Integrations() {
       localStorage.removeItem('primetrack_cached_campaigns');
     } else {
       localStorage.setItem('primetrack_connected_profiles', JSON.stringify(remaining));
-      fetch('/api/meta/status').then(r => r.json()).then(d => {
+      fetch(`/api/meta/status${currentUser?.id ? `?userId=${currentUser.id}` : ''}`, {
+        headers: { 'x-user-id': currentUser?.id || '' }
+      }).then(r => r.json()).then(d => {
         if (Array.isArray(d.adAccounts)) {
           setAdAccounts(d.adAccounts);
           localStorage.setItem('primetrack_ad_accounts', JSON.stringify(d.adAccounts));
@@ -794,8 +823,8 @@ export default function Integrations() {
     try {
       await fetch('/api/meta/disconnect', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
+        headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
+        body: JSON.stringify({ userId: currentUser?.id })
       });
     } catch (e) {
       console.error(e);
@@ -831,8 +860,11 @@ export default function Integrations() {
       window.dispatchEvent(new Event('primetrack_profile_sync'));
     }
 
-    // Busca status real das conexões salvas no backend (fonte única de verdade)
-    fetch('/api/meta/status')
+    // Busca status real das conexões salvas no backend (isolado por usuário)
+    const userHeader = currentUser?.id ? { 'x-user-id': currentUser.id } : {};
+    fetch(`/api/meta/status${currentUser?.id ? `?userId=${currentUser.id}` : ''}`, {
+      headers: userHeader
+    })
       .then(res => res.json())
       .then(data => {
         if (data.connections && data.connections.length > 0) {
@@ -847,9 +879,11 @@ export default function Integrations() {
           setConnectedProfiles(mapped);
           localStorage.setItem('primetrack_connected_profiles', JSON.stringify(mapped));
         } else if (data && Array.isArray(data.connections) && data.connections.length === 0) {
-          // Se backend explicitamente reportar 0 conexões (ex: nova instalação)
+          // Se backend explicitamente reportar 0 conexões (ex: nova instalação ou analista Meta)
           setConnectedProfiles([]);
           setAdAccounts([]);
+          localStorage.removeItem('primetrack_connected_profiles');
+          localStorage.removeItem('primetrack_ad_accounts');
         }
 
         if (Array.isArray(data.adAccounts)) {
@@ -904,7 +938,6 @@ export default function Integrations() {
       .catch(e => console.log('Backend offline ou usando cache local'));
 
     // Sincroniza pixels cadastrados com o banco de dados / backend (isolado por usuário)
-    const userHeader = currentUser?.id ? { 'x-user-id': currentUser.id } : {};
     fetch(`/api/pixels${currentUser?.id ? `?userId=${currentUser.id}` : ''}`, {
       headers: userHeader
     })
@@ -919,11 +952,13 @@ export default function Integrations() {
       })
       .catch(() => {});
 
-    // Sincroniza tokens de Webhook API com o servidor
-    fetch('/api/webhook/tokens')
+    // Sincroniza tokens de Webhook API com o servidor (isolado por usuário)
+    fetch(`/api/webhook/tokens${currentUser?.id ? `?userId=${currentUser.id}` : ''}`, {
+      headers: userHeader
+    })
       .then(res => res.json())
       .then(tokens => {
-        if (Array.isArray(tokens) && tokens.length > 0) {
+        if (Array.isArray(tokens)) {
           setApiTokens(tokens);
           if (typeof window !== 'undefined') {
             localStorage.setItem('primetrack_webhook_tokens', JSON.stringify(tokens));
@@ -1118,13 +1153,19 @@ export default function Integrations() {
                   onClick={async () => {
                     setIsRefreshingAccounts(true);
                     try {
-                      const res = await fetch('/api/meta/refresh-accounts', { method: 'POST' });
+                      const res = await fetch('/api/meta/refresh-accounts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
+                        body: JSON.stringify({ userId: currentUser?.id })
+                      });
                       const d = await res.json();
                       if (d.success) {
                         setRefreshAccountsToast(`✨ ${d.count} conta(s) atualizadas diretamente da Meta!`);
                         setTimeout(() => setRefreshAccountsToast(null), 4000);
                         // Recarrega status
-                        const statusRes = await fetch('/api/meta/status');
+                        const statusRes = await fetch(`/api/meta/status${currentUser?.id ? `?userId=${currentUser.id}` : ''}`, {
+                          headers: { 'x-user-id': currentUser?.id || '' }
+                        });
                         const statusData = await statusRes.json();
                         if (statusData.adAccounts) {
                           setAdAccounts(statusData.adAccounts.map(a => ({
@@ -1701,16 +1742,12 @@ export default function Integrations() {
                             {tok.createdAt || '08/09/2026'}
                           </td>
                           <td className="py-4 px-4 text-right font-mono">
-                            {tok.id !== 'tok_monsterpay' ? (
-                              <button 
-                                onClick={() => setTokenToDelete(tok)}
-                                className="text-red-400 hover:text-red-300 text-xs font-medium transition-colors cursor-pointer"
-                              >
-                                Excluir
-                              </button>
-                            ) : (
-                              <span className="text-zinc-500 text-xs">—</span>
-                            )}
+                            <button 
+                              onClick={() => setTokenToDelete(tok)}
+                              className="text-red-400 hover:text-red-300 text-xs font-medium transition-colors cursor-pointer"
+                            >
+                              Excluir
+                            </button>
                           </td>
                         </tr>
                       );
@@ -1815,7 +1852,7 @@ export default function Integrations() {
               {/* Primary Blue Button: Conectar com Facebook Oficial */}
               <button
                 onClick={() => {
-                  window.location.href = '/api/auth/facebook';
+                  window.location.href = `/api/auth/facebook?userId=${encodeURIComponent(currentUser?.id || '')}`;
                 }}
                 className="w-full py-3 px-4 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-brand/30 transition-transform active:scale-95"
               >
@@ -1828,7 +1865,7 @@ export default function Integrations() {
               {/* Botão de Copiar Link para Conectar em Outro Perfil / Navegador */}
               <button
                 onClick={() => {
-                  const url = `${window.location.origin}/api/auth/facebook`;
+                  const url = `${window.location.origin}/api/auth/facebook?userId=${encodeURIComponent(currentUser?.id || '')}`;
                   navigator.clipboard.writeText(url);
                   setCopiedAuthLink(true);
                   setTimeout(() => setCopiedAuthLink(false), 2500);

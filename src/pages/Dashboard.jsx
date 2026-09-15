@@ -415,12 +415,16 @@ export default function Dashboard() {
       query = `datePreset=${preset}`;
     }
 
+    const userHeaders = user?.id ? { 'x-user-id': user.id } : {};
+    const userParam = user?.id ? `&userId=${encodeURIComponent(user.id)}` : '';
+    const userParamFirst = user?.id ? `?userId=${encodeURIComponent(user.id)}` : '';
+
     try {
       const [rRes, crRes, ordRes, pixRes] = await Promise.all([
-        fetch('/api/meta/status'),
-        fetch(`/api/campaigns?${query}`),
-        fetch('/api/orders'),
-        fetch(`/api/pixel/stats?${query}`).catch(() => null)
+        fetch('/api/meta/status' + userParamFirst, { headers: userHeaders }),
+        fetch(`/api/campaigns?${query}${userParam}`, { headers: userHeaders }),
+        fetch('/api/orders' + userParamFirst, { headers: userHeaders }),
+        fetch(`/api/pixel/stats?${query}${userParam}`, { headers: userHeaders }).catch(() => null)
       ]);
 
       try {
@@ -428,7 +432,11 @@ export default function Dashboard() {
         if (Array.isArray(oData)) {
           setOrdersList(oData);
           if (typeof window !== 'undefined') {
-            localStorage.setItem('primetrack_cached_orders', JSON.stringify(oData));
+            if (oData.length > 0) {
+              localStorage.setItem('primetrack_cached_orders', JSON.stringify(oData));
+            } else {
+              localStorage.removeItem('primetrack_cached_orders');
+            }
           }
         }
       } catch (oErr) {}
@@ -448,6 +456,11 @@ export default function Dashboard() {
       const data = await rRes.json().catch(() => ({}));
       if (data && data.connections && data.connections.length > 0) {
         localStorage.removeItem('primetrack_meta_disconnected');
+      } else if (data && Array.isArray(data.connections) && data.connections.length === 0) {
+        setAdAccountsList([]);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('primetrack_ad_accounts');
+        }
       }
 
       if (data && Array.isArray(data.adAccounts) && data.adAccounts.length > 0) {
@@ -478,15 +491,24 @@ export default function Dashboard() {
 
         const activeSynced = allMappedAccs.filter(a => a.sync);
         setAdAccountsList(activeSynced.length > 0 ? activeSynced : allMappedAccs);
+      } else if (data && Array.isArray(data.adAccounts) && data.adAccounts.length === 0) {
+        setAdAccountsList([]);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('primetrack_ad_accounts');
+        }
       }
 
       const cData = await crRes.json().catch(() => null);
-      if (Array.isArray(cData) && cData.length > 0) {
+      if (Array.isArray(cData)) {
         setCampaigns(cData);
         if (typeof window !== 'undefined') {
-          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(cData));
-          if (customPeriod === 'Hoje' || (!customPeriod && period === 'Hoje')) {
-            localStorage.setItem('primetrack_cached_campaigns_date', toBrazilYMD(new Date()));
+          if (cData.length > 0) {
+            localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(cData));
+            if (customPeriod === 'Hoje' || (!customPeriod && period === 'Hoje')) {
+              localStorage.setItem('primetrack_cached_campaigns_date', toBrazilYMD(new Date()));
+            }
+          } else {
+            localStorage.removeItem('primetrack_cached_campaigns');
           }
         }
       }
@@ -507,26 +529,38 @@ export default function Dashboard() {
       query = `datePreset=${preset}&refresh=true`;
     }
 
+    const userHeaders = user?.id ? { 'x-user-id': user.id } : {};
+    const userParam = user?.id ? `&userId=${encodeURIComponent(user.id)}` : '';
+    const userParamFirst = user?.id ? `?userId=${encodeURIComponent(user.id)}` : '';
+
     try {
       const [cr, ord, pix] = await Promise.all([
-        fetch(`/api/campaigns?${query}`),
-        fetch('/api/orders'),
-        fetch(`/api/pixel/stats?${query}`).catch(() => null)
+        fetch(`/api/campaigns?${query}${userParam}`, { headers: userHeaders }),
+        fetch('/api/orders' + userParamFirst, { headers: userHeaders }),
+        fetch(`/api/pixel/stats?${query}${userParam}`, { headers: userHeaders }).catch(() => null)
       ]);
       const [cData, oData] = await Promise.all([cr.json().catch(() => null), ord.json().catch(() => null)]);
-      if (Array.isArray(cData) && cData.length > 0) {
+      if (Array.isArray(cData)) {
         setCampaigns(cData);
         if (typeof window !== 'undefined') {
-          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(cData));
-          if (period === 'Hoje') {
-            localStorage.setItem('primetrack_cached_campaigns_date', toBrazilYMD(new Date()));
+          if (cData.length > 0) {
+            localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(cData));
+            if (period === 'Hoje') {
+              localStorage.setItem('primetrack_cached_campaigns_date', toBrazilYMD(new Date()));
+            }
+          } else {
+            localStorage.removeItem('primetrack_cached_campaigns');
           }
         }
       }
       if (Array.isArray(oData)) {
         setOrdersList(oData);
         if (typeof window !== 'undefined') {
-          localStorage.setItem('primetrack_cached_orders', JSON.stringify(oData));
+          if (oData.length > 0) {
+            localStorage.setItem('primetrack_cached_orders', JSON.stringify(oData));
+          } else {
+            localStorage.removeItem('primetrack_cached_orders');
+          }
         }
       }
       if (pix) {
@@ -565,20 +599,29 @@ export default function Dashboard() {
           loadDashboardData('Hoje');
         }
       }
-      fetch('/api/orders')
+
+      const userHeaders = user?.id ? { 'x-user-id': user.id } : {};
+      const userParam = user?.id ? `&userId=${encodeURIComponent(user.id)}` : '';
+      const userParamFirst = user?.id ? `?userId=${encodeURIComponent(user.id)}` : '';
+
+      fetch('/api/orders' + userParamFirst, { headers: userHeaders })
         .then(res => res.json())
         .then(oData => {
-          if (Array.isArray(oData) && oData.length > 0) {
+          if (Array.isArray(oData)) {
             setOrdersList(oData);
             try {
-              localStorage.setItem('primetrack_cached_orders', JSON.stringify(oData));
+              if (oData.length > 0) {
+                localStorage.setItem('primetrack_cached_orders', JSON.stringify(oData));
+              } else {
+                localStorage.removeItem('primetrack_cached_orders');
+              }
             } catch (e) {}
           }
         })
         .catch(() => {});
 
       const currentPreset = periodToPreset[periodRef.current] || 'today';
-      fetch(`/api/pixel/stats?datePreset=${currentPreset}`)
+      fetch(`/api/pixel/stats?datePreset=${currentPreset}${userParam}`, { headers: userHeaders })
         .then(res => res.json())
         .then(pData => {
           if (pData && typeof pData.pageViews === 'number') {
