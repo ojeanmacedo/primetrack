@@ -1834,20 +1834,9 @@ export default function Integrations() {
                       return (
                         <tr key={tok.id} className="hover:bg-white/[0.02] transition-colors">
                           <td className="py-4 px-4 font-bold text-white">
-                            <div className="flex items-center gap-2">
-                              <span className="px-2.5 py-0.5 rounded-full bg-[#1A6DFF] text-white font-mono text-[10px] font-bold">
-                                {displayName}
-                              </span>
-                              <span className={`px-2 py-0.5 rounded-full font-mono text-[9px] font-bold uppercase tracking-wider ${
-                                badgeText === 'Nativa'
-                                  ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400'
-                                  : badgeText === 'API'
-                                  ? 'bg-purple-500/15 border border-purple-500/30 text-purple-400'
-                                  : 'bg-cyan-500/15 border border-cyan-500/30 text-cyan-400'
-                              }`}>
-                                {badgeText}
-                              </span>
-                            </div>
+                            <span className="px-2.5 py-0.5 rounded-full bg-[#1A6DFF] text-white font-mono text-[10px] font-bold">
+                              {displayName}
+                            </span>
                           </td>
                           <td className="py-4 px-4 font-mono text-zinc-300">
                             {effectiveWebhookUrl ? (
@@ -2462,27 +2451,10 @@ export default function Integrations() {
                         onClick={() => handleQuickConnectPlatform(platform)}
                         className="bg-[#070D1A] hover:bg-[#0E1B33] border border-[#1E3254] hover:border-[#1A6DFF] rounded-xl p-4 transition-all cursor-pointer group flex items-center justify-between shadow-sm"
                       >
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-white text-sm">{platform.name}</span>
-                          <span className={`px-2 py-0.5 rounded-full font-mono text-[9px] font-bold uppercase tracking-wider ${
-                            platform.type === 'token'
-                              ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400'
-                              : 'bg-blue-500/15 border border-blue-500/30 text-[#5C9BFF]'
-                          }`}>
-                            {platform.type === 'token' ? 'Nativa' : 'Webhook'}
-                          </span>
+                        <span className="font-bold text-white text-sm group-hover:text-[#5C9BFF] transition-colors">{platform.name}</span>
+                        <div className="w-6 h-6 rounded-lg bg-[#0F1D38] group-hover:bg-[#1A6DFF] text-zinc-400 group-hover:text-white flex items-center justify-center transition-all">
+                          <Plus className="w-3.5 h-3.5" />
                         </div>
-                        <button 
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(platform.tutorialUrl || 'https://docs.primetrack.top', '_blank');
-                          }}
-                          className="px-2.5 py-1 rounded bg-[#10203D] hover:bg-[#1A3360] text-[#5C9BFF] text-[10px] font-semibold flex items-center gap-1 border border-[#1E3254] cursor-pointer"
-                        >
-                          <Play className="w-2.5 h-2.5 fill-current" />
-                          <span>Tutorial</span>
-                        </button>
                       </div>
                     ))
                   ) : (
