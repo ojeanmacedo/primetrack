@@ -792,9 +792,27 @@ app.all([
       console.log(`[CAPI Ignorado] Pedido ${parsed.orderCode} com status '${parsed.status}'. Purchase só é enviado após aprovação do pagamento.`);
     }
 
-    // 4. Salva a venda atribuída
+    // 4. Identificação do usuário dono do Webhook Token para Isolamento Estrito de Vendas
+    let tokenUserId = null;
+    if (token) {
+      try {
+        const { data: tokData } = await supabaseAdmin.from('webhook_tokens').select('user_id').eq('token', token).limit(1);
+        if (tokData && tokData[0]?.user_id) tokenUserId = tokData[0].user_id;
+      } catch (e) {}
+      if (!tokenUserId) {
+        const allTokens = db.get('webhook_tokens') || [];
+        const foundTok = allTokens.find(t => t.token === token);
+        if (foundTok && (foundTok.userId || foundTok.user_id)) {
+          tokenUserId = foundTok.userId || foundTok.user_id;
+        }
+      }
+    }
+    const orderUserId = tokenUserId || specificPixel?.userId || (isOwnerUserId(req.query.userId) ? req.query.userId : 'usr_1788826403159');
+
+    // 5. Salva a venda atribuída com isolamento por usuário
     const orderRecord = {
       id: `ord_${Date.now()}`,
+      userId: orderUserId,
       orderCode: parsed.orderCode,
       gateway: parsed.gateway,
       productName: parsed.productName,
@@ -829,6 +847,7 @@ app.all([
       existingOrders[existingIdx] = {
         ...existingOrders[existingIdx],
         ...orderRecord,
+        userId: existingOrders[existingIdx].userId || orderUserId,
         status: parsed.status || 'waiting_payment'
       };
       db.set('orders', existingOrders);
@@ -841,7 +860,7 @@ app.all([
     try {
       const { data: existingSupa } = await supabaseAdmin
         .from('orders')
-        .select('id, status')
+        .select('id, status, user_id')
         .eq('order_code', parsed.orderCode)
         .limit(1);
 
@@ -857,21 +876,6 @@ app.all([
           })
           .eq('order_code', parsed.orderCode);
       } else {
-        let tokenUserId = null;
-        if (token) {
-          try {
-            const { data: tokData } = await supabaseAdmin.from('webhook_tokens').select('user_id').eq('token', token).limit(1);
-            if (tokData && tokData[0]?.user_id) tokenUserId = tokData[0].user_id;
-          } catch (e) {}
-          if (!tokenUserId) {
-            const allTokens = db.get('webhook_tokens') || [];
-            const foundTok = allTokens.find(t => t.token === token);
-            if (foundTok && (foundTok.userId || foundTok.user_id)) {
-              tokenUserId = foundTok.userId || foundTok.user_id;
-            }
-          }
-        }
-        const orderUserId = tokenUserId || specificPixel?.userId || (isOwnerUserId(req.query.userId) ? req.query.userId : 'usr_1788826403159');
         await supabaseAdmin.from('orders').insert({
           id: orderRecord.id,
           user_id: orderUserId,
