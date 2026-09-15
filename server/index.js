@@ -1463,12 +1463,16 @@ export function enrichCampaignsWithTracking({
 
     const nameUpper = (c.name || '').toUpperCase();
     const explicitAboInName = nameUpper.includes('ABO');
-    const isCampAbo = Boolean(
-      explicitAboInName || 
-      (c.isAbo === true && !c.isCbo && !nameUpper.includes('CBO')) ||
-      (c.budgetType?.includes('Conjunto') && !c.isCbo) ||
-      (c.budgetType === 'Nível de Conjunto (ABO)' && !c.isCbo)
-    );
+    const explicitCboInName = nameUpper.includes('CBO') || nameUpper.includes('BID') || nameUpper.includes('COST CAP');
+    const isCampAbo = explicitAboInName
+      ? true
+      : (explicitCboInName
+          ? false
+          : Boolean(
+              (c.isAbo === true && !c.isCbo) ||
+              (c.budgetType?.includes('Conjunto') && !c.isCbo) ||
+              (c.budgetType === 'Nível de Conjunto (ABO)' && !c.isCbo)
+            ));
     const isCampCbo = !isCampAbo;
 
     const enrichedAdsets = (c.adsets || []).map(as => {

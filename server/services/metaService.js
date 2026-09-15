@@ -307,28 +307,68 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     }
   } catch (e) {}
 
-  let metaCurrency = 'BRL';
-  try {
-    if (accRes) {
-      const accData = await accRes.json();
-      if (accData.currency) metaCurrency = accData.currency;
-    }
-  } catch (e) {}
-
-  const isUsd = metaCurrency === 'USD' || accountCurrency === 'USD' || actId.includes('1092137896602979') || actId.includes('2013649985959956') || actId.includes('1084136023986167') || actId.includes('1588922422580250');
-  const usdRate = isUsd ? await getUsdToBrlRate() : 1.0;
-
-  // Fallback: se a Meta bloquear leitura da estrutura por rate limit, recupera do db local
-  const cleanAct = actId.replace('act_', '');
-  const storedCampaigns = (db.get('campaigns') || []).filter(c => 
-    (c.adAccountId || '').replace('act_', '') === cleanAct
-  );
-
+  // Consulta em tempo real via batch dos status das campanhas caso venha vazio ou precise de confirmação precisa
   if (!data.data || data.data.length === 0) {
     if (storedCampaigns.length > 0) {
+      try {
+        const campIdsToQuery = storedCampaigns.map(c => c.id).filter(Boolean);
+        if (campIdsToQuery.length > 0 && accessToken) {
+          const batch = campIdsToQuery.slice(0, 50).map(id => ({
+            method: 'GET',
+            relative_url: `${id}?fields=id,name,status,effective_status,objective,daily_budget,lifetime_budget,bid_strategy`
+          }));
+          const batchRes = await fetch(`${GRAPH_BASE_URL}/?access_token=${accessToken}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ batch })
+          }).catch(() => null);
+          if (batchRes) {
+            const batchResults = await batchRes.json().catch(() => []);
+            if (Array.isArray(batchResults)) {
+              const liveMap = new Map();
+              batchResults.forEach(item => {
+                if (item.code === 200 && item.body) {
+                  try {
+                    const b = JSON.parse(item.body);
+                    if (b.id) liveMap.set(String(b.id), b);
+                  } catch (e) {}
+                }
+              });
+              storedCampaigns.forEach(c => {
+                const live = liveMap.get(String(c.id));
+                if (live) {
+                  c.rawStatus = live.status;
+                  c.effectiveStatus = live.effective_status;
+                  c.status = (live.status === 'ACTIVE' || live.status === true) &&
+                             live.status !== 'PAUSED' &&
+                             live.effective_status !== 'PAUSED' &&
+                             live.effective_status !== 'CAMPAIGN_PAUSED';
+                  if (live.daily_budget !== undefined) c.daily_budget = live.daily_budget;
+                  if (live.lifetime_budget !== undefined) c.lifetime_budget = live.lifetime_budget;
+                  if (live.bid_strategy !== undefined) c.bidStrategy = live.bid_strategy;
+                }
+              });
+            }
+          }
+        }
+      } catch (eBatchCamp) {}
+
       data = {
         data: storedCampaigns.map(c => {
-          const isCampAbo = Boolean(c.isAbo === true || c.budgetType?.includes('Conjunto') || (c.name || '').toUpperCase().includes('ABO'));
+          const rawDaily = c.daily_budget ? (Number(c.daily_budget) / 100) : null;
+          const rawLifetime = c.lifetime_budget ? (Number(c.lifetime_budget) / 100) : null;
+          const nameUpper = (c.name || '').toUpperCase();
+          const explicitAboInName = nameUpper.includes('ABO');
+          const explicitCboInName = nameUpper.includes('CBO') || nameUpper.includes('BID') || nameUpper.includes('COST CAP');
+
+          // Identificação precisa de ABO vs CBO:
+          // Se tiver CBO ou BID no nome, ou possuir orçamento em nível de campanha -> CBO
+          // Se tiver ABO no nome, ou não possuir orçamento em nível de campanha -> ABO
+          const isCampAbo = explicitAboInName
+            ? true
+            : (explicitCboInName
+                ? false
+                : (c.isCbo ? false : (c.isAbo === true || (!rawDaily && !rawLifetime && !c.budget))));
           let campDailyBudget = null;
           if (!isCampAbo) {
             const rawVal = (c.rawBudgetUsd !== null && c.rawBudgetUsd !== undefined && Number(c.rawBudgetUsd) > 0)
@@ -336,11 +376,12 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
               : (isUsd ? (Number(c.budget || 25) / usdRate) : Number(c.budget || 25));
             campDailyBudget = Math.round(rawVal * 100);
           }
+          const isPaused = !c.status || c.rawStatus === 'PAUSED' || c.effectiveStatus === 'PAUSED' || c.effectiveStatus === 'CAMPAIGN_PAUSED';
           return {
             id: c.id,
             name: c.name,
-            status: c.rawStatus || (c.status ? 'ACTIVE' : 'PAUSED'),
-            effective_status: c.effectiveStatus || (c.status ? 'ACTIVE' : 'PAUSED'),
+            status: isPaused ? 'PAUSED' : 'ACTIVE',
+            effective_status: isPaused ? 'PAUSED' : (c.effectiveStatus || 'ACTIVE'),
             objective: c.objective,
             daily_budget: campDailyBudget,
             bid_strategy: isCampAbo ? 'LOWEST_COST_WITHOUT_CAP' : (c.bidStrategy || 'LOWEST_COST_WITHOUT_CAP'),
@@ -699,10 +740,20 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
 
     const nameUpper = (c.name || '').toUpperCase();
     const explicitAboInName = nameUpper.includes('ABO');
+    const explicitCboInName = nameUpper.includes('CBO') || nameUpper.includes('BID') || nameUpper.includes('COST CAP');
     const rawDailyBudget = c.daily_budget ? (Number(c.daily_budget) / 100) : null;
     const rawLifetimeBudget = c.lifetime_budget ? (Number(c.lifetime_budget) / 100) : null;
+    const hasCampLevelBudget = Boolean(rawDailyBudget || rawLifetimeBudget);
 
-    const isAbo = explicitAboInName || Boolean(c._originalIsAbo) || (!rawDailyBudget && !rawLifetimeBudget);
+    // Identificação precisa de ABO vs CBO:
+    // 1. Se tem ABO no nome -> Sempre ABO
+    // 2. Se tem CBO ou BID no nome ou tem orçamento em nível de campanha -> Sempre CBO
+    // 3. Fallback: se não tiver orçamento em nível de campanha e nem conjuntos CBO -> ABO
+    const isAbo = explicitAboInName
+      ? true
+      : (explicitCboInName
+          ? false
+          : (hasCampLevelBudget ? false : (Boolean(c._originalIsAbo) || !hasCampLevelBudget)));
     const isCbo = !isAbo;
     let campBidStrategy = c.bid_strategy || 'LOWEST_COST_WITHOUT_CAP';
     if (isAbo || (!nameUpper.includes('BID') && !nameUpper.includes('COST CAP') && c.bid_strategy !== 'LOWEST_COST_WITH_BID_CAP' && c.bid_strategy !== 'COST_CAP')) {

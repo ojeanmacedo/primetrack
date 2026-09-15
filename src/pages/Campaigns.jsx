@@ -98,13 +98,17 @@ export const sanitizeCampaignsData = (cData) => {
     const clicks = Number(c.clicks || 0);
     const campNameUpper = (c.name || '').toUpperCase();
     const explicitAboInName = campNameUpper.includes('ABO');
+    const explicitCboInName = campNameUpper.includes('CBO') || campNameUpper.includes('BID') || campNameUpper.includes('COST CAP');
     
-    // Uma campanha só é ABO se tiver 'ABO' no nome, ou estiver explicitamente marcada como ABO
-    const isAbo = Boolean(
-      explicitAboInName || 
-      (c.isAbo === true && !c.isCbo && !campNameUpper.includes('CBO')) ||
-      (c.budgetType?.includes('Conjunto') && !c.isCbo)
-    );
+    // Uma campanha só é ABO se tiver 'ABO' no nome, ou estiver explicitamente marcada como ABO sem ser CBO
+    const isAbo = explicitAboInName
+      ? true
+      : (explicitCboInName
+          ? false
+          : Boolean(
+              (c.isAbo === true && !c.isCbo) ||
+              (c.budgetType?.includes('Conjunto') && !c.isCbo)
+            ));
     const isCbo = !isAbo;
 
     // Em campanhas ABO, a estratégia é padrão Volume Mais Alto (sem limite de lance)
@@ -871,13 +875,17 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     const itemNameUpper = (item.name || '').toUpperCase();
 
     // Regra estrita: só é ABO se tiver 'ABO' no nome ou configurada explicitamente como ABO sem CBO
-    const isAbo = Boolean(
-      parentNameUpper.includes('ABO') || 
-      itemNameUpper.includes('ABO') || 
-      (parentCamp.isAbo === true && !parentCamp.isCbo && !parentNameUpper.includes('CBO')) ||
-      (parentCamp.budgetType === 'Nível de Conjunto (ABO)' && !parentCamp.isCbo) ||
-      (item.isAbo === true && !item.isCbo)
-    );
+    const explicitAbo = parentNameUpper.includes('ABO') || itemNameUpper.includes('ABO');
+    const explicitCbo = parentNameUpper.includes('CBO') || parentNameUpper.includes('BID') || parentNameUpper.includes('COST CAP') || itemNameUpper.includes('CBO');
+    const isAbo = explicitAbo
+      ? true
+      : (explicitCbo
+          ? false
+          : Boolean(
+              (parentCamp.isAbo === true && !parentCamp.isCbo) ||
+              (parentCamp.budgetType === 'Nível de Conjunto (ABO)' && !parentCamp.isCbo) ||
+              (item.isAbo === true && !item.isCbo)
+            ));
     const isCbo = !isAbo;
 
     // Se o usuário clicar em orçamento na linha da CAMPANHA na aba Campanhas e ela for ABO:
@@ -1526,11 +1534,16 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
     const allAdsets = parentCampaigns.flatMap(camp => {
       const campNameUpper = (camp.name || '').toUpperCase();
-      const campIsAbo = Boolean(
-        camp.isAbo === true ||
-        camp.budgetType?.includes('Conjunto') ||
-        campNameUpper.includes('ABO')
-      );
+      const explicitAboInName = campNameUpper.includes('ABO');
+      const explicitCboInName = campNameUpper.includes('CBO') || campNameUpper.includes('BID') || campNameUpper.includes('COST CAP');
+      const campIsAbo = explicitAboInName
+        ? true
+        : (explicitCboInName
+            ? false
+            : Boolean(
+                camp.isAbo === true ||
+                (camp.budgetType?.includes('Conjunto') && !camp.isCbo)
+              ));
       const campIsCbo = !campIsAbo;
 
       if (campIsAbo) {
