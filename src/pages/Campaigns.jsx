@@ -2388,7 +2388,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       case 'profit': {
         const pVal = Number(item.profit || 0);
         return (
-          <span className={`font-extrabold font-mono ${pVal > 0 ? 'text-emerald-400' : pVal < 0 ? 'text-red-400' : 'text-zinc-400'}`}>
+          <span className={`font-extrabold font-mono ${pVal > 0 ? 'text-emerald-400' : pVal < 0 ? 'text-red-400' : 'text-white'}`}>
             R$ {pVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         );
@@ -2399,7 +2399,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         const rev = Number(item.revenue || 0);
         const rVal = item.roas !== undefined && item.roas !== null ? Number(item.roas) : (sp > 0 ? (rev / sp) : 0);
         return (
-          <span className={`font-extrabold font-mono ${rVal >= 1 ? 'text-emerald-400' : 'text-red-400'}`}>
+          <span className={`font-extrabold font-mono ${rVal > 0 ? (rVal >= 1 ? 'text-emerald-400' : 'text-red-400') : 'text-white'}`}>
             {rVal.toFixed(2)}
           </span>
         );
@@ -2410,7 +2410,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         const prof = Number(item.profit !== undefined ? item.profit : (Number(item.revenue || 0) - sp));
         const roiVal = sp > 0 ? (prof / sp) : 0;
         return (
-          <span className={`font-extrabold font-mono ${roiVal > 0 ? 'text-emerald-400' : roiVal < 0 ? 'text-red-400' : 'text-zinc-400'}`}>
+          <span className={`font-extrabold font-mono ${roiVal > 0 ? 'text-emerald-400' : roiVal < 0 ? 'text-red-400' : 'text-white'}`}>
             {roiVal.toFixed(2)}
           </span>
         );
@@ -2510,19 +2510,19 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         return <span className="text-white font-bold font-mono">R$ {t.revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>;
       case 'profit':
         return (
-          <span className={`font-extrabold font-mono ${t.profit > 0 ? 'text-emerald-400' : t.profit < 0 ? 'text-red-400' : 'text-zinc-400'}`}>
+          <span className={`font-extrabold font-mono ${t.profit > 0 ? 'text-emerald-400' : t.profit < 0 ? 'text-red-400' : 'text-white'}`}>
             R$ {t.profit.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </span>
         );
       case 'roas':
         return (
-          <span className={`font-extrabold font-mono ${t.roas >= 1 ? 'text-emerald-400' : 'text-red-400'}`}>
+          <span className={`font-extrabold font-mono ${t.roas > 0 ? (t.roas >= 1 ? 'text-emerald-400' : 'text-red-400') : 'text-white'}`}>
             {t.roas.toFixed(2)}
           </span>
         );
       case 'roi':
         return (
-          <span className={`font-extrabold font-mono ${t.roi > 0 ? 'text-emerald-400' : t.roi < 0 ? 'text-red-400' : 'text-zinc-400'}`}>
+          <span className={`font-extrabold font-mono ${t.roi > 0 ? 'text-emerald-400' : t.roi < 0 ? 'text-red-400' : 'text-white'}`}>
             {t.roi.toFixed(2)}
           </span>
         );

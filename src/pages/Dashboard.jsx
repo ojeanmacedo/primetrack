@@ -1002,8 +1002,8 @@ export default function Dashboard() {
       id: 'lucro',
       label: 'Lucro',
       value: `R$ ${realProfit.toFixed(2).replace('.', ',')}`,
-      subtitle: realProfit >= 0 ? 'Resultado positivo' : 'Abaixo da meta',
-      valueColor: realProfit < 0 ? 'text-[#EF4444]' : 'text-emerald-400'
+      subtitle: realProfit > 0 ? 'Resultado positivo' : realProfit < 0 ? 'Abaixo da meta' : 'Sem movimentação',
+      valueColor: realProfit > 0 ? 'text-emerald-400' : realProfit < 0 ? 'text-[#EF4444]' : 'text-white'
     },
     pendentes: {
       id: 'pendentes',
@@ -1017,14 +1017,14 @@ export default function Dashboard() {
       label: 'ROAS',
       value: realRoas,
       subtitle: 'Retorno sobre gasto de anúncio',
-      valueColor: Number(realRoas) >= 1 ? 'text-emerald-400' : 'text-[#EF4444]'
+      valueColor: Number(realRoas) > 0 ? (Number(realRoas) >= 1 ? 'text-emerald-400' : 'text-[#EF4444]') : 'text-white'
     },
     roi: {
       id: 'roas',
       label: 'ROAS',
       value: realRoas,
       subtitle: 'Retorno sobre gasto de anúncio',
-      valueColor: Number(realRoas) >= 1 ? 'text-emerald-400' : 'text-[#EF4444]'
+      valueColor: Number(realRoas) > 0 ? (Number(realRoas) >= 1 ? 'text-emerald-400' : 'text-[#EF4444]') : 'text-white'
     },
     margem: {
       id: 'margem',
