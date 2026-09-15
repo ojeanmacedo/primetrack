@@ -97,19 +97,19 @@ export const sanitizeCampaignsData = (cData) => {
     const spend = Number(c.spend || 0);
     const clicks = Number(c.clicks || 0);
     const campNameUpper = (c.name || '').toUpperCase();
-    const explicitAboInName = campNameUpper.includes('ABO');
     const explicitCboInName = campNameUpper.includes('CBO') || campNameUpper.includes('BID') || campNameUpper.includes('COST CAP');
+    const hasCampLevelBudget = Boolean(c.daily_budget || c.lifetime_budget || (c.isCbo === true) || (c.budgetType === 'Diário' && !c.isAbo));
+    const hasBidCapStrategy = c.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || c.bidStrategy === 'COST_CAP' || (c.bidCap && Number(c.bidCap) > 0);
     
-    // Uma campanha só é ABO se tiver 'ABO' no nome, ou estiver explicitamente marcada como ABO sem ser CBO
-    const isAbo = explicitAboInName
-      ? true
-      : (explicitCboInName
-          ? false
-          : Boolean(
-              (c.isAbo === true && !c.isCbo) ||
-              (c.budgetType?.includes('Conjunto') && !c.isCbo)
-            ));
-    const isCbo = !isAbo;
+    // Regra definitiva CBO vs ABO:
+    // Uma campanha é CBO se:
+    // 1. Tiver CBO/BID/COST CAP no nome
+    // 2. Estiver configurada como CBO (c.isCbo === true)
+    // 3. Tiver estratégia BID CAP / COST CAP ou valor de bidCap
+    // 4. Tiver orçamento em nível de campanha
+    // Caso contrário (e somente se não for CBO), é ABO.
+    const isCbo = Boolean(explicitCboInName || c.isCbo === true || hasBidCapStrategy || hasCampLevelBudget);
+    const isAbo = !isCbo;
 
     // Em campanhas ABO, a estratégia é padrão Volume Mais Alto (sem limite de lance)
     const rawCampBid = isCbo
@@ -874,19 +874,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     const parentNameUpper = (parentCamp.name || '').toUpperCase();
     const itemNameUpper = (item.name || '').toUpperCase();
 
-    // Regra estrita: só é ABO se tiver 'ABO' no nome ou configurada explicitamente como ABO sem CBO
-    const explicitAbo = parentNameUpper.includes('ABO') || itemNameUpper.includes('ABO');
     const explicitCbo = parentNameUpper.includes('CBO') || parentNameUpper.includes('BID') || parentNameUpper.includes('COST CAP') || itemNameUpper.includes('CBO');
-    const isAbo = explicitAbo
-      ? true
-      : (explicitCbo
-          ? false
-          : Boolean(
-              (parentCamp.isAbo === true && !parentCamp.isCbo) ||
-              (parentCamp.budgetType === 'Nível de Conjunto (ABO)' && !parentCamp.isCbo) ||
-              (item.isAbo === true && !item.isCbo)
-            ));
-    const isCbo = !isAbo;
+    const hasCampLevelBudget = Boolean(parentCamp.daily_budget || parentCamp.lifetime_budget || (parentCamp.isCbo === true) || (parentCamp.budgetType === 'Diário' && !parentCamp.isAbo));
+    const hasBidCapStrategy = parentCamp.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || parentCamp.bidStrategy === 'COST_CAP' || (parentCamp.bidCap && Number(parentCamp.bidCap) > 0);
+
+    const isCbo = Boolean(explicitCbo || parentCamp.isCbo === true || hasBidCapStrategy || hasCampLevelBudget);
+    const isAbo = !isCbo;
 
     // Se o usuário clicar em orçamento na linha da CAMPANHA na aba Campanhas e ela for ABO:
     // O orçamento é a nível de conjunto. Redireciona para a aba de conjuntos filtrando esta campanha!
@@ -1534,17 +1527,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
     const allAdsets = parentCampaigns.flatMap(camp => {
       const campNameUpper = (camp.name || '').toUpperCase();
-      const explicitAboInName = campNameUpper.includes('ABO');
       const explicitCboInName = campNameUpper.includes('CBO') || campNameUpper.includes('BID') || campNameUpper.includes('COST CAP');
-      const campIsAbo = explicitAboInName
-        ? true
-        : (explicitCboInName
-            ? false
-            : Boolean(
-                camp.isAbo === true ||
-                (camp.budgetType?.includes('Conjunto') && !camp.isCbo)
-              ));
-      const campIsCbo = !campIsAbo;
+      const hasCampLevelBudget = Boolean(camp.daily_budget || camp.lifetime_budget || (camp.isCbo === true) || (camp.budgetType === 'Diário' && !camp.isAbo));
+      const hasBidCapStrategy = camp.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || camp.bidStrategy === 'COST_CAP' || (camp.bidCap && Number(camp.bidCap) > 0);
+
+      const campIsCbo = Boolean(explicitCboInName || camp.isCbo === true || hasBidCapStrategy || hasCampLevelBudget);
+      const campIsAbo = !campIsCbo;
 
       if (campIsAbo) {
         // Campanha ABO: todos os conjuntos são padrão Volume Mais Alto (sem limite de lance)
