@@ -41,18 +41,35 @@ export function parseWebhook(gateway, body) {
 function parseKiwify(body) {
   const customer = body.Customer || body.customer || {};
   const tracking = body.TrackingParameters || body.tracking_parameters || {};
-  const statusRaw = body.order_status || body.status || 'paid';
+  const statusRaw = String(body.order_status || body.status || body.event || '').toLowerCase();
   
-  let status = 'approved';
-  if (['waiting_payment', 'pending'].includes(statusRaw)) status = 'waiting_payment';
-  if (['refunded', 'chargeback'].includes(statusRaw)) status = 'refunded';
+  let status = 'waiting_payment';
+  if (['paid', 'approved', 'aprovado', 'pago'].some(s => statusRaw.includes(s))) {
+    status = 'approved';
+  } else if (['waiting_payment', 'pending', 'aguardando', 'pix_gerado', 'gerado', 'billet_printed'].some(s => statusRaw.includes(s))) {
+    status = 'waiting_payment';
+  } else if (['refunded', 'chargeback', 'reembolsado', 'estornado', 'chargedback'].some(s => statusRaw.includes(s))) {
+    status = 'refunded';
+  } else if (['cancelled', 'canceled', 'cancelado', 'recusado'].some(s => statusRaw.includes(s))) {
+    status = 'cancelled';
+  }
+
+  const rawPayMethod = String(body.payment_method || body.paymentMethod || '').toLowerCase();
+  let paymentMethod = 'pix';
+  if (rawPayMethod.includes('pix')) {
+    paymentMethod = 'pix';
+  } else if (rawPayMethod.includes('boleto') || rawPayMethod.includes('billet')) {
+    paymentMethod = 'boleto';
+  } else if (rawPayMethod.includes('credit') || rawPayMethod.includes('card') || rawPayMethod.includes('cartao')) {
+    paymentMethod = 'credit_card';
+  }
 
   return {
     gateway: 'Kiwify',
     orderCode: body.order_id || body.order_code || `KW-${Date.now().toString().slice(-7)}`,
     status,
     amount: Number(body.order_amount || body.amount || 0) / (body.order_amount > 1000 ? 100 : 1) || 97.00,
-    paymentMethod: body.payment_method || 'pix',
+    paymentMethod,
     productName: (body.Product && body.Product.product_name) || body.product_name || 'Produto Kiwify',
     customer: {
       name: customer.full_name || customer.name || 'Cliente Kiwify',
@@ -84,18 +101,60 @@ function parseHotmart(body) {
   const buyer = data.buyer || {};
   const purchase = data.purchase || {};
   const product = data.product || {};
-  const event = body.event || '';
+  const event = String(body.event || body.status || '').toUpperCase().trim();
+  const rawPaymentType = String(
+    (purchase.payment && purchase.payment.type) || 
+    (purchase.payment && purchase.payment.method) || 
+    body.payment_type || 
+    body.payment_method || 
+    ''
+  ).toLowerCase();
 
-  let status = 'approved';
-  if (event === 'PURCHASE_OUT_OF_DATE' || event === 'WAITING_PAYMENT') status = 'waiting_payment';
-  if (event === 'PURCHASE_REFUNDED' || event === 'PURCHASE_CHARGEBACK') status = 'refunded';
+  // Status de Venda no Webhook Hotmart 2.0:
+  // - PURCHASE_APPROVED, PURCHASE_COMPLETE -> Aprovado
+  // - PURCHASE_BILLET_PRINTED (Boleto impresso ou PIX gerado), WAITING_PAYMENT, PURCHASE_OUT_OF_DATE, PURCHASE_DELAYED -> Pendente (PIX ou Boleto gerado)
+  // - PURCHASE_REFUNDED, PURCHASE_CHARGEBACK -> Reembolsado
+  // - PURCHASE_CANCELED, PURCHASE_EXPIRED, PURCHASE_PROTEST -> Cancelado
+  let status = 'waiting_payment';
+  if (['PURCHASE_APPROVED', 'PURCHASE_COMPLETE', 'APPROVED'].some(ev => event.includes(ev))) {
+    status = 'approved';
+  } else if ([
+    'PURCHASE_BILLET_PRINTED', 
+    'WAITING_PAYMENT', 
+    'PURCHASE_OUT_OF_DATE', 
+    'PURCHASE_DELAYED', 
+    'BILLET_PRINTED', 
+    'PIX_GENERATED'
+  ].some(ev => event.includes(ev))) {
+    status = 'waiting_payment';
+  } else if (['REFUNDED', 'CHARGEBACK', 'REVERSAL'].some(ev => event.includes(ev))) {
+    status = 'refunded';
+  } else if (['CANCELED', 'CANCELLED', 'EXPIRED'].some(ev => event.includes(ev))) {
+    status = 'cancelled';
+  } else {
+    status = 'waiting_payment';
+  }
+
+  // Identificação do método de pagamento:
+  let paymentMethod = 'pix';
+  if (rawPaymentType.includes('pix')) {
+    paymentMethod = 'pix';
+  } else if (rawPaymentType.includes('billet') || rawPaymentType.includes('boleto')) {
+    paymentMethod = 'boleto';
+  } else if (event.includes('BILLET') && !rawPaymentType.includes('pix')) {
+    paymentMethod = 'boleto';
+  } else if (rawPaymentType.includes('card') || rawPaymentType.includes('credit') || rawPaymentType.includes('cartao')) {
+    paymentMethod = 'credit_card';
+  } else if (event.includes('PIX')) {
+    paymentMethod = 'pix';
+  }
 
   return {
     gateway: 'Hotmart',
     orderCode: purchase.transaction || body.transaction || `HT-${Date.now().toString().slice(-7)}`,
     status,
     amount: purchase.price ? Number(purchase.price.value || purchase.price) : 97.00,
-    paymentMethod: (purchase.payment && purchase.payment.type) || 'credit_card',
+    paymentMethod,
     productName: product.name || 'Produto Hotmart',
     customer: {
       name: buyer.name || 'Cliente Hotmart',
