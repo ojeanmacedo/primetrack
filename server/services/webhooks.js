@@ -93,11 +93,12 @@ function parseKiwify(body) {
     paymentMethod,
     productName: (body.Product && body.Product.product_name) || body.product_name || 'Produto Kiwify',
     customer: {
-      name: customer.full_name || customer.name || 'Cliente Kiwify',
-      email: customer.email || '',
-      phone: customer.mobile || customer.phone || '',
-      city: customer.city || (customer.address && customer.address.city) || '',
-      state: customer.state || (customer.address && customer.address.state) || '',
+      name: customer.full_name || customer.name || body.name || body.customer_name || 'Cliente Kiwify',
+      email: customer.email || body.email || body.customer_email || '',
+      phone: customer.mobile || customer.phone || customer.cellphone || body.phone || body.mobile || '',
+      document: customer.CPF || customer.cpf || customer.document || body.cpf || body.document || '',
+      city: customer.city || (customer.address && customer.address.city) || (body.address && body.address.city) || '',
+      state: customer.state || (customer.address && customer.address.state) || (body.address && body.address.state) || '',
       zip: customer.zipcode || customer.zip || (customer.address && (customer.address.zipcode || customer.address.zip || customer.address.cep)) || '',
       country: customer.country || (customer.address && customer.address.country) || 'BR'
     },
@@ -208,12 +209,13 @@ function parseHotmart(body) {
     paymentMethod,
     productName: product.name || 'Produto Hotmart',
     customer: {
-      name: buyer.name || 'Cliente Hotmart',
-      email: buyer.email || '',
-      phone: (buyer.checkout_phone) || (buyer.phone) || '',
-      city: (buyer.address && buyer.address.city) || '',
-      state: (buyer.address && buyer.address.state) || '',
-      zip: (buyer.address && (buyer.address.zipcode || buyer.address.zip || buyer.address.cep)) || '',
+      name: buyer.name || (buyer.first_name ? `${buyer.first_name} ${buyer.last_name || ''}`.trim() : null) || body.name || body.buyer_name || 'Cliente Hotmart',
+      email: buyer.email || body.email || body.buyer_email || '',
+      phone: (buyer.checkout_phone) || (buyer.phone) || (buyer.cellphone) || body.phone || body.buyer_phone || '',
+      document: buyer.document || buyer.doc || buyer.cpf || body.doc || body.cpf || '',
+      city: (buyer.address && buyer.address.city) || body.city || '',
+      state: (buyer.address && buyer.address.state) || body.state || '',
+      zip: (buyer.address && (buyer.address.zipcode || buyer.address.zip || buyer.address.cep)) || body.zip || body.cep || '',
       country: (buyer.address && buyer.address.country_iso) || 'BR'
     },
     tracking: {
@@ -434,12 +436,13 @@ function parsePerfectPay(body) {
     paymentMethod,
     productName: body.product_name || body.product?.name || 'Produto PerfectPay',
     customer: {
-      name: customer.customer_name || customer.name || 'Cliente PerfectPay',
-      email: customer.customer_email || customer.email || '',
-      phone: customer.customer_phone || customer.phone || '',
-      city: customer.customer_city || customer.city || '',
-      state: customer.customer_state || customer.state || '',
-      zip: customer.customer_zip || customer.customer_cep || customer.cep || '',
+      name: customer.customer_name || customer.name || customer.full_name || body.customer_name || body.client_name || body.name || 'Cliente PerfectPay',
+      email: customer.customer_email || customer.email || body.customer_email || body.client_email || body.email || '',
+      phone: customer.customer_phone || customer.phone || customer.cellphone || customer.mobile || body.customer_phone || body.phone || '',
+      document: customer.identification_number || customer.document_number || customer.cpf || customer.doc || body.cpf || body.document || '',
+      city: customer.customer_city || customer.city || (customer.address && customer.address.city) || body.city || '',
+      state: customer.customer_state || customer.state || (customer.address && customer.address.state) || body.state || '',
+      zip: customer.customer_zip || customer.customer_cep || customer.cep || (customer.address && (customer.address.zipcode || customer.address.cep)) || '',
       country: 'BR'
     },
     tracking: {
