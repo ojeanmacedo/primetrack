@@ -269,7 +269,7 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     fetch(`${GRAPH_BASE_URL}/${actId}/insights?level=ad&${timeParam}&fields=ad_id,ad_name,spend,impressions,clicks,cpc,cpm,ctr,actions,action_values&limit=250&access_token=${accessToken}`).catch(() => null),
     fetch(`${GRAPH_BASE_URL}/${actId}/campaigns?fields=id,name,status,effective_status,objective,daily_budget,lifetime_budget,bid_strategy&limit=100&access_token=${accessToken}`).catch(() => null),
     fetch(`${GRAPH_BASE_URL}/${actId}/adsets?fields=id,name,status,effective_status,campaign_id,daily_budget,lifetime_budget,bid_amount,bid_strategy&limit=250&access_token=${accessToken}`).catch(() => null),
-    fetch(`${GRAPH_BASE_URL}/${actId}/ads?fields=id,name,status,effective_status,campaign_id,adset_id,creative{id,name,thumbnail_url,image_url,video_id}&limit=250&access_token=${accessToken}`).catch(() => null),
+    fetch(`${GRAPH_BASE_URL}/${actId}/ads?fields=id,name,status,effective_status,campaign_id,adset_id,adset{id,name,status,effective_status,campaign_id,daily_budget,lifetime_budget,bid_amount,bid_strategy},creative{id,name,thumbnail_url,image_url,video_id}&limit=250&access_token=${accessToken}`).catch(() => null),
     fetch(`${GRAPH_BASE_URL}/${actId}?fields=currency&access_token=${accessToken}`).catch(() => null)
   ]);
 
@@ -306,6 +306,23 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       if (Array.isArray(cd.data)) data = cd;
     }
   } catch (e) {}
+
+  let metaCurrency = 'BRL';
+  try {
+    if (accRes) {
+      const accData = await accRes.json();
+      if (accData.currency) metaCurrency = accData.currency;
+    }
+  } catch (e) {}
+
+  const isUsd = metaCurrency === 'USD' || accountCurrency === 'USD' || actId.includes('1092137896602979') || actId.includes('2013649985959956') || actId.includes('1084136023986167') || actId.includes('1588922422580250');
+  const usdRate = isUsd ? await getUsdToBrlRate() : 1.0;
+
+  // Fallback: se a Meta bloquear leitura da estrutura por rate limit, recupera do db local
+  const cleanAct = actId.replace('act_', '');
+  const storedCampaigns = (db.get('campaigns') || []).filter(c => 
+    (c.adAccountId || '').replace('act_', '') === cleanAct
+  );
 
   // Consulta em tempo real via batch dos status das campanhas caso venha vazio ou precise de confirmação precisa
   if (!data.data || data.data.length === 0) {
@@ -402,6 +419,42 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       if (Array.isArray(asd.data)) adsetsData = asd;
     }
   } catch (e) {}
+
+  // Se a consulta em nível de conta falhou (por exemplo rate limit), busca os adsets de cada campanha individual
+  if (!adsetsData.data || adsetsData.data.length === 0) {
+    const liveCampIds = (data.data || []).map(c => c.id).filter(Boolean);
+    if (liveCampIds.length > 0 && accessToken) {
+      try {
+        const campAdsetsBatch = liveCampIds.slice(0, 50).map(id => ({
+          method: 'GET',
+          relative_url: `${id}/adsets?fields=id,name,status,effective_status,campaign_id,daily_budget,lifetime_budget,bid_amount,bid_strategy`
+        }));
+        const campBatchRes = await fetch(`${GRAPH_BASE_URL}/?access_token=${accessToken}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ batch: campAdsetsBatch })
+        }).catch(() => null);
+        if (campBatchRes) {
+          const batchResults = await campBatchRes.json().catch(() => []);
+          if (Array.isArray(batchResults)) {
+            const fetchedAdsets = [];
+            batchResults.forEach(item => {
+              if (item.code === 200 && item.body) {
+                try {
+                  const b = JSON.parse(item.body);
+                  if (Array.isArray(b.data)) fetchedAdsets.push(...b.data);
+                } catch (e) {}
+              }
+            });
+            if (fetchedAdsets.length > 0) {
+              adsetsData = { data: fetchedAdsets };
+            }
+          }
+        }
+      } catch (eBatchCampAdsets) {}
+    }
+  }
+
   if (!adsetsData.data || adsetsData.data.length === 0) {
     const fallbackAdsets = storedCampaigns.flatMap(c => {
       const isCampAbo = Boolean(c.isAbo === true || c.budgetType?.includes('Conjunto') || (c.name || '').toUpperCase().includes('ABO'));
@@ -490,6 +543,67 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       if (Array.isArray(ad.data)) adsData = ad;
     }
   } catch (e) {}
+
+  // Se a consulta em nível de conta falhou (por exemplo rate limit), busca os ads de cada campanha individual
+  if (!adsData.data || adsData.data.length === 0) {
+    const liveCampIds = (data.data || []).map(c => c.id).filter(Boolean);
+    if (liveCampIds.length > 0 && accessToken) {
+      try {
+        const campAdsBatch = liveCampIds.slice(0, 50).map(id => ({
+          method: 'GET',
+          relative_url: `${id}/ads?fields=id,name,status,effective_status,campaign_id,adset_id,adset{id,name,status,effective_status,campaign_id,daily_budget,lifetime_budget,bid_amount,bid_strategy},creative{id,name,thumbnail_url,image_url}`
+        }));
+        const campAdsBatchRes = await fetch(`${GRAPH_BASE_URL}/?access_token=${accessToken}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ batch: campAdsBatch })
+        }).catch(() => null);
+        if (campAdsBatchRes) {
+          const batchResults = await campAdsBatchRes.json().catch(() => []);
+          if (Array.isArray(batchResults)) {
+            const fetchedAds = [];
+            batchResults.forEach(item => {
+              if (item.code === 200 && item.body) {
+                try {
+                  const b = JSON.parse(item.body);
+                  if (Array.isArray(b.data)) fetchedAds.push(...b.data);
+                } catch (e) {}
+              }
+            });
+            if (fetchedAds.length > 0) {
+              adsData = { data: fetchedAds };
+            }
+          }
+        }
+      } catch (eBatchCampAds) {}
+    }
+  }
+
+  // Se a consulta de anúncios retornou os conjuntos dentro de 'adset', mescla ou preenche adsetsData
+  if (Array.isArray(adsData.data) && adsData.data.length > 0) {
+    const existingAdsetIds = new Set((adsetsData.data || []).map(a => String(a.id)));
+    const additionalAdsets = [];
+    adsData.data.forEach(ad => {
+      if (ad.adset && ad.adset.id && !existingAdsetIds.has(String(ad.adset.id))) {
+        existingAdsetIds.add(String(ad.adset.id));
+        additionalAdsets.push({
+          id: ad.adset.id,
+          name: ad.adset.name || 'Conjunto de Anúncios',
+          status: ad.adset.status || ad.status || 'ACTIVE',
+          effective_status: ad.adset.effective_status || ad.effective_status || 'ACTIVE',
+          campaign_id: ad.adset.campaign_id || ad.campaign_id,
+          daily_budget: ad.adset.daily_budget,
+          lifetime_budget: ad.adset.lifetime_budget,
+          bid_amount: ad.adset.bid_amount,
+          bid_strategy: ad.adset.bid_strategy
+        });
+      }
+    });
+    if (additionalAdsets.length > 0) {
+      adsetsData.data = [...(adsetsData.data || []), ...additionalAdsets];
+    }
+  }
+
   if (!adsData.data || adsData.data.length === 0) {
     const fallbackAds = storedCampaigns.flatMap(c => c.ads || []);
     if (fallbackAds.length > 0) {
@@ -744,19 +858,17 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const rawDailyBudget = c.daily_budget ? (Number(c.daily_budget) / 100) : null;
     const rawLifetimeBudget = c.lifetime_budget ? (Number(c.lifetime_budget) / 100) : null;
     const hasCampLevelBudget = Boolean(rawDailyBudget || rawLifetimeBudget);
+    const hasBidCapStrategy = c.bid_strategy === 'LOWEST_COST_WITH_BID_CAP' || c.bid_strategy === 'COST_CAP';
 
     // Identificação precisa de ABO vs CBO:
-    // 1. Se tem ABO no nome -> Sempre ABO
-    // 2. Se tem CBO ou BID no nome ou tem orçamento em nível de campanha -> Sempre CBO
-    // 3. Fallback: se não tiver orçamento em nível de campanha e nem conjuntos CBO -> ABO
-    const isAbo = explicitAboInName
-      ? true
-      : (explicitCboInName
-          ? false
-          : (hasCampLevelBudget ? false : (Boolean(c._originalIsAbo) || !hasCampLevelBudget)));
-    const isCbo = !isAbo;
+    // 1. Se tem orçamento na campanha (daily_budget / lifetime_budget) ou estratégia BID CAP -> CBO definitivo!
+    // 2. Se tem CBO ou BID no nome -> CBO definitivo!
+    // 3. Se tem ABO no nome E NÃO TEM orçamento na campanha e NÃO TEM BID CAP -> ABO
+    // 4. Fallback: se não tiver orçamento na campanha -> ABO
+    const isCbo = Boolean(hasCampLevelBudget || hasBidCapStrategy || explicitCboInName);
+    const isAbo = !isCbo;
     let campBidStrategy = c.bid_strategy || 'LOWEST_COST_WITHOUT_CAP';
-    if (isAbo || (!nameUpper.includes('BID') && !nameUpper.includes('COST CAP') && c.bid_strategy !== 'LOWEST_COST_WITH_BID_CAP' && c.bid_strategy !== 'COST_CAP')) {
+    if (isAbo && !hasBidCapStrategy) {
       campBidStrategy = 'LOWEST_COST_WITHOUT_CAP';
     }
 
