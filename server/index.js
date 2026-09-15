@@ -801,6 +801,8 @@ app.all([
       status: parsed.status,
       paymentMethod: parsed.paymentMethod,
       amount: parsed.amount,
+      commission: parsed.commission || parsed.amount,
+      grossAmount: parsed.grossAmount || parsed.amount,
       customer: {
         ...parsed.customer,
         city: resolvedCity,
@@ -877,7 +879,7 @@ app.all([
           gateway: parsed.gateway || 'MonsterPay',
           product_name: parsed.productName,
           amount: parsed.amount,
-          status: parsed.status || 'approved',
+          status: parsed.status || 'waiting_payment',
           payment_method: parsed.paymentMethod,
           customer_name: parsed.customer?.name || null,
           customer_email: parsed.customer?.email || null,

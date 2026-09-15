@@ -64,11 +64,32 @@ function parseKiwify(body) {
     paymentMethod = 'credit_card';
   }
 
+  // Extração inteligente da COMISSÃO REAL / VALOR LÍQUIDO na Kiwify
+  let realCommission = null;
+  const rawNet = body.net_amount ?? body.data?.net_amount ?? body.my_commission ?? body.commission_value ?? body.comissao ?? body.data?.comissao ?? body.commission;
+  if (rawNet !== undefined && rawNet !== null && !isNaN(Number(rawNet)) && Number(rawNet) > 0) {
+    let numNet = Number(rawNet);
+    if (numNet > 1000 && !String(rawNet).includes('.')) {
+      numNet = numNet / 100;
+    }
+    realCommission = numNet;
+  }
+
+  let grossAmount = Number(body.order_amount || body.amount || body.order_value || 0);
+  if (grossAmount > 1000 && !String(body.order_amount || body.amount || '').includes('.')) {
+    grossAmount = grossAmount / 100;
+  }
+  if (!grossAmount) grossAmount = 97.00;
+
+  const finalAmount = (realCommission && realCommission > 0) ? realCommission : grossAmount;
+
   return {
     gateway: 'Kiwify',
     orderCode: body.order_id || body.order_code || `KW-${Date.now().toString().slice(-7)}`,
     status,
-    amount: Number(body.order_amount || body.amount || 0) / (body.order_amount > 1000 ? 100 : 1) || 97.00,
+    amount: finalAmount,
+    grossAmount,
+    commission: realCommission || finalAmount,
     paymentMethod,
     productName: (body.Product && body.Product.product_name) || body.product_name || 'Produto Kiwify',
     customer: {
@@ -149,11 +170,41 @@ function parseHotmart(body) {
     paymentMethod = 'pix';
   }
 
+  // Extração inteligente da COMISSÃO REAL na Hotmart
+  let realCommission = null;
+
+  // 1. Array data.commissions ou purchase.commissions
+  const commissionsList = data.commissions || purchase.commissions || body.commissions;
+  if (Array.isArray(commissionsList) && commissionsList.length > 0) {
+    const userComm = commissionsList.find(c => {
+      const src = String(c.source || '').toUpperCase();
+      const val = Number(c.value ?? c.commission ?? 0);
+      return src !== 'PLATFORM' && src !== 'HOTMART' && val > 0;
+    }) || commissionsList[0];
+
+    if (userComm) {
+      realCommission = Number(userComm.value ?? userComm.commission ?? 0);
+    }
+  }
+
+  // 2. Campo direto purchase.commission ou data.commission
+  if (!realCommission || isNaN(realCommission) || realCommission <= 0) {
+    const directComm = purchase.commission?.value ?? purchase.commission ?? data.commission?.value ?? data.commission ?? body.commission_value;
+    if (directComm !== undefined && directComm !== null && !isNaN(Number(directComm)) && Number(directComm) > 0) {
+      realCommission = Number(directComm);
+    }
+  }
+
+  const grossPrice = purchase.price ? Number(purchase.price.value || purchase.price) : 97.00;
+  const finalAmount = (realCommission && realCommission > 0) ? realCommission : grossPrice;
+
   return {
     gateway: 'Hotmart',
     orderCode: purchase.transaction || body.transaction || `HT-${Date.now().toString().slice(-7)}`,
     status,
-    amount: purchase.price ? Number(purchase.price.value || purchase.price) : 97.00,
+    amount: finalAmount,
+    grossAmount: grossPrice,
+    commission: realCommission || finalAmount,
     paymentMethod,
     productName: product.name || 'Produto Hotmart',
     customer: {
@@ -329,11 +380,57 @@ function parsePerfectPay(body) {
     paymentMethod = 'pix';
   }
 
+  // Extração inteligente da COMISSÃO REAL / LÍQUIDA do usuário na Perfect Pay
+  let realCommission = null;
+
+  // 1. Array body.commission
+  if (Array.isArray(body.commission) && body.commission.length > 0) {
+    const userComm = body.commission.find(c => {
+      const typeEnum = Number(c.affiliation_type_enum);
+      const val = Number(c.value ?? c.amount ?? c.commission_value ?? 0);
+      return typeEnum !== 0 && val > 0;
+    }) || body.commission.find(c => Number(c.value ?? c.amount ?? c.commission_value ?? 0) > 0);
+
+    if (userComm) {
+      realCommission = Number(userComm.value ?? userComm.amount ?? userComm.commission_value ?? 0);
+    }
+  } else if (typeof body.commission === 'object' && body.commission !== null) {
+    const val = Number(body.commission.value ?? body.commission.amount ?? body.commission.commission_value ?? 0);
+    if (val > 0) realCommission = val;
+  }
+
+  // 2. Campos diretos de comissão / valor líquido
+  if (!realCommission || isNaN(realCommission) || realCommission <= 0) {
+    const candidateFields = [
+      body.commission_value,
+      body.user_commission,
+      body.commission_amount,
+      body.my_commission,
+      body.net_amount,
+      body.liquid_value,
+      body.affiliate_commission,
+      body.producer_commission,
+      body.data?.commission_value,
+      body.data?.net_amount
+    ];
+    for (const cand of candidateFields) {
+      if (cand !== undefined && cand !== null && !isNaN(Number(cand)) && Number(cand) > 0) {
+        realCommission = Number(cand);
+        break;
+      }
+    }
+  }
+
+  const grossAmount = Number(body.sale_amount || body.amount || body.value || 47.90);
+  const finalAmount = (realCommission && realCommission > 0) ? realCommission : grossAmount;
+
   return {
     gateway: 'PerfectPay',
     orderCode: body.code || body.sale_id || body.transaction || body.id || `PP-${Date.now().toString().slice(-7)}`,
     status,
-    amount: Number(body.sale_amount || body.amount || body.value || 47.90),
+    amount: finalAmount,
+    grossAmount,
+    commission: realCommission || finalAmount,
     paymentMethod,
     productName: body.product_name || body.product?.name || 'Produto PerfectPay',
     customer: {
@@ -410,15 +507,29 @@ function parseMonsterPay(body) {
     (customer.first_name ? `${customer.first_name} ${customer.last_name || ''}`.trim() : '') || 
     body.name || '';
 
+  // Extração inteligente de comissão / valor líquido na MonsterPay
+  const rawComm = body.commission ?? body.commission_value ?? body.net_amount ?? body.data?.commission ?? body.data?.net_amount ?? body.user_amount;
+  let realCommission = null;
+  if (rawComm !== undefined && rawComm !== null && !isNaN(Number(rawComm)) && Number(rawComm) > 0) {
+    let numComm = Number(rawComm);
+    if (numComm > 1000 && !String(rawComm).includes('.')) {
+      numComm = numComm / 100;
+    }
+    realCommission = numComm;
+  }
+
   const rawAmount = body.amount || body.total || body.price || body.value || body.data?.amount || 0;
   const numAmount = Number(rawAmount);
-  const finalAmount = numAmount > 1000 && !String(rawAmount).includes('.') ? numAmount / 100 : numAmount;
+  const finalGross = numAmount > 1000 && !String(rawAmount).includes('.') ? numAmount / 100 : numAmount;
+  const finalAmount = (realCommission && realCommission > 0) ? realCommission : (finalGross || 97.00);
 
   return {
     gateway: 'MonsterPay',
     orderCode: body.order_id || body.transaction_id || body.id || body.code || body.data?.id || '',
     status,
     amount: finalAmount,
+    grossAmount: finalGross || 97.00,
+    commission: realCommission || finalAmount,
     paymentMethod: body.payment_method || body.paymentMethod || body.data?.payment_method || 'pix',
     productName: product.name || body.product_name || body.productName || body.data?.product_name || 'Produto MonsterPay',
     customer: {
