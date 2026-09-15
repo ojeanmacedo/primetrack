@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sun, AlertCircle, X, ShieldCheck, ArrowRight, Lock, Mail, User, ExternalLink, Settings, CheckCircle2 } from 'lucide-react';
-import { loginUser, loginWithGoogle } from '../utils/auth';
+import { loginUser, loginWithGoogle, getCurrentUser } from '../utils/auth';
 import { supabase } from '../lib/supabase';
 
 export default function LoginPage() {
@@ -20,15 +20,17 @@ export default function LoginPage() {
   // Se já houver usuário logado no localStorage, redireciona direto pro Dashboard
   useEffect(() => {
     try {
-      const curr = localStorage.getItem('primetrack_current_user');
-      if (curr) {
-        const parsed = JSON.parse(curr);
-        if (parsed?.email) {
-          navigate('/dashboard', { replace: true });
-          return;
-        }
+      const user = getCurrentUser();
+      if (user?.email) {
+        navigate('/dashboard', { replace: true });
+        return;
       }
     } catch (e) {}
+
+    const isManualLogout = typeof window !== 'undefined' && sessionStorage.getItem('primetrack_manual_logout') === 'true';
+    if (isManualLogout) {
+      return;
+    }
 
     // Escuta retorno do OAuth do Google no Supabase
     const checkGoogleSession = async () => {
@@ -46,7 +48,7 @@ export default function LoginPage() {
           setGoogleLoading(false);
 
           if (res.success) {
-            navigate('/dashboard');
+            navigate('/dashboard', { replace: true });
           }
         }
       } catch (err) {
@@ -57,6 +59,9 @@ export default function LoginPage() {
     checkGoogleSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (typeof window !== 'undefined' && sessionStorage.getItem('primetrack_manual_logout') === 'true') {
+        return;
+      }
       if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session?.user?.email) {
         const gEmail = session.user.email.toLowerCase();
         const gName = session.user.user_metadata?.full_name || 
@@ -69,7 +74,7 @@ export default function LoginPage() {
         setGoogleLoading(false);
 
         if (res.success) {
-          navigate('/dashboard');
+          navigate('/dashboard', { replace: true });
         }
       }
     });

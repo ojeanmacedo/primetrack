@@ -1,5 +1,7 @@
 // Gerenciamento de Sessão e Usuários PrimeTrack conectado ao Supabase
-import { supabase } from '../lib/supabase';export const DEFAULT_ADMIN = {
+import { supabase } from '../lib/supabase';
+
+export const DEFAULT_ADMIN = {
   id: 'usr_1788826403159',
   name: 'Jean Macedo',
   email: 'jeeanmacedo@gmail.com',
@@ -14,7 +16,7 @@ import { supabase } from '../lib/supabase';export const DEFAULT_ADMIN = {
 const STORAGE_KEY = 'primetrack_current_user';
 
 export function clearUserLocalCaches() {
-  if (typeof window !== 'undefined' || !window.localStorage) return;
+  if (typeof window === 'undefined' || !window.localStorage) return;
   const keysToRemove = [
     'primetrack_ad_accounts',
     'primetrack_connected_profiles',
@@ -32,7 +34,7 @@ export function clearUserLocalCaches() {
 
 export function getCurrentUser() {
   try {
-    if (typeof window !== 'undefined' || !window.localStorage) {
+    if (typeof window === 'undefined' || !window.localStorage) {
       return null;
     }
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -51,6 +53,7 @@ export function getCurrentUser() {
 
 export function setCurrentUser(user) {
   try {
+    if (typeof window === 'undefined' || !window.localStorage) return;
     if (!user) {
       clearUserLocalCaches();
       localStorage.removeItem(STORAGE_KEY);
@@ -69,6 +72,7 @@ export function setCurrentUser(user) {
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
     }
+    window.dispatchEvent(new CustomEvent('primetrack_profile_sync', { detail: user }));
   } catch (e) {
     console.error('Erro ao salvar usuário:', e);
   }
