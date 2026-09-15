@@ -193,6 +193,18 @@ function resolveCustomerCityState(cust, o) {
 
     const isApproved = o.status === 'approved' || o.status === 'paid' || o.status === 'pago';
     const isRefunded = o.status === 'refunded' || o.status === 'chargeback' || o.status === 'cancelado';
+    const isPix = (o.paymentMethod || '').toLowerCase().includes('pix') || (o.payment_method || '').toLowerCase().includes('pix') || (o.status || '').toLowerCase().includes('pix');
+    const isBoleto = (o.paymentMethod || '').toLowerCase().includes('boleto') || (o.paymentMethod || '').toLowerCase().includes('billet');
+
+    const statusText = isApproved 
+      ? 'Paga' 
+      : isRefunded 
+      ? 'Reembolsada' 
+      : isPix 
+      ? 'PIX Gerado' 
+      : isBoleto 
+      ? 'Boleto Gerado' 
+      : 'Pendente';
 
     return {
       id: o.id || o.orderCode,
@@ -206,10 +218,10 @@ function resolveCustomerCityState(cust, o) {
       isOrganic,
       campaign: cleanCampaign,
       isApproved,
-      statusText: isApproved ? 'Paga' : (isRefunded ? 'Reembolsada' : 'Pendente'),
+      statusText,
       capi: isApproved ? 'approved' : 'pending',
       emq: o.emqScore || 9.7,
-      reason: isApproved ? 'Aprovado' : (isRefunded ? 'Reembolsado' : 'Pendente'),
+      reason: isApproved ? 'Aprovado' : (isRefunded ? 'Reembolsado' : (isPix ? 'PIX Gerado' : 'Pendente')),
       date: formattedDate,
       rawDate: d
     };
@@ -377,7 +389,7 @@ function resolveCustomerCityState(cust, o) {
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 font-mono text-[10px] font-bold">
-                        <span>⏳ Pendente</span>
+                        <span>⏳ {sale.statusText}</span>
                       </span>
                     )}
                   </td>

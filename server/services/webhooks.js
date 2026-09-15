@@ -229,32 +229,73 @@ function parseKirvano(body) {
 
 function parsePerfectPay(body) {
   const customer = body.customer || {};
+  const tracking = body.tracking || body.metadata || body.tracking_parameters || {};
+
+  // Status da venda no webhook Perfect Pay:
+  // sale_status_enum:
+  // 1 = pending / pendente / aguardando pagamento (PIX gerado, boleto pendente)
+  // 2 = approved / aprovado / pago
+  // 3 = in_process / em analise
+  // 5 ou 6 = rejected / cancelado / recusado
+  // 7 ou 8 = refunded / chargeback / devolvido
+  const statusEnum = Number(body.sale_status_enum ?? body.status_enum ?? body.sale_status ?? 0);
+  const rawStatusName = String(body.sale_status_name || body.sale_status || body.status || body.step || body.event || '').toLowerCase();
+  
+  let status = 'waiting_payment';
+  if (statusEnum === 2 || ['aprovad', 'paid', 'pago', 'approved'].some(s => rawStatusName.includes(s))) {
+    status = 'approved';
+  } else if (statusEnum === 1 || ['pendent', 'aguardand', 'waiting', 'pending', 'pix_gerado', 'gerado'].some(s => rawStatusName.includes(s))) {
+    status = 'waiting_payment';
+  } else if ([7, 8].includes(statusEnum) || ['reembols', 'refund', 'chargeback', 'estorn'].some(s => rawStatusName.includes(s))) {
+    status = 'refunded';
+  } else if ([5, 6].includes(statusEnum) || ['cancel', 'recus', 'rejeit', 'rejected'].some(s => rawStatusName.includes(s))) {
+    status = 'cancelled';
+  } else {
+    status = 'waiting_payment';
+  }
+
+  // Método de pagamento
+  // payment_type_enum: 1 = Cartão, 2 = Boleto, 3 = PIX
+  const payEnum = Number(body.payment_type_enum ?? body.payment_type ?? 0);
+  const rawPayName = String(body.payment_type_name || body.payment_type || body.payment_method || '').toLowerCase();
+  
+  let paymentMethod = 'pix';
+  if (rawPayName.includes('pix') || payEnum === 3) {
+    paymentMethod = 'pix';
+  } else if (rawPayName.includes('boleto') || rawPayName.includes('billet') || payEnum === 2) {
+    paymentMethod = 'boleto';
+  } else if (rawPayName.includes('cart') || rawPayName.includes('card') || rawPayName.includes('credito') || payEnum === 1) {
+    paymentMethod = 'credit_card';
+  } else if (rawStatusName.includes('pix') || String(body.step || '').toLowerCase().includes('pix')) {
+    paymentMethod = 'pix';
+  }
+
   return {
     gateway: 'PerfectPay',
-    orderCode: body.code || body.sale_id || `PP-${Date.now().toString().slice(-7)}`,
-    status: body.sale_status_enum === 2 ? 'approved' : 'approved',
-    amount: Number(body.sale_amount || 47.90),
-    paymentMethod: body.payment_type_enum === 2 ? 'pix' : 'credit_card',
-    productName: body.product_name || 'Produto PerfectPay',
+    orderCode: body.code || body.sale_id || body.transaction || body.id || `PP-${Date.now().toString().slice(-7)}`,
+    status,
+    amount: Number(body.sale_amount || body.amount || body.value || 47.90),
+    paymentMethod,
+    productName: body.product_name || body.product?.name || 'Produto PerfectPay',
     customer: {
-      name: customer.customer_name || 'Cliente PerfectPay',
-      email: customer.customer_email || '',
-      phone: customer.customer_phone || '',
-      city: customer.customer_city || '',
-      state: customer.customer_state || '',
-      zip: customer.customer_zip || customer.customer_cep || '',
+      name: customer.customer_name || customer.name || 'Cliente PerfectPay',
+      email: customer.customer_email || customer.email || '',
+      phone: customer.customer_phone || customer.phone || '',
+      city: customer.customer_city || customer.city || '',
+      state: customer.customer_state || customer.state || '',
+      zip: customer.customer_zip || customer.customer_cep || customer.cep || '',
       country: 'BR'
     },
     tracking: {
-      utm_source: body.utm_source || body.src,
-      utm_medium: body.utm_medium,
-      utm_campaign: body.utm_campaign,
-      utm_content: body.utm_content,
-      utm_term: body.utm_term,
-      fbp: body.fbp,
-      fbc: body.fbc,
-      sessionId: body.sessionId,
-      pixelId: extractTrackingPixelId({}, body)
+      utm_source: body.utm_source || body.src || tracking.utm_source || tracking.src,
+      utm_medium: body.utm_medium || tracking.utm_medium,
+      utm_campaign: body.utm_campaign || tracking.utm_campaign,
+      utm_content: body.utm_content || tracking.utm_content,
+      utm_term: body.utm_term || tracking.utm_term,
+      fbp: body.fbp || tracking.fbp,
+      fbc: body.fbc || tracking.fbc,
+      sessionId: body.sessionId || tracking.sessionId,
+      pixelId: extractTrackingPixelId(tracking, body)
     },
     raw: body
   };

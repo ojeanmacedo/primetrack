@@ -77,8 +77,9 @@ export default function Integrations() {
     id: 'tok_monsterpay',
     name: 'Monsterpay',
     platform: 'Monsterpay',
+    type: 'token',
     token: 'pt_9f8c12a47e0345b89a2345bcdef0123456789abcdef01234',
-    webhookUrl: 'https://app.primetrack.top/api/webhooks/monsterpay',
+    webhookUrl: '',
     status: 'Ativo',
     lastUsed: 'Hoje',
     createdAt: '08/09/2026'
@@ -391,6 +392,7 @@ export default function Integrations() {
       type: selectedPlatformName.toLowerCase().includes('monster') ? 'token' : 'webhook_url'
     };
 
+    const isMonster = platform.name.toLowerCase().includes('monster') || platform.slug === 'monsterpay' || platform.type === 'token';
     const rawAlias = tokenAliasInput.trim() || platform.name;
     
     // Gera token de 48 caracteres hexadecimais no padrão pt_
@@ -405,7 +407,7 @@ export default function Integrations() {
       ? window.location.origin 
       : 'https://app.primetrack.top';
 
-    const webhookUrl = `${baseUrl}/webhook/${fullToken}/${platform.slug}`;
+    const webhookUrl = isMonster ? '' : `${baseUrl}/webhook/${fullToken}/${platform.slug}`;
 
     const today = new Date();
     const formattedDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
@@ -414,9 +416,9 @@ export default function Integrations() {
       id: `tok_${Date.now()}`,
       name: rawAlias,
       platform: platform.slug,
-      type: platform.type,
+      type: isMonster ? 'token' : 'webhook_url',
       token: fullToken,
-      webhookUrl: platform.type === 'webhook_url' ? webhookUrl : '',
+      webhookUrl: isMonster ? '' : webhookUrl,
       status: 'Ativo',
       lastUsed: '—',
       createdAt: formattedDate
@@ -434,8 +436,8 @@ export default function Integrations() {
     }).catch(() => {});
 
     setGeneratedPlatformToken(fullToken);
-    setGeneratedPlatformWebhookUrl(webhookUrl);
-    setSelectedPlatformType(platform.type);
+    setGeneratedPlatformWebhookUrl(isMonster ? '' : webhookUrl);
+    setSelectedPlatformType(isMonster ? 'token' : 'webhook_url');
     setCopiedToken(false);
     setCopiedWebhookUrl(false);
     setConnectPlatformStep(3);
@@ -451,8 +453,10 @@ export default function Integrations() {
           type: platformOrName.toLowerCase().includes('monster') ? 'token' : 'webhook_url'
         };
 
+    const isMonster = platform.name.toLowerCase().includes('monster') || platform.slug === 'monsterpay' || platform.type === 'token';
+
     setSelectedPlatformName(platform.name);
-    setSelectedPlatformType(platform.type || 'webhook_url');
+    setSelectedPlatformType(isMonster ? 'token' : 'webhook_url');
 
     // Gera token de 48 caracteres hexadecimais no padrão pt_
     const chars = '0123456789abcdef';
@@ -466,7 +470,7 @@ export default function Integrations() {
       ? window.location.origin 
       : 'https://app.primetrack.top';
 
-    const webhookUrl = `${baseUrl}/webhook/${fullToken}/${platform.slug}`;
+    const webhookUrl = isMonster ? '' : `${baseUrl}/webhook/${fullToken}/${platform.slug}`;
 
     const today = new Date();
     const formattedDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
@@ -475,9 +479,9 @@ export default function Integrations() {
       id: `tok_${Date.now()}`,
       name: platform.name,
       platform: platform.slug,
-      type: platform.type,
+      type: isMonster ? 'token' : 'webhook_url',
       token: fullToken,
-      webhookUrl: platform.type === 'webhook_url' ? webhookUrl : '',
+      webhookUrl: isMonster ? '' : webhookUrl,
       status: 'Ativo',
       lastUsed: '—',
       createdAt: formattedDate
@@ -495,7 +499,7 @@ export default function Integrations() {
     }).catch(() => {});
 
     setGeneratedPlatformToken(fullToken);
-    setGeneratedPlatformWebhookUrl(webhookUrl);
+    setGeneratedPlatformWebhookUrl(isMonster ? '' : webhookUrl);
     setCopiedToken(false);
     setCopiedWebhookUrl(false);
     setConnectPlatformStep(3); // Vai direto para a tela final
@@ -1818,10 +1822,13 @@ export default function Integrations() {
                         ? window.location.origin 
                         : 'https://app.primetrack.top';
 
-                      const effectiveWebhookUrl = tok.webhookUrl || (
-                        (isPerfect || isHotmart || isKiwify) 
-                          ? `${baseUrl}/webhook/${tok.token}/${tok.platform || 'webhook'}`
-                          : null
+                      // Monsterpay e Documentação NUNCA mostram webhookUrl na tabela, somente o TOKEN
+                      const effectiveWebhookUrl = (!isMonster && !isDoc) && (
+                        tok.webhookUrl || (
+                          (isPerfect || isHotmart || isKiwify) 
+                            ? `${baseUrl}/webhook/${tok.token}/${tok.platform || 'webhook'}`
+                            : null
+                        )
                       );
 
                       return (
@@ -2538,34 +2545,8 @@ export default function Integrations() {
                   </span>
                 </div>
 
-                {/* Se a plataforma selecionada for Webhook URL (Hotmart, Kiwify, Perfect Pay) */}
-                {selectedPlatformType === 'webhook_url' ? (
-                  <div>
-                    <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
-                      URL DO WEBHOOK
-                    </label>
-                    <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-[#060D1A] border border-[#1E3254]">
-                      <span className="font-mono text-xs text-zinc-200 select-all truncate pl-1">
-                        {generatedPlatformWebhookUrl}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => copyPlatformField(generatedPlatformWebhookUrl, 'url')}
-                        className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-xs text-zinc-200 font-medium transition-colors shrink-0 cursor-pointer flex items-center gap-1.5"
-                      >
-                        {copiedWebhookUrl ? (
-                          <>
-                            <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            <span className="text-emerald-400 font-semibold">Copiado!</span>
-                          </>
-                        ) : (
-                          <span>Copiar</span>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  /* Se a plataforma for Monsterpay (Token) */
+                {/* Se for Monsterpay: SOMENTE O TOKEN */}
+                {selectedPlatformName.toLowerCase().includes('monster') || selectedPlatformType === 'token' ? (
                   <div>
                     <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
                       TOKEN
@@ -2580,6 +2561,32 @@ export default function Integrations() {
                         className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-xs text-zinc-200 font-medium transition-colors shrink-0 cursor-pointer flex items-center gap-1.5"
                       >
                         {copiedToken ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            <span className="text-emerald-400 font-semibold">Copiado!</span>
+                          </>
+                        ) : (
+                          <span>Copiar</span>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  /* Demais plataformas (Perfect Pay, Hotmart, Kiwify): URL DO WEBHOOK */
+                  <div>
+                    <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
+                      URL DO WEBHOOK
+                    </label>
+                    <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-[#060D1A] border border-[#1E3254]">
+                      <span className="font-mono text-xs text-zinc-200 select-all truncate pl-1">
+                        {generatedPlatformWebhookUrl}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => copyPlatformField(generatedPlatformWebhookUrl, 'url')}
+                        className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-xs text-zinc-200 font-medium transition-colors shrink-0 cursor-pointer flex items-center gap-1.5"
+                      >
+                        {copiedWebhookUrl ? (
                           <>
                             <Check className="w-3.5 h-3.5 text-emerald-400" />
                             <span className="text-emerald-400 font-semibold">Copiado!</span>

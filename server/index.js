@@ -827,7 +827,7 @@ app.all([
       existingOrders[existingIdx] = {
         ...existingOrders[existingIdx],
         ...orderRecord,
-        status: parsed.status || 'approved'
+        status: parsed.status || 'waiting_payment'
       };
       db.set('orders', existingOrders);
     } else {
@@ -848,7 +848,7 @@ app.all([
         await supabaseAdmin
           .from('orders')
           .update({
-            status: parsed.status || 'approved',
+            status: parsed.status || 'waiting_payment',
             amount: parsed.amount,
             attribution: attribution || undefined,
             emq_score: capiResult.emq.score || 9.7
@@ -1133,7 +1133,7 @@ async function getAllOrders(forceFresh = false, userId = null) {
     return [];
   }
 
-  const filtered = orders.filter(o => !o.gateway || o.gateway.toLowerCase().includes('monster'));
+  const filtered = orders;
 
   // Enriquece pedidos com dados de geolocalização capturados pelo Pixel CAPI
   const sessions = db.get('sessions') || [];
@@ -1924,7 +1924,7 @@ app.get('/api/orders', async (req, res) => {
   } catch (err) {
     if (isOwnerUserId(userId)) {
       const orders = db.get('orders') || [];
-      res.json(orders.filter(o => !o.gateway || o.gateway.toLowerCase().includes('monster')));
+      res.json(orders);
     } else {
       res.json([]);
     }
