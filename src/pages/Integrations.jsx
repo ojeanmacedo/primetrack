@@ -1049,9 +1049,40 @@ export default function Integrations() {
       .then(res => res.json())
       .then(tokens => {
         if (Array.isArray(tokens)) {
-          setApiTokens(tokens);
+          let localTokens = [];
           if (typeof window !== 'undefined') {
-            localStorage.setItem('primetrack_webhook_tokens', JSON.stringify(tokens));
+            try {
+              const saved = localStorage.getItem('primetrack_webhook_tokens');
+              if (saved) localTokens = JSON.parse(saved);
+            } catch (e) {}
+          }
+
+          // Merge: se o usuário criou tokens localmente, preserva
+          const mergedMap = new Map();
+          tokens.forEach(t => {
+            const k = t.token || t.id;
+            if (k) mergedMap.set(k, t);
+          });
+          localTokens.forEach(t => {
+            const k = t.token || t.id;
+            if (k && !mergedMap.has(k)) {
+              mergedMap.set(k, t);
+            }
+          });
+
+          const combined = Array.from(mergedMap.values());
+          setApiTokens(combined);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('primetrack_webhook_tokens', JSON.stringify(combined));
+          }
+
+          // Se tiver tokens locais que ainda não estavam no servidor, sincroniza agora
+          if (combined.length > tokens.length) {
+            fetch('/api/webhook/tokens', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', ...(currentUser?.id ? { 'x-user-id': currentUser.id } : {}) },
+              body: JSON.stringify({ tokens: combined, userId: currentUser?.id })
+            }).catch(() => {});
           }
         }
       })

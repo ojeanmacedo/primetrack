@@ -225,7 +225,7 @@ app.get('/api/pixels', async (req, res) => {
     const { data } = await query;
     if (data && data.length > 0) {
       const mapped = data
-        .filter(p => !p.id.startsWith('push_sub_')) // Filtra tokens de push da Apple/Chrome
+        .filter(p => !p.id.startsWith('push_sub_') && !p.id.startsWith('wh_tok_')) // Filtra push e webhook tokens
         .map(p => {
           let extra = {};
           try { extra = JSON.parse(p.domain); } catch(e){}
@@ -559,7 +559,7 @@ app.all([
       const { data: supaPixels } = await supabaseAdmin.from('pixels').select('*').eq('status', 'active');
       if (Array.isArray(supaPixels) && supaPixels.length > 0) {
         pixels = supaPixels
-          .filter(p => p.id && !p.id.startsWith('push_sub_') && !p.id.startsWith('push_'))
+          .filter(p => p.id && !p.id.startsWith('push_sub_') && !p.id.startsWith('push_') && !p.id.startsWith('wh_tok_'))
           .map(p => {
             let extra = {};
             try { extra = JSON.parse(p.domain); } catch(e){}
@@ -796,9 +796,15 @@ app.all([
     let tokenUserId = null;
     if (token) {
       try {
-        const { data: tokData } = await supabaseAdmin.from('webhook_tokens').select('user_id').eq('token', token).limit(1);
-        if (tokData && tokData[0]?.user_id) tokenUserId = tokData[0].user_id;
+        const { data: supaTok } = await supabaseAdmin.from('pixels').select('user_id').eq('id', `wh_tok_${token}`).limit(1);
+        if (supaTok && supaTok[0]?.user_id) tokenUserId = supaTok[0].user_id;
       } catch (e) {}
+      if (!tokenUserId) {
+        try {
+          const { data: tokData } = await supabaseAdmin.from('webhook_tokens').select('user_id').eq('token', token).limit(1);
+          if (tokData && tokData[0]?.user_id) tokenUserId = tokData[0].user_id;
+        } catch (e) {}
+      }
       if (!tokenUserId) {
         const allTokens = db.get('webhook_tokens') || [];
         const foundTok = allTokens.find(t => t.token === token);
@@ -2001,26 +2007,106 @@ app.post('/api/settings', (req, res) => {
 /**
  * 8.1 Webhook API Tokens
  */
-app.get('/api/webhook/tokens', (req, res) => {
+app.get('/api/webhook/tokens', async (req, res) => {
   const userId = req.headers['x-user-id'] || req.query.userId || null;
-  let allTokens = db.get('webhook_tokens') || [];
-  
-  if (userId) {
-    // Retorna tokens criados pelo usuário (owner vê todos os tokens do owner)
-    const userTokens = allTokens.filter(t => isOwnerUserId(userId) ? (!t.userId || isOwnerUserId(t.userId)) : (t.userId === userId));
-    return res.json(userTokens);
-  }
-  res.json(allTokens);
+  let tokens = [];
+
+  // 1. Busca tokens persistidos no Supabase (com prefixo wh_tok_)
+  try {
+    let query = supabaseAdmin.from('pixels').select('*').like('id', 'wh_tok_%');
+    if (userId) {
+      if (isOwnerUserId(userId)) {
+        query = query.or(`user_id.in.(${OWNER_USER_IDS.join(',')}),user_id.is.null`);
+      } else {
+        query = query.eq('user_id', userId);
+      }
+    }
+    const { data: supaToks } = await query;
+    if (supaToks && supaToks.length > 0) {
+      tokens = supaToks.map(p => {
+        let extra = {};
+        try { extra = JSON.parse(p.domain || '{}'); } catch(e){}
+        return {
+          id: p.id.replace('wh_tok_', ''),
+          name: p.name,
+          platform: extra.platform || 'monsterpay',
+          type: extra.type || 'token',
+          token: extra.token || p.name,
+          webhookUrl: extra.webhookUrl || '',
+          status: p.status === 'active' ? 'Ativo' : (p.status || 'Ativo'),
+          lastUsed: extra.lastUsed || '—',
+          createdAt: extra.createdAt || new Date(p.created_at).toLocaleDateString('pt-BR'),
+          userId: p.user_id
+        };
+      });
+    }
+  } catch (e) {}
+
+  // 2. Fallback / merge com db.get('webhook_tokens')
+  const localTokens = db.get('webhook_tokens') || [];
+  const filteredLocal = userId 
+    ? localTokens.filter(t => isOwnerUserId(userId) ? (!t.userId || isOwnerUserId(t.userId)) : (t.userId === userId))
+    : localTokens;
+
+  const tokenMap = new Map();
+  tokens.forEach(t => tokenMap.set(t.token || t.id, t));
+  filteredLocal.forEach(t => {
+    if (!tokenMap.has(t.token || t.id)) {
+      tokenMap.set(t.token || t.id, t);
+    }
+  });
+
+  res.json(Array.from(tokenMap.values()));
 });
 
-app.post('/api/webhook/tokens', (req, res) => {
+app.post('/api/webhook/tokens', async (req, res) => {
   const userId = req.headers['x-user-id'] || req.body?.userId || req.query.userId || 'usr_1788826403159';
   const { tokens } = req.body;
   if (Array.isArray(tokens)) {
+    // 1. Salva na memória local
     let allTokens = db.get('webhook_tokens') || [];
     const otherTokens = allTokens.filter(t => t.userId && t.userId !== userId);
     const updatedUserTokens = tokens.map(t => ({ ...t, userId }));
     db.set('webhook_tokens', [...otherTokens, ...updatedUserTokens]);
+
+    // 2. Persiste permanentemente no Supabase (na tabela pixels com namespace wh_tok_)
+    try {
+      for (const tok of updatedUserTokens) {
+        if (!tok.token) continue;
+        const recordId = `wh_tok_${tok.token}`;
+        const extraData = {
+          platform: tok.platform || 'monsterpay',
+          type: tok.type || 'token',
+          token: tok.token,
+          webhookUrl: tok.webhookUrl || '',
+          lastUsed: tok.lastUsed || '—',
+          createdAt: tok.createdAt || new Date().toLocaleDateString('pt-BR')
+        };
+        await supabaseAdmin.from('pixels').upsert({
+          id: recordId,
+          user_id: userId,
+          name: tok.name || tok.platform || 'Webhook',
+          domain: JSON.stringify(extraData),
+          status: 'active',
+          emq_score: 9.7,
+          events_count: 0
+        }, { onConflict: 'id' });
+      }
+
+      // Se o usuário removeu algum token, remove também do Supabase
+      const currentTokenIds = new Set(updatedUserTokens.map(t => `wh_tok_${t.token}`));
+      const { data: userSupaToks } = await supabaseAdmin.from('pixels').select('id').eq('user_id', userId).like('id', 'wh_tok_%');
+      if (userSupaToks && userSupaToks.length > 0) {
+        for (const st of userSupaToks) {
+          if (!currentTokenIds.has(st.id)) {
+            await supabaseAdmin.from('pixels').delete().eq('id', st.id);
+          }
+        }
+      }
+    } catch (supaErr) {
+      console.warn('Erro ao persistir webhook tokens no Supabase:', supaErr.message);
+    }
+
     return res.json({ success: true, tokens: updatedUserTokens });
   }
   res.status(400).json({ error: 'Lista de tokens inválida' });
