@@ -378,16 +378,16 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
           const explicitAboInName = nameUpper.includes('ABO');
           const explicitCboInName = nameUpper.includes('CBO') || nameUpper.includes('BID') || nameUpper.includes('COST CAP');
 
-          // Identificação precisa de ABO vs CBO:
-          // Se tiver CBO ou BID no nome, ou possuir orçamento em nível de campanha -> CBO
-          // Se tiver ABO no nome, ou não possuir orçamento em nível de campanha -> ABO
-          const isCampAbo = explicitAboInName
-            ? true
-            : (explicitCboInName
-                ? false
-                : (c.isCbo ? false : (c.isAbo === true || (!rawDaily && !rawLifetime && !c.budget))));
+          const hasCampBudget = Boolean(c.daily_budget || c.lifetime_budget || (c.isCbo === true) || (c.budgetType === 'Diário' && !c.isAbo));
+          const hasBidStrategy = c.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || c.bidStrategy === 'COST_CAP' || (c.bidCap && Number(c.bidCap) > 0);
+
+          // Identificação definitiva CBO vs ABO:
+          // Se tiver orçamento em nível de campanha, isCbo: true, BID CAP ou CBO no nome -> CBO
+          // Só é ABO se NÃO for CBO
+          const isCampCbo = Boolean(explicitCboInName || c.isCbo === true || hasBidStrategy || hasCampBudget);
+          const isCampAbo = !isCampCbo;
           let campDailyBudget = null;
-          if (!isCampAbo) {
+          if (isCampCbo) {
             const rawVal = (c.rawBudgetUsd !== null && c.rawBudgetUsd !== undefined && Number(c.rawBudgetUsd) > 0)
               ? Number(c.rawBudgetUsd)
               : (isUsd ? (Number(c.budget || 25) / usdRate) : Number(c.budget || 25));
@@ -457,7 +457,12 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
 
   if (!adsetsData.data || adsetsData.data.length === 0) {
     const fallbackAdsets = storedCampaigns.flatMap(c => {
-      const isCampAbo = Boolean(c.isAbo === true || c.budgetType?.includes('Conjunto') || (c.name || '').toUpperCase().includes('ABO'));
+      const campNameUpper = (c.name || '').toUpperCase();
+      const explicitCbo = campNameUpper.includes('CBO') || campNameUpper.includes('BID') || campNameUpper.includes('COST CAP');
+      const hasCampBudget = Boolean(c.daily_budget || c.lifetime_budget || (c.isCbo === true) || (c.budgetType === 'Diário' && !c.isAbo));
+      const hasBidStrategy = c.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || c.bidStrategy === 'COST_CAP' || (c.bidCap && Number(c.bidCap) > 0);
+      const isCampCbo = Boolean(explicitCbo || c.isCbo === true || hasBidStrategy || hasCampBudget);
+      const isCampAbo = !isCampCbo;
       return (c.adsets || []).map(a => ({
         ...a,
         _parentIsAbo: isCampAbo

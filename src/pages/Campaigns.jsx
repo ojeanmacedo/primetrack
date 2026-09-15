@@ -2186,12 +2186,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       case 'budget': {
         const isConjunto = subTab === 'Conjuntos';
         const isCampanha = subTab === 'Campanhas';
-        const itemNameUpper = (item.name || '').toUpperCase();
-        const isItemAbo = Boolean(
-          item.isAbo === true || 
-          item.budgetType?.includes('Conjunto') ||
-          itemNameUpper.includes('ABO')
+        // Determinação estrita CBO vs ABO:
+        // Se item.isCbo for explicitamente true, NUNCA é ABO, mesmo que o nome tenha a palavra "ABO".
+        const isItemCbo = Boolean(
+          item.isCbo === true ||
+          (item.budgetType && !item.budgetType.includes('Conjunto') && item.budgetType !== 'Nível de Conjunto' && item.isAbo !== true)
         );
+        const isItemAbo = !isItemCbo;
 
         // Caso 1: Na aba Campanhas, se a campanha for ABO:
         // O orçamento é configurado nos conjuntos de anúncios, não na campanha!
@@ -2215,7 +2216,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
         // Caso 2: Na aba Conjuntos, se a campanha for CBO (orçamento centralizado na campanha):
         // Conforme solicitado: deixa somente a escrita "Usando orç. campanha" sem o valor embaixo
-        if (isConjunto && !isItemAbo) {
+        if (isConjunto && isItemCbo) {
           return (
             <div 
               className="p-1 select-none text-zinc-400 font-sans text-xs" 
@@ -2255,11 +2256,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         }
 
         const itemNameUpper = (item.name || '').toUpperCase();
-        const isItemAbo = Boolean(
-          item.isAbo === true || 
-          item.budgetType?.includes('Conjunto') ||
-          itemNameUpper.includes('ABO')
+        // Determinação estrita CBO vs ABO:
+        const isItemCbo = Boolean(
+          item.isCbo === true ||
+          (item.budgetType && !item.budgetType.includes('Conjunto') && item.budgetType !== 'Nível de Conjunto' && item.isAbo !== true)
         );
+        const isItemAbo = !isItemCbo;
 
         // Se o conjunto pertencer a uma campanha ABO, ou se for ABO:
         // Estritamente um risquinho "—" (Volume mais alto, sem limite de lance!)
