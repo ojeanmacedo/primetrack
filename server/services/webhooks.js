@@ -13,6 +13,57 @@ function extractMetaPixelId(tracking = {}, body = {}) {
          body?.pt_meta_pixel || body?.meta_pixel || body?.metaPixelId || null;
 }
 
+export function extractUniversalTracking(tracking = {}, body = {}) {
+  const t = tracking || {};
+  const b = body || {};
+  const dataTrack = b.data?.tracking || b.data?.tracking_parameters || b.data?.metadata || b.metadata || (b.purchase && (b.purchase.origin || b.purchase.tracking)) || {};
+
+  const rawSrc = t.utm_source || b.utm_source || t.src || b.src || t.sck || b.sck || dataTrack.src || dataTrack.utm_source || '';
+  let extractedSid = null;
+  if (typeof rawSrc === 'string' && rawSrc.includes('pt_')) {
+    const matchSid = rawSrc.match(/pt_[a-z0-9_]+/i);
+    if (matchSid) extractedSid = matchSid[0];
+  }
+
+  const rawSck = t.sck || b.sck || dataTrack.sck || '';
+  if (!extractedSid && typeof rawSck === 'string' && rawSck.includes('pt_')) {
+    const matchSid = rawSck.match(/pt_[a-z0-9_]+/i);
+    if (matchSid) extractedSid = matchSid[0];
+  }
+
+  if (!extractedSid) {
+    const candidates = [t.utm_campaign, b.utm_campaign, t.utm_content, b.utm_content, t.utm_term, b.utm_term, t.custom_fields, b.custom_fields];
+    for (const cand of candidates) {
+      if (typeof cand === 'string' && cand.includes('pt_')) {
+        const m = cand.match(/pt_[a-z0-9_]+/i);
+        if (m) { extractedSid = m[0]; break; }
+      }
+    }
+  }
+
+  const fbclid = t.fbclid || b.fbclid || dataTrack.fbclid || '';
+  let fbc = t.fbc || t._fbc || b.fbc || b._fbc || dataTrack.fbc || dataTrack._fbc || null;
+  if (!fbc && fbclid) {
+    fbc = `fb.1.${Date.now()}.${fbclid}`;
+  }
+
+  return {
+    utm_source: t.utm_source || b.utm_source || t.src || b.src || dataTrack.utm_source || dataTrack.src || '',
+    utm_medium: t.utm_medium || b.utm_medium || dataTrack.utm_medium || '',
+    utm_campaign: t.utm_campaign || b.utm_campaign || dataTrack.utm_campaign || '',
+    utm_content: t.utm_content || b.utm_content || dataTrack.utm_content || '',
+    utm_term: t.utm_term || b.utm_term || dataTrack.utm_term || '',
+    fbclid,
+    src: t.src || b.src || dataTrack.src || '',
+    sck: t.sck || b.sck || dataTrack.sck || '',
+    fbp: t.fbp || t._fbp || b.fbp || b._fbp || dataTrack.fbp || dataTrack._fbp || null,
+    fbc,
+    sessionId: t.pt_sid || b.pt_sid || t.sessionId || b.sessionId || b.pt_click_id || b.click_id || t.click_id || dataTrack.pt_sid || dataTrack.sessionId || extractedSid || null,
+    pixelId: extractTrackingPixelId(t, b) || extractTrackingPixelId(dataTrack, b),
+    pt_meta_pixel: extractMetaPixelId(t, b) || extractMetaPixelId(dataTrack, b)
+  };
+}
+
 export function parseWebhook(gateway, body) {
   const normGateway = (gateway || '').toLowerCase();
 
@@ -102,18 +153,7 @@ function parseKiwify(body) {
       zip: customer.zipcode || customer.zip || (customer.address && (customer.address.zipcode || customer.address.zip || customer.address.cep)) || '',
       country: customer.country || (customer.address && customer.address.country) || 'BR'
     },
-    tracking: {
-      utm_source: tracking.utm_source || tracking.src || body.utm_source,
-      utm_medium: tracking.utm_medium || body.utm_medium,
-      utm_campaign: tracking.utm_campaign || body.utm_campaign,
-      utm_content: tracking.utm_content || body.utm_content,
-      utm_term: tracking.utm_term || body.utm_term,
-      sck: tracking.sck || body.sck,
-      fbp: tracking.fbp || body.fbp,
-      fbc: tracking.fbc || body.fbc,
-      sessionId: tracking.sessionId || body.sessionId,
-      pixelId: extractTrackingPixelId(tracking, body)
-    },
+    tracking: extractUniversalTracking(tracking, body),
     raw: body
   };
 }
@@ -218,18 +258,7 @@ function parseHotmart(body) {
       zip: (buyer.address && (buyer.address.zipcode || buyer.address.zip || buyer.address.cep)) || body.zip || body.cep || '',
       country: (buyer.address && buyer.address.country_iso) || 'BR'
     },
-    tracking: {
-      utm_source: (purchase.origin && purchase.origin.utm_source) || (purchase.tracking && purchase.tracking.source) || body.utm_source,
-      utm_medium: (purchase.origin && purchase.origin.utm_medium) || body.utm_medium,
-      utm_campaign: (purchase.origin && purchase.origin.utm_campaign) || body.utm_campaign,
-      utm_content: (purchase.origin && purchase.origin.utm_content) || body.utm_content,
-      utm_term: (purchase.origin && purchase.origin.utm_term) || body.utm_term,
-      sck: (purchase.origin && purchase.origin.sck) || body.sck,
-      fbp: body.fbp,
-      fbc: body.fbc,
-      sessionId: body.sessionId,
-      pixelId: extractTrackingPixelId(purchase.tracking || purchase.origin, body)
-    },
+    tracking: extractUniversalTracking(purchase.origin || purchase.tracking, { ...body, ...buyer, ...purchase }),
     raw: body
   };
 }
@@ -256,18 +285,7 @@ function parseEduzz(body) {
       zip: customer.zip_code || body.client_zip_code || '',
       country: customer.country || 'BR'
     },
-    tracking: {
-      utm_source: body.utm_source || body.src,
-      utm_medium: body.utm_medium,
-      utm_campaign: body.utm_campaign,
-      utm_content: body.utm_content,
-      utm_term: body.utm_term,
-      sck: body.sck,
-      fbp: body.fbp,
-      fbc: body.fbc,
-      sessionId: body.sessionId,
-      pixelId: extractTrackingPixelId({}, body)
-    },
+    tracking: extractUniversalTracking(body, body),
     raw: body
   };
 }
@@ -290,18 +308,7 @@ function parseCakto(body) {
       zip: customer.zip || customer.zipcode || customer.cep || (customer.address && customer.address.zipcode) || '',
       country: customer.country || 'BR'
     },
-    tracking: {
-      utm_source: body.utm_source || (body.metadata && body.metadata.utm_source),
-      utm_medium: body.utm_medium || (body.metadata && body.metadata.utm_medium),
-      utm_campaign: body.utm_campaign || (body.metadata && body.metadata.utm_campaign),
-      utm_content: body.utm_content || (body.metadata && body.metadata.utm_content),
-      utm_term: body.utm_term || (body.metadata && body.metadata.utm_term),
-      sck: body.sck || (body.metadata && body.metadata.sck),
-      fbp: body.fbp,
-      fbc: body.fbc,
-      sessionId: body.sessionId,
-      pixelId: extractTrackingPixelId(body.metadata, body)
-    },
+    tracking: extractUniversalTracking(body.metadata, body),
     raw: body
   };
 }
@@ -324,17 +331,7 @@ function parseKirvano(body) {
       zip: customer.zip || customer.zipcode || customer.cep || (customer.address && customer.address.zipcode) || '',
       country: customer.country || 'BR'
     },
-    tracking: {
-      utm_source: body.utm_source,
-      utm_medium: body.utm_medium,
-      utm_campaign: body.utm_campaign,
-      utm_content: body.utm_content,
-      utm_term: body.utm_term,
-      fbp: body.fbp,
-      fbc: body.fbc,
-      sessionId: body.sessionId,
-      pixelId: extractTrackingPixelId({}, body)
-    },
+    tracking: extractUniversalTracking(body, body),
     raw: body
   };
 }
@@ -445,17 +442,7 @@ function parsePerfectPay(body) {
       zip: customer.customer_zip || customer.customer_cep || customer.cep || (customer.address && (customer.address.zipcode || customer.address.cep)) || '',
       country: 'BR'
     },
-    tracking: {
-      utm_source: body.utm_source || body.src || tracking.utm_source || tracking.src,
-      utm_medium: body.utm_medium || tracking.utm_medium,
-      utm_campaign: body.utm_campaign || tracking.utm_campaign,
-      utm_content: body.utm_content || tracking.utm_content,
-      utm_term: body.utm_term || tracking.utm_term,
-      fbp: body.fbp || tracking.fbp,
-      fbc: body.fbc || tracking.fbc,
-      sessionId: body.sessionId || tracking.sessionId,
-      pixelId: extractTrackingPixelId(tracking, body)
-    },
+    tracking: extractUniversalTracking(tracking, body),
     raw: body
   };
 }
@@ -478,17 +465,7 @@ function parseBraip(body) {
       zip: client.client_zip_code || client.client_cep || '',
       country: 'BR'
     },
-    tracking: {
-      utm_source: body.utm_source || body.src,
-      utm_medium: body.utm_medium,
-      utm_campaign: body.utm_campaign,
-      utm_content: body.utm_content,
-      utm_term: body.utm_term,
-      fbp: body.fbp,
-      fbc: body.fbc,
-      sessionId: body.sessionId,
-      pixelId: extractTrackingPixelId({}, body)
-    },
+    tracking: extractUniversalTracking(body, body),
     raw: body
   };
 }
@@ -544,20 +521,7 @@ function parseMonsterPay(body) {
       zip: customer.zip || customer.zipcode || customer.cep || (customer.address && (customer.address.zipcode || customer.address.zip || customer.address.cep)) || '',
       country: customer.country || (customer.address && customer.address.country) || 'BR'
     },
-    tracking: {
-      utm_source: tracking.utm_source || body.utm_source || tracking.src || body.src,
-      utm_medium: tracking.utm_medium || body.utm_medium,
-      utm_campaign: tracking.utm_campaign || body.utm_campaign,
-      utm_content: tracking.utm_content || body.utm_content,
-      utm_term: tracking.utm_term || body.utm_term,
-      fbclid: tracking.fbclid || body.fbclid,
-      sck: tracking.sck || body.sck,
-      fbp: tracking.fbp || tracking._fbp || body.fbp || body._fbp,
-      fbc: tracking.fbc || tracking._fbc || body.fbc || body._fbc,
-      sessionId: tracking.pt_sid || body.pt_sid || tracking.sessionId || body.sessionId,
-      pixelId: extractTrackingPixelId(tracking, body),
-      pt_meta_pixel: extractMetaPixelId(tracking, body)
-    },
+    tracking: extractUniversalTracking(tracking, body),
     raw: body
   };
 }
@@ -597,18 +561,7 @@ function parseGeneric(body) {
       state: customer.state || (customer.address && customer.address.state) || body.state || '',
       zip: customer.zip || customer.cep || ''
     },
-    tracking: {
-      utm_source: tracking.utm_source || body.utm_source,
-      utm_medium: tracking.utm_medium || body.utm_medium,
-      utm_campaign: tracking.utm_campaign || body.utm_campaign,
-      utm_content: tracking.utm_content || body.utm_content,
-      utm_term: tracking.utm_term || body.utm_term,
-      sck: tracking.sck || body.sck,
-      fbp: tracking.fbp || body.fbp,
-      fbc: tracking.fbc || body.fbc,
-      sessionId: tracking.sessionId || body.sessionId,
-      pixelId: extractTrackingPixelId(tracking, body)
-    },
+    tracking: extractUniversalTracking(tracking, body),
     raw: body
   };
 }

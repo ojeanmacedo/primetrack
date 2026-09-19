@@ -1412,10 +1412,15 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         prevSet.forEach(id => {
           const camp = campaignsList.find(c => String(c.id) === String(id));
           if (camp) {
-            const cAdId = String(camp.adAccountId || '').replace('act_', '');
-            const selectedAcc = adAccountsList.find(a => a.name === accountFilter || a.id === accountFilter);
-            if (selectedAcc && cAdId === String(selectedAcc.id)) {
-              next.add(String(id));
+            const cAdId = String(camp.adAccountId || camp.accountId || '').replace('act_', '');
+            const selectedAcc = adAccountsList.find(a => a.name === accountFilter || a.id === accountFilter || `act_${a.id}` === accountFilter);
+            if (selectedAcc) {
+              const selId = String(selectedAcc.id).replace('act_', '');
+              const selName = (selectedAcc.name || '').toLowerCase().trim();
+              const cAccName = (camp.accountName || '').toLowerCase().trim();
+              if ((cAdId && cAdId === selId) || (cAccName && (cAccName === selName || selName.includes(cAccName) || cAccName.includes(selName)))) {
+                next.add(String(id));
+              }
             } else if (camp.accountName === accountFilter || cAdId === accountFilter) {
               next.add(String(id));
             }
@@ -1533,13 +1538,16 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     if (statusFilter === 'Ativo' && !isStatusActive(c)) return false;
     if (statusFilter === 'Desativadas' && isStatusActive(c)) return false;
 
-    const cAdId = String(c.adAccountId || '').replace('act_', '');
+    const cAdId = String(c.adAccountId || c.accountId || '').replace('act_', '');
     if (accountFilter !== 'Todas') {
-      const selectedAcc = adAccountsList.find(a => a.name === accountFilter || a.id === accountFilter);
+      const selectedAcc = adAccountsList.find(a => a.name === accountFilter || a.id === accountFilter || `act_${a.id}` === accountFilter);
       if (selectedAcc) {
-        return cAdId === String(selectedAcc.id);
+        const selId = String(selectedAcc.id).replace('act_', '');
+        const selName = (selectedAcc.name || '').toLowerCase().trim();
+        const cAccName = (c.accountName || '').toLowerCase().trim();
+        return (cAdId && cAdId === selId) || (cAccName && (cAccName === selName || selName.includes(cAccName) || cAccName.includes(selName)));
       }
-      return c.accountName === accountFilter || cAdId === accountFilter;
+      return (c.accountName && c.accountName === accountFilter) || (cAdId && cAdId === accountFilter);
     }
     // Quando 'Todas as Contas' está selecionado, exibe todas as campanhas retornadas da Meta
     return true;

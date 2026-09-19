@@ -77,7 +77,13 @@ export function attributeOrder(parsedOrder, clientIp = null) {
 
 function parseTrackingEntity(val) {
   if (!val) return { name: '', id: null };
-  const str = String(val).trim();
+  let str = String(val).trim();
+  try {
+    str = decodeURIComponent(str.replace(/\+/g, ' ')).trim();
+  } catch (e) {}
+  if (str.includes('%7C') || str.includes('%7c')) {
+    str = str.replace(/%7C/gi, '|');
+  }
   if (/^\d{6,}$/.test(str)) {
     return { name: str, id: str };
   }
@@ -150,6 +156,26 @@ function parseTrackingEntity(val) {
       resolvedAccountId = accPart.startsWith('act_') ? accPart : `act_${accPart}`;
     } else if (accPart) {
       resolvedAccountName = accPart;
+    }
+  }
+
+  // Se a conta de anúncios não veio na UTM, resolve cruzando com as campanhas e anúncios conhecidos
+  if (!resolvedAccountId && (resolvedCampaignId || resolvedAdId || (resolvedCampaign && resolvedCampaign !== 'Orgânico'))) {
+    const allCamps = db.get('campaigns') || [];
+    let matchedCamp = null;
+    if (resolvedCampaignId) {
+      matchedCamp = allCamps.find(c => String(c.id).trim() === String(resolvedCampaignId).trim());
+    }
+    if (!matchedCamp && resolvedAdId) {
+      matchedCamp = allCamps.find(c => Array.isArray(c.ads) && c.ads.some(a => String(a.id).trim() === String(resolvedAdId).trim()));
+    }
+    if (!matchedCamp && resolvedCampaign && resolvedCampaign !== 'Orgânico') {
+      const cNorm = resolvedCampaign.toLowerCase().trim();
+      matchedCamp = allCamps.find(c => (c.name || '').toLowerCase().trim() === cNorm);
+    }
+    if (matchedCamp) {
+      resolvedAccountId = matchedCamp.adAccountId || matchedCamp.accountId || matchedCamp.account_id || null;
+      resolvedAccountName = matchedCamp.accountName || matchedCamp.account_name || null;
     }
   }
 

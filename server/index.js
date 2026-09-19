@@ -531,6 +531,139 @@ app.all([
     // 2. Executa atribuição cross-session inteligente (recupera IP, cidade e estado do Pixel)
     const attribution = attributeOrder(parsed, clientIp);
 
+    // 2.1 Resolução resiliente da Conta de Anúncios (ad_account) para atribuição e isolamento
+    if (!attribution.accountId || !attribution.accountName) {
+      try {
+        let foundCamp = null;
+        const allLocalCamps = db.get('campaigns') || [];
+
+        if (attribution.campaignId) {
+          foundCamp = allLocalCamps.find(c => String(c.id).trim() === String(attribution.campaignId).trim());
+          if (!foundCamp) {
+            const { data: sCamps } = await supabaseAdmin
+              .from('campaigns')
+              .select('id, name, account_id')
+              .eq('id', String(attribution.campaignId).trim())
+              .limit(1);
+            if (sCamps && sCamps[0]) foundCamp = sCamps[0];
+          }
+        }
+
+        if (!foundCamp && attribution.adId) {
+          foundCamp = allLocalCamps.find(c => Array.isArray(c.ads) && c.ads.some(a => String(a.id || a.adId).trim() === String(attribution.adId).trim()));
+        }
+
+        if (!foundCamp && attribution.campaign && attribution.campaign !== 'Orgânico') {
+          const cLower = attribution.campaign.toLowerCase().trim();
+          foundCamp = allLocalCamps.find(c => (c.name || '').toLowerCase().trim() === cLower);
+          if (!foundCamp) {
+            const { data: sCamps } = await supabaseAdmin
+              .from('campaigns')
+              .select('id, name, account_id')
+              .eq('name', attribution.campaign)
+              .limit(1);
+            if (sCamps && sCamps[0]) foundCamp = sCamps[0];
+          }
+        }
+
+        // 4. Fallback ao vivo: Consulta direta na Meta Graph API (para campanhas criadas minutos antes da primeira venda)
+        if (!foundCamp && (attribution.campaignId || attribution.adId)) {
+          try {
+            const { data: conns } = await supabaseAdmin
+              .from('facebook_connections')
+              .select('access_token')
+              .limit(1);
+            const token = conns?.[0]?.access_token;
+            if (token) {
+              if (attribution.campaignId) {
+                const metaRes = await fetch(`https://graph.facebook.com/v20.0/${attribution.campaignId}?fields=id,name,account_id&access_token=${token}`);
+                const metaCamp = await metaRes.json();
+                if (metaCamp && metaCamp.account_id) {
+                  foundCamp = {
+                    id: metaCamp.id,
+                    name: metaCamp.name,
+                    account_id: metaCamp.account_id
+                  };
+                  supabaseAdmin.from('campaigns').upsert({
+                    id: String(metaCamp.id),
+                    user_id: 'usr_1788826403159',
+                    account_id: String(metaCamp.account_id).replace('act_', ''),
+                    name: metaCamp.name,
+                    status: true,
+                    updated_at: new Date().toISOString()
+                  }).then(() => {}).catch(() => {});
+                }
+              } else if (attribution.adId) {
+                const metaRes = await fetch(`https://graph.facebook.com/v20.0/${attribution.adId}?fields=id,name,account_id,campaign_id&access_token=${token}`);
+                const metaAd = await metaRes.json();
+                if (metaAd && metaAd.account_id) {
+                  foundCamp = {
+                    id: metaAd.campaign_id,
+                    name: metaAd.name,
+                    account_id: metaAd.account_id
+                  };
+                  if (!attribution.campaignId && metaAd.campaign_id) {
+                    attribution.campaignId = metaAd.campaign_id;
+                  }
+                }
+              }
+            }
+          } catch (eMetaLive) {
+            console.warn('[Webhook] Erro no fallback ao vivo do Graph API:', eMetaLive.message);
+          }
+        }
+
+        if (foundCamp) {
+          const rawAccId = foundCamp.account_id || foundCamp.accountId || foundCamp.adAccountId;
+          if (rawAccId && !attribution.accountId) {
+            attribution.accountId = String(rawAccId).startsWith('act_') ? String(rawAccId) : `act_${rawAccId}`;
+          }
+          if (foundCamp.accountName && !attribution.accountName) {
+            attribution.accountName = foundCamp.accountName;
+          }
+        }
+
+        if (attribution.accountId && !attribution.accountName) {
+          const cleanAccId = String(attribution.accountId).replace('act_', '');
+          const localAccs = db.get('ad_accounts') || [];
+          const foundAcc = localAccs.find(a => (a.accountId || a.id || '').replace('act_', '') === cleanAccId);
+          if (foundAcc && foundAcc.name) {
+            attribution.accountName = foundAcc.name;
+          } else {
+            const { data: sAccs } = await supabaseAdmin
+              .from('ad_accounts')
+              .select('name')
+              .or(`id.eq.act_${cleanAccId},id.eq.${cleanAccId}`)
+              .limit(1);
+            if (sAccs && sAccs[0]?.name) {
+              attribution.accountName = sAccs[0].name;
+            } else {
+              // Fallback ao vivo para nome da conta direto na Meta API
+              try {
+                const { data: conns } = await supabaseAdmin.from('facebook_connections').select('access_token').limit(1);
+                const token = conns?.[0]?.access_token;
+                if (token) {
+                  const resAcc = await fetch(`https://graph.facebook.com/v20.0/act_${cleanAccId}?fields=id,name&access_token=${token}`);
+                  const dAcc = await resAcc.json();
+                  if (dAcc && dAcc.name) {
+                    attribution.accountName = dAcc.name;
+                    supabaseAdmin.from('ad_accounts').upsert({
+                      id: `act_${cleanAccId}`,
+                      user_id: 'usr_1788826403159',
+                      name: dAcc.name,
+                      status: 'Ativa'
+                    }).then(() => {}).catch(() => {});
+                  }
+                }
+              } catch (eAccLive) {}
+            }
+          }
+        }
+      } catch (errAccResolve) {
+        console.warn('[Webhook] Erro ao resolver conta de anúncios:', errAccResolve.message);
+      }
+    }
+
     // Resolução de Cidade, Estado, CEP e País reais pelo Pixel CAPI e IP
     const effectiveIp = attribution.ip || clientIp || '189.40.122.45';
     let resolvedCity = parsed.customer.city || attribution.city;
@@ -602,6 +735,39 @@ app.all([
           }
         }
       } catch (errRecov) {}
+    }
+
+    // Se o webhook veio sem sessionId (alguns gateways como MonsterPay limpam parâmetros customizados),
+    // recupera a sessão do InitiateCheckout mais recente no mesmo produto/pixel nos últimos 10 minutos
+    if (!attribution.sessionId && !parsed.tracking?.sessionId) {
+      try {
+        let probablePxId = targetPixelId;
+        if (!probablePxId) {
+          const pLower = (parsed.productName || '').toLowerCase();
+          const cLower = (attribution.campaign || '').toLowerCase();
+          if (pLower.includes('transformando') || pLower.includes('kaue') || cLower.includes('kaue') || cLower.includes('abo')) {
+            probablePxId = 'pt_px_n7jmhi3grhi';
+          } else if (pLower.includes('estoica') || cLower.includes('estoica')) {
+            probablePxId = 'pt_px_9ptwarw3j6i';
+          }
+        }
+        if (probablePxId) {
+          const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+          const { data: recentIcs } = await supabaseAdmin
+            .from('events')
+            .select('session_id, pixel_id')
+            .eq('pixel_id', probablePxId)
+            .eq('event_name', 'InitiateCheckout')
+            .gte('created_at', tenMinAgo)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          if (recentIcs && recentIcs[0]?.session_id) {
+            attribution.sessionId = recentIcs[0].session_id;
+            if (!targetPixelId) targetPixelId = probablePxId;
+          }
+        }
+      } catch (errFallbackSid) {}
     }
 
     const orderDomain = (attribution.landingUrl || '').toLowerCase();
@@ -713,35 +879,117 @@ app.all([
       if (finalMetaPixelsToSend.length > 1) {
         const campId = attribution.campaignId;
         const allCampaigns = db.get('campaigns') || [];
-        const campMatch = allCampaigns.find(c => String(c.id).trim() === String(campId).trim());
-        const norm = s => String(s || '').toLowerCase().replace(/jofrrey/g, 'jeffrey').trim();
-        const normAccount = norm(campMatch?.accountName || attribution.accountName || '');
-        const normCamp = norm(campMatch?.name || attribution.campaign || '');
-        const normSource = norm(parsed.tracking?.utm_source || attribution.source || '');
+        let campMatch = allCampaigns.find(c => String(c.id).trim() === String(campId).trim());
 
-        // Encontra o sub-pixel exato que corresponde à BM da campanha que gerou a venda
-        let matchedSub = null;
+        // Se não achou na memória, busca no Supabase
+        if (!campMatch && campId) {
+          try {
+            const { data: sCamps } = await supabaseAdmin
+              .from('campaigns')
+              .select('*')
+              .eq('id', String(campId).trim())
+              .limit(1);
+            if (sCamps && sCamps[0]) {
+              campMatch = sCamps[0];
+            }
+          } catch (e) {}
+        }
+
+        let resolvedAccountName = campMatch?.accountName || campMatch?.account_name || attribution.accountName || '';
+        if (!resolvedAccountName && (campMatch?.account_id || campMatch?.accountId)) {
+          const accId = String(campMatch.account_id || campMatch.accountId).replace('act_', '');
+          try {
+            const { data: sAccs } = await supabaseAdmin
+              .from('ad_accounts')
+              .select('name')
+              .or(`id.eq.act_${accId},id.eq.${accId}`)
+              .limit(1);
+            if (sAccs && sAccs[0]?.name) {
+              resolvedAccountName = sAccs[0].name;
+            }
+          } catch (e) {}
+        }
+
+        // Normalizador universal de texto (remove acentos, pontuação, lowercase)
+        const normalizeText = (s) => String(s || '')
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase()
+          .trim();
+
+        // Extrator de tokens significativos (palavras com >= 2 caracteres alfanuméricos)
+        const extractTokens = (s) => normalizeText(s)
+          .split(/[^a-z0-9]+/i)
+          .filter(t => t.length >= 2);
+
+        const normAccount = normalizeText(resolvedAccountName);
+        const normCamp = normalizeText(campMatch?.name || attribution.campaign || parsed.tracking?.utm_campaign || '');
+        const normAd = normalizeText(attribution.adName || attribution.adSetName || parsed.tracking?.utm_content || '');
+        const normSource = normalizeText(parsed.tracking?.utm_source || attribution.source || '');
+
+        const accountTokens = extractTokens(normAccount);
+        const campTokens = extractTokens(normCamp);
+        const adTokens = extractTokens(normAd);
+        const sourceTokens = extractTokens(normSource);
+
+        // Encontra o sub-pixel exato que corresponde com maior precisão à conta/BM
+        let bestSub = null;
+        let bestScore = -1;
+
         for (const mp of (specificPixel.metaPixels || [])) {
-          const normName = norm(mp.name);
+          const normName = normalizeText(mp.name);
           if (!normName) continue;
 
-          // Se o nome do sub-pixel (ex: 'bm2' ou 'bm jofrrey') bate com a conta de anúncios (ex: 'ca01 bm2' ou 'ca03 jeffrey')
-          if (normAccount.includes(normName) || normName.includes(normAccount) || normSource.includes(normName) || normCamp.includes(normName)) {
-            matchedSub = mp;
-            break;
+          const subTokens = extractTokens(normName);
+          if (subTokens.length === 0) continue;
+
+          let score = 0;
+
+          // 1. MATCH DE CONTA DE ANÚNCIOS / BM (Prioridade Alta: 90-120 pts por token coincidente)
+          // Se o nome do sub-pixel contém tokens que identificam a conta de anúncios (ex: 'ca03', 'jeffrey', 'bm2', 'conta1')
+          for (const st of subTokens) {
+            if (accountTokens.includes(st)) {
+              score += 120;
+            } else if (accountTokens.some(at => (at.length >= 3 && st.length >= 3 && (at.startsWith(st) || st.startsWith(at))))) {
+              score += 90;
+            } else if (normAccount && (normAccount.includes(st) || st.includes(normAccount))) {
+              score += 70;
+            }
           }
 
-          // Checa palavras-chave (ex: 'bm2', 'jofrrey', 'jeffrey')
-          const tokens = normName.split(/\s+/);
-          if (tokens.some(t => t.length >= 3 && (normAccount.includes(t) || normSource.includes(t) || normCamp.includes(t)))) {
-            matchedSub = mp;
-            break;
+          // 2. MATCH DE CAMPANHA (Prioridade Média: 30 pts por token coincidente)
+          for (const st of subTokens) {
+            if (campTokens.includes(st)) {
+              score += 30;
+            } else if (campTokens.some(ct => (ct.length >= 4 && st.length >= 4 && (ct.startsWith(st) || st.startsWith(ct))))) {
+              score += 20;
+            }
+          }
+
+          // 3. MATCH DE ANÚNCIO / SOURCE (Prioridade Secundária: 20 pts por token)
+          for (const st of subTokens) {
+            if (adTokens.includes(st) || sourceTokens.includes(st)) {
+              score += 20;
+            }
+          }
+
+          // 4. BÔNUS DE ESPECIFICIDADE (Frases inteiras contidas)
+          if (normAccount && normName.length >= 4 && (normAccount.includes(normName) || normName.includes(normAccount))) {
+            score += 100;
+          }
+          if (normCamp && normName.length >= 4 && (normCamp.includes(normName) || normName.includes(normCamp))) {
+            score += 40;
+          }
+
+          if (score > bestScore) {
+            bestScore = score;
+            bestSub = mp;
           }
         }
 
-        if (matchedSub) {
-          console.log(`[Roteamento Multi-BM] Venda da campanha '${normCamp}' (${normAccount}) roteada exclusivamente para o Pixel Meta '${matchedSub.name}' (${matchedSub.metaPixelId})`);
-          finalMetaPixelsToSend = metaPixelsToSend.filter(m => m.pixelId === matchedSub.metaPixelId);
+        if (bestSub && bestScore > 0) {
+          console.log(`[Roteamento Multi-BM] Venda da campanha '${normCamp}' (${normAccount}) roteada com score ${bestScore} para o Pixel Meta '${bestSub.name}' (${bestSub.metaPixelId})`);
+          finalMetaPixelsToSend = metaPixelsToSend.filter(m => m.pixelId === bestSub.metaPixelId);
         }
       }
     }
@@ -785,6 +1033,19 @@ app.all([
           });
           if (singleCapi && singleCapi.success) {
             capiResult = singleCapi;
+            attribution.metaPixelId = pxId;
+            try {
+              await supabaseAdmin.from('events').insert({
+                id: `ev_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+                user_id: orderUserId || 'usr_1788826403159',
+                pixel_id: specificPixel?.id || 'pt_pixel',
+                event_name: 'Purchase',
+                event_id: `capi_pur_${parsed.orderCode}`,
+                session_id: attribution.sessionId || null,
+                emq_score: capiResult?.emq?.score || 9.5,
+                capi_status: 'success'
+              });
+            } catch (evErr) {}
           }
         }
       }
@@ -1084,6 +1345,19 @@ function sanitizeAttribution(rawAttr) {
 
   if (camp === 'Orgânico' || !attr.source || attr.source.toLowerCase().includes('direta')) {
     attr.source = camp === 'Orgânico' ? 'Orgânico' : attr.source;
+  }
+
+  // Resolução de conta em memória caso o pedido tenha vindo sem conta explícita
+  if (!attr.accountId && (attr.campaignId || attr.adId)) {
+    const localCamps = db.get('campaigns') || [];
+    const matchedCamp = localCamps.find(c => 
+      (attr.campaignId && String(c.id).trim() === String(attr.campaignId).trim()) ||
+      (attr.adId && Array.isArray(c.ads) && c.ads.some(a => String(a.id || a.adId).trim() === String(attr.adId).trim()))
+    );
+    if (matchedCamp) {
+      attr.accountId = matchedCamp.adAccountId || (matchedCamp.accountId ? (String(matchedCamp.accountId).startsWith('act_') ? String(matchedCamp.accountId) : `act_${matchedCamp.accountId}`) : null);
+      attr.accountName = matchedCamp.accountName || attr.accountName;
+    }
   }
 
   return attr;
@@ -1930,6 +2204,28 @@ app.get('/api/campaigns', async (req, res) => {
     pixelPurchases,
     pixelICs
   });
+
+  // Atualiza métricas enriquecidas na tabela campaigns do Supabase para manter dados 100% íntegros
+  try {
+    for (const ec of enrichedCampaigns) {
+      if (ec && ec.id) {
+        supabaseAdmin.from('campaigns').upsert({
+          id: String(ec.id),
+          user_id: userId || 'usr_1788826403159',
+          account_id: (ec.adAccountId || ec.accountId || ec.account_id || '').replace('act_', '') || null,
+          name: ec.name || 'Campanha',
+          status: Boolean(ec.status),
+          spend: Number(ec.spend) || 0,
+          sales: Number(ec.sales) || 0,
+          revenue: Number(ec.revenue) || 0,
+          profit: Number(ec.profit) || 0,
+          roas: Number(ec.roas) || 0,
+          cpa: Number(ec.cpa) || 0,
+          updated_at: new Date().toISOString()
+        }).then(() => {}).catch(() => {});
+      }
+    }
+  } catch (eSyncSupa) {}
 
   campaignsCache.set(cacheKey, {
     timestamp: now,
@@ -3099,6 +3395,25 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
   const mergedCampaigns = Array.from(campMap.values());
   if (mergedCampaigns.length > 0) {
     db.set('campaigns', mergedCampaigns);
+    try {
+      for (const mc of mergedCampaigns) {
+        if (mc.id) {
+          supabaseAdmin.from('campaigns').upsert({
+            id: String(mc.id),
+            user_id: 'usr_1788826403159',
+            account_id: (mc.adAccountId || mc.accountId || mc.account_id || '').replace('act_', '') || null,
+            name: mc.name || 'Campanha',
+            status: Boolean(mc.status),
+            spend: Number(mc.spend) || 0,
+            sales: Number(mc.sales) || 0,
+            revenue: Number(mc.revenue) || 0,
+            roas: Number(mc.roas) || 0,
+            cpa: Number(mc.cpa) || 0,
+            updated_at: new Date().toISOString()
+          }).then(() => {}).catch(() => {});
+        }
+      }
+    } catch (e) {}
   }
 
   // Preserva 100% dos anúncios existentes no banco
@@ -3238,6 +3553,28 @@ app.post('/api/meta/sync', async (req, res) => {
       pixelPurchases,
       pixelICs
     });
+
+    // Atualiza métricas enriquecidas na tabela campaigns do Supabase
+    try {
+      for (const ec of enrichedCampaigns) {
+        if (ec && ec.id) {
+          supabaseAdmin.from('campaigns').upsert({
+            id: String(ec.id),
+            user_id: userId || 'usr_1788826403159',
+            account_id: (ec.adAccountId || ec.accountId || ec.account_id || '').replace('act_', '') || null,
+            name: ec.name || 'Campanha',
+            status: Boolean(ec.status),
+            spend: Number(ec.spend) || 0,
+            sales: Number(ec.sales) || 0,
+            revenue: Number(ec.revenue) || 0,
+            profit: Number(ec.profit) || 0,
+            roas: Number(ec.roas) || 0,
+            cpa: Number(ec.cpa) || 0,
+            updated_at: new Date().toISOString()
+          }).then(() => {}).catch(() => {});
+        }
+      }
+    } catch (eSyncSupa) {}
 
     const cacheKey = (isMaximum || datePreset === 'maximum') ? 'maximum' : (timeRange ? `${since}_${until}` : datePreset);
     campaignsCache.set(cacheKey, {

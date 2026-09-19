@@ -763,7 +763,10 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       profit: (metaRevenue - realSpend).toFixed(2),
       roas: realSpend > 0 ? (metaRevenue / realSpend).toFixed(2) : '0.00',
       cpa: metaPurchases > 0 ? (realSpend / metaPurchases).toFixed(2) : '0.00',
-      arpu: metaPurchases > 0 ? (metaRevenue / metaPurchases).toFixed(2) : '0.00'
+      arpu: metaPurchases > 0 ? (metaRevenue / metaPurchases).toFixed(2) : '0.00',
+      adAccountId: actId,
+      accountId: actId.replace('act_', ''),
+      accountName: accountName || 'Conta de Anúncios'
     };
   });
 
@@ -817,6 +820,8 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       campaignId: ad.campaign_id,
       adsetId: ad.adset_id,
       name: ad.name,
+      adAccountId: actId,
+      accountId: actId.replace('act_', ''),
       accountName: accountName || 'Conta de Anúncios',
       status: (ad.status === 'ACTIVE' || ad.status === true) && 
               ad.status !== 'PAUSED' && 
@@ -1013,6 +1018,7 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       initCheckouts: metaInitCheckouts,
       costPerIc: costPerIc,
       adAccountId: actId,
+      accountId: actId.replace('act_', ''),
       accountName: accountName || 'Conta de Anúncios',
       currency: 'BRL',
       adsets: campAdsets,

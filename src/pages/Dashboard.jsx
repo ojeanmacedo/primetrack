@@ -790,9 +790,36 @@ export default function Dashboard() {
         if (o.productName !== selectedProduct) return false;
       }
 
+      // Filtro de conta de anúncios
+      if (selectedAccount !== 'Todas') {
+        const match = adAccountsList.find(a => a.name === selectedAccount || a.id === selectedAccount);
+        const targetId = match ? String(match.id).replace('act_', '') : String(selectedAccount).replace('act_', '');
+        const targetName = match ? (match.name || '').toLowerCase().trim() : String(selectedAccount).toLowerCase().trim();
+
+        const orderAccId = String(o.attribution?.accountId || o.attribution?.adAccountId || o.accountId || '').replace('act_', '').trim();
+        const orderAccName = String(o.attribution?.accountName || o.accountName || '').toLowerCase().trim();
+
+        const matchesAcc = (orderAccId && orderAccId === targetId) || (orderAccName && (orderAccName === targetName || targetName.includes(orderAccName) || orderAccName.includes(targetName)));
+
+        if (!matchesAcc) {
+          const oCampId = String(o.attribution?.campaignId || o.campaignId || '').trim();
+          const oCampName = (o.attribution?.campaign || o.campaign || '').toLowerCase().trim();
+          const oAdId = String(o.attribution?.adId || o.adId || '').trim();
+
+          const campBelongsToAcc = filteredCampaigns.some(c => {
+            const matchesCId = oCampId && String(c.id).trim() === oCampId;
+            const matchesCName = oCampName && oCampName !== 'orgânico' && oCampName !== 'organico' && (c.name || '').toLowerCase().trim() === oCampName;
+            const matchesAd = oAdId && Array.isArray(c.ads) && c.ads.some(ad => String(ad.id).trim() === oAdId);
+            return matchesCId || matchesCName || matchesAd;
+          });
+
+          if (!campBelongsToAcc) return false;
+        }
+      }
+
       return true;
     });
-  }, [deduplicatedOrders, period, selectedSource, selectedProduct]);
+  }, [deduplicatedOrders, period, selectedSource, selectedProduct, selectedAccount, adAccountsList, filteredCampaigns]);
 
   // Vendas Pendentes reais da MonsterPay
   const pendingOrders = filteredOrders.filter(o => 

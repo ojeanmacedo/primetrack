@@ -323,8 +323,19 @@
               }
             });
 
-            if (clickId && !urlObj.searchParams.get('pt_sid')) {
-              urlObj.searchParams.set('pt_sid', clickId);
+            if (clickId) {
+              if (!urlObj.searchParams.get('pt_sid')) {
+                urlObj.searchParams.set('pt_sid', clickId);
+              }
+              var curSrc = urlObj.searchParams.get('src') || utms.src || '';
+              if (!curSrc) {
+                urlObj.searchParams.set('src', clickId);
+              } else if (!curSrc.includes(clickId)) {
+                urlObj.searchParams.set('src', curSrc + '|' + clickId);
+              }
+              if (!urlObj.searchParams.get('sck')) {
+                urlObj.searchParams.set('sck', clickId);
+              }
             }
             if (fbp && !urlObj.searchParams.get('_fbp')) {
               urlObj.searchParams.set('_fbp', fbp);
