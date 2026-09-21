@@ -1184,30 +1184,56 @@ app.all([
       // Se já notificou anteriormente com o mesmo status exato, evita renotificar no celular
       const shouldNotify = !isPaidAlready && !isPendingAlready && !isRefundedAlready;
       
-      const formattedAmount = (parsed.amount || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      // Respeita configurações de notificação do usuário
+      const notifSettings = settings.notificationSettings || {};
+      const allowApproved = notifSettings.vendasAprovadas !== false;
+      const allowPending = notifSettings.vendasPendentes !== false;
+      const allowRefunded = notifSettings.vendasReembolsadas === true;
+      const hideProduct = notifSettings.ocultarProduto !== false;
+      const showCampaign = notifSettings.mostrarCampanha !== false;
+      const showDashboard = notifSettings.mostrarDashboard === true;
+      const showGross = notifSettings.mostrarBruto === true;
+
+      const currencyToUse = parsed.currency || 'BRL';
+      const amountToDisplay = showGross ? (parsed.grossAmount || parsed.amount) : (parsed.amount || 0);
+      const formattedAmount = (amountToDisplay || 0).toLocaleString('pt-BR', { style: 'currency', currency: currencyToUse });
       const campaignName = attribution?.campaign || 'Campanha';
 
+      const titlePrefix = showDashboard ? 'Dashboard — ' : '';
+
+      // Monta corpo da notificação respeitando as preferências
+      const buildNotifBody = (isNeg = false) => {
+        let text = `Comissão: ${isNeg ? '-' : ''}${formattedAmount}`;
+        if (!hideProduct && parsed.productName) {
+          text = `${parsed.productName} — ${text}`;
+        }
+        if (showCampaign && campaignName) {
+          text += ` — ${campaignName}`;
+        }
+        return text;
+      };
+
       if (shouldNotify) {
-        if (isPaid) {
+        if (isPaid && allowApproved) {
           sendSalesNotification({
-            title: 'Venda Aprovada!',
-            body: `Comissão: ${formattedAmount} — ${campaignName}`,
+            title: `${titlePrefix}Venda Aprovada!`,
+            body: buildNotifBody(false),
             icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
             tag: `order_${parsed.orderCode}_approved`,
             data: { url: '/sales', orderCode: parsed.orderCode }
           });
-        } else if (isPending) {
+        } else if (isPending && allowPending) {
           sendSalesNotification({
-            title: 'Venda Pendente!',
-            body: `Comissão: ${formattedAmount} — ${campaignName}`,
+            title: `${titlePrefix}Venda Pendente!`,
+            body: buildNotifBody(false),
             icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
             tag: `order_${parsed.orderCode}_pending`,
             data: { url: '/sales', orderCode: parsed.orderCode }
           });
-        } else if (isRefunded) {
+        } else if (isRefunded && allowRefunded) {
           sendSalesNotification({
-            title: 'Venda Reembolsada!',
-            body: `Comissão: -${formattedAmount} — ${campaignName}`,
+            title: `${titlePrefix}Venda Reembolsada!`,
+            body: buildNotifBody(true),
             icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
             tag: `order_${parsed.orderCode}_refunded`,
             data: { url: '/sales', orderCode: parsed.orderCode }
@@ -4853,21 +4879,36 @@ app.post('/api/push/subscribe', async (req, res) => {
 
 app.post('/api/push/test', async (req, res) => {
   try {
-    const { type, amount, campaign } = req.body;
+    const { type, amount, campaign, config } = req.body;
+    const settings = db.get('settings') || {};
+    const notifSettings = config || settings.notificationSettings || {};
+
+    const hideProduct = notifSettings.ocultarProduto !== false;
+    const showCampaign = notifSettings.mostrarCampanha !== false;
+    const showDashboard = notifSettings.mostrarDashboard === true;
+
     const isPending = type === 'pending';
     const isRefunded = type === 'refunded';
     const val = amount || 'R$ 14,00';
     const camp = campaign || 'Notificação Teste';
 
-    let title = 'Venda Aprovada!';
-    let body = `Comissão: ${val} — ${camp}`;
+    const titlePrefix = showDashboard ? 'Dashboard — ' : '';
+    let title = `${titlePrefix}Venda Aprovada!`;
+
+    const buildTestBody = (isNeg = false) => {
+      let text = `Comissão: ${isNeg ? '-' : ''}${val}`;
+      if (!hideProduct) text = `Produto Teste — ${text}`;
+      if (showCampaign) text += ` — ${camp}`;
+      return text;
+    };
+
+    let body = buildTestBody(false);
 
     if (isPending) {
-      title = 'Venda Pendente!';
-      body = `Comissão: ${val} — ${camp}`;
+      title = `${titlePrefix}Venda Pendente!`;
     } else if (isRefunded) {
-      title = 'Venda Reembolsada!';
-      body = `Comissão: -${val} — ${camp}`;
+      title = `${titlePrefix}Venda Reembolsada!`;
+      body = buildTestBody(true);
     }
 
     const result = await sendSalesNotification({

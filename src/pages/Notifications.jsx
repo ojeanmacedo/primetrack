@@ -3,13 +3,33 @@ import { Bell, Check, Smartphone, AlertTriangle } from 'lucide-react';
 import { subscribeUserToPush } from '../utils/pushNotifications';
 
 export default function Notifications() {
-  const [vendasAprovadas, setVendasAprovadas] = useState(true);
-  const [vendasPendentes, setVendasPendentes] = useState(true);
-  const [vendasReembolsadas, setVendasReembolsadas] = useState(false);
-  const [ocultarProduto, setOcultarProduto] = useState(true);
-  const [mostrarCampanha, setMostrarCampanha] = useState(true);
-  const [mostrarDashboard, setMostrarDashboard] = useState(false);
-  const [mostrarBruto, setMostrarBruto] = useState(false);
+  const [settings, setSettings] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('primetrack_notification_settings');
+        if (cached) return JSON.parse(cached);
+      } catch (e) {}
+    }
+    return {
+      vendasAprovadas: true,
+      vendasPendentes: true,
+      vendasReembolsadas: false,
+      ocultarProduto: true,
+      mostrarCampanha: true,
+      mostrarDashboard: false,
+      mostrarBruto: false
+    };
+  });
+
+  const {
+    vendasAprovadas,
+    vendasPendentes,
+    vendasReembolsadas,
+    ocultarProduto,
+    mostrarCampanha,
+    mostrarDashboard,
+    mostrarBruto
+  } = settings;
 
   const [testSent, setTestSent] = useState(false);
   const [testMsg, setTestMsg] = useState('');
@@ -18,6 +38,22 @@ export default function Notifications() {
   const [pushError, setPushError] = useState(null);
 
   useEffect(() => {
+    // Carrega configurações persistidas do servidor
+    fetch('/api/settings')
+      .then(r => r.json())
+      .then(data => {
+        if (data?.notificationSettings) {
+          setSettings(prev => {
+            const merged = { ...prev, ...data.notificationSettings };
+            try {
+              localStorage.setItem('primetrack_notification_settings', JSON.stringify(merged));
+            } catch (e) {}
+            return merged;
+          });
+        }
+      })
+      .catch(() => {});
+
     // Sincronização e inscrição 100% automática se suporte estiver presente
     const autoSyncPush = async () => {
       if ('Notification' in window && 'serviceWorker' in window && 'PushManager' in window) {
@@ -34,8 +70,26 @@ export default function Notifications() {
     autoSyncPush();
   }, []);
 
+  const updateSetting = async (key, val) => {
+    const updated = { ...settings, [key]: val };
+    setSettings(updated);
+    try {
+      localStorage.setItem('primetrack_notification_settings', JSON.stringify(updated));
+    } catch (e) {}
+
+    try {
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notificationSettings: updated })
+      });
+    } catch (e) {
+      console.warn('Erro ao salvar configuração de notificação:', e);
+    }
+  };
+
   const handleToggleVendasAprovadas = async (val) => {
-    setVendasAprovadas(val);
+    updateSetting('vendasAprovadas', val);
     if (val && 'Notification' in window && Notification.permission !== 'granted') {
       try {
         await subscribeUserToPush();
@@ -45,7 +99,7 @@ export default function Notifications() {
   };
 
   const handleToggleVendasPendentes = async (val) => {
-    setVendasPendentes(val);
+    updateSetting('vendasPendentes', val);
     if (val && 'Notification' in window && Notification.permission !== 'granted') {
       try {
         await subscribeUserToPush();
@@ -85,7 +139,8 @@ export default function Notifications() {
         body: JSON.stringify({
           type,
           amount: 'R$ 14,00',
-          campaign: 'Notificação Teste'
+          campaign: 'Notificação Teste',
+          config: settings
         })
       });
       const data = await res.json();
@@ -227,7 +282,7 @@ export default function Notifications() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setVendasReembolsadas(!vendasReembolsadas)}
+                  onClick={() => updateSetting('vendasReembolsadas', !vendasReembolsadas)}
                   className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
                     vendasReembolsadas ? 'bg-[#2B66E3]' : 'bg-zinc-700'
                   }`}
@@ -248,7 +303,7 @@ export default function Notifications() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setOcultarProduto(!ocultarProduto)}
+                  onClick={() => updateSetting('ocultarProduto', !ocultarProduto)}
                   className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors ${
                     ocultarProduto ? 'bg-[#2B66E3]' : 'bg-zinc-700'
                   }`}
@@ -267,7 +322,7 @@ export default function Notifications() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setMostrarCampanha(!mostrarCampanha)}
+                  onClick={() => updateSetting('mostrarCampanha', !mostrarCampanha)}
                   className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors ${
                     mostrarCampanha ? 'bg-[#2B66E3]' : 'bg-zinc-700'
                   }`}
@@ -286,7 +341,7 @@ export default function Notifications() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setMostrarDashboard(!mostrarDashboard)}
+                  onClick={() => updateSetting('mostrarDashboard', !mostrarDashboard)}
                   className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors ${
                     mostrarDashboard ? 'bg-[#2B66E3]' : 'bg-zinc-700'
                   }`}
@@ -305,7 +360,7 @@ export default function Notifications() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setMostrarBruto(!mostrarBruto)}
+                  onClick={() => updateSetting('mostrarBruto', !mostrarBruto)}
                   className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors ${
                     mostrarBruto ? 'bg-[#2B66E3]' : 'bg-zinc-700'
                   }`}
