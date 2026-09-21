@@ -337,8 +337,8 @@ function parseKirvano(body) {
 }
 
 function parsePerfectPay(body) {
-  const customer = body.customer || {};
-  const tracking = body.tracking || body.metadata || body.tracking_parameters || {};
+  const customer = body.customer || body.client || body.buyer || body.data?.customer || {};
+  const tracking = body.tracking || body.metadata || body.tracking_parameters || body.data?.tracking || {};
 
   // Status da venda no webhook Perfect Pay:
   // sale_status_enum:
@@ -347,8 +347,8 @@ function parsePerfectPay(body) {
   // 3 = in_process / em analise
   // 5 ou 6 = rejected / cancelado / recusado
   // 7 ou 8 = refunded / chargeback / devolvido
-  const statusEnum = Number(body.sale_status_enum ?? body.status_enum ?? body.sale_status ?? 0);
-  const rawStatusName = String(body.sale_status_name || body.sale_status || body.status || body.step || body.event || '').toLowerCase();
+  const statusEnum = Number(body.sale_status_enum ?? body.status_enum ?? body.sale_status ?? body.data?.sale_status_enum ?? 0);
+  const rawStatusName = String(body.sale_status_name || body.sale_status || body.status || body.step || body.event || body.data?.status || '').toLowerCase();
   
   let status = 'waiting_payment';
   if (statusEnum === 2 || ['aprovad', 'paid', 'pago', 'approved'].some(s => rawStatusName.includes(s))) {
@@ -365,8 +365,8 @@ function parsePerfectPay(body) {
 
   // Método de pagamento
   // payment_type_enum: 1 = Cartão, 2 = Boleto, 3 = PIX
-  const payEnum = Number(body.payment_type_enum ?? body.payment_type ?? 0);
-  const rawPayName = String(body.payment_type_name || body.payment_type || body.payment_method || '').toLowerCase();
+  const payEnum = Number(body.payment_type_enum ?? body.payment_type ?? body.payment_method_enum ?? body.data?.payment_type_enum ?? 0);
+  const rawPayName = String(body.payment_type_name || body.payment_type || body.payment_method || body.data?.payment_type || '').toLowerCase();
   
   let paymentMethod = 'pix';
   if (rawPayName.includes('pix') || payEnum === 3) {
@@ -379,59 +379,174 @@ function parsePerfectPay(body) {
     paymentMethod = 'pix';
   }
 
+  // Helper para converter valores monetários (números, strings 'R$ 47,90', '47,90', '47.90')
+  const parseCurrency = (val) => {
+    if (val === undefined || val === null || val === '') return null;
+    if (typeof val === 'number') {
+      if (isNaN(val) || val <= 0) return null;
+      return val;
+    }
+    const clean = String(val)
+      .replace(/R\$\s*/gi, '')
+      .replace(/[^\d.,-]/g, '')
+      .trim();
+    if (!clean) return null;
+    let num;
+    if (clean.includes(',') && clean.includes('.')) {
+      num = parseFloat(clean.replace(/\./g, '').replace(',', '.'));
+    } else if (clean.includes(',')) {
+      num = parseFloat(clean.replace(',', '.'));
+    } else {
+      num = parseFloat(clean);
+    }
+    if (isNaN(num) || num <= 0) return null;
+    return num;
+  };
+
+  const rawGross = body.sale_amount ?? body.amount ?? body.value ?? body.price ?? body.order_amount ?? body.data?.sale_amount ?? body.data?.amount ?? 47.90;
+  const grossAmount = parseCurrency(rawGross) || 47.90;
+
   // Extração inteligente da COMISSÃO REAL / LÍQUIDA do usuário na Perfect Pay
   let realCommission = null;
 
-  // 1. Array body.commission
-  if (Array.isArray(body.commission) && body.commission.length > 0) {
-    const userComm = body.commission.find(c => {
-      const typeEnum = Number(c.affiliation_type_enum);
-      const val = Number(c.value ?? c.amount ?? c.commission_value ?? 0);
-      return typeEnum !== 0 && val > 0;
-    }) || body.commission.find(c => Number(c.value ?? c.amount ?? c.commission_value ?? 0) > 0);
+  // 1. Campos diretos de comissão / valor líquido enviados pela Perfect Pay
+  const candidateFields = [
+    body.commission_amount,
+    body.commission_value,
+    body.user_commission,
+    body.my_commission,
+    body.net_amount,
+    body.liquid_value,
+    body.liquid_amount,
+    body.sale_net_amount,
+    body.sale_net_value,
+    body.producer_commission,
+    body.producer_commission_amount,
+    body.producer_amount,
+    body.affiliate_commission,
+    body.affiliate_commission_amount,
+    body.affiliate_amount,
+    (typeof body.commission === 'number' || typeof body.commission === 'string') ? body.commission : null,
+    body.data?.commission_amount,
+    body.data?.commission_value,
+    body.data?.net_amount,
+    body.data?.liquid_value,
+    body.data?.user_commission,
+    body.data?.producer_commission,
+    body.data?.affiliate_commission,
+    body.sale?.commission_amount,
+    body.sale?.net_amount,
+    body.sale?.liquid_value,
+    body.order?.commission_amount,
+    body.order?.net_amount
+  ];
 
-    if (userComm) {
-      realCommission = Number(userComm.value ?? userComm.amount ?? userComm.commission_value ?? 0);
+  for (const cand of candidateFields) {
+    const val = parseCurrency(cand);
+    if (val && val > 0) {
+      realCommission = val;
+      break;
     }
-  } else if (typeof body.commission === 'object' && body.commission !== null) {
-    const val = Number(body.commission.value ?? body.commission.amount ?? body.commission.commission_value ?? 0);
-    if (val > 0) realCommission = val;
   }
 
-  // 2. Campos diretos de comissão / valor líquido
-  if (!realCommission || isNaN(realCommission) || realCommission <= 0) {
-    const candidateFields = [
-      body.commission_value,
-      body.user_commission,
-      body.commission_amount,
-      body.my_commission,
-      body.net_amount,
-      body.liquid_value,
-      body.affiliate_commission,
-      body.producer_commission,
-      body.data?.commission_value,
-      body.data?.net_amount
+  // 2. Extração via lista de afiliados / comissões (body.affiliates, body.commissions, body.commission, body.splits)
+  const affiliatesList = body.affiliates || body.commissions || body.commission || body.splits || body.split || body.data?.affiliates || body.data?.commissions || body.data?.commission;
+  let platformFee = null;
+
+  if (Array.isArray(affiliatesList) && affiliatesList.length > 0) {
+    // Procura taxa da plataforma Perfect Pay (affiliation_type_enum === 0 ou nome platform / perfect)
+    const platformEntry = affiliatesList.find(c => {
+      const typeEnum = Number(c.affiliation_type_enum);
+      const name = String(c.name || c.affiliation_type || '').toLowerCase();
+      return typeEnum === 0 || name.includes('platform') || name.includes('perfect');
+    });
+    if (platformEntry) {
+      platformFee = parseCurrency(platformEntry.commission_amount ?? platformEntry.value ?? platformEntry.amount ?? platformEntry.commission_value);
+    }
+
+    if (!realCommission) {
+      // Se veio affiliation_type_enum no root, busca o item específico
+      const rootTypeEnum = body.affiliation_type_enum !== undefined ? Number(body.affiliation_type_enum) : null;
+      if (rootTypeEnum !== null && !isNaN(rootTypeEnum)) {
+        const matchingEntry = affiliatesList.find(c => Number(c.affiliation_type_enum) === rootTypeEnum);
+        if (matchingEntry) {
+          const val = parseCurrency(matchingEntry.commission_amount ?? matchingEntry.value ?? matchingEntry.amount ?? matchingEntry.commission_value ?? matchingEntry.net_amount);
+          if (val && val > 0) realCommission = val;
+        }
+      }
+
+      // Se ainda não achou, busca qualquer entrada do usuário (typeEnum !== 0, produtor ou afiliado)
+      if (!realCommission) {
+        const userEntry = affiliatesList.find(c => {
+          const typeEnum = Number(c.affiliation_type_enum);
+          const val = parseCurrency(c.commission_amount ?? c.value ?? c.amount ?? c.commission_value ?? c.net_amount ?? c.liquid_value);
+          return typeEnum !== 0 && val && val > 0;
+        }) || affiliatesList.find(c => {
+          const val = parseCurrency(c.commission_amount ?? c.value ?? c.amount ?? c.commission_value ?? c.net_amount ?? c.liquid_value);
+          return val && val > 0;
+        });
+
+        if (userEntry) {
+          realCommission = parseCurrency(userEntry.commission_amount ?? userEntry.value ?? userEntry.amount ?? userEntry.commission_value ?? userEntry.net_amount ?? userEntry.liquid_value);
+        }
+      }
+    }
+  } else if (typeof affiliatesList === 'object' && affiliatesList !== null) {
+    const val = parseCurrency(affiliatesList.commission_amount ?? affiliatesList.value ?? affiliatesList.amount ?? affiliatesList.commission_value ?? affiliatesList.net_amount);
+    if (val && val > 0 && !realCommission) realCommission = val;
+  }
+
+  // 3. Se houver taxa explícita da plataforma informada, desconta do valor bruto caso não tenhamos comissão líquida
+  if (!platformFee) {
+    const candidateFees = [
+      body.platform_fee,
+      body.fee,
+      body.fees,
+      body.tax,
+      body.tax_value,
+      body.tax_amount,
+      body.rate_value,
+      body.rate_amount,
+      body.perfectpay_fee,
+      body.gateway_fee,
+      body.data?.platform_fee,
+      body.data?.fee,
+      body.data?.tax
     ];
-    for (const cand of candidateFields) {
-      if (cand !== undefined && cand !== null && !isNaN(Number(cand)) && Number(cand) > 0) {
-        realCommission = Number(cand);
+    for (const candFee of candidateFees) {
+      const parsedFee = parseCurrency(candFee);
+      if (parsedFee && parsedFee > 0) {
+        platformFee = parsedFee;
         break;
       }
     }
   }
 
-  const grossAmount = Number(body.sale_amount || body.amount || body.value || 47.90);
+  if (!realCommission && platformFee && platformFee > 0 && grossAmount > platformFee) {
+    realCommission = Number((grossAmount - platformFee).toFixed(2));
+  }
+
+  // 4. Se a Perfect Pay NÃO enviou nenhum campo de comissão ou taxa (enviou apenas o valor cheio sale_amount):
+  // Desconta automaticamente a taxa oficial da Perfect Pay no Brasil: 7,9% + R$ 1,00 por venda aprovada
+  if (!realCommission || realCommission <= 0) {
+    const ppRate = 0.079; // 7,9% taxa padrão da Perfect Pay
+    const ppFixed = 1.00; // R$ 1,00 taxa fixa por transação
+    const calculatedFee = Number(((grossAmount * ppRate) + ppFixed).toFixed(2));
+    realCommission = Math.max(0, Number((grossAmount - calculatedFee).toFixed(2)));
+  }
+
+  // Garante que o valor da venda seja estritamente a comissão verdadeira
   const finalAmount = (realCommission && realCommission > 0) ? realCommission : grossAmount;
 
   return {
     gateway: 'PerfectPay',
-    orderCode: body.code || body.sale_id || body.transaction || body.id || `PP-${Date.now().toString().slice(-7)}`,
+    orderCode: body.code || body.sale_id || body.sale_code || body.transaction || body.order_id || body.id || body.data?.code || `PP-${Date.now().toString().slice(-7)}`,
     status,
     amount: finalAmount,
     grossAmount,
-    commission: realCommission || finalAmount,
+    commission: finalAmount,
     paymentMethod,
-    productName: body.product_name || body.product?.name || 'Produto PerfectPay',
+    productName: body.product_name || body.product?.name || body.product?.title || body.plan?.name || body.data?.product_name || 'Produto PerfectPay',
     customer: {
       name: customer.customer_name || customer.name || customer.full_name || body.customer_name || body.client_name || body.name || 'Cliente PerfectPay',
       email: customer.customer_email || customer.email || body.customer_email || body.client_email || body.email || '',
