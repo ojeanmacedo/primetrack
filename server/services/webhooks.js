@@ -527,10 +527,11 @@ function parsePerfectPay(body) {
   }
 
   // 4. Se a Perfect Pay NÃO enviou nenhum campo de comissão ou taxa (enviou apenas o valor cheio sale_amount):
-  // Desconta automaticamente a taxa oficial da Perfect Pay no Brasil: 7,9% + R$ 1,00 por venda aprovada
+  // Desconta automaticamente a taxa oficial da Perfect Pay (8,9% + $1,00 para internacional/USD ou 7,9% + R$ 1,00 para Brasil)
+  const isUsd = Number(body.currency_enum) === 2 || String(body.currency || '').toUpperCase() === 'USD';
   if (!realCommission || realCommission <= 0) {
-    const ppRate = 0.079; // 7,9% taxa padrão da Perfect Pay
-    const ppFixed = 1.00; // R$ 1,00 taxa fixa por transação
+    const ppRate = isUsd ? 0.089 : 0.079; // 8,9% internacional (EUA) ou 7,9% nacional (Brasil)
+    const ppFixed = 1.00; // $1,00 ou R$ 1,00 taxa fixa por transação
     const calculatedFee = Number(((grossAmount * ppRate) + ppFixed).toFixed(2));
     realCommission = Math.max(0, Number((grossAmount - calculatedFee).toFixed(2)));
   }
@@ -545,6 +546,7 @@ function parsePerfectPay(body) {
     amount: finalAmount,
     grossAmount,
     commission: finalAmount,
+    currency: isUsd ? 'USD' : 'BRL',
     paymentMethod,
     productName: body.product_name || body.product?.name || body.product?.title || body.plan?.name || body.data?.product_name || 'Produto PerfectPay',
     customer: {
@@ -555,7 +557,7 @@ function parsePerfectPay(body) {
       city: customer.customer_city || customer.city || (customer.address && customer.address.city) || body.city || '',
       state: customer.customer_state || customer.state || (customer.address && customer.address.state) || body.state || '',
       zip: customer.customer_zip || customer.customer_cep || customer.cep || (customer.address && (customer.address.zipcode || customer.address.cep)) || '',
-      country: 'BR'
+      country: customer.customer_country || customer.country || (isUsd ? 'US' : 'BR')
     },
     tracking: extractUniversalTracking(tracking, body),
     raw: body
