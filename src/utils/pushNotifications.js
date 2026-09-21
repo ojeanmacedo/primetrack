@@ -62,11 +62,28 @@ export async function subscribeUserToPush() {
     applicationServerKey: convertedVapidKey
   });
 
-  // 4. Envia subscription para o backend
+  // 4. Envia subscription para o backend com isolamento de usuário
+  let currentUserId = null;
+  try {
+    const rawUser = localStorage.getItem('primetrack_current_user');
+    if (rawUser) {
+      const parsedUser = JSON.parse(rawUser);
+      if (parsedUser?.id) currentUserId = parsedUser.id;
+    }
+  } catch(e) {}
+
+  const subPayload = {
+    ...(subscription.toJSON ? subscription.toJSON() : JSON.parse(JSON.stringify(subscription))),
+    userId: currentUserId || 'usr_1788826403159'
+  };
+
   const subRes = await fetch('/api/push/subscribe', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(subscription)
+    headers: { 
+      'Content-Type': 'application/json',
+      ...(currentUserId ? { 'x-user-id': currentUserId } : {})
+    },
+    body: JSON.stringify(subPayload)
   });
 
   if (!subRes.ok) {

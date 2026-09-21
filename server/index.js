@@ -1220,7 +1220,8 @@ app.all([
             body: buildNotifBody(false),
             icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
             tag: `order_${parsed.orderCode}_approved`,
-            data: { url: '/sales', orderCode: parsed.orderCode }
+            data: { url: '/sales', orderCode: parsed.orderCode },
+            userId: orderUserId
           });
         } else if (isPending && allowPending) {
           sendSalesNotification({
@@ -1228,7 +1229,8 @@ app.all([
             body: buildNotifBody(false),
             icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
             tag: `order_${parsed.orderCode}_pending`,
-            data: { url: '/sales', orderCode: parsed.orderCode }
+            data: { url: '/sales', orderCode: parsed.orderCode },
+            userId: orderUserId
           });
         } else if (isRefunded && allowRefunded) {
           sendSalesNotification({
@@ -1236,7 +1238,8 @@ app.all([
             body: buildNotifBody(true),
             icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
             tag: `order_${parsed.orderCode}_refunded`,
-            data: { url: '/sales', orderCode: parsed.orderCode }
+            data: { url: '/sales', orderCode: parsed.orderCode },
+            userId: orderUserId
           });
         }
       } else {
@@ -4868,8 +4871,9 @@ app.post('/api/push/subscribe', async (req, res) => {
     if (!subscription || !subscription.endpoint) {
       return res.status(400).json({ error: 'Subscription inválida' });
     }
-    await saveSubscription(subscription);
-    console.log('[WebPush] Nova inscrição gravada com sucesso!');
+    const subUserId = req.headers['x-user-id'] || req.body.userId || 'usr_1788826403159';
+    await saveSubscription(subscription, subUserId);
+    console.log(`[WebPush] Nova inscrição gravada com sucesso para usuário: ${subUserId}`);
     res.json({ success: true });
   } catch (e) {
     console.error('[WebPush] Erro ao salvar subscription:', e);
@@ -4879,8 +4883,9 @@ app.post('/api/push/subscribe', async (req, res) => {
 
 app.post('/api/push/test', async (req, res) => {
   try {
-    const { type, amount, campaign, config } = req.body;
-    const settings = db.get('settings') || {};
+    const { type, amount, campaign, config, userId } = req.body;
+    const testUserId = req.headers['x-user-id'] || userId || null;
+    const settings = (testUserId && !isOwnerUserId(testUserId)) ? (db.get(`settings_${testUserId}`) || {}) : (db.get('settings') || {});
     const notifSettings = config || settings.notificationSettings || {};
 
     const hideProduct = notifSettings.ocultarProduto !== false;
@@ -4915,7 +4920,8 @@ app.post('/api/push/test', async (req, res) => {
       title,
       body,
       icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
-      data: { url: '/sales' }
+      data: { url: '/sales' },
+      userId: testUserId
     });
 
     res.json({ success: true, result });

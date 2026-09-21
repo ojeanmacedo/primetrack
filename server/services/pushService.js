@@ -17,19 +17,24 @@ export function getVapidPublicKey() {
   return VAPID_PUBLIC_KEY;
 }
 
-export async function saveSubscription(subscription) {
+export async function saveSubscription(subscription, userId = 'usr_1788826403159') {
   if (!subscription || !subscription.endpoint) return;
+  const effectiveUserId = userId || 'usr_1788826403159';
   
   // 1. Salva em memória/arquivo local
   const subs = db.get('pushSubscriptions') || [];
-  const exists = subs.find(s => s.endpoint === subscription.endpoint);
-  if (!exists) {
-    subs.push({
-      ...subscription,
-      subscribedAt: new Date().toISOString()
-    });
-    db.set('pushSubscriptions', subs);
+  const existsIdx = subs.findIndex(s => s.endpoint === subscription.endpoint);
+  const subRecord = {
+    ...subscription,
+    userId: effectiveUserId,
+    subscribedAt: new Date().toISOString()
+  };
+  if (existsIdx >= 0) {
+    subs[existsIdx] = { ...subs[existsIdx], ...subRecord };
+  } else {
+    subs.push(subRecord);
   }
+  db.set('pushSubscriptions', subs);
 
   // 2. Persiste no Supabase para sobreviver entre invocações serverless do Vercel
   try {
@@ -37,9 +42,9 @@ export async function saveSubscription(subscription) {
     // Salva na tabela pixels com namespace especial 'push_sub_'
     await supabaseAdmin.from('pixels').upsert({
       id: `push_sub_${endpointHash}`,
-      user_id: 'usr_admin_digitaljm',
+      user_id: effectiveUserId,
       name: 'WebPushDevice',
-      domain: JSON.stringify(subscription),
+      domain: JSON.stringify({ ...subscription, userId: effectiveUserId }),
       status: 'active',
       emq_score: 10,
       events_count: 1
@@ -49,14 +54,19 @@ export async function saveSubscription(subscription) {
   }
 }
 
-export async function getAllSubscriptions() {
+export async function getAllSubscriptions(userId = null) {
   let list = db.get('pushSubscriptions') || [];
   try {
-    const { data } = await supabaseAdmin.from('pixels').select('*').like('id', 'push_sub_%');
+    let query = supabaseAdmin.from('pixels').select('*').like('id', 'push_sub_%');
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+    const { data } = await query;
     if (data && data.length > 0) {
       const supaSubs = data.map(d => {
         try {
-          return JSON.parse(d.domain);
+          const parsed = JSON.parse(d.domain);
+          return { ...parsed, userId: d.user_id || parsed.userId };
         } catch(e) {
           return null;
         }
@@ -66,10 +76,14 @@ export async function getAllSubscriptions() {
       const map = new Map();
       list.forEach(s => map.set(s.endpoint, s));
       supaSubs.forEach(s => map.set(s.endpoint, s));
-      return Array.from(map.values());
+      list = Array.from(map.values());
     }
   } catch (e) {
     // fallback se houver erro
+  }
+
+  if (userId) {
+    return list.filter(s => !s.userId || s.userId === userId || s.userId === 'usr_1788826403159');
   }
   return list;
 }
@@ -86,10 +100,10 @@ export async function removeSubscription(endpoint) {
   } catch (e) {}
 }
 
-export async function sendSalesNotification({ title, body, icon, tag, data }) {
-  const subs = await getAllSubscriptions();
+export async function sendSalesNotification({ title, body, icon, tag, data, userId = null }) {
+  const subs = await getAllSubscriptions(userId);
   if (subs.length === 0) {
-    console.log('[WebPush] Nenhuma inscrição encontrada.');
+    console.log('[WebPush] Nenhuma inscrição encontrada' + (userId ? ` para o usuário ${userId}` : '') + '.');
     return { sent: 0, failed: 0, total: 0 };
   }
 
