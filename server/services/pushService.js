@@ -17,6 +17,9 @@ export function getVapidPublicKey() {
   return VAPID_PUBLIC_KEY;
 }
 
+const OWNER_IDS = ['usr_1788826403159', 'usr_admin_digitaljm'];
+const isOwner = (id) => !id || OWNER_IDS.includes(id);
+
 export async function saveSubscription(subscription, userId = 'usr_1788826403159') {
   if (!subscription || !subscription.endpoint) return;
   const effectiveUserId = userId || 'usr_1788826403159';
@@ -59,7 +62,11 @@ export async function getAllSubscriptions(userId = null) {
   try {
     let query = supabaseAdmin.from('pixels').select('*').like('id', 'push_sub_%');
     if (userId) {
-      query = query.eq('user_id', userId);
+      if (isOwner(userId)) {
+        query = query.or('user_id.in.(usr_1788826403159,usr_admin_digitaljm),user_id.is.null');
+      } else {
+        query = query.eq('user_id', userId);
+      }
     }
     const { data } = await query;
     if (data && data.length > 0) {
@@ -83,7 +90,10 @@ export async function getAllSubscriptions(userId = null) {
   }
 
   if (userId) {
-    return list.filter(s => !s.userId || s.userId === userId || s.userId === 'usr_1788826403159');
+    if (isOwner(userId)) {
+      return list.filter(s => !s.userId || isOwner(s.userId));
+    }
+    return list.filter(s => !s.userId || s.userId === userId);
   }
   return list;
 }

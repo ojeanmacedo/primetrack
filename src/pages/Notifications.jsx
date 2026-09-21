@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Check, Smartphone, AlertTriangle } from 'lucide-react';
 import { subscribeUserToPush } from '../utils/pushNotifications';
+import { getCurrentUser } from '../utils/auth';
 
 export default function Notifications() {
   const [settings, setSettings] = useState(() => {
@@ -38,8 +39,12 @@ export default function Notifications() {
   const [pushError, setPushError] = useState(null);
 
   useEffect(() => {
-    // Carrega configurações persistidas do servidor
-    fetch('/api/settings')
+    // Carrega configurações persistidas do servidor / Supabase
+    const user = getCurrentUser();
+    const userId = user?.id || null;
+    const headers = userId ? { 'x-user-id': userId } : {};
+
+    fetch(`/api/settings?userId=${userId || ''}`, { headers })
       .then(r => r.json())
       .then(data => {
         if (data?.notificationSettings) {
@@ -78,10 +83,18 @@ export default function Notifications() {
     } catch (e) {}
 
     try {
-      await fetch('/api/settings', {
+      const user = getCurrentUser();
+      const userId = user?.id || null;
+      await fetch(`/api/settings?userId=${userId || ''}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notificationSettings: updated })
+        headers: {
+          'Content-Type': 'application/json',
+          ...(userId ? { 'x-user-id': userId } : {})
+        },
+        body: JSON.stringify({
+          userId,
+          notificationSettings: updated
+        })
       });
     } catch (e) {
       console.warn('Erro ao salvar configuração de notificação:', e);
@@ -133,14 +146,20 @@ export default function Notifications() {
     setTestSent(true);
 
     try {
+      const user = getCurrentUser();
+      const userId = user?.id || null;
       const res = await fetch('/api/push/test', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(userId ? { 'x-user-id': userId } : {})
+        },
         body: JSON.stringify({
           type,
           amount: 'R$ 14,00',
-          campaign: 'Notificação Teste',
-          config: settings
+          campaign: settings.mostrarCampanha ? 'Notificação Teste' : '',
+          config: settings,
+          userId
         })
       });
       const data = await res.json();

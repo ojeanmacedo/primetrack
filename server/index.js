@@ -1184,8 +1184,31 @@ app.all([
       // Se já notificou anteriormente com o mesmo status exato, evita renotificar no celular
       const shouldNotify = !isPaidAlready && !isPendingAlready && !isRefundedAlready;
       
-      // Respeita configurações de notificação do usuário
-      const notifSettings = settings.notificationSettings || {};
+      // Respeita configurações de notificação do usuário (busca Supabase primeiro)
+      let notifSettings = {};
+      try {
+        const targetUserId = orderUserId || 'usr_1788826403159';
+        const idsToSearch = isOwnerUserId(targetUserId)
+          ? ['settings_usr_1788826403159', 'settings_usr_admin_digitaljm', 'settings_global']
+          : [`settings_${targetUserId}`];
+
+        const { data: supaSet } = await supabaseAdmin
+          .from('pixels')
+          .select('domain')
+          .in('id', idsToSearch)
+          .limit(1);
+
+        if (supaSet && supaSet[0]?.domain) {
+          const parsed = JSON.parse(supaSet[0].domain);
+          notifSettings = parsed.notificationSettings || parsed;
+        }
+      } catch (e) {}
+
+      if (!notifSettings || Object.keys(notifSettings).length === 0) {
+        const localSettings = (orderUserId && !isOwnerUserId(orderUserId)) ? (db.get(`settings_${orderUserId}`) || {}) : (db.get('settings') || {});
+        notifSettings = localSettings.notificationSettings || {};
+      }
+
       const allowApproved = notifSettings.vendasAprovadas !== false;
       const allowPending = notifSettings.vendasPendentes !== false;
       const allowRefunded = notifSettings.vendasReembolsadas === true;
@@ -2320,13 +2343,91 @@ app.get('/api/rules', (req, res) => {
 /**
  * 8. Configurações
  */
-app.get('/api/settings', (req, res) => {
-  res.json(db.get('settings') || {});
+app.get('/api/settings', async (req, res) => {
+  try {
+    const userId = req.headers['x-user-id'] || req.query.userId || null;
+    const effectiveUserId = (userId && !isOwnerUserId(userId)) ? userId : 'usr_1788826403159';
+
+    // 1. Tenta carregar do Supabase (persistência definitiva no Vercel)
+    let supaSettings = {};
+    try {
+      const idsToSearch = isOwnerUserId(effectiveUserId)
+        ? ['settings_usr_1788826403159', 'settings_usr_admin_digitaljm', 'settings_global']
+        : [`settings_${effectiveUserId}`];
+
+      const { data: supaRows } = await supabaseAdmin
+        .from('pixels')
+        .select('domain')
+        .in('id', idsToSearch)
+        .limit(1);
+
+      if (supaRows && supaRows[0]?.domain) {
+        supaSettings = JSON.parse(supaRows[0].domain);
+      }
+    } catch (e) {}
+
+    const localSettings = (effectiveUserId && !isOwnerUserId(effectiveUserId)) 
+      ? (db.get(`settings_${effectiveUserId}`) || {}) 
+      : (db.get('settings') || {});
+
+    const merged = {
+      ...localSettings,
+      ...supaSettings,
+      notificationSettings: {
+        ...(localSettings.notificationSettings || {}),
+        ...(supaSettings.notificationSettings || {})
+      }
+    };
+
+    res.json(merged);
+  } catch (err) {
+    res.json(db.get('settings') || {});
+  }
 });
 
-app.post('/api/settings', (req, res) => {
-  const updated = db.set('settings', { ...db.get('settings'), ...req.body });
-  res.json(updated);
+app.post('/api/settings', async (req, res) => {
+  try {
+    const userId = req.headers['x-user-id'] || req.body.userId || req.query.userId || null;
+    const effectiveUserId = (userId && !isOwnerUserId(userId)) ? userId : 'usr_1788826403159';
+
+    // 1. Atualiza memória local
+    const key = (effectiveUserId && !isOwnerUserId(effectiveUserId)) ? `settings_${effectiveUserId}` : 'settings';
+    const current = db.get(key) || {};
+    const updated = {
+      ...current,
+      ...req.body,
+      notificationSettings: {
+        ...(current.notificationSettings || {}),
+        ...(req.body.notificationSettings || {})
+      }
+    };
+    db.set(key, updated);
+
+    // 2. Persiste no Supabase para sobreviver no Vercel Serverless
+    try {
+      const idsToSave = isOwnerUserId(effectiveUserId)
+        ? [`settings_usr_1788826403159`, `settings_usr_admin_digitaljm`, `settings_global`]
+        : [`settings_${effectiveUserId}`];
+
+      for (const sId of idsToSave) {
+        await supabaseAdmin.from('pixels').upsert({
+          id: sId,
+          user_id: effectiveUserId,
+          name: 'UserSettings',
+          domain: JSON.stringify(updated),
+          status: 'active',
+          emq_score: 10,
+          events_count: 0
+        });
+      }
+    } catch (supaErr) {
+      console.warn('[Settings] Aviso ao salvar configurações no Supabase:', supaErr.message);
+    }
+
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 /**
@@ -4885,8 +4986,32 @@ app.post('/api/push/test', async (req, res) => {
   try {
     const { type, amount, campaign, config, userId } = req.body;
     const testUserId = req.headers['x-user-id'] || userId || null;
-    const settings = (testUserId && !isOwnerUserId(testUserId)) ? (db.get(`settings_${testUserId}`) || {}) : (db.get('settings') || {});
-    const notifSettings = config || settings.notificationSettings || {};
+
+    let notifSettings = config || {};
+    if (!notifSettings || Object.keys(notifSettings).length === 0) {
+      try {
+        const targetUserId = testUserId || 'usr_1788826403159';
+        const idsToSearch = isOwnerUserId(targetUserId)
+          ? ['settings_usr_1788826403159', 'settings_usr_admin_digitaljm', 'settings_global']
+          : [`settings_${targetUserId}`];
+
+        const { data: supaSet } = await supabaseAdmin
+          .from('pixels')
+          .select('domain')
+          .in('id', idsToSearch)
+          .limit(1);
+
+        if (supaSet && supaSet[0]?.domain) {
+          const parsed = JSON.parse(supaSet[0].domain);
+          notifSettings = parsed.notificationSettings || parsed;
+        }
+      } catch (e) {}
+    }
+
+    if (!notifSettings || Object.keys(notifSettings).length === 0) {
+      const settings = (testUserId && !isOwnerUserId(testUserId)) ? (db.get(`settings_${testUserId}`) || {}) : (db.get('settings') || {});
+      notifSettings = settings.notificationSettings || {};
+    }
 
     const hideProduct = notifSettings.ocultarProduto !== false;
     const showCampaign = notifSettings.mostrarCampanha !== false;
@@ -4895,7 +5020,7 @@ app.post('/api/push/test', async (req, res) => {
     const isPending = type === 'pending';
     const isRefunded = type === 'refunded';
     const val = amount || 'R$ 14,00';
-    const camp = campaign || 'Notificação Teste';
+    const camp = campaign !== undefined ? campaign : (showCampaign ? 'Notificação Teste' : '');
 
     const titlePrefix = showDashboard ? 'Dashboard — ' : '';
     let title = `${titlePrefix}Venda Aprovada!`;
@@ -4903,7 +5028,7 @@ app.post('/api/push/test', async (req, res) => {
     const buildTestBody = (isNeg = false) => {
       let text = `Comissão: ${isNeg ? '-' : ''}${val}`;
       if (!hideProduct) text = `Produto Teste — ${text}`;
-      if (showCampaign) text += ` — ${camp}`;
+      if (showCampaign && camp) text += ` — ${camp}`;
       return text;
     };
 
