@@ -49,6 +49,9 @@ export function isOwnerUserId(id) {
   return OWNER_USER_IDS.includes(id);
 }
 
+// Cache anti-duplicação de notificações push (TTL de 15 minutos para evitar disparos em rajada de webhooks repetidos)
+const recentlyNotifiedOrders = new Map();
+
 export function resolveDateRange(datePreset = 'today', since = null, until = null) {
   if (since && until) {
     return { since, until };
@@ -1181,8 +1184,21 @@ app.all([
       const isPendingAlready = isPending && (effectivelyPreviousStatus === 'waiting_payment' || effectivelyPreviousStatus === 'pending');
       const isRefundedAlready = isRefunded && (effectivelyPreviousStatus === 'refunded');
 
+      const notifStatusKey = isPaid ? 'approved' : (isPending ? 'pending' : (isRefunded ? 'refunded' : parsed.status));
+      const notifDedupeKey = `${parsed.orderCode}_${notifStatusKey}`;
+      const now = Date.now();
+      const recentlyNotified = recentlyNotifiedOrders.has(notifDedupeKey) && (now - recentlyNotifiedOrders.get(notifDedupeKey) < 15 * 60 * 1000);
+
       // Se já notificou anteriormente com o mesmo status exato, evita renotificar no celular
-      const shouldNotify = !isPaidAlready && !isPendingAlready && !isRefundedAlready;
+      const shouldNotify = !isPaidAlready && !isPendingAlready && !isRefundedAlready && !recentlyNotified;
+      if (shouldNotify) {
+        recentlyNotifiedOrders.set(notifDedupeKey, now);
+        if (recentlyNotifiedOrders.size > 1000) {
+          for (const [k, ts] of recentlyNotifiedOrders.entries()) {
+            if (now - ts > 15 * 60 * 1000) recentlyNotifiedOrders.delete(k);
+          }
+        }
+      }
       
       // Respeita configurações de notificação do usuário (busca Supabase primeiro)
       let notifSettings = {};
