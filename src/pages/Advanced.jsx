@@ -115,6 +115,7 @@ export default function Advanced() {
   const saveDashboardsList = (list) => {
     setDashboards(list);
     localStorage.setItem('primetrack_dashboards', JSON.stringify(list));
+    window.dispatchEvent(new CustomEvent('primetrack_dashboards_updated', { detail: list }));
   };
 
   // Fechar menu de opções ao clicar fora
