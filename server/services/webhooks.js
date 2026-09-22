@@ -355,7 +355,7 @@ function parsePerfectPay(body) {
     status = 'approved';
   } else if (statusEnum === 1 || ['pendent', 'aguardand', 'waiting', 'pending', 'pix_gerado', 'gerado'].some(s => rawStatusName.includes(s))) {
     status = 'waiting_payment';
-  } else if ([7, 8].includes(statusEnum) || ['reembols', 'refund', 'chargeback', 'estorn'].some(s => rawStatusName.includes(s))) {
+  } else if ([4, 7, 8].includes(statusEnum) || ['reembols', 'refund', 'chargeback', 'charge back', 'devolv', 'estorn', 'disputa'].some(s => rawStatusName.includes(s))) {
     status = 'refunded';
   } else if ([5, 6].includes(statusEnum) || ['cancel', 'recus', 'rejeit', 'rejected'].some(s => rawStatusName.includes(s))) {
     status = 'cancelled';
