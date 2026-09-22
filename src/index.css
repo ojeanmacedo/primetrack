@@ -77,32 +77,50 @@ body {
 /* Utmify-style Drag and Drop for react-grid-layout */
 .react-grid-layout {
   position: relative;
-  transition: height 200ms ease;
 }
+
+/* Por padrão (fora do modo de edição), os blocos ficam 100% ESTÁTICOS e PARADOS, sem nenhuma transição ao carregar */
 .react-grid-item {
-  transition: all 200ms ease;
-  transition-property: left, top, right;
+  transition: none !important;
 }
 .react-grid-item.cssTransforms {
-  transition-property: transform;
+  transition: none !important;
 }
-.react-grid-item.resizing {
+
+/* Apenas quando o modo de edição estiver ATIVO os outros blocos se movimentam suavemente */
+.dashboard-editing-active .react-grid-item {
+  transition: all 200ms ease !important;
+  transition-property: left, top, width, height !important;
+}
+.dashboard-editing-active .react-grid-item.cssTransforms {
+  transition-property: transform, width, height !important;
+}
+.dashboard-editing-active .react-grid-item.resizing {
+  transition: none !important;
   z-index: 1;
   will-change: width, height;
 }
-.react-grid-item.react-draggable-dragging {
+
+/* Bloco que está sendo arrastado: NUNCA sobrescrever transform (usado pelo react-draggable para seguir o mouse!) */
+.dashboard-editing-active .react-grid-item.react-draggable-dragging {
   transition: none !important;
   z-index: 100 !important;
   will-change: transform;
   cursor: grabbing !important;
-  opacity: 0.92 !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 0 2px #0066FF !important;
-  border-radius: 0.75rem !important;
-  transform: scale(1.02) !important;
+  opacity: 0.96 !important;
 }
+
+/* Efeito visual de elevação e destaque no filho interno do card arrastado */
+.dashboard-editing-active .react-grid-item.react-draggable-dragging > div {
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.8), 0 0 0 2px #0066FF !important;
+  transform: scale(1.02);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
 .react-grid-item.dropping {
   visibility: hidden;
 }
+
 .react-grid-placeholder {
   background: rgba(0, 102, 255, 0.12) !important;
   border: 2px dashed #0066FF !important;

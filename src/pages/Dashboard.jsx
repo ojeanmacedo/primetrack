@@ -257,7 +257,9 @@ export default function Dashboard() {
     return result;
   }, [layouts, isEditingLayout]);
 
-  const { width: containerWidth, containerRef } = useContainerWidth({ initialWidth: 1280 });
+  const { width: containerWidth, containerRef } = useContainerWidth({ 
+    initialWidth: typeof window !== 'undefined' ? (window.innerWidth - (window.innerWidth >= 1024 ? 260 : 32)) : 1280 
+  });
 
   const initialLayoutSnapshot = useRef(null);
 
@@ -1885,7 +1887,7 @@ export default function Dashboard() {
       </div>
 
       {/* Grid Unificado e Fluido com Física em Tempo Real (Estilo Utmify) */}
-      <div ref={containerRef} className="w-full">
+      <div ref={containerRef} className={`w-full ${isEditingLayout ? 'dashboard-editing-active' : ''}`}>
         <ResponsiveGridLayout
           width={containerWidth}
           layouts={activeLayouts}
