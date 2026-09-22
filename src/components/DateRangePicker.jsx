@@ -219,9 +219,9 @@ export default function DateRangePicker({
                 onMouseEnter={() => !tempEnd && setHoverDate(c.dateStr)}
                 className={`h-7 w-full rounded-md flex items-center justify-center text-xs transition-colors cursor-pointer ${
                   isStart || isEnd
-                    ? 'bg-[#1A6DFF] text-white font-bold shadow-md shadow-blue-500/30'
+                    ? 'bg-[#0066FF] text-white font-bold shadow-md shadow-blue-600/30'
                     : inRange
-                    ? 'bg-[#1A6DFF]/20 text-[#5C9BFF]'
+                    ? 'bg-[#0066FF]/20 text-[#5C9BFF]'
                     : 'text-zinc-300 hover:bg-white/10 hover:text-white'
                 }`}
               >
@@ -248,26 +248,26 @@ export default function DateRangePicker({
           onClick={() => setIsOpen(!isOpen)}
           className={`px-3 py-1 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer border ${
             isCustomActive || isOpen
-              ? 'bg-[#12223D] border-[#1A6DFF] text-[#5C9BFF] font-bold shadow-md shadow-blue-500/20'
-              : 'bg-[#0A1426] border-[#13233E] text-zinc-300 hover:text-white hover:bg-[#12223D]'
+              ? 'bg-[#0066FF] text-white font-bold shadow-sm'
+              : 'bg-[#141C2E] border-[#1E293B] text-zinc-300 hover:text-white hover:bg-[#182236]'
           }`}
         >
-          <CalendarIcon className="w-3.5 h-3.5 text-[#5C9BFF]" />
+          <CalendarIcon className={`w-3.5 h-3.5 ${isCustomActive || isOpen ? 'text-white' : 'text-[#5C9BFF]'}`} />
           <span>{displayLabel}</span>
         </button>
       )}
 
       {/* Popover idêntico ao da UTMify */}
       {isOpen && (
-        <div className="absolute left-0 top-full mt-2 z-50 w-[310px] sm:w-[560px] bg-[#070D1A] border border-[#13233E] rounded-2xl p-4 shadow-2xl animate-in fade-in zoom-in-95">
+        <div className="absolute left-0 top-full mt-2 z-50 w-[310px] sm:w-[560px] bg-[#141C2E] border border-[#1E293B] rounded-xl p-4 shadow-2xl animate-in fade-in zoom-in-95">
           {/* Top Quick Presets */}
-          <div className="flex flex-wrap items-center gap-1.5 pb-3.5 mb-3.5 border-b border-[#13233E]">
+          <div className="flex flex-wrap items-center gap-1.5 pb-3.5 mb-3.5 border-b border-[#1E293B]">
             {['Hoje', 'Ontem', '7 dias', '15 dias', '30 dias', 'Este mês', 'Mês passado', 'Máximo'].map((p) => (
               <button
                 key={p}
                 type="button"
                 onClick={() => handleSelectPresetPill(p)}
-                className="px-2.5 py-1 rounded-lg bg-[#0A1426] hover:bg-[#12223D] border border-[#13233E] text-zinc-300 hover:text-white text-[11px] font-medium transition-colors cursor-pointer"
+                className="px-2.5 py-1 rounded-lg bg-[#0D1424] hover:bg-[#182236] border border-[#1E293B] text-zinc-300 hover:text-white text-[11px] font-medium transition-colors cursor-pointer"
               >
                 {p}
               </button>
@@ -281,14 +281,14 @@ export default function DateRangePicker({
               <button
                 type="button"
                 onClick={prevMonth}
-                className="p-1 rounded-lg bg-[#0A1426] hover:bg-[#12223D] border border-[#13233E] text-zinc-300 hover:text-white pointer-events-auto cursor-pointer"
+                className="p-1 rounded-lg bg-[#0D1424] hover:bg-[#182236] border border-[#1E293B] text-zinc-300 hover:text-white pointer-events-auto cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button
                 type="button"
                 onClick={nextMonth}
-                className="p-1 rounded-lg bg-[#0A1426] hover:bg-[#12223D] border border-[#13233E] text-zinc-300 hover:text-white pointer-events-auto cursor-pointer"
+                className="p-1 rounded-lg bg-[#0D1424] hover:bg-[#182236] border border-[#1E293B] text-zinc-300 hover:text-white pointer-events-auto cursor-pointer"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -304,7 +304,7 @@ export default function DateRangePicker({
           </div>
 
           {/* Range Preview String */}
-          <div className="mt-4 pt-3 border-t border-[#13233E] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+          <div className="mt-4 pt-3 border-t border-[#1E293B] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
             <div className="text-[11px] font-mono text-zinc-400">
               {tempStart ? tempStart.split('-').reverse().join('/') : 'Início'}
               {' → '}
@@ -315,14 +315,14 @@ export default function DateRangePicker({
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="px-3 py-1.5 rounded-xl border border-white/10 text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer text-xs"
+                className="px-3 py-1.5 rounded-xl border border-[#1E293B] text-zinc-400 hover:text-white hover:bg-[#0D1424] transition-colors cursor-pointer text-xs"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={handleApply}
-                className="px-4 py-1.5 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 text-white font-bold transition-all shadow-md shadow-blue-500/20 cursor-pointer text-xs"
+                className="px-4 py-1.5 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold transition-all shadow-md shadow-blue-600/25 cursor-pointer text-xs"
               >
                 Aplicar
               </button>

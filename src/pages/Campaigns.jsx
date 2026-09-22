@@ -2621,7 +2621,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       </div>
 
       {/* Sub Tabs: Contas, Campanhas, Conjuntos, Anúncios */}
-      <div className="flex items-center gap-4 sm:gap-6 border-b border-[#13233E] text-xs font-medium overflow-x-auto scrollbar-none whitespace-nowrap">
+      <div className="flex items-center gap-4 sm:gap-6 border-b border-[#1E293B] text-xs font-medium overflow-x-auto scrollbar-none whitespace-nowrap">
         {subTabs.map(tab => (
           <button
             key={tab}
@@ -2634,22 +2634,22 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           >
             <span>{tab}</span>
             {tab === 'Campanhas' && selectedCampaignIds.size > 0 && (
-              <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-[#1A6DFF]/20 text-[#5C9BFF] text-[10px] font-bold">
+              <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-[#0066FF]/20 text-[#5C9BFF] text-[10px] font-bold">
                 {selectedCampaignIds.size}
               </span>
             )}
             {tab === 'Conjuntos' && selectedAdsetIds.size > 0 && (
-              <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-[#1A6DFF]/20 text-[#5C9BFF] text-[10px] font-bold">
+              <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-[#0066FF]/20 text-[#5C9BFF] text-[10px] font-bold">
                 {selectedAdsetIds.size}
               </span>
             )}
             {tab === 'Anúncios' && selectedAdIds.size > 0 && (
-              <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-[#1A6DFF]/20 text-[#5C9BFF] text-[10px] font-bold">
+              <span className="ml-1.5 px-1.5 py-0.2 rounded-full bg-[#0066FF]/20 text-[#5C9BFF] text-[10px] font-bold">
                 {selectedAdIds.size}
               </span>
             )}
             {subTab === tab && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2B66E3]" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#0066FF]" />
             )}
           </button>
         ))}
@@ -2660,21 +2660,21 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         <div className="flex flex-wrap items-center gap-2">
           
           {/* Status Dropdown */}
-          <div className="flex items-center gap-1.5 bg-[#0A1426] border border-[#13233E] px-3 py-1.5 rounded-xl text-zinc-300">
+          <div className="flex items-center gap-1.5 bg-[#141C2E] border border-[#1E293B] px-3 py-1.5 rounded-xl text-zinc-300">
             <span className="text-zinc-500 font-mono text-[10px] uppercase">Status:</span>
             <select
               value={statusFilter}
               onChange={e => handleStatusFilterChange(e.target.value)}
               className="bg-transparent text-white font-semibold text-xs focus:outline-none cursor-pointer"
             >
-              <option value="Todas" className="bg-[#0A1426] text-white">Todas</option>
-              <option value="Ativo" className="bg-[#0A1426] text-emerald-400">Ativas</option>
-              <option value="Desativadas" className="bg-[#0A1426] text-zinc-400">Desativadas</option>
+              <option value="Todas" className="bg-[#141C2E] text-white">Todas</option>
+              <option value="Ativo" className="bg-[#141C2E] text-emerald-400">Ativas</option>
+              <option value="Desativadas" className="bg-[#141C2E] text-zinc-400">Desativadas</option>
             </select>
           </div>
 
           {/* Period Filter (Scrollable em telas pequenas) */}
-          <div className="flex items-center gap-1 bg-[#0A1426] border border-[#13233E] rounded-xl p-1 text-xs overflow-x-auto max-w-full scrollbar-none">
+          <div className="flex items-center gap-1 bg-[#141C2E] border border-[#1E293B] rounded-xl p-1 text-xs overflow-x-auto max-w-full scrollbar-none">
             <span className="text-zinc-500 font-mono text-[10px] uppercase px-1 sm:px-2 shrink-0">Período:</span>
             {['Hoje', 'Ontem', '7 dias', '15 dias', '30 dias', 'Este mês', 'Mês passado', 'Máximo'].map(p => (
               <button
@@ -2683,7 +2683,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 onClick={() => handlePeriodChange(p, null)}
                 className={`px-2 sm:px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer shrink-0 ${
                   periodFilter === p && !customRange
-                    ? 'bg-[#12223D] text-[#5C9BFF] font-bold shadow-sm'
+                    ? 'bg-[#0066FF] text-white font-bold shadow-sm'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -2703,16 +2703,16 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           </div>
 
           {/* Account Dropdown */}
-          <div className="flex items-center gap-1.5 bg-[#0A1426] border border-[#13233E] px-3 py-1.5 rounded-xl text-zinc-300">
+          <div className="flex items-center gap-1.5 bg-[#141C2E] border border-[#1E293B] px-3 py-1.5 rounded-xl text-zinc-300">
             <span className="text-zinc-500 font-mono text-[10px] uppercase">Conta:</span>
             <select
               value={accountFilter}
               onChange={e => setAccountFilter(e.target.value)}
               className="bg-transparent text-white font-semibold text-xs focus:outline-none cursor-pointer max-w-[160px] sm:max-w-[180px] truncate"
             >
-              <option value="Todas" className="bg-[#0A1426] text-white">Todas as Contas ({adAccountsList.length})</option>
+              <option value="Todas" className="bg-[#141C2E] text-white">Todas as Contas ({adAccountsList.length})</option>
               {adAccountsList.map(acc => (
-                <option key={acc.id} value={acc.id} className="bg-[#0A1426] text-white">
+                <option key={acc.id} value={acc.id} className="bg-[#141C2E] text-white">
                   {acc.name} ({acc.id.slice(-4)})
                 </option>
               ))}
@@ -2732,8 +2732,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               disabled={bulkProcessing}
               className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 cursor-pointer transition-all ${
                 activeSelectedSet.size > 0 
-                  ? 'bg-[#12223D] border-[#1A6DFF] text-[#5C9BFF] font-bold shadow-lg shadow-brand/20 animate-pulse' 
-                  : 'bg-[#0A1426] border-[#13233E] text-zinc-300 hover:text-white'
+                  ? 'bg-[#0066FF]/20 border-[#0066FF] text-[#5C9BFF] font-bold shadow-lg shadow-blue-500/20 animate-pulse' 
+                  : 'bg-[#141C2E] border-[#1E293B] text-zinc-300 hover:text-white'
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
@@ -2747,8 +2747,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   className="fixed inset-0 z-40" 
                   onClick={() => setBulkMenuOpen(false)} 
                 />
-                <div className="absolute right-0 top-full mt-2 w-56 bg-[#0A1426] border border-[#13233E] rounded-2xl shadow-2xl z-50 p-1.5 space-y-0.5 text-xs animate-in fade-in zoom-in-95">
-                  <div className="px-3 py-1.5 text-[10px] font-mono uppercase text-zinc-500 border-b border-[#13233E]/60 mb-1 flex items-center justify-between">
+                <div className="absolute right-0 top-full mt-2 w-56 bg-[#141C2E] border border-[#1E293B] rounded-xl shadow-xl z-50 p-1.5 space-y-0.5 text-xs animate-in fade-in zoom-in-95">
+                  <div className="px-3 py-1.5 text-[10px] font-mono uppercase text-zinc-500 border-b border-[#1E293B]/60 mb-1 flex items-center justify-between">
                     <span>Ações em Massa</span>
                     <span className="text-[#5C9BFF] font-bold">{activeSelectedSet.size} selecionado(s)</span>
                   </div>
@@ -2766,8 +2766,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     disabled={activeSelectedSet.size === 0 && activeCampaignFilterIds.size === 0}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
                       activeCampaignFilterIds.size > 0
-                        ? 'bg-[#1A6DFF]/20 text-[#5C9BFF] font-bold'
-                        : 'text-zinc-200 hover:text-white hover:bg-[#12223D]'
+                        ? 'bg-[#0066FF]/20 text-[#5C9BFF] font-bold'
+                        : 'text-zinc-200 hover:text-white hover:bg-[#182236]'
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
@@ -2775,11 +2775,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       <span>{activeCampaignFilterIds.size > 0 ? 'Remover filtro de campanhas' : 'Filtrar selecionadas'}</span>
                     </div>
                     {activeCampaignFilterIds.size > 0 && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#1A6DFF] text-white">Ativo</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#0066FF] text-white">Ativo</span>
                     )}
                   </button>
 
-                  <div className="h-px bg-[#13233E]/60 my-1" />
+                  <div className="h-px bg-[#1E293B]/60 my-1" />
 
                   <button
                     type="button"
@@ -2801,27 +2801,27 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     <span>Desativar selecionadas</span>
                   </button>
 
-                  <div className="h-px bg-[#13233E]/60 my-1" />
+                  <div className="h-px bg-[#1E293B]/60 my-1" />
 
                   {/* Opção de Duplicar Campanhas (Estilo Utmify) */}
                   <button
                     type="button"
                     onClick={handleOpenDuplicateModal}
                     disabled={activeSelectedSet.size === 0 || subTab !== 'Campanhas'}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-zinc-200 hover:text-white hover:bg-[#12223D] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-zinc-200 hover:text-white hover:bg-[#182236] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                     title={subTab !== 'Campanhas' ? 'A duplicação é aplicada na aba Campanhas' : ''}
                   >
                     <Copy className="w-4 h-4 text-[#5C9BFF]" />
                     <span>Duplicar campanhas</span>
                   </button>
 
-                  <div className="h-px bg-[#13233E]/60 my-1" />
+                  <div className="h-px bg-[#1E293B]/60 my-1" />
 
                   <button
                     type="button"
                     onClick={() => handleOpenBulkModal('budget')}
                     disabled={activeSelectedSet.size === 0}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-zinc-200 hover:text-white hover:bg-[#12223D] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-zinc-200 hover:text-white hover:bg-[#182236] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <DollarSign className="w-4 h-4 text-[#5C9BFF]" />
                     <span>Alterar orçamento</span>
@@ -2831,13 +2831,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     type="button"
                     onClick={() => handleOpenBulkModal('bid')}
                     disabled={activeSelectedSet.size === 0}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-zinc-200 hover:text-white hover:bg-[#12223D] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-zinc-200 hover:text-white hover:bg-[#182236] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Edit3 className="w-4 h-4 text-[#5C9BFF]" />
                     <span>Alterar lance</span>
                   </button>
 
-                  <div className="h-px bg-[#13233E]/60 my-1" />
+                  <div className="h-px bg-[#1E293B]/60 my-1" />
 
                   <button
                     type="button"
@@ -2849,13 +2849,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       setBulkMenuOpen(false);
                     }}
                     disabled={activeSelectedSet.size === 0}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-zinc-200 hover:text-white hover:bg-[#12223D] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-zinc-200 hover:text-white hover:bg-[#182236] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <Copy className="w-4 h-4 text-zinc-400" />
                     <span>Copiar IDs</span>
                   </button>
 
-                  <div className="h-px bg-[#13233E]/60 my-1" />
+                  <div className="h-px bg-[#1E293B]/60 my-1" />
 
                   {/* Opção de Excluir em Massa */}
                   <button
@@ -2888,7 +2888,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
           <button 
             onClick={handleOpenColumnsModal}
-            className="px-3 py-1.5 rounded-xl bg-[#0A1426] border border-[#13233E] text-zinc-300 hover:text-white flex items-center gap-1.5 cursor-pointer hover:border-[#1A6DFF] transition-all"
+            className="px-3 py-1.5 rounded-xl bg-[#141C2E] border border-[#1E293B] text-zinc-300 hover:text-white flex items-center gap-1.5 cursor-pointer hover:border-[#0066FF] transition-all"
           >
             <SlidersHorizontal className="w-3.5 h-3.5 text-[#5C9BFF]" />
             <span>Colunas</span>
@@ -2896,7 +2896,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
           <button 
             onClick={handleSyncNow}
-            className="px-3 py-1.5 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-bold flex items-center gap-1.5 cursor-pointer shadow-md shadow-brand/20 transition-all"
+            className="px-3 py-1.5 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold flex items-center gap-1.5 cursor-pointer shadow-md shadow-blue-600/25 transition-all"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
             <span>Atualizar</span>
@@ -2906,10 +2906,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
       {/* ── VIEW 0: SUB-ABA CONTAS ── */}
       {subTab === 'Contas' && (
-        <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl overflow-hidden shadow-xl">
+        <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl overflow-hidden shadow-md">
           {adAccountsList.length === 0 ? (
             <div className="p-12 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-[#070D1A] border border-white/10 flex items-center justify-center mx-auto mb-3 text-zinc-500">
+              <div className="w-12 h-12 rounded-2xl bg-[#0D1424] border border-[#1E293B] flex items-center justify-center mx-auto mb-3 text-zinc-500">
                 <ShieldAlert className="w-6 h-6 text-zinc-500" />
               </div>
               <div className="font-bold text-white text-sm">Nenhuma conta de anúncio encontrada</div>
@@ -2918,7 +2918,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               </p>
               <button
                 onClick={() => navigate('/integracoes')}
-                className="mt-4 px-4 py-2 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white text-xs font-bold transition-all shadow-md inline-flex items-center gap-2 cursor-pointer"
+                className="mt-4 px-4 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-bold transition-all shadow-md shadow-blue-600/25 inline-flex items-center gap-2 cursor-pointer"
               >
                 <span>Ir para Integrações</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -2927,7 +2927,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs font-sans whitespace-nowrap">
-                <thead className="bg-[#070D1A] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E]">
+                <thead className="bg-[#0D1424] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#1E293B]">
                   <tr>
                     <th className="py-3 px-4">STATUS</th>
                     <th className="py-3 px-4">CONTA DE ANÚNCIO</th>
@@ -2939,7 +2939,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     <th className="py-3 px-4">SYNC</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#13233E]/60 font-mono">
+                <tbody className="divide-y divide-[#1E293B]/60 font-mono">
                   {adAccountsList.map((acc, idx) => (
                     <tr key={acc.id || idx} className="hover:bg-white/[0.02] transition-colors">
                       <td className="py-3.5 px-4">
@@ -2987,7 +2987,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
       {/* Banner informativo de filtro ativo por campanha */}
       {subTab !== 'Contas' && (activeCampaignFilterIds.size > 0 || (subTab !== 'Campanhas' && selectedCampaignIds.size > 0)) && (
-        <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 bg-[#0E1A30] border border-[#1A6DFF]/40 rounded-xl text-xs shadow-md">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 bg-[#141C2E] border border-[#0066FF]/40 rounded-xl text-xs shadow-md">
           <div className="flex items-center gap-2 text-zinc-300">
             <span className="inline-flex items-center gap-1.5 font-bold text-[#5C9BFF]">
               <Filter className="w-3.5 h-3.5" />
@@ -3020,7 +3020,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 setSelectedCampaignIds(new Set());
               }
             }}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#1A6DFF]/20 hover:bg-[#1A6DFF]/30 text-[#5C9BFF] hover:text-white border border-[#1A6DFF]/40 transition-colors cursor-pointer text-[11px] font-semibold ml-auto"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#0066FF]/20 hover:bg-[#0066FF]/30 text-[#5C9BFF] hover:text-white border border-[#0066FF]/40 transition-colors cursor-pointer text-[11px] font-semibold ml-auto"
             title="Remover filtro e exibir todas as campanhas"
           >
             <span>Remover filtro</span>
@@ -3031,10 +3031,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
       {/* ── VIEWS 1, 2, 3: SUB-ABAS CAMPANHAS, CONJUNTOS, ANÚNCIOS (TABELA COM SCROLL INTERNO E CABEÇALHO/RODAPÉ FIXOS) ── */}
       {subTab !== 'Contas' && (
-        <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl overflow-hidden shadow-xl flex flex-col">
+        <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl overflow-hidden shadow-md flex flex-col">
           {currentItems.length === 0 ? (
             <div className="p-12 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-[#070D1A] border border-white/10 flex items-center justify-center mx-auto mb-3 text-zinc-500">
+              <div className="w-12 h-12 rounded-2xl bg-[#0D1424] border border-[#1E293B] flex items-center justify-center mx-auto mb-3 text-zinc-500">
                 <ShieldAlert className="w-6 h-6 text-zinc-500" />
               </div>
               <div className="font-bold text-white text-sm">
@@ -3048,7 +3048,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               {(isDisconnected || campaignsList.length === 0) && (
                 <button
                   onClick={() => navigate('/integracoes')}
-                  className="mt-4 px-4 py-2 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white text-xs font-bold transition-all shadow-md inline-flex items-center gap-2 cursor-pointer"
+                  className="mt-4 px-4 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-bold transition-all shadow-md shadow-blue-600/25 inline-flex items-center gap-2 cursor-pointer"
                 >
                   <span>Ir para Integrações</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -3057,17 +3057,17 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             </div>
           ) : (
             <div 
-              className="w-full overflow-x-auto overflow-y-auto max-h-[555px] scrollbar-thin scrollbar-thumb-[#1A6DFF]/40 scrollbar-track-[#070D1A] touch-pan-x touch-pan-y overscroll-x-contain"
+              className="w-full overflow-x-auto overflow-y-auto max-h-[555px] scrollbar-thin scrollbar-thumb-[#0066FF]/40 scrollbar-track-[#0D1424] touch-pan-x touch-pan-y overscroll-x-contain"
               style={{ WebkitOverflowScrolling: 'touch' }}
             >
               <table className="w-full text-left text-xs font-sans whitespace-nowrap border-collapse">
-                <thead className="bg-[#0A1426] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E] sticky top-0 z-30 shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
+                <thead className="bg-[#0D1424] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#1E293B] sticky top-0 z-30 shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
                   <tr>
                     {/* Checkbox fixo na lateral esquerda apenas em desktop */}
-                    <th className="py-3 pl-4 pr-3 w-[48px] min-w-[48px] max-w-[48px] bg-[#0A1426] md:sticky md:left-0 md:z-40">
+                    <th className="py-3 pl-4 pr-3 w-[48px] min-w-[48px] max-w-[48px] bg-[#0D1424] md:sticky md:left-0 md:z-40">
                       <input 
                         type="checkbox" 
-                        className="rounded bg-[#03060D] border-white/10 cursor-pointer accent-[#1A6DFF]" 
+                        className="rounded bg-[#03060D] border-white/10 cursor-pointer accent-[#0066FF]" 
                         checked={currentItems.length > 0 && activeSelectedSet.size === currentItems.length}
                         onChange={handleToggleSelectAll}
                         title={activeSelectedSet.size === currentItems.length ? "Desmarcar todas" : "Selecionar todas"}
@@ -3077,7 +3077,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     {/* Status fixo na lateral esquerda com ordenação apenas em desktop */}
                     <th 
                       onClick={() => handleToggleSort('status')}
-                      className={`py-3 pl-4 pr-3 w-[94px] min-w-[94px] max-w-[94px] bg-[#0A1426] md:sticky md:left-[48px] md:z-40 cursor-pointer select-none transition-colors group ${
+                      className={`py-3 pl-4 pr-3 w-[94px] min-w-[94px] max-w-[94px] bg-[#0D1424] md:sticky md:left-[48px] md:z-40 cursor-pointer select-none transition-colors group ${
                         sortKey === 'status' ? 'text-[#5C9BFF]' : 'hover:text-white'
                       }`}
                       title={sortKey === 'status' 
@@ -3093,7 +3093,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     {/* Nome (Campanha / Conjunto / Anúncio) fixo na lateral esquerda com ordenação apenas em desktop */}
                     <th 
                       onClick={() => handleToggleSort('name')}
-                      className={`py-3 px-4 bg-[#0A1426] md:sticky md:left-[142px] md:z-40 min-w-[220px] max-w-[320px] cursor-pointer select-none transition-colors group ${
+                      className={`py-3 px-4 bg-[#0D1424] md:sticky md:left-[142px] md:z-40 min-w-[220px] max-w-[320px] cursor-pointer select-none transition-colors group ${
                         sortKey === 'name' ? 'text-[#5C9BFF]' : 'hover:text-white'
                       }`}
                       title={sortKey === 'name' 
@@ -3119,7 +3119,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                             ? (sortDirection === 'desc' ? 'Maior para menor (clique para menor para maior)' : 'Menor para maior (clique para restaurar)') 
                             : `Clique para ordenar por ${getColumnHeaderLabel(col.id)}`}
                           className={`py-3 px-4 select-none cursor-pointer transition-colors group ${
-                            isSorted ? 'text-[#5C9BFF] bg-[#12223D]/60' : 'hover:text-white hover:bg-white/[0.02]'
+                            isSorted ? 'text-[#5C9BFF] bg-[#0066FF]/20' : 'hover:text-white hover:bg-white/[0.02]'
                           }`}
                         >
                           <div className="flex items-center gap-1">
@@ -3132,7 +3132,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   </tr>
                 </thead>
 
-                <tbody className="divide-y divide-[#13233E]/60 font-mono">
+                <tbody className="divide-y divide-[#1E293B]/60 font-mono">
                   {paginatedItems.map((item, idx) => {
                     const isRowSelected = activeSelectedSet.has(item.id) || activeSelectedSet.has(String(item.id));
                     return (
@@ -3147,7 +3147,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                           handleToggleSelectItem(item.id, e);
                         }
                       }}
-                      className={`group hover:bg-[#0e1b33] transition-colors ${isRowSelected ? 'bg-[#1A6DFF]/10' : ''}`}
+                      className={`group hover:bg-[#182236] transition-colors ${isRowSelected ? 'bg-[#0066FF]/10' : ''}`}
                     >
                       {/* Checkbox fixo na lateral apenas em desktop */}
                       <td 
@@ -3156,11 +3156,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                             handleToggleSelectItem(item.id, e);
                           }
                         }}
-                        className={`py-4 pl-4 pr-3 w-[48px] min-w-[48px] max-w-[48px] md:sticky md:left-0 md:z-10 transition-colors select-none cursor-pointer ${isRowSelected ? 'bg-[#0f1d38]' : 'bg-[#0A1426] group-hover:bg-[#0e1b33]'}`}
+                        className={`py-4 pl-4 pr-3 w-[48px] min-w-[48px] max-w-[48px] md:sticky md:left-0 md:z-10 transition-colors select-none cursor-pointer ${isRowSelected ? 'bg-[#0066FF]/20' : 'bg-[#141C2E] group-hover:bg-[#182236]'}`}
                       >
                         <input 
                           type="checkbox" 
-                          className="rounded bg-[#03060D] border-white/10 cursor-pointer accent-[#1A6DFF]" 
+                          className="rounded bg-[#03060D] border-white/10 cursor-pointer accent-[#0066FF]" 
                           checked={isRowSelected}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -3171,12 +3171,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       </td>
 
                       {/* Status Toggle fixo na lateral apenas em desktop */}
-                      <td className={`py-4 pl-4 pr-3 w-[94px] min-w-[94px] max-w-[94px] md:sticky md:left-[48px] md:z-10 transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0f1d38]' : 'bg-[#0A1426] group-hover:bg-[#0e1b33]'}`}>
+                      <td className={`py-4 pl-4 pr-3 w-[94px] min-w-[94px] max-w-[94px] md:sticky md:left-[48px] md:z-10 transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0066FF]/20' : 'bg-[#141C2E] group-hover:bg-[#182236]'}`}>
                         <button
                           type="button"
                           onClick={() => handleToggleStatus(item.id || item.adsetId || item.adId || item.campaignId)}
                           className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
-                            isStatusActive(item) ? 'bg-[#2B66E3]' : 'bg-zinc-700'
+                            isStatusActive(item) ? 'bg-[#0066FF]' : 'bg-zinc-700'
                           }`}
                         >
                           <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
@@ -3186,7 +3186,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       </td>
 
                       {/* Nome do Item fixo na lateral apenas em desktop */}
-                      <td className={`py-4 px-4 font-sans md:sticky md:left-[142px] md:z-10 min-w-[220px] max-w-[320px] transition-colors ${isRowSelected ? 'bg-[#0f1d38]' : 'bg-[#0A1426] group-hover:bg-[#0e1b33]'}`}>
+                      <td className={`py-4 px-4 font-sans md:sticky md:left-[142px] md:z-10 min-w-[220px] max-w-[320px] transition-colors ${isRowSelected ? 'bg-[#0066FF]/20' : 'bg-[#141C2E] group-hover:bg-[#182236]'}`}>
                         <div className="truncate">
                           <div 
                             onClick={(e) => {
@@ -3219,11 +3219,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 </tbody>
 
                 {/* Rodapé com totais reais sticky embaixo */}
-                <tfoot className="bg-[#0A1426] font-bold border-t border-[#13233E] text-xs font-mono sticky bottom-0 z-30 shadow-[0_-2px_10px_rgba(0,0,0,0.5)]">
+                <tfoot className="bg-[#0D1424] font-bold border-t border-[#1E293B] text-xs font-mono sticky bottom-0 z-30 shadow-[0_-2px_10px_rgba(0,0,0,0.5)]">
                   <tr>
-                    <td className="py-3.5 pl-4 pr-3 w-[48px] min-w-[48px] max-w-[48px] bg-[#0A1426] md:sticky md:left-0 md:z-40"></td>
-                    <td className="py-3.5 pl-4 pr-3 w-[94px] min-w-[94px] max-w-[94px] bg-[#0A1426] md:sticky md:left-[48px] md:z-40"></td>
-                    <td className="py-3.5 px-4 font-sans text-white uppercase text-[11px] bg-[#0A1426] md:sticky md:left-[142px] md:z-40">
+                    <td className="py-3.5 pl-4 pr-3 w-[48px] min-w-[48px] max-w-[48px] bg-[#0D1424] md:sticky md:left-0 md:z-40"></td>
+                    <td className="py-3.5 pl-4 pr-3 w-[94px] min-w-[94px] max-w-[94px] bg-[#0D1424] md:sticky md:left-[48px] md:z-40"></td>
+                    <td className="py-3.5 px-4 font-sans text-white uppercase text-[11px] bg-[#0D1424] md:sticky md:left-[142px] md:z-40">
                       {currentItems.length} {
                         subTab === 'Campanhas' 
                           ? (currentItems.length === 1 ? 'CAMPANHA' : 'CAMPANHAS')
@@ -3235,7 +3235,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
                     {/* Totais dinâmicos alinhados às colunas ativas */}
                     {activeVisibleColumns.map(col => (
-                      <td key={col.id} className="py-3.5 px-4 bg-[#0A1426]">
+                      <td key={col.id} className="py-3.5 px-4 bg-[#0D1424]">
                         {renderFooterCell(col.id, totals)}
                       </td>
                     ))}
@@ -3247,7 +3247,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
           {/* Barra de Paginação inteligente quando ultrapassar 100 registros */}
           {currentItems.length > 100 && (
-            <div className="px-4 py-3 bg-[#0A1426] border-t border-[#13233E] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="px-4 py-3 bg-[#0D1424] border-t border-[#1E293B] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
               <div className="flex items-center gap-2 text-zinc-400">
                 <span>Exibindo</span>
                 <select
@@ -3259,7 +3259,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       localStorage.setItem('primetrack_rows_per_page', String(val));
                     }
                   }}
-                  className="bg-[#070D1A] border border-[#13233E] text-white px-2 py-1 rounded-lg font-mono text-xs focus:outline-none cursor-pointer"
+                  className="bg-[#141C2E] border border-[#1E293B] text-white px-2 py-1 rounded-lg font-mono text-xs focus:outline-none cursor-pointer"
                 >
                   <option value={100}>100 por página</option>
                   <option value={200}>200 por página</option>
@@ -3274,7 +3274,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     type="button"
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
-                    className="px-2.5 py-1 rounded-lg border border-[#13233E] bg-[#070D1A] text-zinc-300 hover:text-white hover:bg-[#12223D] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    className="px-2.5 py-1 rounded-lg border border-[#1E293B] bg-[#141C2E] text-zinc-300 hover:text-white hover:bg-[#182236] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
                     Anterior
                   </button>
@@ -3285,7 +3285,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     type="button"
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
-                    className="px-2.5 py-1 rounded-lg border border-[#13233E] bg-[#070D1A] text-zinc-300 hover:text-white hover:bg-[#12223D] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    className="px-2.5 py-1 rounded-lg border border-[#1E293B] bg-[#141C2E] text-zinc-300 hover:text-white hover:bg-[#182236] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   >
                     Próxima
                   </button>
@@ -3298,7 +3298,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
       {/* Toast de Confirmação de Salvamento com Trava de Segurança */}
       {saveSuccessMsg && (
-        <div className="fixed bottom-6 right-6 z-50 p-4 rounded-2xl bg-[#0A1426] border border-[#1A6DFF] text-white text-xs font-semibold shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5">
+        <div className="fixed bottom-6 right-6 z-50 p-4 rounded-xl bg-[#141C2E] border border-[#0066FF] text-white text-xs font-semibold shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5">
           <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0" />
           <span>{saveSuccessMsg}</span>
         </div>
@@ -3311,11 +3311,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           onClick={() => !duplicatingLoading && setShowDuplicateModal(false)}
         >
           <div 
-            className="relative w-full max-w-[480px] bg-[#0A1426] border border-[#13233E] rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 text-zinc-200"
+            className="relative w-full max-w-[480px] bg-[#141C2E] border border-[#1E293B] rounded-xl p-6 shadow-2xl animate-in zoom-in-95 text-zinc-200"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-[#13233E] mb-5">
+            <div className="flex items-center justify-between pb-4 border-b border-[#1E293B] mb-5">
               <div>
                 <h3 className="font-bold text-white text-base">Duplique sua campanha</h3>
                 <p className="text-xs text-zinc-400 mt-0.5">
@@ -3338,10 +3338,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 {/* Opção Mesma Conta */}
                 <label 
                   onClick={() => setDuplicateTargetType('same_account')}
-                  className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ${
+                  className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
                     duplicateTargetType === 'same_account'
-                      ? 'bg-[#12223D] border-[#1A6DFF] text-white shadow-md shadow-brand/10'
-                      : 'bg-[#070D1A] border-[#13233E] text-zinc-300 hover:border-zinc-700'
+                      ? 'bg-[#0066FF]/15 border-[#0066FF] text-white shadow-md shadow-blue-500/10'
+                      : 'bg-[#0D1424] border-[#1E293B] text-zinc-300 hover:border-zinc-700'
                   }`}
                 >
                   <input 
@@ -3349,7 +3349,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     name="duplicateTarget"
                     checked={duplicateTargetType === 'same_account'}
                     onChange={() => setDuplicateTargetType('same_account')}
-                    className="mt-0.5 text-[#1A6DFF] focus:ring-0 cursor-pointer"
+                    className="mt-0.5 text-[#0066FF] focus:ring-0 cursor-pointer"
                   />
                   <div className="flex-1">
                     <div className="font-bold text-sm text-white">Mesma Conta</div>
@@ -3362,10 +3362,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 {/* Opção Outra Conta */}
                 <label 
                   onClick={() => setDuplicateTargetType('other_account')}
-                  className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ${
+                  className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
                     duplicateTargetType === 'other_account'
-                      ? 'bg-[#12223D] border-[#1A6DFF] text-white shadow-md shadow-brand/10'
-                      : 'bg-[#070D1A] border-[#13233E] text-zinc-300 hover:border-zinc-700'
+                      ? 'bg-[#0066FF]/15 border-[#0066FF] text-white shadow-md shadow-blue-500/10'
+                      : 'bg-[#0D1424] border-[#1E293B] text-zinc-300 hover:border-zinc-700'
                   }`}
                 >
                   <input 
@@ -3373,7 +3373,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     name="duplicateTarget"
                     checked={duplicateTargetType === 'other_account'}
                     onChange={() => setDuplicateTargetType('other_account')}
-                    className="mt-0.5 text-[#1A6DFF] focus:ring-0 cursor-pointer"
+                    className="mt-0.5 text-[#0066FF] focus:ring-0 cursor-pointer"
                   />
                   <div className="flex-1">
                     <div className="font-bold text-sm text-white">Outra Conta de Anúncio</div>
@@ -3382,9 +3382,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     </div>
 
                     {duplicateTargetType === 'other_account' && (
-                      <div className="mt-3 pt-3 border-t border-[#13233E]/60">
+                      <div className="mt-3 pt-3 border-t border-[#1E293B]">
                         {selectedTargetAdAccount ? (
-                          <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#0A1426] border border-[#1A6DFF]/50">
+                          <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#0D1424] border border-[#0066FF]/40">
                             <div>
                               <div className="font-bold text-white text-xs">{selectedTargetAdAccount.name}</div>
                               <div className="text-[10px] text-zinc-400 font-mono">ID: {selectedTargetAdAccount.id} • {selectedTargetAdAccount.businessName}</div>
@@ -3395,7 +3395,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                                 e.stopPropagation();
                                 setShowAccountPickerModal(true);
                               }}
-                              className="px-2.5 py-1 rounded-lg bg-[#12223D] border border-[#1A6DFF] text-[#5C9BFF] hover:text-white font-semibold text-[11px] transition-colors cursor-pointer"
+                              className="px-2.5 py-1 rounded-lg bg-[#0066FF]/20 border border-[#0066FF] text-[#5C9BFF] hover:text-white font-semibold text-[11px] transition-colors cursor-pointer"
                             >
                               Trocar
                             </button>
@@ -3407,7 +3407,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                               e.stopPropagation();
                               setShowAccountPickerModal(true);
                             }}
-                            className="w-full py-2.5 px-3 rounded-xl bg-[#1A6DFF]/15 border border-[#1A6DFF] text-[#5C9BFF] hover:bg-[#1A6DFF]/25 font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                            className="w-full py-2.5 px-3 rounded-xl bg-[#0066FF]/15 border border-[#0066FF] text-[#5C9BFF] hover:bg-[#0066FF]/25 font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
                           >
                             <span>Escolha a Conta de Anúncio de Destino</span>
                             <ArrowRight className="w-3.5 h-3.5" />
@@ -3460,7 +3460,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     <select
                       value={selectedTargetPixelId}
                       onChange={(e) => setSelectedTargetPixelId(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white text-xs focus:outline-none focus:border-[#1A6DFF] cursor-pointer"
+                      className="w-full px-3 py-2 rounded-xl bg-[#0D1424] border border-[#1E293B] text-white text-xs focus:outline-none focus:border-[#0066FF] cursor-pointer"
                     >
                       <option value="">🎯 Manter Pixel Original da Campanha</option>
                       {relevantPixels.map((px) => (
@@ -3543,7 +3543,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     <select
                       value={selectedTargetPageId}
                       onChange={(e) => setSelectedTargetPageId(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white text-xs focus:outline-none focus:border-[#1A6DFF] cursor-pointer"
+                      className="w-full px-3 py-2 rounded-xl bg-[#0D1424] border border-[#1E293B] text-white text-xs focus:outline-none focus:border-[#0066FF] cursor-pointer"
                     >
                       <option value="">📄 Manter Página Original da Campanha</option>
                       {relevantPages.map((pg) => (
@@ -3568,7 +3568,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     max="50"
                     value={duplicateCopiesCount}
                     onChange={(e) => setDuplicateCopiesCount(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-24 px-3 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white font-mono font-bold text-center focus:outline-none focus:border-[#1A6DFF]"
+                    className="w-24 px-3 py-2 rounded-xl bg-[#0D1424] border border-[#1E293B] text-white font-mono font-bold text-center focus:outline-none focus:border-[#0066FF]"
                   />
                   <span className="text-[11px] text-zinc-400">
                     Total: <strong className="text-white font-mono">{activeSelectedSet.size * duplicateCopiesCount}</strong> nova(s) campanha(s) duplicada(s)
@@ -3577,12 +3577,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               </div>
 
               {/* Actions Footer */}
-              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#13233E]">
+              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#1E293B]">
                 <button
                   type="button"
                   disabled={duplicatingLoading}
                   onClick={() => setShowDuplicateModal(false)}
-                  className="px-4 py-2 rounded-xl border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl border border-[#1E293B] text-zinc-400 hover:text-white transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
@@ -3590,7 +3590,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   type="button"
                   disabled={duplicatingLoading || (duplicateTargetType === 'other_account' && !selectedTargetAdAccount)}
                   onClick={handleExecuteDuplicate}
-                  className="px-5 py-2 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-bold transition-all shadow-lg shadow-brand/30 cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                  className="px-5 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold transition-all shadow-md shadow-blue-600/25 cursor-pointer disabled:opacity-50 flex items-center gap-2"
                 >
                   {duplicatingLoading ? (
                     <>
@@ -3617,11 +3617,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           onClick={() => setShowAccountPickerModal(false)}
         >
           <div 
-            className="relative w-full max-w-[560px] max-h-[85vh] flex flex-col bg-[#0A1426] border border-[#13233E] rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 text-zinc-200"
+            className="relative w-full max-w-[560px] max-h-[85vh] flex flex-col bg-[#141C2E] border border-[#1E293B] rounded-xl p-6 shadow-2xl animate-in zoom-in-95 text-zinc-200"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-[#13233E]">
+            <div className="flex items-center justify-between pb-4 border-b border-[#1E293B]">
               <div>
                 <h3 className="font-bold text-white text-base">Escolha a Conta de Anúncio</h3>
                 <p className="text-xs text-zinc-400 mt-0.5">
@@ -3646,7 +3646,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   value={searchAccountQuery}
                   onChange={(e) => setSearchAccountQuery(e.target.value)}
                   placeholder="Pesquise por nome da conta, ID ou BM..."
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#070D1A] border border-[#13233E] text-white text-xs placeholder:text-zinc-500 focus:outline-none focus:border-[#1A6DFF]"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#0D1424] border border-[#1E293B] text-white text-xs placeholder:text-zinc-500 focus:outline-none focus:border-[#0066FF]"
                 />
               </div>
             </div>
@@ -3673,22 +3673,22 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   });
 
                   return (
-                    <div key={profile.id} className="rounded-2xl border border-[#13233E] bg-[#070D1A] overflow-hidden">
+                    <div key={profile.id} className="rounded-xl border border-[#1E293B] bg-[#0D1424] overflow-hidden">
                       {/* Header do Perfil */}
                       <button
                         type="button"
                         onClick={() => setExpandedProfileId(prev => prev === profile.id ? null : profile.id)}
-                        className="w-full p-3.5 flex items-center justify-between hover:bg-[#12223D]/50 transition-colors text-left cursor-pointer"
+                        className="w-full p-3.5 flex items-center justify-between hover:bg-[#182236] transition-colors text-left cursor-pointer"
                       >
                         <div className="flex items-center gap-3">
                           {profile.avatarUrl ? (
                             <img 
                               src={profile.avatarUrl} 
                               alt={profile.name} 
-                              className="w-9 h-9 rounded-full border border-[#1A6DFF]/40 object-cover shrink-0" 
+                              className="w-9 h-9 rounded-full border border-[#0066FF]/40 object-cover shrink-0" 
                             />
                           ) : (
-                            <div className="w-9 h-9 rounded-full bg-[#12223D] border border-[#1A6DFF]/40 flex items-center justify-center text-xs font-bold text-[#5C9BFF] shrink-0">
+                            <div className="w-9 h-9 rounded-full bg-[#0066FF]/20 border border-[#0066FF]/40 flex items-center justify-center text-xs font-bold text-[#5C9BFF] shrink-0">
                               {profile.name?.charAt(0) || 'F'}
                             </div>
                           )}
@@ -3712,7 +3712,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
                       {/* Lista de Contas sob o Perfil */}
                       {isExpanded && (
-                        <div className="border-t border-[#13233E] p-2 space-y-1.5 bg-[#0A1426]/60">
+                        <div className="border-t border-[#1E293B] p-2 space-y-1.5 bg-[#141C2E]">
                           {filteredAccs.length === 0 ? (
                             <div className="p-3 text-center text-zinc-500 text-[11px]">
                               Nenhuma conta encontrada para este perfil.
@@ -3729,8 +3729,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                                   }}
                                   className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
                                     isSelected 
-                                      ? 'bg-[#12223D] border-[#1A6DFF] text-white shadow-md'
-                                      : 'bg-[#070D1A] border-[#13233E]/80 hover:bg-[#12223D]/40 hover:border-zinc-700 text-zinc-300'
+                                      ? 'bg-[#0066FF]/15 border-[#0066FF] text-white shadow-md'
+                                      : 'bg-[#0D1424] border-[#1E293B] hover:bg-[#182236] hover:border-zinc-700 text-zinc-300'
                                   }`}
                                 >
                                   <div>
@@ -3766,11 +3766,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end pt-3 border-t border-[#13233E] mt-3">
+            <div className="flex items-center justify-end pt-3 border-t border-[#1E293B] mt-3">
               <button
                 type="button"
                 onClick={() => setShowAccountPickerModal(false)}
-                className="px-4 py-2 rounded-xl border border-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer text-xs"
+                className="px-4 py-2 rounded-xl border border-[#1E293B] text-zinc-300 hover:text-white transition-colors cursor-pointer text-xs"
               >
                 Fechar
               </button>
@@ -3786,12 +3786,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           onClick={() => setBulkModalAction(null)}
         >
           <div 
-            className="relative w-full max-w-[380px] bg-[#0A1426] border border-[#13233E] rounded-3xl p-5 shadow-2xl animate-in zoom-in-95"
+            className="relative w-full max-w-[380px] bg-[#141C2E] border border-[#1E293B] rounded-xl p-5 shadow-2xl animate-in zoom-in-95"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-[#13233E] mb-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#1E293B] mb-4">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-[#12223D] border border-[#1A6DFF]/30 flex items-center justify-center text-[#5C9BFF]">
+                <div className="w-7 h-7 rounded-lg bg-[#0066FF]/20 border border-[#0066FF]/30 flex items-center justify-center text-[#5C9BFF]">
                   {bulkModalAction === 'budget' ? <DollarSign className="w-3.5 h-3.5" /> : <Edit3 className="w-3.5 h-3.5" />}
                 </div>
                 <div>
@@ -3824,7 +3824,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     autoFocus
                     value={bulkInputValue}
                     onChange={e => setBulkInputValue(formatCurrencyInput(e.target.value))}
-                    className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white focus:outline-none focus:border-[#1A6DFF] font-mono font-bold text-sm"
+                    className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#0D1424] border border-[#1E293B] text-white focus:outline-none focus:border-[#0066FF] font-mono font-bold text-sm"
                     placeholder="60,00"
                     required
                   />
@@ -3838,14 +3838,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 <button
                   type="button"
                   onClick={() => setBulkModalAction(null)}
-                  className="px-3 py-1.5 rounded-xl border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer text-xs"
+                  className="px-3 py-1.5 rounded-xl border border-[#1E293B] text-zinc-400 hover:text-white transition-colors cursor-pointer text-xs"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={bulkProcessing}
-                  className="px-4 py-1.5 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-bold transition-all shadow-md shadow-brand/30 cursor-pointer disabled:opacity-60 text-xs flex items-center gap-1.5"
+                  className="px-4 py-1.5 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold transition-all shadow-md shadow-blue-600/25 cursor-pointer disabled:opacity-60 text-xs flex items-center gap-1.5"
                 >
                   {bulkProcessing ? (
                     <>
@@ -3869,7 +3869,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           onClick={() => !bulkProcessing && setShowDeleteConfirmModal(false)}
         >
           <div 
-            className="relative w-full max-w-[440px] bg-[#0A1426] border border-[#13233E] rounded-3xl p-6 shadow-2xl shadow-blue-950/40 animate-in zoom-in-95 text-zinc-200 overflow-hidden"
+            className="relative w-full max-w-[440px] bg-[#141C2E] border border-[#1E293B] rounded-xl p-6 shadow-2xl shadow-blue-950/40 animate-in zoom-in-95 text-zinc-200 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Efeito Glow Azul de Fundo */}
@@ -3891,18 +3891,18 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             </div>
 
             {/* Caixa Informativa no Padrão do Painel */}
-            <div className="p-3.5 rounded-2xl bg-[#070D1A] border border-[#13233E] text-xs text-zinc-300 mb-6 flex items-center gap-2.5">
+            <div className="p-3.5 rounded-xl bg-[#0D1424] border border-[#1E293B] text-xs text-zinc-300 mb-6 flex items-center gap-2.5">
               <AlertCircle className="w-4 h-4 text-[#0066FF] shrink-0" />
               <span>Esta operação é definitiva e não poderá ser revertida.</span>
             </div>
 
             {/* Botões de Ação */}
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#13233E]/80">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#1E293B]">
               <button
                 type="button"
                 disabled={bulkProcessing}
                 onClick={() => setShowDeleteConfirmModal(false)}
-                className="px-4 py-2.5 rounded-xl border border-white/10 hover:border-white/20 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-all cursor-pointer text-xs font-semibold"
+                className="px-4 py-2.5 rounded-xl border border-[#1E293B] bg-[#0D1424] hover:bg-[#182236] text-zinc-300 hover:text-white transition-all cursor-pointer text-xs font-semibold"
               >
                 Cancelar
               </button>
@@ -3936,19 +3936,19 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           onClick={() => setEditingCampaign(null)}
         >
           <div 
-            className="relative w-full max-w-[380px] bg-[#0A1426] border border-[#13233E] rounded-3xl p-5 shadow-2xl animate-in zoom-in-95"
+            className="relative w-full max-w-[380px] bg-[#141C2E] border border-[#1E293B] rounded-xl p-5 shadow-2xl animate-in zoom-in-95"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-[#13233E] mb-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#1E293B] mb-4">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-[#12223D] border border-[#1A6DFF]/30 flex items-center justify-center text-[#5C9BFF]">
+                <div className="w-7 h-7 rounded-lg bg-[#0066FF]/20 border border-[#0066FF]/30 flex items-center justify-center text-[#5C9BFF]">
                   <Edit3 className="w-3.5 h-3.5" />
                 </div>
                 <div>
                   <h3 className="font-bold text-white text-xs">
                     {editingField === 'bid' 
-                      ? (editStrategy === 'COST_CAP' ? 'Editar Meta de Custo' : 'Editar Limite de Lance') 
+                       ? (editStrategy === 'COST_CAP' ? 'Editar Meta de Custo' : 'Editar Limite de Lance') 
                       : (editingField === 'name' ? 'Editar Nome' : (subTab === 'Conjuntos' ? 'Editar Orçamento do Conjunto' : 'Editar Orçamento da Campanha'))}
                   </h3>
                   <span className="text-[10px] font-mono text-zinc-400 truncate max-w-[200px] block">
@@ -3981,7 +3981,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       autoFocus
                       value={editBudget}
                       onChange={e => setEditBudget(formatCurrencyInput(e.target.value))}
-                      className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white focus:outline-none focus:border-[#1A6DFF] font-mono font-bold text-sm"
+                      className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#0D1424] border border-[#1E293B] text-white focus:outline-none focus:border-[#0066FF] font-mono font-bold text-sm"
                       placeholder="20,00"
                       required
                     />
@@ -4008,7 +4008,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       autoFocus
                       value={editBidCap}
                       onChange={e => setEditBidCap(formatCurrencyInput(e.target.value))}
-                      className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white focus:outline-none focus:border-[#1A6DFF] font-mono font-bold text-sm"
+                      className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#0D1424] border border-[#1E293B] text-white focus:outline-none focus:border-[#0066FF] font-mono font-bold text-sm"
                       placeholder="11,00"
                       required
                     />
@@ -4031,7 +4031,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     autoFocus
                     value={editName}
                     onChange={e => setEditName(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl bg-[#070D1A] border border-[#13233E] text-white focus:outline-none focus:border-[#1A6DFF] font-medium text-xs"
+                    className="w-full px-3.5 py-2 rounded-xl bg-[#0D1424] border border-[#1E293B] text-white focus:outline-none focus:border-[#0066FF] font-medium text-xs"
                     required
                   />
                 </div>
@@ -4042,14 +4042,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 <button
                   type="button"
                   onClick={() => setEditingCampaign(null)}
-                  className="px-3 py-1.5 rounded-xl border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer text-xs"
+                  className="px-3 py-1.5 rounded-xl border border-[#1E293B] text-zinc-400 hover:text-white transition-colors cursor-pointer text-xs"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={savingEdit}
-                  className="px-4 py-1.5 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-bold transition-all shadow-md shadow-brand/30 cursor-pointer disabled:opacity-60 text-xs"
+                  className="px-4 py-1.5 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold transition-all shadow-md shadow-blue-600/25 cursor-pointer disabled:opacity-60 text-xs"
                 >
                   {savingEdit ? 'Salvando...' : 'Salvar'}
                 </button>
@@ -4130,15 +4130,15 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           onClick={() => setShowColumnsModal(false)}
         >
           <div 
-            className="relative w-full max-w-[420px] bg-[#0A1426] border border-[#13233E] rounded-3xl p-6 shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[88vh]"
+            className="relative w-full max-w-[420px] bg-[#141C2E] border border-[#1E293B] rounded-xl p-6 shadow-2xl animate-in zoom-in-95 flex flex-col max-h-[88vh]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-start justify-between pb-3 border-b border-[#13233E]/80">
+            <div className="flex items-start justify-between pb-3 border-b border-[#1E293B]">
               <div>
                 <h3 className="font-bold text-white text-base tracking-tight flex items-center gap-2">
                   <span>Personalizar colunas</span>
-                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-brand/20 text-[#5C9BFF] border border-brand/30">
+                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#0066FF]/20 text-[#5C9BFF] border border-[#0066FF]/30">
                     {subTab}
                   </span>
                 </h3>
@@ -4155,7 +4155,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             </div>
 
             {/* Quick Actions Toolbar */}
-            <div className="flex items-center justify-between pt-2.5 pb-1 text-[11px] text-zinc-400 border-b border-[#13233E]/40">
+            <div className="flex items-center justify-between pt-2.5 pb-1 text-[11px] text-zinc-400 border-b border-[#1E293B]/40">
               <span className="font-mono text-[10px] text-zinc-500 uppercase">
                 {tempColumnsConfig.filter(c => c.visible).length} de {tempColumnsConfig.length} ativas
               </span>
@@ -4202,7 +4202,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     onDrop={(e) => handleModalDrop(e, index)}
                     className={`flex items-center justify-between px-2.5 py-2 rounded-xl transition-colors select-none group cursor-move ${
                       isDragging 
-                        ? 'opacity-30 bg-[#12223D] border border-[#1A6DFF]/50' 
+                        ? 'opacity-30 bg-[#0066FF]/20 border border-[#0066FF]/50' 
                         : 'hover:bg-white/[0.04]'
                     }`}
                   >
@@ -4219,7 +4219,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                           type="checkbox"
                           checked={col.visible}
                           onChange={() => toggleTempColumn(col.id)}
-                          className="w-4 h-4 rounded bg-[#070D1A] border-[#13233E] text-[#2B66E3] focus:ring-0 cursor-pointer accent-[#2B66E3] shrink-0"
+                          className="w-4 h-4 rounded bg-[#0D1424] border-[#1E293B] text-[#0066FF] focus:ring-0 cursor-pointer accent-[#0066FF] shrink-0"
                         />
                         <span className={`text-xs font-medium truncate ${col.visible ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-300'}`}>
                           {label}
@@ -4229,7 +4229,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
                     {/* Tag de especificidade de aba */}
                     {def?.adsOnly && (
-                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#1A6DFF]/10 text-[#5C9BFF] font-mono shrink-0 ml-2">
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#0066FF]/20 text-[#5C9BFF] font-mono shrink-0 ml-2">
                         anúncios
                       </span>
                     )}
@@ -4244,18 +4244,18 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             </div>
 
             {/* Footer Buttons */}
-            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#13233E]">
+            <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#1E293B]">
               <button
                 type="button"
                 onClick={() => setShowColumnsModal(false)}
-                className="px-4 py-2 rounded-xl border border-white/10 hover:border-white/20 text-zinc-300 hover:text-white transition-colors cursor-pointer text-xs font-semibold"
+                className="px-4 py-2 rounded-xl border border-[#1E293B] text-zinc-300 hover:text-white transition-colors cursor-pointer text-xs font-semibold"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={handleSaveColumns}
-                className="px-5 py-2 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-bold transition-all shadow-md shadow-brand/30 cursor-pointer text-xs"
+                className="px-5 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold transition-all shadow-md shadow-blue-600/25 cursor-pointer text-xs"
               >
                 Salvar
               </button>

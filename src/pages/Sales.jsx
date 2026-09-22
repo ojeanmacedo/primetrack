@@ -285,35 +285,35 @@ function resolveCustomerCityState(cust, o) {
         {/* Right Filters matching Screenshot */}
         <div className="flex flex-wrap items-center gap-2 text-xs">
           
-          <div className="flex items-center gap-2 bg-[#0A1426] border border-[#13233E] px-3 py-1.5 rounded-xl text-zinc-300">
+          <div className="flex items-center gap-2 bg-[#141C2E] border border-[#1E293B] px-3 py-1.5 rounded-xl text-zinc-300">
             <span>Todas as origens</span>
             <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
           </div>
 
-          <div className="flex items-center gap-2 bg-[#0A1426] border border-[#13233E] px-3 py-1.5 rounded-xl text-zinc-300">
+          <div className="flex items-center gap-2 bg-[#141C2E] border border-[#1E293B] px-3 py-1.5 rounded-xl text-zinc-300">
             <span>Todos os produtos</span>
             <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
           </div>
 
-          <div className="flex items-center gap-2 bg-[#0A1426] border border-[#13233E] px-3 py-1.5 rounded-xl text-zinc-300">
+          <div className="flex items-center gap-2 bg-[#141C2E] border border-[#1E293B] px-3 py-1.5 rounded-xl text-zinc-300">
             <span>Todas as plataformas</span>
             <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
           </div>
 
-          <div className="flex items-center gap-2 bg-[#0A1426] border border-[#13233E] px-3 py-1.5 rounded-xl text-zinc-300">
+          <div className="flex items-center gap-2 bg-[#141C2E] border border-[#1E293B] px-3 py-1.5 rounded-xl text-zinc-300">
             <span>Todas as campanhas</span>
             <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
           </div>
 
           {/* Period Pills */}
-          <div className="flex items-center bg-[#0A1426] border border-[#13233E] rounded-xl p-0.5 text-xs">
+          <div className="flex items-center bg-[#141C2E] border border-[#1E293B] rounded-xl p-0.5 text-xs">
             {['Hoje', 'Ontem', '7d'].map(p => (
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
                 className={`px-3 py-1 rounded-lg font-medium transition-colors ${
                   period === p
-                    ? 'bg-[#12223D] text-[#5C9BFF] font-bold shadow-sm'
+                    ? 'bg-[#0066FF] text-white font-bold shadow-sm'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -326,7 +326,7 @@ function resolveCustomerCityState(cust, o) {
       </div>
 
       {/* Main Table matching Screenshot */}
-      <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl overflow-hidden shadow-xl">
+      <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl overflow-hidden shadow-md">
         {displayedSales.length === 0 ? (
           <div className="p-16 text-center">
             <div className="font-bold text-white text-sm">Nenhuma venda registrada ainda</div>
@@ -337,7 +337,7 @@ function resolveCustomerCityState(cust, o) {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs font-sans whitespace-nowrap">
-              <thead className="bg-[#070D1A] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E]">
+              <thead className="bg-[#0D1424] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#1E293B]">
                 <tr>
                   <th className="py-3 px-4">CLIENTE</th>
                   <th className="py-3 px-4">PRODUTO</th>
@@ -350,7 +350,7 @@ function resolveCustomerCityState(cust, o) {
                   <th className="py-3 px-4 text-right">DATA</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#13233E]/60">
+              <tbody className="divide-y divide-[#1E293B]/60">
                 {displayedSales.map((sale) => (
                 <tr key={sale.id} className="hover:bg-white/[0.02] transition-colors">
                   {/* Cliente */}
@@ -396,7 +396,7 @@ function resolveCustomerCityState(cust, o) {
 
                   {/* Plataforma */}
                   <td className="py-3.5 px-4">
-                    <span className="px-2.5 py-1 rounded-lg bg-[#070D1A] border border-[#13233E] text-zinc-300 font-mono text-[11px]">
+                    <span className="px-2.5 py-1 rounded-lg bg-[#0D1424] border border-[#1E293B] text-zinc-300 font-mono text-[11px]">
                       {sale.platform}
                     </span>
                   </td>
@@ -418,7 +418,7 @@ function resolveCustomerCityState(cust, o) {
                   {/* CAPI */}
                   <td className="py-3.5 px-4 text-center">
                     {sale.capi === 'approved' ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#2B66E3] text-white font-mono text-[10px] font-bold">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#0066FF] text-white font-mono text-[10px] font-bold">
                         <Check className="w-3 h-3 stroke-[3]" />
                         <span>{sale.emq || '9.7'}</span>
                       </span>
@@ -440,9 +440,9 @@ function resolveCustomerCityState(cust, o) {
           </table>
 
           {/* Pagination matching Screenshot */}
-          <div className="p-3 bg-[#070D1A] border-t border-[#13233E] flex items-center justify-between text-xs font-mono text-zinc-400">
+          <div className="p-3 bg-[#0D1424] border-t border-[#1E293B] flex items-center justify-between text-xs font-mono text-zinc-400">
             <span>Página 1 de 1</span>
-            <button className="px-3 py-1 rounded-lg bg-[#0A1426] hover:bg-[#12223D] border border-[#13233E] text-zinc-300 hover:text-white transition-colors cursor-pointer">
+            <button className="px-3 py-1 rounded-lg bg-[#141C2E] hover:bg-[#1E293B] border border-[#1E293B] text-zinc-300 hover:text-white transition-colors cursor-pointer">
               Próxima →
             </button>
           </div>
