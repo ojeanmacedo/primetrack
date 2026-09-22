@@ -148,52 +148,57 @@ export default function Dashboard() {
 
   const DEFAULT_GRID_LAYOUTS = {
     lg: [
-      { i: 'faturamento', x: 0, y: 0, w: 1, h: 1 },
-      { i: 'gastos', x: 1, y: 0, w: 1, h: 1 },
-      { i: 'lucro', x: 2, y: 0, w: 1, h: 1 },
-      { i: 'cpa', x: 3, y: 0, w: 1, h: 1 },
-      { i: 'roas', x: 0, y: 1, w: 1, h: 1 },
-      { i: 'margem', x: 1, y: 1, w: 1, h: 1 },
-      { i: 'pendentes', x: 2, y: 1, w: 1, h: 1 },
-      { i: 'reembolsadas', x: 3, y: 1, w: 1, h: 1 },
-      { i: 'products', x: 0, y: 2, w: 1, h: 2 },
-      { i: 'sources', x: 1, y: 2, w: 1, h: 2 },
-      { i: 'approval', x: 2, y: 2, w: 1, h: 2 },
-      { i: 'payments', x: 3, y: 2, w: 1, h: 2 },
-      { i: 'funnel', x: 0, y: 4, w: 4, h: 2 },
-      { i: 'hourly', x: 0, y: 6, w: 4, h: 2 }
+      // Linha 0: 4 KPIs (h: 1, w: 3 cada = 12 cols)
+      { i: 'faturamento', x: 0, y: 0, w: 3, h: 1 },
+      { i: 'gastos', x: 3, y: 0, w: 3, h: 1 },
+      { i: 'lucro', x: 6, y: 0, w: 3, h: 1 },
+      { i: 'cpa', x: 9, y: 0, w: 3, h: 1 },
+      // Linha 1: 4 KPIs (h: 1, w: 3 cada = 12 cols)
+      { i: 'roas', x: 0, y: 1, w: 3, h: 1 },
+      { i: 'margem', x: 3, y: 1, w: 3, h: 1 },
+      { i: 'pendentes', x: 6, y: 1, w: 3, h: 1 },
+      { i: 'reembolsadas', x: 9, y: 1, w: 3, h: 1 },
+      // Linha 2: 3 Cards Analíticos (h: 2, w: 4 cada = 12 cols)
+      { i: 'products', x: 0, y: 2, w: 4, h: 2 },
+      { i: 'sources', x: 4, y: 2, w: 4, h: 2 },
+      { i: 'approval', x: 8, y: 2, w: 4, h: 2 },
+      // Linha 3: Funil de Conversão + Vendas por Pagamento lado a lado (h: 2, w: 6 cada = 12 cols)
+      { i: 'funnel', x: 0, y: 4, w: 6, h: 2 },
+      { i: 'payments', x: 6, y: 4, w: 6, h: 2 },
+      // Linha 4: Vendas por Horário (h: 2, w: 12 = 12 cols)
+      { i: 'hourly', x: 0, y: 6, w: 12, h: 2 }
     ],
     md: [
-      { i: 'faturamento', x: 0, y: 0, w: 1, h: 1 },
-      { i: 'gastos', x: 1, y: 0, w: 1, h: 1 },
-      { i: 'lucro', x: 2, y: 0, w: 1, h: 1 },
-      { i: 'cpa', x: 0, y: 1, w: 1, h: 1 },
-      { i: 'roas', x: 1, y: 1, w: 1, h: 1 },
-      { i: 'margem', x: 2, y: 1, w: 1, h: 1 },
-      { i: 'pendentes', x: 0, y: 2, w: 1, h: 1 },
-      { i: 'reembolsadas', x: 1, y: 2, w: 1, h: 1 },
-      { i: 'products', x: 0, y: 3, w: 1, h: 2 },
-      { i: 'sources', x: 1, y: 3, w: 1, h: 2 },
-      { i: 'approval', x: 2, y: 3, w: 1, h: 2 },
-      { i: 'payments', x: 0, y: 5, w: 1, h: 2 },
-      { i: 'funnel', x: 0, y: 7, w: 3, h: 2 },
-      { i: 'hourly', x: 0, y: 9, w: 3, h: 2 }
+      { i: 'faturamento', x: 0, y: 0, w: 4, h: 1 },
+      { i: 'gastos', x: 4, y: 0, w: 4, h: 1 },
+      { i: 'lucro', x: 8, y: 0, w: 4, h: 1 },
+      { i: 'cpa', x: 0, y: 1, w: 4, h: 1 },
+      { i: 'roas', x: 4, y: 1, w: 4, h: 1 },
+      { i: 'margem', x: 8, y: 1, w: 4, h: 1 },
+      { i: 'pendentes', x: 0, y: 2, w: 6, h: 1 },
+      { i: 'reembolsadas', x: 6, y: 2, w: 6, h: 1 },
+      { i: 'products', x: 0, y: 3, w: 4, h: 2 },
+      { i: 'sources', x: 4, y: 3, w: 4, h: 2 },
+      { i: 'approval', x: 8, y: 3, w: 4, h: 2 },
+      { i: 'funnel', x: 0, y: 5, w: 6, h: 2 },
+      { i: 'payments', x: 6, y: 5, w: 6, h: 2 },
+      { i: 'hourly', x: 0, y: 7, w: 12, h: 2 }
     ],
     sm: [
-      { i: 'faturamento', x: 0, y: 0, w: 1, h: 1 },
-      { i: 'gastos', x: 1, y: 0, w: 1, h: 1 },
-      { i: 'lucro', x: 0, y: 1, w: 1, h: 1 },
-      { i: 'cpa', x: 1, y: 1, w: 1, h: 1 },
-      { i: 'roas', x: 0, y: 2, w: 1, h: 1 },
-      { i: 'margem', x: 1, y: 2, w: 1, h: 1 },
-      { i: 'pendentes', x: 0, y: 3, w: 1, h: 1 },
-      { i: 'reembolsadas', x: 1, y: 3, w: 1, h: 1 },
-      { i: 'products', x: 0, y: 4, w: 1, h: 2 },
-      { i: 'sources', x: 1, y: 4, w: 1, h: 2 },
-      { i: 'approval', x: 0, y: 6, w: 1, h: 2 },
-      { i: 'payments', x: 1, y: 6, w: 1, h: 2 },
-      { i: 'funnel', x: 0, y: 8, w: 2, h: 2 },
-      { i: 'hourly', x: 0, y: 10, w: 2, h: 2 }
+      { i: 'faturamento', x: 0, y: 0, w: 3, h: 1 },
+      { i: 'gastos', x: 3, y: 0, w: 3, h: 1 },
+      { i: 'lucro', x: 0, y: 1, w: 3, h: 1 },
+      { i: 'cpa', x: 3, y: 1, w: 3, h: 1 },
+      { i: 'roas', x: 0, y: 2, w: 3, h: 1 },
+      { i: 'margem', x: 3, y: 2, w: 3, h: 1 },
+      { i: 'pendentes', x: 0, y: 3, w: 3, h: 1 },
+      { i: 'reembolsadas', x: 3, y: 3, w: 3, h: 1 },
+      { i: 'products', x: 0, y: 4, w: 3, h: 2 },
+      { i: 'sources', x: 3, y: 4, w: 3, h: 2 },
+      { i: 'approval', x: 0, y: 6, w: 6, h: 2 },
+      { i: 'funnel', x: 0, y: 8, w: 6, h: 2 },
+      { i: 'payments', x: 0, y: 10, w: 6, h: 2 },
+      { i: 'hourly', x: 0, y: 12, w: 6, h: 2 }
     ],
     xs: [
       { i: 'faturamento', x: 0, y: 0, w: 1, h: 1 },
@@ -207,8 +212,8 @@ export default function Dashboard() {
       { i: 'products', x: 0, y: 8, w: 1, h: 2 },
       { i: 'sources', x: 0, y: 10, w: 1, h: 2 },
       { i: 'approval', x: 0, y: 12, w: 1, h: 2 },
-      { i: 'payments', x: 0, y: 14, w: 1, h: 2 },
-      { i: 'funnel', x: 0, y: 16, w: 1, h: 2 },
+      { i: 'funnel', x: 0, y: 14, w: 1, h: 2 },
+      { i: 'payments', x: 0, y: 16, w: 1, h: 2 },
       { i: 'hourly', x: 0, y: 18, w: 1, h: 2 }
     ]
   };
@@ -216,13 +221,14 @@ export default function Dashboard() {
   const [layouts, setLayouts] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
-        const saved = localStorage.getItem('primetrack_dashboard_grid_layouts_v4');
+        const saved = localStorage.getItem('primetrack_dashboard_grid_layouts_v5');
         if (saved) {
           const parsed = JSON.parse(saved);
           if (parsed && typeof parsed === 'object' && Array.isArray(parsed.lg)) {
             const hasCpa = parsed.lg.some(item => item.i === 'cpa');
             const hasRefunded = parsed.lg.some(item => item.i === 'reembolsadas');
-            if (hasCpa && hasRefunded) {
+            const hasPaymentsBesideFunnel = parsed.lg.some(item => item.i === 'funnel' && item.w === 6);
+            if (hasCpa && hasRefunded && hasPaymentsBesideFunnel) {
               return parsed;
             }
           }
@@ -236,6 +242,20 @@ export default function Dashboard() {
   useEffect(() => {
     layoutsRef.current = layouts;
   }, [layouts]);
+
+  // Se o usuário não está em modo de edição, travamos todos os blocos (static: true)
+  // para que nenhum clique ou movimento acidental altere o layout
+  const activeLayouts = useMemo(() => {
+    const result = {};
+    for (const [bp, items] of Object.entries(layouts)) {
+      result[bp] = (Array.isArray(items) ? items : []).map(item => ({
+        ...item,
+        static: !isEditingLayout,
+        isDraggable: isEditingLayout
+      }));
+    }
+    return result;
+  }, [layouts, isEditingLayout]);
 
   const { width: containerWidth, containerRef } = useContainerWidth({ initialWidth: 1280 });
 
@@ -258,6 +278,8 @@ export default function Dashboard() {
     const handleToggleShowValuesEvent = (e) => {
       if (typeof e.detail?.showValues === 'boolean') {
         setShowValues(e.detail.showValues);
+      } else {
+        setShowValues(prev => !prev);
       }
     };
     window.addEventListener('primetrack_toggle_edit_layout', handleToggleEditEvent);
@@ -285,13 +307,13 @@ export default function Dashboard() {
   const handleResetLayout = () => {
     setLayouts(DEFAULT_GRID_LAYOUTS);
     try {
-      localStorage.setItem('primetrack_dashboard_grid_layouts_v4', JSON.stringify(DEFAULT_GRID_LAYOUTS));
+      localStorage.setItem('primetrack_dashboard_grid_layouts_v5', JSON.stringify(DEFAULT_GRID_LAYOUTS));
     } catch (e) {}
   };
 
   const handleSaveLayout = () => {
     try {
-      localStorage.setItem('primetrack_dashboard_grid_layouts_v4', JSON.stringify(layoutsRef.current));
+      localStorage.setItem('primetrack_dashboard_grid_layouts_v5', JSON.stringify(layoutsRef.current));
     } catch (e) {}
     setIsEditingLayout(false);
   };
@@ -1866,19 +1888,22 @@ export default function Dashboard() {
       <div ref={containerRef} className="w-full">
         <ResponsiveGridLayout
           width={containerWidth}
-          layouts={layouts}
+          layouts={activeLayouts}
           breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480 }}
-          cols={{ lg: 4, md: 3, sm: 2, xs: 1 }}
+          cols={{ lg: 12, md: 12, sm: 6, xs: 1 }}
           rowHeight={104}
           margin={[12, 12]}
           containerPadding={[0, 0]}
           isDraggable={isEditingLayout}
           isResizable={false}
+          dragConfig={{ enabled: isEditingLayout, cancel: '.no-drag, select, button, a' }}
           useCSSTransforms={true}
           draggableCancel=".no-drag, select, button, a"
           onLayoutChange={(currentLayout, allLayouts) => {
-            setLayouts(allLayouts);
-            layoutsRef.current = allLayouts;
+            if (isEditingLayout) {
+              setLayouts(allLayouts);
+              layoutsRef.current = allLayouts;
+            }
           }}
           onBreakpointChange={(newBreakpoint) => {
             setCurrentBreakpoint(newBreakpoint);
