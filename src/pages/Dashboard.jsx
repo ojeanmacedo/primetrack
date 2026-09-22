@@ -156,42 +156,42 @@ export default function Dashboard() {
   };
 
   const DEFAULT_DESKTOP_LAYOUT = [
-    // Linha 0: 4 KPIs (h: 1, w: 3 cada = 12 cols)
-    { i: 'faturamento', x: 0, y: 0, w: 3, h: 1 },
-    { i: 'gastos', x: 3, y: 0, w: 3, h: 1 },
-    { i: 'lucro', x: 6, y: 0, w: 3, h: 1 },
-    { i: 'cpa', x: 9, y: 0, w: 3, h: 1 },
-    // Linha 1: 4 KPIs (h: 1, w: 3 cada = 12 cols)
-    { i: 'roas', x: 0, y: 1, w: 3, h: 1 },
-    { i: 'margem', x: 3, y: 1, w: 3, h: 1 },
-    { i: 'pendentes', x: 6, y: 1, w: 3, h: 1 },
-    { i: 'reembolsadas', x: 9, y: 1, w: 3, h: 1 },
-    // Linha 2: 3 Cards Analíticos (h: 2, w: 4 cada = 12 cols)
-    { i: 'products', x: 0, y: 2, w: 4, h: 2 },
-    { i: 'sources', x: 4, y: 2, w: 4, h: 2 },
-    { i: 'approval', x: 8, y: 2, w: 4, h: 2 },
-    // Linha 3: Funil de Conversão + Vendas por Pagamento lado a lado (h: 2, w: 6 cada = 12 cols)
-    { i: 'funnel', x: 0, y: 4, w: 6, h: 2 },
-    { i: 'payments', x: 6, y: 4, w: 6, h: 2 },
-    // Linha 4: Vendas por Horário (h: 2, w: 12 = 12 cols)
-    { i: 'hourly', x: 0, y: 6, w: 12, h: 2 }
+    // Linha 0: 4 KPIs (h: 2, w: 3 cada = 12 cols, altura 104px)
+    { i: 'faturamento', x: 0, y: 0, w: 3, h: 2 },
+    { i: 'gastos', x: 3, y: 0, w: 3, h: 2 },
+    { i: 'lucro', x: 6, y: 0, w: 3, h: 2 },
+    { i: 'cpa', x: 9, y: 0, w: 3, h: 2 },
+    // Linha 1: 4 KPIs (h: 2, w: 3 cada = 12 cols, altura 104px)
+    { i: 'roas', x: 0, y: 2, w: 3, h: 2 },
+    { i: 'margem', x: 3, y: 2, w: 3, h: 2 },
+    { i: 'pendentes', x: 6, y: 2, w: 3, h: 2 },
+    { i: 'reembolsadas', x: 9, y: 2, w: 3, h: 2 },
+    // Linha 2: 3 Cards Analíticos (h: 3, w: 4 cada = 12 cols, altura 162px -> ~20% menor)
+    { i: 'products', x: 0, y: 4, w: 4, h: 3 },
+    { i: 'sources', x: 4, y: 4, w: 4, h: 3 },
+    { i: 'approval', x: 8, y: 4, w: 4, h: 3 },
+    // Linha 3: Funil de Conversão + Vendas por Pagamento lado a lado (h: 4, w: 6 cada = 12 cols, altura 220px)
+    { i: 'funnel', x: 0, y: 7, w: 6, h: 4 },
+    { i: 'payments', x: 6, y: 7, w: 6, h: 4 },
+    // Linha 4: Vendas por Horário (h: 4, w: 12 = 12 cols, altura 220px)
+    { i: 'hourly', x: 0, y: 11, w: 12, h: 4 }
   ];
 
   const DEFAULT_MOBILE_LAYOUT = [
-    { i: 'faturamento', x: 0, y: 0, w: 1, h: 1 },
-    { i: 'gastos', x: 0, y: 1, w: 1, h: 1 },
-    { i: 'lucro', x: 0, y: 2, w: 1, h: 1 },
-    { i: 'cpa', x: 0, y: 3, w: 1, h: 1 },
-    { i: 'roas', x: 0, y: 4, w: 1, h: 1 },
-    { i: 'margem', x: 0, y: 5, w: 1, h: 1 },
-    { i: 'pendentes', x: 0, y: 6, w: 1, h: 1 },
-    { i: 'reembolsadas', x: 0, y: 7, w: 1, h: 1 },
-    { i: 'products', x: 0, y: 8, w: 1, h: 2 },
-    { i: 'sources', x: 0, y: 10, w: 1, h: 2 },
-    { i: 'approval', x: 0, y: 12, w: 1, h: 2 },
-    { i: 'funnel', x: 0, y: 14, w: 1, h: 2 },
-    { i: 'payments', x: 0, y: 16, w: 1, h: 2 },
-    { i: 'hourly', x: 0, y: 18, w: 1, h: 2 }
+    { i: 'faturamento', x: 0, y: 0, w: 1, h: 2 },
+    { i: 'gastos', x: 0, y: 2, w: 1, h: 2 },
+    { i: 'lucro', x: 0, y: 4, w: 1, h: 2 },
+    { i: 'cpa', x: 0, y: 6, w: 1, h: 2 },
+    { i: 'roas', x: 0, y: 8, w: 1, h: 2 },
+    { i: 'margem', x: 0, y: 10, w: 1, h: 2 },
+    { i: 'pendentes', x: 0, y: 12, w: 1, h: 2 },
+    { i: 'reembolsadas', x: 0, y: 14, w: 1, h: 2 },
+    { i: 'products', x: 0, y: 16, w: 1, h: 3 },
+    { i: 'sources', x: 0, y: 19, w: 1, h: 3 },
+    { i: 'approval', x: 0, y: 22, w: 1, h: 3 },
+    { i: 'funnel', x: 0, y: 25, w: 1, h: 4 },
+    { i: 'payments', x: 0, y: 29, w: 1, h: 4 },
+    { i: 'hourly', x: 0, y: 33, w: 1, h: 4 }
   ];
 
   const sanitizeLayout = (savedLayout, defaultLayout, isMobileLayout = false) => {
@@ -206,7 +206,16 @@ export default function Dashboard() {
     const result = [];
     savedLayout.forEach(item => {
       if (item && item.i && defaultLayout.some(d => d.i === item.i)) {
-        result.push(isMobileLayout ? { ...item, x: 0, w: 1 } : { ...item });
+        const defaultItem = defaultLayout.find(d => d.i === item.i);
+        result.push(isMobileLayout ? { 
+          ...item, 
+          x: 0, 
+          w: 1, 
+          h: defaultItem ? defaultItem.h : (item.h || 2) 
+        } : { 
+          ...item,
+          h: defaultItem ? defaultItem.h : (item.h || 2) 
+        });
       }
     });
 
@@ -222,18 +231,18 @@ export default function Dashboard() {
   const [desktopLayout, setDesktopLayout] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
-        const saved = localStorage.getItem('primetrack_dashboard_layout_desktop_v1');
+        const saved = localStorage.getItem('primetrack_dashboard_layout_desktop_v2');
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
             return sanitizeLayout(parsed, DEFAULT_DESKTOP_LAYOUT, false);
           }
         }
-        const legacy = localStorage.getItem('primetrack_dashboard_grid_layouts_v5');
+        const legacy = localStorage.getItem('primetrack_dashboard_layout_desktop_v1');
         if (legacy) {
           const parsedLegacy = JSON.parse(legacy);
-          if (parsedLegacy && Array.isArray(parsedLegacy.lg) && parsedLegacy.lg.length > 0) {
-            return sanitizeLayout(parsedLegacy.lg, DEFAULT_DESKTOP_LAYOUT, false);
+          if (parsedLegacy && Array.isArray(parsedLegacy) && parsedLegacy.length > 0) {
+            return sanitizeLayout(parsedLegacy, DEFAULT_DESKTOP_LAYOUT, false);
           }
         }
       } catch (e) {}
@@ -244,18 +253,18 @@ export default function Dashboard() {
   const [mobileLayout, setMobileLayout] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
-        const saved = localStorage.getItem('primetrack_dashboard_layout_mobile_v1');
+        const saved = localStorage.getItem('primetrack_dashboard_layout_mobile_v2');
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
             return sanitizeLayout(parsed, DEFAULT_MOBILE_LAYOUT, true);
           }
         }
-        const legacy = localStorage.getItem('primetrack_dashboard_grid_layouts_v5');
+        const legacy = localStorage.getItem('primetrack_dashboard_layout_mobile_v1');
         if (legacy) {
           const parsedLegacy = JSON.parse(legacy);
-          if (parsedLegacy && Array.isArray(parsedLegacy.xs) && parsedLegacy.xs.length > 0) {
-            return sanitizeLayout(parsedLegacy.xs, DEFAULT_MOBILE_LAYOUT, true);
+          if (parsedLegacy && Array.isArray(parsedLegacy) && parsedLegacy.length > 0) {
+            return sanitizeLayout(parsedLegacy, DEFAULT_MOBILE_LAYOUT, true);
           }
         }
       } catch (e) {}
@@ -363,12 +372,14 @@ export default function Dashboard() {
       setMobileLayout(DEFAULT_MOBILE_LAYOUT);
       mobileLayoutRef.current = DEFAULT_MOBILE_LAYOUT;
       try {
+        localStorage.removeItem('primetrack_dashboard_layout_mobile_v2');
         localStorage.removeItem('primetrack_dashboard_layout_mobile_v1');
       } catch (e) {}
     } else {
       setDesktopLayout(DEFAULT_DESKTOP_LAYOUT);
       desktopLayoutRef.current = DEFAULT_DESKTOP_LAYOUT;
       try {
+        localStorage.removeItem('primetrack_dashboard_layout_desktop_v2');
         localStorage.removeItem('primetrack_dashboard_layout_desktop_v1');
       } catch (e) {}
     }
@@ -377,9 +388,9 @@ export default function Dashboard() {
   const handleSaveLayout = () => {
     try {
       if (getIsMobile()) {
-        localStorage.setItem('primetrack_dashboard_layout_mobile_v1', JSON.stringify(mobileLayoutRef.current));
+        localStorage.setItem('primetrack_dashboard_layout_mobile_v2', JSON.stringify(mobileLayoutRef.current));
       } else {
-        localStorage.setItem('primetrack_dashboard_layout_desktop_v1', JSON.stringify(desktopLayoutRef.current));
+        localStorage.setItem('primetrack_dashboard_layout_desktop_v2', JSON.stringify(desktopLayoutRef.current));
       }
     } catch (e) {}
     setIsEditingLayout(false);
@@ -1219,23 +1230,23 @@ export default function Dashboard() {
       isEditingLayout
         ? 'border-blue-500/50 ring-1 ring-blue-500/30 hover:border-blue-400 cursor-grab active:cursor-grabbing'
         : 'border-[#1E293B]'
-    } rounded-xl p-3 sm:p-3.5 flex flex-col justify-between shadow-md h-full w-full select-none relative transition-colors`;
+    } rounded-xl p-3 sm:p-3.5 flex flex-col shadow-md h-full w-full select-none relative transition-colors overflow-hidden`;
 
     if (cardKey === 'products') {
       return (
         <div className={baseContainerClass}>
-          <div className="w-full">
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2.5">
+          <div className="w-full h-full flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2 shrink-0">
               <span className="text-white font-semibold">Vendas por Produto</span>
               {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Vendas agrupadas por produto">ⓘ</span>}
             </div>
 
             {productsMap.length === 0 ? (
-              <div className="h-24 flex items-center justify-center text-zinc-500 text-xs font-sans">
+              <div className="flex-1 flex items-center justify-center text-zinc-500 text-xs font-sans">
                 Nenhuma venda por aqui
               </div>
             ) : (
-              <div className="space-y-2.5 py-0.5 max-h-[140px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-[#1E293B]">
+              <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2 py-0.5 scrollbar-thin scrollbar-thumb-[#1E293B] hover:scrollbar-thumb-[#2E3D5B]">
                 {productsMap.map((prod, i) => {
                   const validPct = Math.min(100, Math.max(0, prod.percentage || 0));
                   const circumference = 56.55; // 2 * pi * 9
@@ -1307,7 +1318,7 @@ export default function Dashboard() {
 
     if (cardKey === 'payments') {
       return (
-        <div className={baseContainerClass}>
+        <div className={`${baseContainerClass} justify-between`}>
           <div>
             <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-1">
               <span className="text-white font-semibold">Vendas por Pagamento</span>
@@ -1371,18 +1382,18 @@ export default function Dashboard() {
     if (cardKey === 'sources') {
       return (
         <div className={baseContainerClass}>
-          <div className="w-full">
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2.5">
+          <div className="w-full h-full flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2 shrink-0">
               <span className="text-white font-semibold">Vendas por Fonte</span>
               {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Origem de tráfego das vendas">ⓘ</span>}
             </div>
 
             {sourcesMap.length === 0 ? (
-              <div className="h-24 flex items-center justify-center text-zinc-500 text-xs font-sans">
+              <div className="flex-1 flex items-center justify-center text-zinc-500 text-xs font-sans">
                 Nenhuma venda por aqui
               </div>
             ) : (
-              <div className="space-y-2.5 py-0.5 max-h-[140px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-[#1E293B]">
+              <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2 py-0.5 scrollbar-thin scrollbar-thumb-[#1E293B] hover:scrollbar-thumb-[#2E3D5B]">
                 {sourcesMap.map((src, i) => {
                   const validPct = Math.min(100, Math.max(0, src.percentage || 0));
                   const circumference = 56.55; // 2 * pi * 9
@@ -1446,13 +1457,13 @@ export default function Dashboard() {
     if (cardKey === 'approval') {
       return (
         <div className={baseContainerClass}>
-          <div className="w-full">
-            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2.5">
+          <div className="w-full h-full flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2 shrink-0">
               <span className="text-white font-semibold">Taxa de Aprovação</span>
               {isEditingLayout ? editHeaderControls : <span className="text-zinc-500 text-[11px] cursor-help" title="Percentual de pedidos aprovados por meio">ⓘ</span>}
             </div>
 
-            <div className="space-y-2.5 py-0.5">
+            <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2 py-0.5 scrollbar-thin scrollbar-thumb-[#1E293B] hover:scrollbar-thumb-[#2E3D5B]">
               {approvalRates.map((method, i) => {
                 const validPct = method.hasData ? Math.min(100, Math.max(0, method.pct)) : 0;
                 const circumference = 56.55; // 2 * pi * 9
@@ -1958,7 +1969,7 @@ export default function Dashboard() {
           layouts={activeLayouts}
           breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 0 }}
           cols={{ lg: 12, md: 12, sm: 1, xs: 1 }}
-          rowHeight={104}
+          rowHeight={46}
           margin={getIsMobile() ? [0, 12] : [12, 12]}
           containerPadding={[0, 0]}
           isDraggable={isEditingLayout}
