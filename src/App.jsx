@@ -13,6 +13,7 @@ import Plans from './pages/Plans';
 import Support from './pages/Support';
 import Taxes from './pages/Taxes';
 import Account from './pages/Account';
+import Advanced from './pages/Advanced';
 import DocsWebhook from './pages/DocsWebhook';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
@@ -143,6 +144,7 @@ export default function App() {
                 <Route path="/conta" element={<Account />} />
                 <Route path="/minha-conta" element={<Account />} />
                 <Route path="/suporte" element={<Support />} />
+                <Route path="/avancado" element={<Advanced />} />
               </Route>
 
               {/* Redirecionamento padrão para rotas desconhecidas */}
