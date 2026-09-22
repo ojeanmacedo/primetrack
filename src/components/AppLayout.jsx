@@ -30,6 +30,28 @@ export default function AppLayout() {
     return () => window.removeEventListener('primetrack_profile_sync', handleProfileSync);
   }, []);
 
+  // Dashboard ativo selecionado
+  const [activeDashboard, setActiveDashboard] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const list = JSON.parse(localStorage.getItem('primetrack_dashboards') || '[]');
+        const activeId = localStorage.getItem('primetrack_active_dashboard_id') || 'principal';
+        return list.find(d => d.id === activeId) || { name: 'Principal' };
+      } catch (e) {}
+    }
+    return { name: 'Principal' };
+  });
+
+  useEffect(() => {
+    const handleDashboardChange = (e) => {
+      if (e.detail) {
+        setActiveDashboard(e.detail);
+      }
+    };
+    window.addEventListener('primetrack_dashboard_changed', handleDashboardChange);
+    return () => window.removeEventListener('primetrack_dashboard_changed', handleDashboardChange);
+  }, []);
+
   // Bloqueio de rota não autenticada: redireciona para /login
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -111,7 +133,7 @@ export default function AppLayout() {
             </button>
 
             <h1 className="text-xs sm:text-base font-bold text-white tracking-tight truncate max-w-[140px] sm:max-w-none">
-              Dashboard – Principal
+              Dashboard – {activeDashboard?.name || 'Principal'}
             </h1>
             <div className="flex items-center gap-1 sm:gap-1.5 text-zinc-400">
               <button 

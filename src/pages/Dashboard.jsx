@@ -515,6 +515,26 @@ export default function Dashboard() {
     return () => window.removeEventListener('primetrack_tax_settings_updated', handleTaxUpdate);
   }, []);
 
+  // Dashboard ativo selecionado (Principal ou Criado em Avançado)
+  const [activeDashboard, setActiveDashboard] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const list = JSON.parse(localStorage.getItem('primetrack_dashboards') || '[]');
+        const activeId = localStorage.getItem('primetrack_active_dashboard_id') || 'principal';
+        return list.find(d => d.id === activeId) || null;
+      } catch (e) {}
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    const handleDashChange = (e) => {
+      setActiveDashboard(e.detail || null);
+    };
+    window.addEventListener('primetrack_dashboard_changed', handleDashChange);
+    return () => window.removeEventListener('primetrack_dashboard_changed', handleDashChange);
+  }, []);
+
   const periodToPreset = {
     'Hoje': 'today',
     'Ontem': 'yesterday',
@@ -915,9 +935,24 @@ export default function Dashboard() {
         }
       }
 
+      // Filtro de isolamento do Dashboard ativo (plataforma ou produto específico)
+      if (activeDashboard) {
+        if (activeDashboard.platformType === 'custom' && Array.isArray(activeDashboard.platforms) && activeDashboard.platforms.length > 0) {
+          const plat = (o.platform || o.gateway || '').toLowerCase();
+          const matchPlat = activeDashboard.platforms.some(p => plat.includes(p.toLowerCase()));
+          if (!matchPlat) return false;
+        }
+
+        if (activeDashboard.productType === 'custom' && activeDashboard.products?.trim()) {
+          const prodName = (o.productName || '').toLowerCase();
+          const targetProd = activeDashboard.products.toLowerCase().trim();
+          if (!prodName.includes(targetProd)) return false;
+        }
+      }
+
       return true;
     });
-  }, [deduplicatedOrders, period, selectedSource, selectedProduct, selectedAccount, adAccountsList, filteredCampaigns]);
+  }, [deduplicatedOrders, period, selectedSource, selectedProduct, selectedAccount, adAccountsList, filteredCampaigns, activeDashboard]);
 
   // Vendas Pendentes reais da MonsterPay
   const pendingOrders = filteredOrders.filter(o => 
