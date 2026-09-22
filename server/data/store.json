@@ -18862,8 +18862,8 @@
       "name": "CA03 JEFFREY",
       "businessName": "DIGITAL MEI",
       "currency": "USD",
-      "status": "Ativa",
-      "amountSpent": "432.66",
+      "status": "Bloqueada",
+      "amountSpent": "636.43",
       "balance": "0.00",
       "syncActive": true
     },
@@ -18878,7 +18878,7 @@
       "businessName": "Maringá lanches",
       "currency": "USD",
       "status": "Bloqueada",
-      "amountSpent": "448.92",
+      "amountSpent": "446.10",
       "balance": "0.00",
       "syncActive": false
     },
@@ -18923,7 +18923,7 @@
       "businessName": "DIGITAL MEI",
       "currency": "USD",
       "status": "Bloqueada",
-      "amountSpent": "448.14",
+      "amountSpent": "445.33",
       "balance": "0.00",
       "syncActive": false
     },
@@ -18938,7 +18938,7 @@
       "businessName": "DIGITAL MEI",
       "currency": "USD",
       "status": "Ativa",
-      "amountSpent": "430.09",
+      "amountSpent": "427.39",
       "balance": "0.00",
       "syncActive": false
     },

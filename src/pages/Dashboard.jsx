@@ -16,6 +16,8 @@ import {
   GripVertical,
   Move
 } from 'lucide-react';
+import { ResponsiveGridLayout, useContainerWidth } from 'react-grid-layout';
+import 'react-grid-layout/css/styles.css';
 import DateRangePicker from '../components/DateRangePicker';
 import { getTaxSettings } from './Taxes';
 
@@ -135,78 +137,102 @@ export default function Dashboard() {
   // Modo de Personalização de Layout (Acionado pela canetinha)
   const [isEditingLayout, setIsEditingLayout] = useState(false);
   const [showValues, setShowValues] = useState(true);
+  const [currentBreakpoint, setCurrentBreakpoint] = useState('lg');
 
-  const DEFAULT_LAYOUT = {
-    // 7 KPIs em ordem harmônica
-    kpis: ['faturamento', 'gastos', 'lucro', 'cpa', 'roas', 'margem', 'pendentes'],
-    // 5 Cards Analíticos:
-    // Linha 1 (3 horizontais): products, sources, approval
-    // Linha 2 (2 horizontais): funnel, payments
-    analysisCards: ['products', 'sources', 'approval', 'funnel', 'payments']
+  const breakpointNames = {
+    lg: 'Desktop',
+    md: 'Notebook',
+    sm: 'Tablet',
+    xs: 'Mobile'
   };
 
-  const [layoutConfig, setLayoutConfig] = useState(() => {
+  const DEFAULT_GRID_LAYOUTS = {
+    lg: [
+      { i: 'faturamento', x: 0, y: 0, w: 1, h: 1 },
+      { i: 'gastos', x: 1, y: 0, w: 1, h: 1 },
+      { i: 'lucro', x: 2, y: 0, w: 1, h: 1 },
+      { i: 'cpa', x: 3, y: 0, w: 1, h: 1 },
+      { i: 'roas', x: 0, y: 1, w: 1, h: 1 },
+      { i: 'margem', x: 1, y: 1, w: 1, h: 1 },
+      { i: 'pendentes', x: 2, y: 1, w: 1, h: 1 },
+      { i: 'products', x: 0, y: 2, w: 1, h: 2 },
+      { i: 'sources', x: 1, y: 2, w: 1, h: 2 },
+      { i: 'approval', x: 2, y: 2, w: 1, h: 2 },
+      { i: 'payments', x: 3, y: 2, w: 1, h: 2 },
+      { i: 'funnel', x: 0, y: 4, w: 4, h: 2 },
+      { i: 'hourly', x: 0, y: 6, w: 4, h: 2 }
+    ],
+    md: [
+      { i: 'faturamento', x: 0, y: 0, w: 1, h: 1 },
+      { i: 'gastos', x: 1, y: 0, w: 1, h: 1 },
+      { i: 'lucro', x: 2, y: 0, w: 1, h: 1 },
+      { i: 'cpa', x: 0, y: 1, w: 1, h: 1 },
+      { i: 'roas', x: 1, y: 1, w: 1, h: 1 },
+      { i: 'margem', x: 2, y: 1, w: 1, h: 1 },
+      { i: 'pendentes', x: 0, y: 2, w: 1, h: 1 },
+      { i: 'products', x: 0, y: 3, w: 1, h: 2 },
+      { i: 'sources', x: 1, y: 3, w: 1, h: 2 },
+      { i: 'approval', x: 2, y: 3, w: 1, h: 2 },
+      { i: 'payments', x: 0, y: 5, w: 1, h: 2 },
+      { i: 'funnel', x: 0, y: 7, w: 3, h: 2 },
+      { i: 'hourly', x: 0, y: 9, w: 3, h: 2 }
+    ],
+    sm: [
+      { i: 'faturamento', x: 0, y: 0, w: 1, h: 1 },
+      { i: 'gastos', x: 1, y: 0, w: 1, h: 1 },
+      { i: 'lucro', x: 0, y: 1, w: 1, h: 1 },
+      { i: 'cpa', x: 1, y: 1, w: 1, h: 1 },
+      { i: 'roas', x: 0, y: 2, w: 1, h: 1 },
+      { i: 'margem', x: 1, y: 2, w: 1, h: 1 },
+      { i: 'pendentes', x: 0, y: 3, w: 1, h: 1 },
+      { i: 'products', x: 0, y: 4, w: 1, h: 2 },
+      { i: 'sources', x: 1, y: 4, w: 1, h: 2 },
+      { i: 'approval', x: 0, y: 6, w: 1, h: 2 },
+      { i: 'payments', x: 1, y: 6, w: 1, h: 2 },
+      { i: 'funnel', x: 0, y: 8, w: 2, h: 2 },
+      { i: 'hourly', x: 0, y: 10, w: 2, h: 2 }
+    ],
+    xs: [
+      { i: 'faturamento', x: 0, y: 0, w: 1, h: 1 },
+      { i: 'gastos', x: 0, y: 1, w: 1, h: 1 },
+      { i: 'lucro', x: 0, y: 2, w: 1, h: 1 },
+      { i: 'cpa', x: 0, y: 3, w: 1, h: 1 },
+      { i: 'roas', x: 0, y: 4, w: 1, h: 1 },
+      { i: 'margem', x: 0, y: 5, w: 1, h: 1 },
+      { i: 'pendentes', x: 0, y: 6, w: 1, h: 1 },
+      { i: 'products', x: 0, y: 7, w: 1, h: 2 },
+      { i: 'sources', x: 0, y: 9, w: 1, h: 2 },
+      { i: 'approval', x: 0, y: 11, w: 1, h: 2 },
+      { i: 'payments', x: 0, y: 13, w: 1, h: 2 },
+      { i: 'funnel', x: 0, y: 15, w: 1, h: 2 },
+      { i: 'hourly', x: 0, y: 17, w: 1, h: 2 }
+    ]
+  };
+
+  const [layouts, setLayouts] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
-        const saved = localStorage.getItem('primetrack_dashboard_layout_config_v3');
+        const saved = localStorage.getItem('primetrack_dashboard_grid_layouts_v4');
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed.analysisCards) && parsed.analysisCards.includes('funnel')) {
-            let migratedKpis = (Array.isArray(parsed.kpis) ? parsed.kpis : DEFAULT_LAYOUT.kpis)
-              .map(k => k === 'roi' ? 'roas' : k);
-            if (!migratedKpis.includes('cpa')) {
-              const gastosIdx = migratedKpis.indexOf('gastos');
-              if (gastosIdx !== -1) {
-                migratedKpis.splice(gastosIdx + 1, 0, 'cpa');
-              } else {
-                migratedKpis.push('cpa');
-              }
+          if (parsed && typeof parsed === 'object' && Array.isArray(parsed.lg)) {
+            const hasCpa = parsed.lg.some(item => item.i === 'cpa');
+            if (hasCpa) {
+              return parsed;
             }
-            return {
-              kpis: migratedKpis,
-              analysisCards: parsed.analysisCards
-            };
           }
         }
       } catch (e) {}
     }
-    return DEFAULT_LAYOUT;
+    return DEFAULT_GRID_LAYOUTS;
   });
 
-  const layoutConfigRef = useRef(layoutConfig);
+  const layoutsRef = useRef(layouts);
   useEffect(() => {
-    layoutConfigRef.current = layoutConfig;
-  }, [layoutConfig]);
+    layoutsRef.current = layouts;
+  }, [layouts]);
 
-  const saveLayoutConfig = (newConfig) => {
-    setLayoutConfig(newConfig);
-    layoutConfigRef.current = newConfig;
-    try {
-      localStorage.setItem('primetrack_dashboard_layout_config_v3', JSON.stringify(newConfig));
-    } catch (e) {}
-  };
-
-  const resetLayoutConfig = () => {
-    saveLayoutConfig(DEFAULT_LAYOUT);
-  };
-
-  const moveKpi = (index, dir) => {
-    const newIndex = index + dir;
-    if (newIndex < 0 || newIndex >= layoutConfig.kpis.length) return;
-    const newKpis = [...layoutConfig.kpis];
-    const [removed] = newKpis.splice(index, 1);
-    newKpis.splice(newIndex, 0, removed);
-    saveLayoutConfig({ ...layoutConfig, kpis: newKpis });
-  };
-
-  const swapAnalysisCards = (idx1, idx2) => {
-    if (idx1 < 0 || idx1 >= layoutConfig.analysisCards.length || idx2 < 0 || idx2 >= layoutConfig.analysisCards.length || idx1 === idx2) return;
-    const newCards = [...layoutConfig.analysisCards];
-    const temp = newCards[idx1];
-    newCards[idx1] = newCards[idx2];
-    newCards[idx2] = temp;
-    saveLayoutConfig({ ...layoutConfig, analysisCards: newCards });
-  };
+  const { width: containerWidth, containerRef } = useContainerWidth({ initialWidth: 1280 });
 
   const initialLayoutSnapshot = useRef(null);
 
@@ -214,77 +240,54 @@ export default function Dashboard() {
     window.dispatchEvent(new CustomEvent('primetrack_edit_layout_status', { detail: { isEditing: isEditingLayout } }));
   }, [isEditingLayout]);
 
+  useEffect(() => {
+    const handleToggleEditEvent = (e) => {
+      if (typeof e.detail?.isEditing === 'boolean') {
+        if (e.detail.isEditing) {
+          initialLayoutSnapshot.current = JSON.parse(JSON.stringify(layoutsRef.current));
+        }
+        setIsEditingLayout(e.detail.isEditing);
+      }
+    };
+    const handleToggleShowValuesEvent = (e) => {
+      if (typeof e.detail?.showValues === 'boolean') {
+        setShowValues(e.detail.showValues);
+      }
+    };
+    window.addEventListener('primetrack_toggle_edit_layout', handleToggleEditEvent);
+    window.addEventListener('primetrack_toggle_show_values', handleToggleShowValuesEvent);
+    return () => {
+      window.removeEventListener('primetrack_toggle_edit_layout', handleToggleEditEvent);
+      window.removeEventListener('primetrack_toggle_show_values', handleToggleShowValuesEvent);
+    };
+  }, []);
+
   const handleToggleEdit = (status) => {
     if (status) {
-      initialLayoutSnapshot.current = JSON.parse(JSON.stringify(layoutConfig));
+      initialLayoutSnapshot.current = JSON.parse(JSON.stringify(layoutsRef.current));
     }
     setIsEditingLayout(status);
   };
 
   const handleCancelEdit = () => {
     if (initialLayoutSnapshot.current) {
-      saveLayoutConfig(initialLayoutSnapshot.current);
+      setLayouts(initialLayoutSnapshot.current);
     }
     setIsEditingLayout(false);
   };
 
-  // Drag and Drop com Mouse para reposicionamento em tempo real
-  const [draggedItem, setDraggedItem] = useState(null); // { type: 'analysis' | 'kpi', index: number }
-  const [dragOverItem, setDragOverItem] = useState(null);
-
-  const handleDragStart = (e, type, index) => {
-    if (!isEditingLayout) return;
-    setDraggedItem({ type, index });
-    e.dataTransfer.effectAllowed = 'move';
+  const handleResetLayout = () => {
+    setLayouts(DEFAULT_GRID_LAYOUTS);
     try {
-      e.dataTransfer.setData('text/plain', JSON.stringify({ type, index }));
-    } catch (err) {}
+      localStorage.setItem('primetrack_dashboard_grid_layouts_v4', JSON.stringify(DEFAULT_GRID_LAYOUTS));
+    } catch (e) {}
   };
 
-  const handleDragOver = (e, type, targetIndex) => {
-    if (!isEditingLayout || !draggedItem || draggedItem.type !== type) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-
-    const sourceIndex = draggedItem.index;
-    if (sourceIndex === targetIndex) return;
-
-    // Movimentação fluida em tempo real
-    if (type === 'kpi') {
-      setLayoutConfig(prev => {
-        const newKpis = [...prev.kpis];
-        const [moved] = newKpis.splice(sourceIndex, 1);
-        newKpis.splice(targetIndex, 0, moved);
-        return { ...prev, kpis: newKpis };
-      });
-      setDraggedItem({ type: 'kpi', index: targetIndex });
-    } else if (type === 'analysis') {
-      setLayoutConfig(prev => {
-        const newCards = [...prev.analysisCards];
-        const [moved] = newCards.splice(sourceIndex, 1);
-        newCards.splice(targetIndex, 0, moved);
-        return { ...prev, analysisCards: newCards };
-      });
-      setDraggedItem({ type: 'analysis', index: targetIndex });
-    }
-  };
-
-  const handleDragLeave = (type, index) => {
-    // A troca ocorre em tempo real durante o dragOver
-  };
-
-  const handleDrop = (e, type, targetIndex) => {
-    e.preventDefault();
-    if (!isEditingLayout || !draggedItem || draggedItem.type !== type) return;
-    setDraggedItem(null);
-    setDragOverItem(null);
-    saveLayoutConfig(layoutConfigRef.current);
-  };
-
-  const handleDragEnd = () => {
-    setDraggedItem(null);
-    setDragOverItem(null);
-    saveLayoutConfig(layoutConfigRef.current);
+  const handleSaveLayout = () => {
+    try {
+      localStorage.setItem('primetrack_dashboard_grid_layouts_v4', JSON.stringify(layoutsRef.current));
+    } catch (e) {}
+    setIsEditingLayout(false);
   };
 
   const [adAccountsList, setAdAccountsList] = useState(() => {
@@ -1089,36 +1092,57 @@ export default function Dashboard() {
     }
   };
 
-  const renderAnalysisCard = (cardKey, slotIndex) => {
-    const isDraggingThis = draggedItem?.type === 'analysis' && draggedItem?.index === slotIndex;
-    const isOverThis = dragOverItem?.type === 'analysis' && dragOverItem?.index === slotIndex && !isDraggingThis;
+  const renderKpiCard = (kpiKey) => {
+    const card = kpiDataMap[kpiKey] || kpiDataMap.faturamento;
+    return (
+      <div 
+        className={`bg-[#141C2E] border ${
+          isEditingLayout 
+            ? 'border-blue-500/50 ring-1 ring-blue-500/30 hover:border-blue-400 cursor-grab active:cursor-grabbing' 
+            : 'border-[#1E293B]'
+        } rounded-xl p-3 sm:p-3.5 flex flex-col justify-between shadow-md h-full w-full select-none relative group transition-colors`}
+      >
+        <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
+          <span className="truncate font-semibold text-zinc-300">
+            {card.label}
+          </span>
+          <div className="flex items-center gap-1">
+            {isEditingLayout ? (
+              <GripVertical className="w-3.5 h-3.5 text-blue-400" title="Arraste com o mouse para reposicionar" />
+            ) : (
+              <span className="text-zinc-500 text-[11px] cursor-help" title={card.label}>ⓘ</span>
+            )}
+          </div>
+        </div>
 
+        <div>
+          <div className={`text-lg sm:text-xl font-bold tracking-tight font-sans ${card.valueColor}`}>
+            {showValues ? card.value : '••••••••'}
+          </div>
+          <div className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 truncate font-sans">
+            {card.subtitle}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderAnalysisCard = (cardKey) => {
     const editHeaderControls = isEditingLayout ? (
       <GripVertical className="w-4 h-4 text-blue-400 cursor-grab active:cursor-grabbing" title="Arraste com o mouse para reposicionar" />
     ) : (
       <span className="text-zinc-500 text-[11px] cursor-help">ⓘ</span>
     );
 
-    const baseContainerClass = (heightClass = 'h-[195px]') => `bg-[#141C2E] border ${
-      isDraggingThis
-        ? 'border-2 border-blue-500 bg-[#16233E]/70 opacity-40 scale-[0.98] shadow-2xl ring-2 ring-blue-500/40 cursor-grabbing'
-        : isEditingLayout
-          ? 'border-blue-500/50 ring-1 ring-blue-500/30 hover:border-blue-400 cursor-grab active:cursor-grabbing hover:scale-[1.005]'
-          : 'border-[#1E293B]'
-    } rounded-xl p-3 sm:p-3.5 flex flex-col justify-between shadow-md ${heightClass} transition-all duration-200 ease-out relative select-none`;
+    const baseContainerClass = `bg-[#141C2E] border ${
+      isEditingLayout
+        ? 'border-blue-500/50 ring-1 ring-blue-500/30 hover:border-blue-400 cursor-grab active:cursor-grabbing'
+        : 'border-[#1E293B]'
+    } rounded-xl p-3 sm:p-3.5 flex flex-col justify-between shadow-md h-full w-full select-none relative transition-colors`;
 
     if (cardKey === 'products') {
       return (
-        <div 
-          key="products"
-          draggable={isEditingLayout}
-          onDragStart={(e) => handleDragStart(e, 'analysis', slotIndex)}
-          onDragOver={(e) => handleDragOver(e, 'analysis', slotIndex)}
-          onDragLeave={() => handleDragLeave('analysis', slotIndex)}
-          onDrop={(e) => handleDrop(e, 'analysis', slotIndex)}
-          onDragEnd={handleDragEnd}
-          className={baseContainerClass('h-[195px]')}
-        >
+        <div className={baseContainerClass}>
           <div className="w-full">
             <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2.5">
               <span className="text-white font-semibold">Vendas por Produto</span>
@@ -1202,16 +1226,7 @@ export default function Dashboard() {
 
     if (cardKey === 'payments') {
       return (
-        <div 
-          key="payments"
-          draggable={isEditingLayout}
-          onDragStart={(e) => handleDragStart(e, 'analysis', slotIndex)}
-          onDragOver={(e) => handleDragOver(e, 'analysis', slotIndex)}
-          onDragLeave={() => handleDragLeave('analysis', slotIndex)}
-          onDrop={(e) => handleDrop(e, 'analysis', slotIndex)}
-          onDragEnd={handleDragEnd}
-          className={baseContainerClass('h-[220px]')}
-        >
+        <div className={baseContainerClass}>
           <div>
             <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-1">
               <span className="text-white font-semibold">Vendas por Pagamento</span>
@@ -1274,16 +1289,7 @@ export default function Dashboard() {
 
     if (cardKey === 'sources') {
       return (
-        <div 
-          key="sources"
-          draggable={isEditingLayout}
-          onDragStart={(e) => handleDragStart(e, 'analysis', slotIndex)}
-          onDragOver={(e) => handleDragOver(e, 'analysis', slotIndex)}
-          onDragLeave={() => handleDragLeave('analysis', slotIndex)}
-          onDrop={(e) => handleDrop(e, 'analysis', slotIndex)}
-          onDragEnd={handleDragEnd}
-          className={baseContainerClass('h-[195px]')}
-        >
+        <div className={baseContainerClass}>
           <div className="w-full">
             <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2.5">
               <span className="text-white font-semibold">Vendas por Fonte</span>
@@ -1358,16 +1364,7 @@ export default function Dashboard() {
 
     if (cardKey === 'approval') {
       return (
-        <div 
-          key="approval"
-          draggable={isEditingLayout}
-          onDragStart={(e) => handleDragStart(e, 'analysis', slotIndex)}
-          onDragOver={(e) => handleDragOver(e, 'analysis', slotIndex)}
-          onDragLeave={() => handleDragLeave('analysis', slotIndex)}
-          onDrop={(e) => handleDrop(e, 'analysis', slotIndex)}
-          onDragEnd={handleDragEnd}
-          className={baseContainerClass('h-[195px]')}
-        >
+        <div className={baseContainerClass}>
           <div className="w-full">
             <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2.5">
               <span className="text-white font-semibold">Taxa de Aprovação</span>
@@ -1452,16 +1449,7 @@ export default function Dashboard() {
       `;
 
       return (
-        <div 
-          key="funnel"
-          draggable={isEditingLayout}
-          onDragStart={(e) => handleDragStart(e, 'analysis', slotIndex)}
-          onDragOver={(e) => handleDragOver(e, 'analysis', slotIndex)}
-          onDragLeave={() => handleDragLeave('analysis', slotIndex)}
-          onDrop={(e) => handleDrop(e, 'analysis', slotIndex)}
-          onDragEnd={handleDragEnd}
-          className={baseContainerClass('h-[220px]')}
-        >
+        <div className={baseContainerClass}>
           <div className="w-full flex flex-col justify-between h-full">
             {/* Header */}
             <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-1">
@@ -1541,8 +1529,8 @@ export default function Dashboard() {
 
   const renderHourlySalesSection = () => (
     <div className={`bg-[#141C2E] border ${
-      isEditingLayout ? 'border-blue-500/50 ring-1 ring-blue-500/30' : 'border-[#1E293B]'
-    } rounded-xl p-3.5 sm:p-4 shadow-md transition-all duration-200 relative`}>
+      isEditingLayout ? 'border-blue-500/50 ring-1 ring-blue-500/30 hover:border-blue-400 cursor-grab active:cursor-grabbing' : 'border-[#1E293B]'
+    } rounded-xl p-3.5 sm:p-4 shadow-md h-full w-full flex flex-col justify-between select-none relative transition-colors`}>
       {/* Header do Card */}
       <div className="flex items-center justify-between mb-2 sm:mb-2.5">
         <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight">
@@ -1655,48 +1643,35 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Banner de Edição Ativa (Canetinha) */}
+      {/* Banner de Edição Ativa (Idêntico ao Utmify do vídeo) */}
       {isEditingLayout && (
-        <div className="bg-gradient-to-r from-[#0F1D38] via-[#142347] to-[#0F1D38] border border-blue-500/50 rounded-xl p-3 sm:p-3.5 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#0066FF] text-white flex items-center justify-center shrink-0 shadow-md shadow-blue-600/30">
-              <Edit3 className="w-3.5 h-3.5" />
-            </div>
-            <div>
-              <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
-                <span>Personalização de Layout Ativa</span>
-                <span className="text-[9px] uppercase font-mono px-1.5 py-0.5 bg-blue-500/20 text-blue-300 rounded border border-blue-500/30 font-bold">
-                  Modo de Edição
-                </span>
-              </div>
-              <p className="text-[11px] text-zinc-300">
-                <span className="font-semibold text-white">🖱️ Arraste com o mouse</span> qualquer card ou métrica para mudar de posição. O formato quadrado simétrico da dashboard é mantido sempre.
-              </p>
-            </div>
+        <div className="bg-[#141C2E] border border-blue-500/50 rounded-xl px-4 py-3 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3 animate-fadeIn">
+          <div className="flex items-center gap-2.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
+            <span className="text-xs text-zinc-300">
+              Você está editando seu dashboard para: <span className="text-white font-bold">{breakpointNames[currentBreakpoint] || 'Desktop'}</span>
+            </span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button 
+              onClick={handleResetLayout}
+              className="px-3 py-1.5 rounded-lg border border-zinc-700 hover:border-zinc-500 bg-[#1E293B]/60 text-zinc-300 hover:text-white text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-zinc-400" />
+              <span>Redefinir configurações</span>
+            </button>
+            <button 
               onClick={handleCancelEdit}
-              className="px-2.5 py-1 rounded-lg bg-[#1E293B] hover:bg-[#334155] text-zinc-300 hover:text-white text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
-              title="Cancelar e descartar alterações"
+              className="px-3 py-1.5 rounded-lg border border-zinc-700 hover:border-zinc-500 bg-[#1E293B]/60 text-zinc-300 hover:text-white text-xs font-medium transition-colors cursor-pointer"
             >
-              <X className="w-3 h-3 text-zinc-400" />
-              <span>Cancelar</span>
+              Cancelar
             </button>
             <button 
-              onClick={resetLayoutConfig}
-              className="px-2.5 py-1 rounded-lg bg-[#1E293B] hover:bg-[#334155] text-zinc-300 hover:text-white text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
-              title="Restaurar posições originais"
+              onClick={handleSaveLayout}
+              className="px-4 py-1.5 rounded-lg bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-bold transition-all shadow-md shadow-blue-600/30 flex items-center gap-1.5 cursor-pointer"
             >
-              <RotateCcw className="w-3 h-3" />
-              <span>Restaurar Padrão</span>
-            </button>
-            <button 
-              onClick={() => handleToggleEdit(false)}
-              className="px-3.5 py-1 rounded-lg bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-bold transition-all shadow-md shadow-blue-600/30 flex items-center gap-1.5 cursor-pointer"
-            >
-              <Check className="w-3 h-3" />
-              <span>Salvar e Concluir</span>
+              <Check className="w-3.5 h-3.5" />
+              <span>Salvar</span>
             </button>
           </div>
         </div>
@@ -1895,67 +1870,43 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Cards KPIs Principais em Grid Dinâmico e Harmônico */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-3">
-        {layoutConfig.kpis.map((kpiKey, index) => {
-          const card = kpiDataMap[kpiKey] || kpiDataMap.faturamento;
-          const isKpiDragging = draggedItem?.type === 'kpi' && draggedItem?.index === index;
-
-          return (
-            <div 
-              key={kpiKey}
-              draggable={isEditingLayout}
-              onDragStart={(e) => handleDragStart(e, 'kpi', index)}
-              onDragOver={(e) => handleDragOver(e, 'kpi', index)}
-              onDragLeave={() => handleDragLeave('kpi', index)}
-              onDrop={(e) => handleDrop(e, 'kpi', index)}
-              onDragEnd={handleDragEnd}
-              className={`bg-[#141C2E] border ${
-                isKpiDragging
-                  ? 'border-2 border-blue-500 bg-[#16233E]/70 opacity-40 scale-[0.97] shadow-2xl ring-2 ring-blue-500/40 cursor-grabbing'
-                  : isEditingLayout 
-                    ? 'border-blue-500/50 ring-1 ring-blue-500/30 hover:border-blue-400 cursor-grab active:cursor-grabbing hover:scale-[1.01]' 
-                    : 'border-[#1E293B]'
-              } rounded-xl p-3 sm:p-3.5 flex flex-col justify-between shadow-md h-[92px] sm:h-[98px] transition-all duration-200 ease-out relative group select-none`}
-            >
-              <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
-                <span className="truncate">
-                  {card.label}
-                </span>
-                <div className="flex items-center gap-1">
-                  {isEditingLayout ? (
-                    <GripVertical className="w-3.5 h-3.5 text-blue-400 cursor-grab active:cursor-grabbing" title="Arraste com o mouse para reposicionar" />
-                  ) : (
-                    <span className="text-zinc-500 text-[11px] cursor-help" title={card.label}>ⓘ</span>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <div className={`text-lg sm:text-xl font-bold tracking-tight font-sans ${card.valueColor}`}>
-                  {showValues ? card.value : '••••••••'}
-                </div>
-                <div className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 truncate font-sans">
-                  {card.subtitle}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+      {/* Grid Unificado e Fluido com Física em Tempo Real (Estilo Utmify) */}
+      <div ref={containerRef} className="w-full">
+        <ResponsiveGridLayout
+          width={containerWidth}
+          layouts={layouts}
+          breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480 }}
+          cols={{ lg: 4, md: 3, sm: 2, xs: 1 }}
+          rowHeight={104}
+          margin={[12, 12]}
+          containerPadding={[0, 0]}
+          isDraggable={isEditingLayout}
+          isResizable={false}
+          useCSSTransforms={true}
+          draggableCancel=".no-drag, select, button, a"
+          onLayoutChange={(currentLayout, allLayouts) => {
+            setLayouts(allLayouts);
+            layoutsRef.current = allLayouts;
+          }}
+          onBreakpointChange={(newBreakpoint) => {
+            setCurrentBreakpoint(newBreakpoint);
+          }}
+        >
+          <div key="faturamento" className="h-full w-full">{renderKpiCard('faturamento')}</div>
+          <div key="gastos" className="h-full w-full">{renderKpiCard('gastos')}</div>
+          <div key="lucro" className="h-full w-full">{renderKpiCard('lucro')}</div>
+          <div key="cpa" className="h-full w-full">{renderKpiCard('cpa')}</div>
+          <div key="roas" className="h-full w-full">{renderKpiCard('roas')}</div>
+          <div key="margem" className="h-full w-full">{renderKpiCard('margem')}</div>
+          <div key="pendentes" className="h-full w-full">{renderKpiCard('pendentes')}</div>
+          <div key="products" className="h-full w-full">{renderAnalysisCard('products')}</div>
+          <div key="sources" className="h-full w-full">{renderAnalysisCard('sources')}</div>
+          <div key="approval" className="h-full w-full">{renderAnalysisCard('approval')}</div>
+          <div key="payments" className="h-full w-full">{renderAnalysisCard('payments')}</div>
+          <div key="funnel" className="h-full w-full">{renderAnalysisCard('funnel')}</div>
+          <div key="hourly" className="h-full w-full">{renderHourlySalesSection()}</div>
+        </ResponsiveGridLayout>
       </div>
-
-      {/* Linha Analítica 1 (Horizontal - 3 Blocos): Vendas por Produto, Vendas por Fonte, Taxa de Aprovação */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-3.5">
-        {layoutConfig.analysisCards.slice(0, 3).map((cardKey, i) => renderAnalysisCard(cardKey, i))}
-      </div>
-
-      {/* Linha Analítica 2 (Horizontal - 2 Blocos): Funil de Conversão e Vendas por Pagamento */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-3.5">
-        {layoutConfig.analysisCards.slice(3, 5).map((cardKey, i) => renderAnalysisCard(cardKey, i + 3))}
-      </div>
-
-      {/* Bloco de Vendas por Horário */}
-      {renderHourlySalesSection()}
 
     </div>
   );

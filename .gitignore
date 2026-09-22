@@ -25,3 +25,8 @@ pnpm-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
+
+# Media recordings
+*.mp4
+*.webm
+
