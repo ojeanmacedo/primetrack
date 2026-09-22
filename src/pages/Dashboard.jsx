@@ -137,8 +137,8 @@ export default function Dashboard() {
   const [showValues, setShowValues] = useState(true);
 
   const DEFAULT_LAYOUT = {
-    // 6 KPIs em ordem harmônica
-    kpis: ['faturamento', 'gastos', 'lucro', 'pendentes', 'roas', 'margem'],
+    // 7 KPIs em ordem harmônica
+    kpis: ['faturamento', 'gastos', 'lucro', 'cpa', 'roas', 'margem', 'pendentes'],
     // 5 Cards Analíticos:
     // Linha 1 (3 horizontais): products, sources, approval
     // Linha 2 (2 horizontais): funnel, payments
@@ -151,9 +151,17 @@ export default function Dashboard() {
         const saved = localStorage.getItem('primetrack_dashboard_layout_config_v3');
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed.analysisCards) && parsed.analysisCards.includes('funnel') && parsed.analysisCards[0] === 'products' && parsed.analysisCards[1] === 'sources' && parsed.analysisCards[2] === 'approval') {
-            const migratedKpis = (Array.isArray(parsed.kpis) && parsed.kpis.length === 6 ? parsed.kpis : DEFAULT_LAYOUT.kpis)
+          if (Array.isArray(parsed.analysisCards) && parsed.analysisCards.includes('funnel')) {
+            let migratedKpis = (Array.isArray(parsed.kpis) ? parsed.kpis : DEFAULT_LAYOUT.kpis)
               .map(k => k === 'roi' ? 'roas' : k);
+            if (!migratedKpis.includes('cpa')) {
+              const gastosIdx = migratedKpis.indexOf('gastos');
+              if (gastosIdx !== -1) {
+                migratedKpis.splice(gastosIdx + 1, 0, 'cpa');
+              } else {
+                migratedKpis.push('cpa');
+              }
+            }
             return {
               kpis: migratedKpis,
               analysisCards: parsed.analysisCards
@@ -165,8 +173,14 @@ export default function Dashboard() {
     return DEFAULT_LAYOUT;
   });
 
+  const layoutConfigRef = useRef(layoutConfig);
+  useEffect(() => {
+    layoutConfigRef.current = layoutConfig;
+  }, [layoutConfig]);
+
   const saveLayoutConfig = (newConfig) => {
     setLayoutConfig(newConfig);
+    layoutConfigRef.current = newConfig;
     try {
       localStorage.setItem('primetrack_dashboard_layout_config_v3', JSON.stringify(newConfig));
     } catch (e) {}
@@ -214,9 +228,9 @@ export default function Dashboard() {
     setIsEditingLayout(false);
   };
 
-  // Drag and Drop com Mouse para reposicionamento
+  // Drag and Drop com Mouse para reposicionamento em tempo real
   const [draggedItem, setDraggedItem] = useState(null); // { type: 'analysis' | 'kpi', index: number }
-  const [dragOverItem, setDragOverItem] = useState(null); // { type: 'analysis' | 'kpi', index: number }
+  const [dragOverItem, setDragOverItem] = useState(null);
 
   const handleDragStart = (e, type, index) => {
     if (!isEditingLayout) return;
@@ -227,47 +241,50 @@ export default function Dashboard() {
     } catch (err) {}
   };
 
-  const handleDragOver = (e, type, index) => {
+  const handleDragOver = (e, type, targetIndex) => {
     if (!isEditingLayout || !draggedItem || draggedItem.type !== type) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    if (!dragOverItem || dragOverItem.type !== type || dragOverItem.index !== index) {
-      setDragOverItem({ type, index });
+
+    const sourceIndex = draggedItem.index;
+    if (sourceIndex === targetIndex) return;
+
+    // Movimentação fluida em tempo real
+    if (type === 'kpi') {
+      setLayoutConfig(prev => {
+        const newKpis = [...prev.kpis];
+        const [moved] = newKpis.splice(sourceIndex, 1);
+        newKpis.splice(targetIndex, 0, moved);
+        return { ...prev, kpis: newKpis };
+      });
+      setDraggedItem({ type: 'kpi', index: targetIndex });
+    } else if (type === 'analysis') {
+      setLayoutConfig(prev => {
+        const newCards = [...prev.analysisCards];
+        const [moved] = newCards.splice(sourceIndex, 1);
+        newCards.splice(targetIndex, 0, moved);
+        return { ...prev, analysisCards: newCards };
+      });
+      setDraggedItem({ type: 'analysis', index: targetIndex });
     }
   };
 
   const handleDragLeave = (type, index) => {
-    if (dragOverItem?.type === type && dragOverItem?.index === index) {
-      setDragOverItem(null);
-    }
+    // A troca ocorre em tempo real durante o dragOver
   };
 
   const handleDrop = (e, type, targetIndex) => {
     e.preventDefault();
     if (!isEditingLayout || !draggedItem || draggedItem.type !== type) return;
-    const sourceIndex = draggedItem.index;
-    if (sourceIndex === targetIndex) {
-      setDraggedItem(null);
-      setDragOverItem(null);
-      return;
-    }
-
-    if (type === 'analysis') {
-      swapAnalysisCards(sourceIndex, targetIndex);
-    } else if (type === 'kpi') {
-      const newKpis = [...layoutConfig.kpis];
-      const [moved] = newKpis.splice(sourceIndex, 1);
-      newKpis.splice(targetIndex, 0, moved);
-      saveLayoutConfig({ ...layoutConfig, kpis: newKpis });
-    }
-
     setDraggedItem(null);
     setDragOverItem(null);
+    saveLayoutConfig(layoutConfigRef.current);
   };
 
   const handleDragEnd = () => {
     setDraggedItem(null);
     setDragOverItem(null);
+    saveLayoutConfig(layoutConfigRef.current);
   };
 
   const [adAccountsList, setAdAccountsList] = useState(() => {
@@ -837,6 +854,9 @@ export default function Dashboard() {
   // Gastos com anúncios reais
   const realSpend = filteredCampaigns.reduce((acc, c) => acc + Number(c.spend || 0), 0);
   
+  // CPA geral (Custo por Aquisição = Gastos com anúncios / Vendas aprovadas)
+  const realCpa = realApprovedSales > 0 ? (realSpend / realApprovedSales) : 0;
+  
   // Impostos calculados com base na alíquota configurada em Taxas (ex: 12% para BR ou 0% para EUA)
   const metaTaxPercent = Number(taxSettings?.metaTaxRate || 0);
   const impostoMetaValue = realSpend > 0 && metaTaxPercent > 0 ? (realSpend * (metaTaxPercent / 100)) : 0;
@@ -1025,6 +1045,13 @@ export default function Dashboard() {
       subtitle: 'Meta Ads API',
       valueColor: 'text-white'
     },
+    cpa: {
+      id: 'cpa',
+      label: 'CPA',
+      value: `R$ ${realCpa.toFixed(2).replace('.', ',')}`,
+      subtitle: 'Custo por aquisição geral',
+      valueColor: 'text-white'
+    },
     lucro: {
       id: 'lucro',
       label: 'Lucro',
@@ -1074,22 +1101,11 @@ export default function Dashboard() {
 
     const baseContainerClass = (heightClass = 'h-[195px]') => `bg-[#141C2E] border ${
       isDraggingThis
-        ? 'border-dashed border-blue-500 opacity-30 scale-[0.98] shadow-2xl ring-2 ring-blue-500/30'
-        : isOverThis
-          ? 'border-blue-400 ring-4 ring-blue-500/50 bg-[#16233E] scale-[1.01]'
-          : isEditingLayout
-            ? 'border-blue-500/50 ring-1 ring-blue-500/30 hover:border-blue-400 cursor-grab active:cursor-grabbing'
-            : 'border-[#1E293B]'
-    } rounded-xl p-3 sm:p-3.5 flex flex-col justify-between shadow-md ${heightClass} transition-all duration-200 relative select-none`;
-
-    const dropOverlay = isOverThis && (
-      <div className="absolute inset-0 bg-[#0066FF]/20 backdrop-blur-[1px] border-2 border-[#0066FF] rounded-xl flex flex-col items-center justify-center z-30 pointer-events-none">
-        <div className="bg-[#0066FF] text-white px-3.5 py-2 rounded-lg text-xs font-bold shadow-xl flex items-center gap-2 animate-bounce">
-          <Move className="w-4 h-4" />
-          <span>Solte o mouse aqui para trocar de posição</span>
-        </div>
-      </div>
-    );
+        ? 'border-2 border-blue-500 bg-[#16233E]/70 opacity-40 scale-[0.98] shadow-2xl ring-2 ring-blue-500/40 cursor-grabbing'
+        : isEditingLayout
+          ? 'border-blue-500/50 ring-1 ring-blue-500/30 hover:border-blue-400 cursor-grab active:cursor-grabbing hover:scale-[1.005]'
+          : 'border-[#1E293B]'
+    } rounded-xl p-3 sm:p-3.5 flex flex-col justify-between shadow-md ${heightClass} transition-all duration-200 ease-out relative select-none`;
 
     if (cardKey === 'products') {
       return (
@@ -1103,7 +1119,6 @@ export default function Dashboard() {
           onDragEnd={handleDragEnd}
           className={baseContainerClass('h-[195px]')}
         >
-          {dropOverlay}
           <div className="w-full">
             <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2.5">
               <span className="text-white font-semibold">Vendas por Produto</span>
@@ -1197,7 +1212,6 @@ export default function Dashboard() {
           onDragEnd={handleDragEnd}
           className={baseContainerClass('h-[220px]')}
         >
-          {dropOverlay}
           <div>
             <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-1">
               <span className="text-white font-semibold">Vendas por Pagamento</span>
@@ -1270,7 +1284,6 @@ export default function Dashboard() {
           onDragEnd={handleDragEnd}
           className={baseContainerClass('h-[195px]')}
         >
-          {dropOverlay}
           <div className="w-full">
             <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2.5">
               <span className="text-white font-semibold">Vendas por Fonte</span>
@@ -1355,7 +1368,6 @@ export default function Dashboard() {
           onDragEnd={handleDragEnd}
           className={baseContainerClass('h-[195px]')}
         >
-          {dropOverlay}
           <div className="w-full">
             <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2.5">
               <span className="text-white font-semibold">Taxa de Aprovação</span>
@@ -1450,7 +1462,6 @@ export default function Dashboard() {
           onDragEnd={handleDragEnd}
           className={baseContainerClass('h-[220px]')}
         >
-          {dropOverlay}
           <div className="w-full flex flex-col justify-between h-full">
             {/* Header */}
             <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-1">
@@ -1884,16 +1895,15 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 6 Cards KPIs Principais em Grid 3x2 Perfeito e Harmônico */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
+      {/* Cards KPIs Principais em Grid Dinâmico e Harmônico */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-3">
         {layoutConfig.kpis.map((kpiKey, index) => {
           const card = kpiDataMap[kpiKey] || kpiDataMap.faturamento;
           const isKpiDragging = draggedItem?.type === 'kpi' && draggedItem?.index === index;
-          const isKpiOver = dragOverItem?.type === 'kpi' && dragOverItem?.index === index && !isKpiDragging;
 
           return (
             <div 
-              key={card.id}
+              key={kpiKey}
               draggable={isEditingLayout}
               onDragStart={(e) => handleDragStart(e, 'kpi', index)}
               onDragOver={(e) => handleDragOver(e, 'kpi', index)}
@@ -1902,13 +1912,11 @@ export default function Dashboard() {
               onDragEnd={handleDragEnd}
               className={`bg-[#141C2E] border ${
                 isKpiDragging
-                  ? 'border-dashed border-blue-500 opacity-30 scale-[0.97] shadow-2xl ring-2 ring-blue-500/30'
-                  : isKpiOver
-                    ? 'border-blue-400 ring-4 ring-blue-500/50 bg-[#16233E] scale-[1.02]'
-                    : isEditingLayout 
-                      ? 'border-blue-500/50 ring-1 ring-blue-500/30 hover:border-blue-400 cursor-grab active:cursor-grabbing' 
-                      : 'border-[#1E293B]'
-              } rounded-xl p-3 sm:p-3.5 flex flex-col justify-between shadow-md h-[92px] sm:h-[98px] transition-all duration-200 relative group select-none`}
+                  ? 'border-2 border-blue-500 bg-[#16233E]/70 opacity-40 scale-[0.97] shadow-2xl ring-2 ring-blue-500/40 cursor-grabbing'
+                  : isEditingLayout 
+                    ? 'border-blue-500/50 ring-1 ring-blue-500/30 hover:border-blue-400 cursor-grab active:cursor-grabbing hover:scale-[1.01]' 
+                    : 'border-[#1E293B]'
+              } rounded-xl p-3 sm:p-3.5 flex flex-col justify-between shadow-md h-[92px] sm:h-[98px] transition-all duration-200 ease-out relative group select-none`}
             >
               <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
                 <span className="truncate">
@@ -1925,7 +1933,7 @@ export default function Dashboard() {
 
               <div>
                 <div className={`text-lg sm:text-xl font-bold tracking-tight font-sans ${card.valueColor}`}>
-                  {card.value}
+                  {showValues ? card.value : '••••••••'}
                 </div>
                 <div className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 truncate font-sans">
                   {card.subtitle}
