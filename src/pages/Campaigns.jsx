@@ -2927,7 +2927,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs font-sans whitespace-nowrap">
-                <thead className="bg-[#0D1424] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#1E293B]">
+                <thead className="bg-[#141C2E] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#1E293B]">
                   <tr>
                     <th className="py-3 px-4">STATUS</th>
                     <th className="py-3 px-4">CONTA DE ANÚNCIO</th>
@@ -3057,14 +3057,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             </div>
           ) : (
             <div 
-              className="w-full overflow-x-auto overflow-y-auto max-h-[555px] scrollbar-thin scrollbar-thumb-[#0066FF]/40 scrollbar-track-[#0D1424] touch-pan-x touch-pan-y overscroll-x-contain"
+              className="w-full overflow-x-auto overflow-y-auto max-h-[555px] scrollbar-thin scrollbar-thumb-[#0066FF]/40 scrollbar-track-[#141C2E] touch-pan-x touch-pan-y overscroll-x-contain"
               style={{ WebkitOverflowScrolling: 'touch' }}
             >
               <table className="w-full text-left text-xs font-sans whitespace-nowrap border-collapse">
-                <thead className="bg-[#0D1424] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#1E293B] sticky top-0 z-30 shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
+                <thead className="bg-[#141C2E] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#1E293B] sticky top-0 z-30 shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
                   <tr>
                     {/* Checkbox fixo na lateral esquerda apenas em desktop */}
-                    <th className="py-3 pl-4 pr-3 w-[48px] min-w-[48px] max-w-[48px] bg-[#0D1424] md:sticky md:left-0 md:z-40">
+                    <th className="py-3 pl-4 pr-3 w-[48px] min-w-[48px] max-w-[48px] bg-[#141C2E] md:sticky md:left-0 md:z-40">
                       <input 
                         type="checkbox" 
                         className="rounded bg-[#03060D] border-white/10 cursor-pointer accent-[#0066FF]" 
@@ -3077,7 +3077,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     {/* Status fixo na lateral esquerda com ordenação apenas em desktop */}
                     <th 
                       onClick={() => handleToggleSort('status')}
-                      className={`py-3 pl-4 pr-3 w-[94px] min-w-[94px] max-w-[94px] bg-[#0D1424] md:sticky md:left-[48px] md:z-40 cursor-pointer select-none transition-colors group ${
+                      className={`py-3 pl-4 pr-3 w-[94px] min-w-[94px] max-w-[94px] bg-[#141C2E] md:sticky md:left-[48px] md:z-40 cursor-pointer select-none transition-colors group ${
                         sortKey === 'status' ? 'text-[#5C9BFF]' : 'hover:text-white'
                       }`}
                       title={sortKey === 'status' 
@@ -3093,7 +3093,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     {/* Nome (Campanha / Conjunto / Anúncio) fixo na lateral esquerda com ordenação apenas em desktop */}
                     <th 
                       onClick={() => handleToggleSort('name')}
-                      className={`py-3 px-4 bg-[#0D1424] md:sticky md:left-[142px] md:z-40 min-w-[220px] max-w-[320px] cursor-pointer select-none transition-colors group ${
+                      className={`py-3 px-4 bg-[#141C2E] md:sticky md:left-[142px] md:z-40 min-w-[220px] max-w-[320px] cursor-pointer select-none transition-colors group ${
                         sortKey === 'name' ? 'text-[#5C9BFF]' : 'hover:text-white'
                       }`}
                       title={sortKey === 'name' 
@@ -3219,11 +3219,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 </tbody>
 
                 {/* Rodapé com totais reais sticky embaixo */}
-                <tfoot className="bg-[#0D1424] font-bold border-t border-[#1E293B] text-xs font-mono sticky bottom-0 z-30 shadow-[0_-2px_10px_rgba(0,0,0,0.5)]">
+                <tfoot className="bg-[#141C2E] font-bold border-t border-[#1E293B] text-xs font-mono sticky bottom-0 z-30 shadow-[0_-2px_10px_rgba(0,0,0,0.5)]">
                   <tr>
-                    <td className="py-3.5 pl-4 pr-3 w-[48px] min-w-[48px] max-w-[48px] bg-[#0D1424] md:sticky md:left-0 md:z-40"></td>
-                    <td className="py-3.5 pl-4 pr-3 w-[94px] min-w-[94px] max-w-[94px] bg-[#0D1424] md:sticky md:left-[48px] md:z-40"></td>
-                    <td className="py-3.5 px-4 font-sans text-white uppercase text-[11px] bg-[#0D1424] md:sticky md:left-[142px] md:z-40">
+                    <td className="py-3.5 pl-4 pr-3 w-[48px] min-w-[48px] max-w-[48px] bg-[#141C2E] md:sticky md:left-0 md:z-40"></td>
+                    <td className="py-3.5 pl-4 pr-3 w-[94px] min-w-[94px] max-w-[94px] bg-[#141C2E] md:sticky md:left-[48px] md:z-40"></td>
+                    <td className="py-3.5 px-4 font-sans text-white uppercase text-[11px] bg-[#141C2E] md:sticky md:left-[142px] md:z-40">
                       {currentItems.length} {
                         subTab === 'Campanhas' 
                           ? (currentItems.length === 1 ? 'CAMPANHA' : 'CAMPANHAS')
@@ -3235,7 +3235,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
                     {/* Totais dinâmicos alinhados às colunas ativas */}
                     {activeVisibleColumns.map(col => (
-                      <td key={col.id} className="py-3.5 px-4 bg-[#0D1424]">
+                      <td key={col.id} className="py-3.5 px-4 bg-[#141C2E]">
                         {renderFooterCell(col.id, totals)}
                       </td>
                     ))}
@@ -3247,7 +3247,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
           {/* Barra de Paginação inteligente quando ultrapassar 100 registros */}
           {currentItems.length > 100 && (
-            <div className="px-4 py-3 bg-[#0D1424] border-t border-[#1E293B] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="px-4 py-3 bg-[#141C2E] border-t border-[#1E293B] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
               <div className="flex items-center gap-2 text-zinc-400">
                 <span>Exibindo</span>
                 <select

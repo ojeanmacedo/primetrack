@@ -337,7 +337,7 @@ function resolveCustomerCityState(cust, o) {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs font-sans whitespace-nowrap">
-              <thead className="bg-[#0D1424] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#1E293B]">
+              <thead className="bg-[#141C2E] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#1E293B]">
                 <tr>
                   <th className="py-3 px-4">CLIENTE</th>
                   <th className="py-3 px-4">PRODUTO</th>
@@ -440,9 +440,9 @@ function resolveCustomerCityState(cust, o) {
           </table>
 
           {/* Pagination matching Screenshot */}
-          <div className="p-3 bg-[#0D1424] border-t border-[#1E293B] flex items-center justify-between text-xs font-mono text-zinc-400">
+          <div className="p-3 bg-[#141C2E] border-t border-[#1E293B] flex items-center justify-between text-xs font-mono text-zinc-400">
             <span>Página 1 de 1</span>
-            <button className="px-3 py-1 rounded-lg bg-[#141C2E] hover:bg-[#1E293B] border border-[#1E293B] text-zinc-300 hover:text-white transition-colors cursor-pointer">
+            <button className="px-3 py-1 rounded-lg bg-[#0D1424] hover:bg-[#182236] border border-[#1E293B] text-zinc-300 hover:text-white transition-colors cursor-pointer">
               Próxima →
             </button>
           </div>
