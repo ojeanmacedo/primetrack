@@ -247,12 +247,13 @@ export default function Dashboard() {
 
   useEffect(() => {
     const handleToggleEditEvent = (e) => {
-      if (typeof e.detail?.isEditing === 'boolean') {
-        if (e.detail.isEditing) {
+      setIsEditingLayout(prev => {
+        const next = typeof e.detail?.isEditing === 'boolean' ? e.detail.isEditing : !prev;
+        if (next) {
           initialLayoutSnapshot.current = JSON.parse(JSON.stringify(layoutsRef.current));
         }
-        setIsEditingLayout(e.detail.isEditing);
-      }
+        return next;
+      });
     };
     const handleToggleShowValuesEvent = (e) => {
       if (typeof e.detail?.showValues === 'boolean') {
@@ -680,34 +681,6 @@ export default function Dashboard() {
       loadDashboardData(period, null);
     }
   }, [period]);
-
-  useEffect(() => {
-    const handleEditEvent = (e) => {
-      setIsEditingLayout(prev => {
-        const next = typeof e.detail?.isEditing === 'boolean' ? e.detail.isEditing : !prev;
-        if (next) {
-          initialLayoutSnapshot.current = JSON.parse(JSON.stringify(layoutConfig));
-        }
-        return next;
-      });
-    };
-
-    const handleShowValues = (e) => {
-      if (typeof e.detail?.showValues === 'boolean') {
-        setShowValues(e.detail.showValues);
-      } else {
-        setShowValues(prev => !prev);
-      }
-    };
-
-    window.addEventListener('primetrack_toggle_edit_layout', handleEditEvent);
-    window.addEventListener('primetrack_toggle_show_values', handleShowValues);
-
-    return () => {
-      window.removeEventListener('primetrack_toggle_edit_layout', handleEditEvent);
-      window.removeEventListener('primetrack_toggle_show_values', handleShowValues);
-    };
-  }, []);
 
   // Mantém todas as vendas individuais válidas pelo ID do pedido
   const deduplicatedOrders = useMemo(() => {
