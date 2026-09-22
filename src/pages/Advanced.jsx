@@ -281,8 +281,15 @@ export default function Advanced() {
     const updatedList = dashboards.filter(d => d.id !== dashboardId);
     saveDashboardsList(updatedList);
 
-    // Se o dashboard excluído era o ativo, volta para o Principal
-    if (activeDashboardId === dashboardId) {
+    try {
+      localStorage.removeItem(`primetrack_webhook_tokens_${dashboardId}`);
+      localStorage.removeItem(`primetrack_pixels_${dashboardId}`);
+      localStorage.removeItem(`primetrack_connected_profiles_${dashboardId}`);
+      localStorage.removeItem(`primetrack_ad_accounts_${dashboardId}`);
+    } catch (e) {}
+
+    // Se o dashboard excluído era o ativo ou se sobrou apenas 1 dashboard (Principal)
+    if (activeDashboardId === dashboardId || updatedList.length === 1) {
       const fallback = updatedList[0];
       setActiveDashboardId(fallback.id);
       localStorage.setItem('primetrack_active_dashboard_id', fallback.id);
