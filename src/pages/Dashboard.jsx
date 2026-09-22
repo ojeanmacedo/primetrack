@@ -137,125 +137,165 @@ export default function Dashboard() {
   // Modo de Personalização de Layout (Acionado pela canetinha)
   const [isEditingLayout, setIsEditingLayout] = useState(false);
   const [showValues, setShowValues] = useState(true);
-  const [currentBreakpoint, setCurrentBreakpoint] = useState('lg');
+  const [currentBreakpoint, setCurrentBreakpoint] = useState(() => {
+    if (typeof window !== 'undefined') {
+      if (window.innerWidth < 768) return 'xs';
+      if (window.innerWidth < 1024) return 'md';
+      return 'lg';
+    }
+    return 'lg';
+  });
+  const currentBreakpointRef = useRef(currentBreakpoint);
+  useEffect(() => {
+    currentBreakpointRef.current = currentBreakpoint;
+  }, [currentBreakpoint]);
 
-  const breakpointNames = {
-    lg: 'Desktop',
-    md: 'Notebook',
-    sm: 'Tablet',
-    xs: 'Mobile'
+  const getIsMobile = () => {
+    const bp = currentBreakpointRef.current;
+    return bp === 'xs' || bp === 'sm' || (typeof window !== 'undefined' && window.innerWidth < 768);
   };
 
-  const DEFAULT_GRID_LAYOUTS = {
-    lg: [
-      // Linha 0: 4 KPIs (h: 1, w: 3 cada = 12 cols)
-      { i: 'faturamento', x: 0, y: 0, w: 3, h: 1 },
-      { i: 'gastos', x: 3, y: 0, w: 3, h: 1 },
-      { i: 'lucro', x: 6, y: 0, w: 3, h: 1 },
-      { i: 'cpa', x: 9, y: 0, w: 3, h: 1 },
-      // Linha 1: 4 KPIs (h: 1, w: 3 cada = 12 cols)
-      { i: 'roas', x: 0, y: 1, w: 3, h: 1 },
-      { i: 'margem', x: 3, y: 1, w: 3, h: 1 },
-      { i: 'pendentes', x: 6, y: 1, w: 3, h: 1 },
-      { i: 'reembolsadas', x: 9, y: 1, w: 3, h: 1 },
-      // Linha 2: 3 Cards Analíticos (h: 2, w: 4 cada = 12 cols)
-      { i: 'products', x: 0, y: 2, w: 4, h: 2 },
-      { i: 'sources', x: 4, y: 2, w: 4, h: 2 },
-      { i: 'approval', x: 8, y: 2, w: 4, h: 2 },
-      // Linha 3: Funil de Conversão + Vendas por Pagamento lado a lado (h: 2, w: 6 cada = 12 cols)
-      { i: 'funnel', x: 0, y: 4, w: 6, h: 2 },
-      { i: 'payments', x: 6, y: 4, w: 6, h: 2 },
-      // Linha 4: Vendas por Horário (h: 2, w: 12 = 12 cols)
-      { i: 'hourly', x: 0, y: 6, w: 12, h: 2 }
-    ],
-    md: [
-      { i: 'faturamento', x: 0, y: 0, w: 4, h: 1 },
-      { i: 'gastos', x: 4, y: 0, w: 4, h: 1 },
-      { i: 'lucro', x: 8, y: 0, w: 4, h: 1 },
-      { i: 'cpa', x: 0, y: 1, w: 4, h: 1 },
-      { i: 'roas', x: 4, y: 1, w: 4, h: 1 },
-      { i: 'margem', x: 8, y: 1, w: 4, h: 1 },
-      { i: 'pendentes', x: 0, y: 2, w: 6, h: 1 },
-      { i: 'reembolsadas', x: 6, y: 2, w: 6, h: 1 },
-      { i: 'products', x: 0, y: 3, w: 4, h: 2 },
-      { i: 'sources', x: 4, y: 3, w: 4, h: 2 },
-      { i: 'approval', x: 8, y: 3, w: 4, h: 2 },
-      { i: 'funnel', x: 0, y: 5, w: 6, h: 2 },
-      { i: 'payments', x: 6, y: 5, w: 6, h: 2 },
-      { i: 'hourly', x: 0, y: 7, w: 12, h: 2 }
-    ],
-    sm: [
-      { i: 'faturamento', x: 0, y: 0, w: 3, h: 1 },
-      { i: 'gastos', x: 3, y: 0, w: 3, h: 1 },
-      { i: 'lucro', x: 0, y: 1, w: 3, h: 1 },
-      { i: 'cpa', x: 3, y: 1, w: 3, h: 1 },
-      { i: 'roas', x: 0, y: 2, w: 3, h: 1 },
-      { i: 'margem', x: 3, y: 2, w: 3, h: 1 },
-      { i: 'pendentes', x: 0, y: 3, w: 3, h: 1 },
-      { i: 'reembolsadas', x: 3, y: 3, w: 3, h: 1 },
-      { i: 'products', x: 0, y: 4, w: 3, h: 2 },
-      { i: 'sources', x: 3, y: 4, w: 3, h: 2 },
-      { i: 'approval', x: 0, y: 6, w: 6, h: 2 },
-      { i: 'funnel', x: 0, y: 8, w: 6, h: 2 },
-      { i: 'payments', x: 0, y: 10, w: 6, h: 2 },
-      { i: 'hourly', x: 0, y: 12, w: 6, h: 2 }
-    ],
-    xs: [
-      { i: 'faturamento', x: 0, y: 0, w: 1, h: 1 },
-      { i: 'gastos', x: 0, y: 1, w: 1, h: 1 },
-      { i: 'lucro', x: 0, y: 2, w: 1, h: 1 },
-      { i: 'cpa', x: 0, y: 3, w: 1, h: 1 },
-      { i: 'roas', x: 0, y: 4, w: 1, h: 1 },
-      { i: 'margem', x: 0, y: 5, w: 1, h: 1 },
-      { i: 'pendentes', x: 0, y: 6, w: 1, h: 1 },
-      { i: 'reembolsadas', x: 0, y: 7, w: 1, h: 1 },
-      { i: 'products', x: 0, y: 8, w: 1, h: 2 },
-      { i: 'sources', x: 0, y: 10, w: 1, h: 2 },
-      { i: 'approval', x: 0, y: 12, w: 1, h: 2 },
-      { i: 'funnel', x: 0, y: 14, w: 1, h: 2 },
-      { i: 'payments', x: 0, y: 16, w: 1, h: 2 },
-      { i: 'hourly', x: 0, y: 18, w: 1, h: 2 }
-    ]
+  const DEFAULT_DESKTOP_LAYOUT = [
+    // Linha 0: 4 KPIs (h: 1, w: 3 cada = 12 cols)
+    { i: 'faturamento', x: 0, y: 0, w: 3, h: 1 },
+    { i: 'gastos', x: 3, y: 0, w: 3, h: 1 },
+    { i: 'lucro', x: 6, y: 0, w: 3, h: 1 },
+    { i: 'cpa', x: 9, y: 0, w: 3, h: 1 },
+    // Linha 1: 4 KPIs (h: 1, w: 3 cada = 12 cols)
+    { i: 'roas', x: 0, y: 1, w: 3, h: 1 },
+    { i: 'margem', x: 3, y: 1, w: 3, h: 1 },
+    { i: 'pendentes', x: 6, y: 1, w: 3, h: 1 },
+    { i: 'reembolsadas', x: 9, y: 1, w: 3, h: 1 },
+    // Linha 2: 3 Cards Analíticos (h: 2, w: 4 cada = 12 cols)
+    { i: 'products', x: 0, y: 2, w: 4, h: 2 },
+    { i: 'sources', x: 4, y: 2, w: 4, h: 2 },
+    { i: 'approval', x: 8, y: 2, w: 4, h: 2 },
+    // Linha 3: Funil de Conversão + Vendas por Pagamento lado a lado (h: 2, w: 6 cada = 12 cols)
+    { i: 'funnel', x: 0, y: 4, w: 6, h: 2 },
+    { i: 'payments', x: 6, y: 4, w: 6, h: 2 },
+    // Linha 4: Vendas por Horário (h: 2, w: 12 = 12 cols)
+    { i: 'hourly', x: 0, y: 6, w: 12, h: 2 }
+  ];
+
+  const DEFAULT_MOBILE_LAYOUT = [
+    { i: 'faturamento', x: 0, y: 0, w: 1, h: 1 },
+    { i: 'gastos', x: 0, y: 1, w: 1, h: 1 },
+    { i: 'lucro', x: 0, y: 2, w: 1, h: 1 },
+    { i: 'cpa', x: 0, y: 3, w: 1, h: 1 },
+    { i: 'roas', x: 0, y: 4, w: 1, h: 1 },
+    { i: 'margem', x: 0, y: 5, w: 1, h: 1 },
+    { i: 'pendentes', x: 0, y: 6, w: 1, h: 1 },
+    { i: 'reembolsadas', x: 0, y: 7, w: 1, h: 1 },
+    { i: 'products', x: 0, y: 8, w: 1, h: 2 },
+    { i: 'sources', x: 0, y: 10, w: 1, h: 2 },
+    { i: 'approval', x: 0, y: 12, w: 1, h: 2 },
+    { i: 'funnel', x: 0, y: 14, w: 1, h: 2 },
+    { i: 'payments', x: 0, y: 16, w: 1, h: 2 },
+    { i: 'hourly', x: 0, y: 18, w: 1, h: 2 }
+  ];
+
+  const sanitizeLayout = (savedLayout, defaultLayout, isMobileLayout = false) => {
+    if (!Array.isArray(savedLayout)) return defaultLayout;
+    const existingMap = new Map();
+    savedLayout.forEach(item => {
+      if (item && item.i) {
+        existingMap.set(item.i, item);
+      }
+    });
+
+    const result = [];
+    savedLayout.forEach(item => {
+      if (item && item.i && defaultLayout.some(d => d.i === item.i)) {
+        result.push(isMobileLayout ? { ...item, x: 0, w: 1 } : { ...item });
+      }
+    });
+
+    defaultLayout.forEach(defaultItem => {
+      if (!existingMap.has(defaultItem.i)) {
+        result.push({ ...defaultItem });
+      }
+    });
+
+    return result;
   };
 
-  const [layouts, setLayouts] = useState(() => {
+  const [desktopLayout, setDesktopLayout] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
-        const saved = localStorage.getItem('primetrack_dashboard_grid_layouts_v5');
+        const saved = localStorage.getItem('primetrack_dashboard_layout_desktop_v1');
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (parsed && typeof parsed === 'object' && Array.isArray(parsed.lg)) {
-            const hasCpa = parsed.lg.some(item => item.i === 'cpa');
-            const hasRefunded = parsed.lg.some(item => item.i === 'reembolsadas');
-            const hasPaymentsBesideFunnel = parsed.lg.some(item => item.i === 'funnel' && item.w === 6);
-            if (hasCpa && hasRefunded && hasPaymentsBesideFunnel) {
-              return parsed;
-            }
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return sanitizeLayout(parsed, DEFAULT_DESKTOP_LAYOUT, false);
+          }
+        }
+        const legacy = localStorage.getItem('primetrack_dashboard_grid_layouts_v5');
+        if (legacy) {
+          const parsedLegacy = JSON.parse(legacy);
+          if (parsedLegacy && Array.isArray(parsedLegacy.lg) && parsedLegacy.lg.length > 0) {
+            return sanitizeLayout(parsedLegacy.lg, DEFAULT_DESKTOP_LAYOUT, false);
           }
         }
       } catch (e) {}
     }
-    return DEFAULT_GRID_LAYOUTS;
+    return DEFAULT_DESKTOP_LAYOUT;
   });
 
-  const layoutsRef = useRef(layouts);
+  const [mobileLayout, setMobileLayout] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('primetrack_dashboard_layout_mobile_v1');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return sanitizeLayout(parsed, DEFAULT_MOBILE_LAYOUT, true);
+          }
+        }
+        const legacy = localStorage.getItem('primetrack_dashboard_grid_layouts_v5');
+        if (legacy) {
+          const parsedLegacy = JSON.parse(legacy);
+          if (parsedLegacy && Array.isArray(parsedLegacy.xs) && parsedLegacy.xs.length > 0) {
+            return sanitizeLayout(parsedLegacy.xs, DEFAULT_MOBILE_LAYOUT, true);
+          }
+        }
+      } catch (e) {}
+    }
+    return DEFAULT_MOBILE_LAYOUT;
+  });
+
+  const desktopLayoutRef = useRef(desktopLayout);
   useEffect(() => {
-    layoutsRef.current = layouts;
-  }, [layouts]);
+    desktopLayoutRef.current = desktopLayout;
+  }, [desktopLayout]);
+
+  const mobileLayoutRef = useRef(mobileLayout);
+  useEffect(() => {
+    mobileLayoutRef.current = mobileLayout;
+  }, [mobileLayout]);
 
   // Se o usuário não está em modo de edição, travamos todos os blocos (static: true)
   // para que nenhum clique ou movimento acidental altere o layout
   const activeLayouts = useMemo(() => {
-    const result = {};
-    for (const [bp, items] of Object.entries(layouts)) {
-      result[bp] = (Array.isArray(items) ? items : []).map(item => ({
-        ...item,
-        static: !isEditingLayout,
-        isDraggable: isEditingLayout
-      }));
-    }
-    return result;
-  }, [layouts, isEditingLayout]);
+    const desktopItems = desktopLayout.map(item => ({
+      ...item,
+      static: !isEditingLayout,
+      isDraggable: isEditingLayout
+    }));
+    const mobileItems = mobileLayout.map(item => ({
+      ...item,
+      x: 0,
+      w: 1,
+      static: !isEditingLayout,
+      isDraggable: isEditingLayout
+    }));
+
+    return {
+      lg: desktopItems,
+      md: desktopItems,
+      sm: mobileItems,
+      xs: mobileItems
+    };
+  }, [desktopLayout, mobileLayout, isEditingLayout]);
 
   const { width: containerWidth, containerRef } = useContainerWidth({ 
     initialWidth: typeof window !== 'undefined' ? (window.innerWidth - (window.innerWidth >= 1024 ? 260 : 32)) : 1280 
@@ -272,7 +312,10 @@ export default function Dashboard() {
       setIsEditingLayout(prev => {
         const next = typeof e.detail?.isEditing === 'boolean' ? e.detail.isEditing : !prev;
         if (next) {
-          initialLayoutSnapshot.current = JSON.parse(JSON.stringify(layoutsRef.current));
+          initialLayoutSnapshot.current = {
+            desktop: JSON.parse(JSON.stringify(desktopLayoutRef.current)),
+            mobile: JSON.parse(JSON.stringify(mobileLayoutRef.current))
+          };
         }
         return next;
       });
@@ -294,28 +337,50 @@ export default function Dashboard() {
 
   const handleToggleEdit = (status) => {
     if (status) {
-      initialLayoutSnapshot.current = JSON.parse(JSON.stringify(layoutsRef.current));
+      initialLayoutSnapshot.current = {
+        desktop: JSON.parse(JSON.stringify(desktopLayoutRef.current)),
+        mobile: JSON.parse(JSON.stringify(mobileLayoutRef.current))
+      };
     }
     setIsEditingLayout(status);
   };
 
   const handleCancelEdit = () => {
     if (initialLayoutSnapshot.current) {
-      setLayouts(initialLayoutSnapshot.current);
+      if (getIsMobile()) {
+        setMobileLayout(initialLayoutSnapshot.current.mobile);
+        mobileLayoutRef.current = initialLayoutSnapshot.current.mobile;
+      } else {
+        setDesktopLayout(initialLayoutSnapshot.current.desktop);
+        desktopLayoutRef.current = initialLayoutSnapshot.current.desktop;
+      }
     }
     setIsEditingLayout(false);
   };
 
   const handleResetLayout = () => {
-    setLayouts(DEFAULT_GRID_LAYOUTS);
-    try {
-      localStorage.setItem('primetrack_dashboard_grid_layouts_v5', JSON.stringify(DEFAULT_GRID_LAYOUTS));
-    } catch (e) {}
+    if (getIsMobile()) {
+      setMobileLayout(DEFAULT_MOBILE_LAYOUT);
+      mobileLayoutRef.current = DEFAULT_MOBILE_LAYOUT;
+      try {
+        localStorage.removeItem('primetrack_dashboard_layout_mobile_v1');
+      } catch (e) {}
+    } else {
+      setDesktopLayout(DEFAULT_DESKTOP_LAYOUT);
+      desktopLayoutRef.current = DEFAULT_DESKTOP_LAYOUT;
+      try {
+        localStorage.removeItem('primetrack_dashboard_layout_desktop_v1');
+      } catch (e) {}
+    }
   };
 
   const handleSaveLayout = () => {
     try {
-      localStorage.setItem('primetrack_dashboard_grid_layouts_v5', JSON.stringify(layoutsRef.current));
+      if (getIsMobile()) {
+        localStorage.setItem('primetrack_dashboard_layout_mobile_v1', JSON.stringify(mobileLayoutRef.current));
+      } else {
+        localStorage.setItem('primetrack_dashboard_layout_desktop_v1', JSON.stringify(desktopLayoutRef.current));
+      }
     } catch (e) {}
     setIsEditingLayout(false);
   };
@@ -1665,7 +1730,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-2.5">
             <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
             <span className="text-xs text-zinc-300">
-              Você está editando seu dashboard para: <span className="text-white font-bold">{breakpointNames[currentBreakpoint] || 'Desktop'}</span>
+              Você está editando seu dashboard para: <span className="text-white font-bold">{getIsMobile() ? 'Mobile' : 'Desktop'}</span>
             </span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -1891,24 +1956,37 @@ export default function Dashboard() {
         <ResponsiveGridLayout
           width={containerWidth}
           layouts={activeLayouts}
-          breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480 }}
-          cols={{ lg: 12, md: 12, sm: 6, xs: 1 }}
+          breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 0 }}
+          cols={{ lg: 12, md: 12, sm: 1, xs: 1 }}
           rowHeight={104}
-          margin={[12, 12]}
+          margin={getIsMobile() ? [0, 12] : [12, 12]}
           containerPadding={[0, 0]}
           isDraggable={isEditingLayout}
           isResizable={false}
           dragConfig={{ enabled: isEditingLayout, cancel: '.no-drag, select, button, a' }}
           useCSSTransforms={true}
           draggableCancel=".no-drag, select, button, a"
-          onLayoutChange={(currentLayout, allLayouts) => {
-            if (isEditingLayout) {
-              setLayouts(allLayouts);
-              layoutsRef.current = allLayouts;
+          onLayoutChange={(currentLayout) => {
+            if (isEditingLayout && Array.isArray(currentLayout) && currentLayout.length > 0) {
+              if (getIsMobile()) {
+                const updatedMobile = currentLayout.map(item => ({
+                  i: item.i,
+                  x: 0,
+                  y: item.y,
+                  w: 1,
+                  h: item.h || 1
+                }));
+                setMobileLayout(updatedMobile);
+                mobileLayoutRef.current = updatedMobile;
+              } else {
+                setDesktopLayout(currentLayout);
+                desktopLayoutRef.current = currentLayout;
+              }
             }
           }}
           onBreakpointChange={(newBreakpoint) => {
             setCurrentBreakpoint(newBreakpoint);
+            currentBreakpointRef.current = newBreakpoint;
           }}
         >
           <div key="faturamento" className="h-full w-full">{renderKpiCard('faturamento')}</div>
