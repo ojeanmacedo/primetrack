@@ -116,7 +116,7 @@ export default function Taxes() {
             {/* Formulário / Exibição */}
             {isEditingMetaTax ? (
               <form onSubmit={handleSaveMetaTax} className="bg-[#0D1424] border border-[#1E293B] rounded-xl p-4 space-y-4">
-                <div className="flex items-center justify-between border-b border-[#182238] pb-2">
+                <div className="flex items-center justify-between border-b border-[#1E293B] pb-2">
                   <span className="text-xs font-bold text-white">Configurar Imposto Meta Ads (Facebook)</span>
                   <span className="text-[11px] text-zinc-400 font-mono">Ex: 12% para contas BR</span>
                 </div>

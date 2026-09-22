@@ -227,7 +227,7 @@ export default function Notifications() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         
         {/* Notificações de Venda */}
-        <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl p-6 shadow-xl space-y-5">
+        <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-6 shadow-md space-y-5">
           <div>
             <h3 className="font-bold text-white text-sm">
               Notificações de Venda
@@ -244,7 +244,7 @@ export default function Notifications() {
               <div className="flex items-center gap-3">
                 <button 
                   onClick={() => handleTest('approved')}
-                  className="px-2.5 py-1 rounded-lg bg-[#070D1A] border border-white/10 hover:border-brand text-zinc-300 text-[11px] flex items-center gap-1.5 cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg bg-[#0D1424] border border-[#1E293B] hover:bg-[#182236] text-zinc-300 text-[11px] flex items-center gap-1.5 cursor-pointer"
                 >
                   <Bell className="w-3 h-3 text-amber-400" />
                   <span>Testar</span>
@@ -253,7 +253,7 @@ export default function Notifications() {
                   type="button"
                   onClick={() => handleToggleVendasAprovadas(!vendasAprovadas)}
                   className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
-                    vendasAprovadas ? 'bg-[#2B66E3]' : 'bg-zinc-700'
+                    vendasAprovadas ? 'bg-[#0066FF]' : 'bg-zinc-700'
                   }`}
                 >
                   <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
@@ -269,7 +269,7 @@ export default function Notifications() {
               <div className="flex items-center gap-3">
                 <button 
                   onClick={() => handleTest('pending')}
-                  className="px-2.5 py-1 rounded-lg bg-[#070D1A] border border-white/10 hover:border-brand text-zinc-300 text-[11px] flex items-center gap-1.5 cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg bg-[#0D1424] border border-[#1E293B] hover:bg-[#182236] text-zinc-300 text-[11px] flex items-center gap-1.5 cursor-pointer"
                 >
                   <Bell className="w-3 h-3 text-amber-400" />
                   <span>Testar</span>
@@ -278,7 +278,7 @@ export default function Notifications() {
                   type="button"
                   onClick={() => handleToggleVendasPendentes(!vendasPendentes)}
                   className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
-                    vendasPendentes ? 'bg-[#2B66E3]' : 'bg-zinc-700'
+                    vendasPendentes ? 'bg-[#0066FF]' : 'bg-zinc-700'
                   }`}
                 >
                   <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
@@ -294,7 +294,7 @@ export default function Notifications() {
               <div className="flex items-center gap-3">
                 <button 
                   onClick={() => handleTest('refunded')}
-                  className="px-2.5 py-1 rounded-lg bg-[#070D1A] border border-white/10 hover:border-brand text-zinc-300 text-[11px] flex items-center gap-1.5 cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg bg-[#0D1424] border border-[#1E293B] hover:bg-[#182236] text-zinc-300 text-[11px] flex items-center gap-1.5 cursor-pointer"
                 >
                   <Bell className="w-3 h-3 text-amber-400" />
                   <span>Testar</span>
@@ -303,7 +303,7 @@ export default function Notifications() {
                   type="button"
                   onClick={() => updateSetting('vendasReembolsadas', !vendasReembolsadas)}
                   className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
-                    vendasReembolsadas ? 'bg-[#2B66E3]' : 'bg-zinc-700'
+                    vendasReembolsadas ? 'bg-[#0066FF]' : 'bg-zinc-700'
                   }`}
                 >
                   <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
@@ -313,7 +313,7 @@ export default function Notifications() {
               </div>
             </div>
 
-            <div className="pt-2 border-t border-[#13233E] space-y-3">
+            <div className="pt-2 border-t border-[#1E293B] space-y-3">
               {/* Ocultar nome */}
               <div className="flex items-center justify-between">
                 <div>
@@ -324,7 +324,7 @@ export default function Notifications() {
                   type="button"
                   onClick={() => updateSetting('ocultarProduto', !ocultarProduto)}
                   className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors ${
-                    ocultarProduto ? 'bg-[#2B66E3]' : 'bg-zinc-700'
+                    ocultarProduto ? 'bg-[#0066FF]' : 'bg-zinc-700'
                   }`}
                 >
                   <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
@@ -343,7 +343,7 @@ export default function Notifications() {
                   type="button"
                   onClick={() => updateSetting('mostrarCampanha', !mostrarCampanha)}
                   className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors ${
-                    mostrarCampanha ? 'bg-[#2B66E3]' : 'bg-zinc-700'
+                    mostrarCampanha ? 'bg-[#0066FF]' : 'bg-zinc-700'
                   }`}
                 >
                   <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
@@ -362,7 +362,7 @@ export default function Notifications() {
                   type="button"
                   onClick={() => updateSetting('mostrarDashboard', !mostrarDashboard)}
                   className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors ${
-                    mostrarDashboard ? 'bg-[#2B66E3]' : 'bg-zinc-700'
+                    mostrarDashboard ? 'bg-[#0066FF]' : 'bg-zinc-700'
                   }`}
                 >
                   <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
@@ -381,7 +381,7 @@ export default function Notifications() {
                   type="button"
                   onClick={() => updateSetting('mostrarBruto', !mostrarBruto)}
                   className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors ${
-                    mostrarBruto ? 'bg-[#2B66E3]' : 'bg-zinc-700'
+                    mostrarBruto ? 'bg-[#0066FF]' : 'bg-zinc-700'
                   }`}
                 >
                   <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
@@ -395,7 +395,7 @@ export default function Notifications() {
         </div>
 
         {/* Notificações de Relatório */}
-        <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl p-6 shadow-xl space-y-5">
+        <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-6 shadow-md space-y-5">
           <div>
             <h3 className="font-bold text-white text-sm">
               Notificações de Relatório
@@ -411,7 +411,7 @@ export default function Notifications() {
             </div>
 
             {['08:00', '12:00', '18:00', '23:00'].map(hour => (
-              <div key={hour} className="flex items-center justify-between pb-3 border-b border-[#13233E]/50">
+              <div key={hour} className="flex items-center justify-between pb-3 border-b border-[#1E293B]/50">
                 <span className="text-zinc-300">Notificação das {hour}</span>
                 <div className="w-9 h-5 flex items-center rounded-full p-0.5 bg-zinc-800">
                   <div className="bg-zinc-500 w-4 h-4 rounded-full shadow-md" />
@@ -424,7 +424,7 @@ export default function Notifications() {
       </div>
 
       {/* Alertas de Conta */}
-      <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl p-6 shadow-xl space-y-5">
+      <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-6 shadow-md space-y-5">
         <div>
           <h3 className="font-bold text-white text-sm">
             Alertas de Conta
@@ -437,13 +437,13 @@ export default function Notifications() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           
           {/* CA01 */}
-          <div className="p-4 rounded-xl bg-[#070D1A] border border-[#13233E] space-y-3">
+          <div className="p-4 rounded-xl bg-[#0D1424] border border-[#1E293B] space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <div className="font-bold text-white text-xs">CA01</div>
                 <div className="text-[10px] font-mono text-zinc-500">1892117896682979</div>
               </div>
-              <div className="w-9 h-5 flex items-center rounded-full p-0.5 bg-[#2B66E3]">
+              <div className="w-9 h-5 flex items-center rounded-full p-0.5 bg-[#0066FF]">
                 <div className="bg-white w-4 h-4 rounded-full shadow-md translate-x-4" />
               </div>
             </div>
@@ -453,13 +453,13 @@ export default function Notifications() {
               <input 
                 type="text" 
                 defaultValue="R$ 0,00"
-                className="w-full px-3 py-1.5 bg-[#03060D] border border-white/10 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-brand"
+                className="w-full px-3 py-1.5 bg-[#141C2E] border border-[#1E293B] rounded-lg text-xs font-mono text-white focus:outline-none focus:border-[#0066FF]"
               />
             </div>
 
             <button 
               onClick={handleTest}
-              className="w-full py-1.5 rounded-lg bg-[#0A1426] border border-white/10 hover:border-brand text-zinc-300 hover:text-white text-xs font-mono flex items-center justify-center gap-1.5"
+              className="w-full py-1.5 rounded-lg bg-[#141C2E] border border-[#1E293B] hover:bg-[#182236] text-zinc-300 hover:text-white text-xs font-mono flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
               <Bell className="w-3 h-3 text-amber-400" />
               <span>Testar push</span>
@@ -467,14 +467,14 @@ export default function Notifications() {
           </div>
 
           {/* CA02 JEFFREY */}
-          <div className="p-4 rounded-xl bg-[#070D1A] border border-[#13233E] space-y-3">
+          <div className="p-4 rounded-xl bg-[#0D1424] border border-[#1E293B] space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <div className="font-bold text-white text-xs">CA02 JEFFREY</div>
                 <div className="text-[10px] font-mono text-zinc-500">1101817232408751</div>
                 <div className="text-[11px] font-mono text-emerald-400 font-bold">Saldo R$ 0,00</div>
               </div>
-              <div className="w-9 h-5 flex items-center rounded-full p-0.5 bg-[#2B66E3]">
+              <div className="w-9 h-5 flex items-center rounded-full p-0.5 bg-[#0066FF]">
                 <div className="bg-white w-4 h-4 rounded-full shadow-md translate-x-4" />
               </div>
             </div>
@@ -484,13 +484,13 @@ export default function Notifications() {
               <input 
                 type="text" 
                 defaultValue="R$ 0,00"
-                className="w-full px-3 py-1.5 bg-[#03060D] border border-white/10 rounded-lg text-xs font-mono text-white focus:outline-none focus:border-brand"
+                className="w-full px-3 py-1.5 bg-[#141C2E] border border-[#1E293B] rounded-lg text-xs font-mono text-white focus:outline-none focus:border-[#0066FF]"
               />
             </div>
 
             <button 
               onClick={handleTest}
-              className="w-full py-1.5 rounded-lg bg-[#0A1426] border border-white/10 hover:border-brand text-zinc-300 hover:text-white text-xs font-mono flex items-center justify-center gap-1.5"
+              className="w-full py-1.5 rounded-lg bg-[#141C2E] border border-[#1E293B] hover:bg-[#182236] text-zinc-300 hover:text-white text-xs font-mono flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
               <Bell className="w-3 h-3 text-amber-400" />
               <span>Testar push</span>

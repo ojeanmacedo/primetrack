@@ -67,7 +67,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }
         />
       )}
 
-      <aside className={`h-screen bg-[#0D1424] border-r border-[#182238] flex flex-col justify-between transition-all duration-300 z-50 select-none ${
+      <aside className={`h-screen bg-[#0D1424] border-r border-[#1E293B] flex flex-col justify-between transition-all duration-300 z-50 select-none ${
         /* No mobile: gaveta fixa com slide. No desktop: posição normal inline */
         mobileOpen 
           ? 'fixed inset-y-0 left-0 w-64 shadow-2xl flex translate-x-0' 
@@ -76,7 +76,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }
         
         {/* Top Brand Header */}
         <div className="flex flex-col h-full overflow-hidden">
-          <div className="h-16 flex items-center justify-between px-5 border-b border-[#182238] shrink-0 bg-[#0D1424]">
+          <div className="h-16 flex items-center justify-between px-5 border-b border-[#1E293B] shrink-0 bg-[#0D1424]">
             <NavLink to="/" className="flex items-center gap-2.5 overflow-hidden">
               <img 
                 src="/images/logo-primetrack.png?v=5" 
@@ -102,7 +102,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }
 
               <button 
                 onClick={() => setCollapsed(!collapsed)}
-                className="hidden lg:flex w-6 h-6 rounded-lg border border-white/10 hover:border-[#1877F2] text-zinc-400 hover:text-white items-center justify-center transition-colors cursor-pointer"
+                className="hidden lg:flex w-6 h-6 rounded-lg border border-[#1E293B] hover:border-[#0066FF] text-zinc-400 hover:text-white items-center justify-center transition-colors cursor-pointer"
                 title={collapsed ? "Expandir menu" : "Recolher menu"}
               >
                 {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
@@ -125,7 +125,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }
                   title={collapsed && !mobileOpen ? item.label : undefined}
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
                     isActive
-                      ? 'bg-[#1877F2] text-white font-semibold shadow-sm shadow-blue-500/25'
+                      ? 'bg-[#0066FF] text-white font-semibold shadow-md shadow-blue-600/25'
                       : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
                   }`}
                 >
@@ -139,7 +139,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }
           </div>
 
           {/* Footer with logout option */}
-          <div className="p-3 border-t border-[#182238] shrink-0">
+          <div className="p-3 border-t border-[#1E293B] shrink-0">
             <button 
               type="button"
               onClick={async () => {

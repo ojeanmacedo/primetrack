@@ -1127,7 +1127,7 @@ export default function Integrations() {
       </div>
 
       {/* Horizontal Nav Tabs matching Screenshots */}
-      <div className="flex items-center gap-6 border-b border-[#13233E] text-xs font-medium overflow-x-auto scrollbar-none">
+      <div className="flex items-center gap-6 border-b border-[#1E293B] text-xs font-medium overflow-x-auto scrollbar-none">
         {tabs.map(tab => (
           <button
             key={tab}
@@ -1140,7 +1140,7 @@ export default function Integrations() {
           >
             <span>{tab}</span>
             {activeTab === tab && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2B66E3]" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#0066FF]" />
             )}
           </button>
         ))}
@@ -1161,7 +1161,7 @@ export default function Integrations() {
           )}
           
           {/* Perfil Conectados Card */}
-          <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl p-5 shadow-xl">
+          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-5 shadow-md">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
               <h3 className="font-bold text-white text-sm">
                 Perfil Conectados ({connectedProfiles.length})
@@ -1170,7 +1170,7 @@ export default function Integrations() {
               <div className="flex items-center gap-2">
                 <button 
                   onClick={() => setShowConnectModal(true)}
-                  className="px-3 py-1.5 rounded-lg bg-[#2B66E3] hover:bg-[#2558C7] text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-brand/30 transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-lg bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-blue-600/25 transition-all cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Adicionar Facebook</span>
@@ -1196,7 +1196,7 @@ export default function Integrations() {
 
             {/* Profiles List */}
             {connectedProfiles.length === 0 ? (
-              <div className="p-8 text-center rounded-xl bg-[#070D1A] border border-dashed border-[#13233E]">
+              <div className="p-8 text-center rounded-xl bg-[#0D1424] border border-dashed border-[#1E293B]">
                 <ShieldAlert className="w-8 h-8 text-zinc-600 mx-auto mb-2" />
                 <div className="font-bold text-white text-xs">Nenhum perfil do Facebook conectado</div>
                 <p className="text-zinc-500 text-[11px] mt-1">
@@ -1208,9 +1208,9 @@ export default function Integrations() {
                 {connectedProfiles.map((prof) => {
                   const isMuriloBackup = (prof.name || '').toLowerCase().includes('murilo');
                   return (
-                    <div key={prof.id} className="p-4 rounded-xl bg-[#070D1A] border border-[#13233E] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div key={prof.id} className="p-4 rounded-xl bg-[#0D1424] border border-[#1E293B] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-full bg-[#1A6DFF] text-white font-bold text-sm flex items-center justify-center font-mono shrink-0 shadow-md">
+                        <div className="w-10 h-10 rounded-full bg-[#0066FF] text-white font-bold text-sm flex items-center justify-center font-mono shrink-0 shadow-md">
                           {prof.initial}
                         </div>
                         <div>
@@ -1259,8 +1259,8 @@ export default function Integrations() {
           </div>
 
           {/* Contas de Anúncio Table matching Screenshot 4 */}
-          <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl overflow-hidden shadow-xl">
-            <div className="p-4 border-b border-[#13233E] flex items-center justify-between flex-wrap gap-2">
+          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl overflow-hidden shadow-md">
+            <div className="p-4 border-b border-[#1E293B] flex items-center justify-between flex-wrap gap-2">
               <h3 className="font-bold text-white text-sm flex items-center gap-2">
                 <span>Contas de Anúncio ({adAccounts.length})</span>
                 {trialStatus.isTrial && (
@@ -1307,7 +1307,7 @@ export default function Integrations() {
                     }
                   }}
                   disabled={isRefreshingAccounts}
-                  className="px-2.5 py-1 rounded-lg bg-[#0F1D38] hover:bg-[#162A4F] text-blue-400 hover:text-blue-300 border border-blue-500/20 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg bg-[#0D1424] hover:bg-[#182236] text-[#5C9BFF] hover:text-white border border-[#1E293B] text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
                   title="Buscar novas contas criadas no perfil conectado"
                 >
                   <RefreshCw className={`w-3 h-3 ${isRefreshingAccounts ? 'animate-spin text-blue-400' : ''}`} />
@@ -1326,7 +1326,7 @@ export default function Integrations() {
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs font-sans whitespace-nowrap">
-                <thead className="bg-[#070D1A] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E]">
+                <thead className="bg-[#141C2E] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#1E293B]">
                   <tr>
                     <th className="py-3 px-4">CONTA</th>
                     <th className="py-3 px-4">ID</th>
@@ -1338,7 +1338,7 @@ export default function Integrations() {
                     <th className="py-3 px-4 text-right">AÇÕES</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#13233E]/60 font-sans">
+                <tbody className="divide-y divide-[#1E293B]/60 font-sans">
                   {adAccounts.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="py-8 text-center text-zinc-500 font-sans text-xs">
@@ -1374,7 +1374,7 @@ export default function Integrations() {
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         {acc.sync ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#1A6DFF] text-white font-mono text-[10px] font-bold">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#0066FF] text-white font-mono text-[10px] font-bold">
                             <span>● Ativa</span>
                           </span>
                         ) : (
@@ -1397,7 +1397,7 @@ export default function Integrations() {
               </table>
             </div>
 
-            <div className="p-3.5 border-t border-[#13233E] text-xs font-mono text-zinc-500">
+            <div className="p-3.5 border-t border-[#1E293B] text-xs font-mono text-zinc-500">
               {trialStatus.isTrial 
                 ? `${adAccounts.filter(a => a.sync).length} de 1 conta ativa permitida no Plano Free` 
                 : `${adAccounts.filter(a => a.sync).length} conta(s) ativa(s) de ${adAccounts.length} disponíveis`}
@@ -1422,7 +1422,7 @@ export default function Integrations() {
           )}
 
           {/* Pixels de Rastreio Card */}
-          <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl p-6 shadow-xl space-y-6">
+          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-6 shadow-md space-y-6">
             
             {/* Header row */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1448,7 +1448,7 @@ export default function Integrations() {
                     }
                     setShowNewPixelModal(true);
                   }}
-                  className="px-3 py-1.5 rounded-lg bg-[#1A6DFF] hover:bg-blue-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-lg bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-blue-600/25 transition-all cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Criar Pixel</span>
@@ -1458,7 +1458,7 @@ export default function Integrations() {
 
             {/* If zero pixels: clean empty state */}
             {trackingPixels.length === 0 ? (
-              <div className="p-10 text-center rounded-xl bg-[#070D1A] border border-dashed border-[#13233E] space-y-3">
+              <div className="p-10 text-center rounded-xl bg-[#0D1424] border border-dashed border-[#1E293B] space-y-3">
                 <Radio className="w-8 h-8 text-zinc-600 mx-auto" />
                 <div className="font-bold text-white text-xs">Nenhum pixel de rastreio configurado ainda</div>
                 <p className="text-zinc-500 text-[11px] max-w-md mx-auto">
@@ -1467,7 +1467,7 @@ export default function Integrations() {
                 <button
                   type="button"
                   onClick={() => setShowNewPixelModal(true)}
-                  className="mt-2 px-4 py-2 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 text-white font-bold text-xs inline-flex items-center gap-2 shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+                  className="mt-2 px-4 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs inline-flex items-center gap-2 shadow-md shadow-blue-600/25 transition-all cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Criar Primeiro Pixel</span>
@@ -1486,10 +1486,10 @@ export default function Integrations() {
   document.head.appendChild(a);
 </script>`;
                   return (
-                    <div key={px.id} className="space-y-4 pb-6 border-b border-[#13233E] last:border-b-0 last:pb-0">
-                      <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-[#13233E]/60">
+                    <div key={px.id} className="space-y-4 pb-6 border-b border-[#1E293B] last:border-b-0 last:pb-0">
+                      <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-[#1E293B]/60">
                         <div className="flex items-center gap-3">
-                          <span className={`px-2.5 py-0.5 rounded-full text-white font-mono text-[10px] font-bold ${px.status === 'Ativo' ? 'bg-[#1A6DFF]' : 'bg-zinc-700'}`}>
+                          <span className={`px-2.5 py-0.5 rounded-full text-white font-mono text-[10px] font-bold ${px.status === 'Ativo' ? 'bg-[#0066FF]' : 'bg-zinc-700'}`}>
                             {px.status}
                           </span>
                           <span className="font-bold text-white text-sm">{px.name}</span>
@@ -1499,28 +1499,28 @@ export default function Integrations() {
                           <button 
                             type="button"
                             onClick={() => handleOpenTestPixel(px)}
-                            className="px-3 py-1 rounded-lg bg-[#070D1A] hover:bg-[#12223D] border border-white/10 text-zinc-300 text-xs transition-colors cursor-pointer"
+                            className="px-3 py-1 rounded-lg bg-[#0D1424] hover:bg-[#182236] border border-[#1E293B] text-zinc-300 text-xs transition-colors cursor-pointer"
                           >
                             Testar
                           </button>
                           <button 
                             type="button"
                             onClick={() => handleOpenEditPixel(px)}
-                            className="px-3 py-1 rounded-lg bg-[#070D1A] hover:bg-[#12223D] border border-white/10 text-zinc-300 text-xs transition-colors cursor-pointer"
+                            className="px-3 py-1 rounded-lg bg-[#0D1424] hover:bg-[#182236] border border-[#1E293B] text-zinc-300 text-xs transition-colors cursor-pointer"
                           >
                             Editar
                           </button>
                           <button 
                             type="button"
                             onClick={() => handleTogglePixelStatus(px.id)}
-                            className="px-3 py-1 rounded-lg bg-[#070D1A] hover:bg-[#12223D] border border-white/10 text-zinc-300 text-xs transition-colors cursor-pointer"
+                            className="px-3 py-1 rounded-lg bg-[#0D1424] hover:bg-[#182236] border border-[#1E293B] text-zinc-300 text-xs transition-colors cursor-pointer"
                           >
                             {px.status === 'Ativo' ? 'Desativar' : 'Ativar'}
                           </button>
                           <button 
                             type="button"
                             onClick={() => setPixelToDelete(px)}
-                            className="px-3 py-1 rounded-lg bg-[#070D1A] hover:bg-red-950/30 border border-white/10 text-red-400 text-xs transition-colors cursor-pointer"
+                            className="px-3 py-1 rounded-lg bg-[#0D1424] hover:bg-red-950/30 border border-[#1E293B] text-red-400 text-xs transition-colors cursor-pointer"
                           >
                             Excluir
                           </button>
@@ -1549,7 +1549,7 @@ export default function Integrations() {
                         <div>
                           <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1">Regra de IC</div>
                           <div className="flex items-center gap-1.5">
-                            <span className="px-1.5 py-0.5 rounded bg-[#1A6DFF] text-white font-mono text-[10px] font-bold">
+                            <span className="px-1.5 py-0.5 rounded bg-[#0066FF] text-white font-mono text-[10px] font-bold">
                               {px.icType || (px.icRule && px.icRule.startsWith('url') ? 'url' : px.icRule && px.icRule.startsWith('texto') ? 'text' : 'css')}
                             </span>
                             <span className="font-mono text-zinc-300 truncate max-w-[140px]" title={px.icValue || px.icRule}>
@@ -1568,11 +1568,11 @@ export default function Integrations() {
                         <div className="text-[11px] text-zinc-400 font-sans">
                           Instale no &lt;head&gt; do seu site:
                         </div>
-                        <div className="relative bg-[#070D1A] border border-[#13233E] rounded-xl p-3.5 font-mono text-[11px] text-zinc-300 pr-20 overflow-x-auto whitespace-pre">
+                        <div className="relative bg-[#0D1424] border border-[#1E293B] rounded-xl p-3.5 font-mono text-[11px] text-zinc-300 pr-20 overflow-x-auto whitespace-pre">
                           <code>{pxScript}</code>
                           <button
                             onClick={() => copyToClipboard(pxScript, 'pixel')}
-                            className="absolute right-2.5 top-2.5 px-3 py-1 rounded-lg bg-[#0A1426] hover:bg-[#12223D] border border-white/10 text-white text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                            className="absolute right-2.5 top-2.5 px-3 py-1 rounded-lg bg-[#141C2E] hover:bg-[#182236] border border-[#1E293B] text-white text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
                           >
                             {copiedPixel ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                             <span>{copiedPixel ? 'Copiado!' : 'Copiar'}</span>
@@ -1586,7 +1586,7 @@ export default function Integrations() {
             )}
 
             {/* Dica Box */}
-            <div className="bg-[#070D1A] border border-[#13233E] rounded-xl p-3 text-xs text-zinc-400">
+            <div className="bg-[#0D1424] border border-[#1E293B] rounded-xl p-3 text-xs text-zinc-400">
               <strong>Dica:</strong> nosso pixel já captura automaticamente os parâmetros da URL (UTMs, fbclid, etc.) e repassa para todos os links da página, inclusive o checkout. Não precisa de script extra.
             </div>
           </div>
@@ -1600,7 +1600,7 @@ export default function Integrations() {
       {activeTab === 'UTMs' && (
         <div className="space-y-6">
           
-          <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl p-6 sm:p-7 shadow-xl space-y-7">
+          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-6 sm:p-7 shadow-md space-y-7">
             
             {/* Header com botão Tutorial */}
             <div className="flex items-center justify-between pb-2">
@@ -1644,11 +1644,11 @@ export default function Integrations() {
                 Copie e cole no campo "Parâmetros de URL" do seu anúncio no Facebook:
               </div>
 
-              <div className="relative bg-[#070D1A] border border-[#13233E] rounded-xl p-3.5 font-mono text-[11px] text-zinc-300 pr-24 overflow-x-auto">
+              <div className="relative bg-[#0D1424] border border-[#1E293B] rounded-xl p-3.5 font-mono text-[11px] text-zinc-300 pr-24 overflow-x-auto">
                 <code>{utmString}</code>
                 <button
                   onClick={() => copyToClipboard(utmString, 'utm')}
-                  className="absolute right-2.5 top-2.5 px-3 py-1 rounded-lg bg-[#0A1426] hover:bg-[#12223D] border border-white/10 text-white text-xs font-bold transition-colors flex items-center gap-1"
+                  className="absolute right-2.5 top-2.5 px-3 py-1 rounded-lg bg-[#141C2E] hover:bg-[#182236] border border-[#1E293B] text-white text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
                 >
                   {copiedUTM ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                   <span>{copiedUTM ? 'Copiado!' : 'Copiar'}</span>
@@ -1665,14 +1665,14 @@ export default function Integrations() {
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs font-mono">
-                  <thead className="text-[10px] text-zinc-500 uppercase border-b border-[#13233E]">
+                  <thead className="text-[10px] text-zinc-500 uppercase border-b border-[#1E293B]">
                     <tr>
                       <th className="py-2.5 px-3">PARÂMETRO</th>
                       <th className="py-2.5 px-3">VALOR</th>
                       <th className="py-2.5 px-3">O QUE CAPTURA</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#13233E]/60 text-xs">
+                  <tbody className="divide-y divide-[#1E293B]/60 text-xs">
                     <tr>
                       <td className="py-3 px-3 text-[#5C9BFF]">utm_source</td>
                       <td className="py-3 px-3 text-white">FB</td>
@@ -1704,7 +1704,7 @@ export default function Integrations() {
             </div>
 
             {/* Aviso inferior de macros dinâmicas */}
-            <div className="bg-[#070D1A] border border-[#13233E] rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-zinc-400">
+            <div className="bg-[#0D1424] border border-[#1E293B] rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-zinc-400">
               <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
               <span>
                 <strong>Importante:</strong> Os valores entre {'{{ }}'} são macros dinâmicas do Facebook — eles serão substituídos automaticamente pelos dados reais de cada anúncio. Não altere os nomes dentro das chaves.
@@ -1723,7 +1723,7 @@ export default function Integrations() {
         <div className="space-y-6">
           
           {/* Top Header Card */}
-          <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl p-5 shadow-xl space-y-4">
+          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-5 shadow-md space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-white text-sm">
                 Webhook API
@@ -1732,7 +1732,7 @@ export default function Integrations() {
                 href="https://docs.primetrack.top"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3.5 py-1.5 rounded-lg bg-[#070D1A] hover:bg-[#12223D] border border-white/10 hover:border-[#0066FF]/50 text-zinc-200 hover:text-white text-xs font-semibold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+                className="px-3.5 py-1.5 rounded-lg bg-[#0D1424] hover:bg-[#182236] border border-[#1E293B] hover:border-[#0066FF]/50 text-zinc-200 hover:text-white text-xs font-semibold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
               >
                 <span>Documentação</span>
                 <ExternalLink className="w-3.5 h-3.5 text-[#0066FF]" />
@@ -1755,8 +1755,8 @@ export default function Integrations() {
           </div>
 
           {/* Tokens de API Table */}
-          <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl overflow-hidden shadow-xl">
-            <div className="p-4 border-b border-[#13233E] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl overflow-hidden shadow-md">
+            <div className="p-4 border-b border-[#1E293B] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <h3 className="font-bold text-white text-sm flex items-center gap-2">
                 <span>Tokens de API ({apiTokens.length}/{trialStatus.isTrial ? 1 : 2})</span>
                 {trialStatus.isTrial && (
@@ -1778,7 +1778,7 @@ export default function Integrations() {
                     setGeneratedPlatformToken('');
                     setGeneratedPlatformWebhookUrl('');
                   }}
-                  className="px-3 py-1.5 rounded-lg bg-[#070D1A] hover:bg-white/5 border border-white/10 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="px-3 py-1.5 rounded-lg bg-[#0D1424] hover:bg-[#182236] border border-[#1E293B] text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Conectar Plataforma</span>
@@ -1790,7 +1790,7 @@ export default function Integrations() {
                     setTokenInputName('Documentação');
                     setCopiedRecentToken(false);
                   }}
-                  className="px-3 py-1.5 rounded-lg bg-[#070D1A] hover:bg-white/5 border border-white/10 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="px-3 py-1.5 rounded-lg bg-[#0D1424] hover:bg-[#182236] border border-[#1E293B] text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Token Padrão</span>
@@ -1800,7 +1800,7 @@ export default function Integrations() {
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs font-sans whitespace-nowrap">
-                <thead className="bg-[#070D1A] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#13233E]">
+                <thead className="bg-[#141C2E] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#1E293B]">
                   <tr>
                     <th className="py-3 px-4">PLATAFORMA</th>
                     <th className="py-3 px-4">TOKEN / WEBHOOK URL</th>
@@ -1810,7 +1810,7 @@ export default function Integrations() {
                     <th className="py-3 px-4 text-right">AÇÕES</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#13233E]/60 font-sans">
+                <tbody className="divide-y divide-[#1E293B]/60 font-sans">
                   {apiTokens.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="py-10 px-4 text-center">
@@ -1863,9 +1863,9 @@ export default function Integrations() {
                       );
 
                       return (
-                        <tr key={tok.id} className="hover:bg-white/[0.02] transition-colors">
+                        <tr key={tok.id} className="hover:bg-[#182236]/50 transition-colors">
                           <td className="py-4 px-4 font-bold text-white">
-                            <span className="px-2.5 py-0.5 rounded-full bg-[#1A6DFF] text-white font-mono text-[10px] font-bold">
+                            <span className="px-2.5 py-0.5 rounded-full bg-[#0066FF] text-white font-mono text-[10px] font-bold">
                               {displayName}
                             </span>
                           </td>
@@ -1878,7 +1878,7 @@ export default function Integrations() {
                                 <button
                                   type="button"
                                   onClick={() => copyPlatformField(effectiveWebhookUrl, 'url')}
-                                  className="px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-[10px] text-[#5C9BFF] hover:text-white transition-colors cursor-pointer border border-white/10 flex items-center gap-1 shrink-0"
+                                  className="px-2 py-0.5 rounded bg-[#0D1424] hover:bg-[#182236] text-[10px] text-[#5C9BFF] hover:text-white transition-colors cursor-pointer border border-[#1E293B] flex items-center gap-1 shrink-0"
                                   title="Copiar URL do Webhook"
                                 >
                                   <Copy className="w-3 h-3" />
@@ -1940,7 +1940,7 @@ export default function Integrations() {
             
             {/* Left Col (5 cols): Baixe o app */}
             <div className="lg:col-span-5 space-y-4">
-              <div className="bg-[#0A1426] border border-[#13233E] rounded-2xl p-6 shadow-xl space-y-4">
+              <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-6 shadow-md space-y-4">
                 <h3 className="font-bold text-white text-sm">
                   Baixe o app
                 </h3>
@@ -1949,11 +1949,11 @@ export default function Integrations() {
                 </p>
 
                 <div className="flex flex-wrap items-center gap-3 pt-1">
-                  <button className="px-4 py-2 rounded-xl bg-black border border-white/20 text-white font-bold text-xs flex items-center gap-2 hover:bg-zinc-900 transition-colors">
+                  <button className="px-4 py-2 rounded-xl bg-black border border-white/20 text-white font-bold text-xs flex items-center gap-2 hover:bg-zinc-900 transition-colors cursor-pointer">
                     <Apple className="w-4 h-4 fill-current" />
                     <span>App Store</span>
                   </button>
-                  <button className="px-4 py-2 rounded-xl bg-[#00C853] hover:bg-[#00B34A] text-black font-bold text-xs flex items-center gap-2 shadow-md transition-colors">
+                  <button className="px-4 py-2 rounded-xl bg-[#00C853] hover:bg-[#00B34A] text-black font-bold text-xs flex items-center gap-2 shadow-md transition-colors cursor-pointer">
                     <Smartphone className="w-4 h-4" />
                     <span>Android APK</span>
                   </button>
@@ -1962,7 +1962,7 @@ export default function Integrations() {
             </div>
 
             {/* Right Col (7 cols): Link para Minha Conta */}
-            <div className="lg:col-span-7 bg-[#0A1426] border border-[#13233E] rounded-2xl p-6 shadow-xl space-y-4 flex flex-col justify-between">
+            <div className="lg:col-span-7 bg-[#141C2E] border border-[#1E293B] rounded-xl p-6 shadow-md space-y-4 flex flex-col justify-between">
               <div className="space-y-2">
                 <div className="flex items-center gap-2 font-bold text-white text-sm">
                   <Key className="w-4 h-4 text-[#5C9BFF]" />
@@ -1976,7 +1976,7 @@ export default function Integrations() {
               <div className="pt-2">
                 <Link
                   to="/conta"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs transition-all shadow-md shadow-blue-500/20"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs transition-all shadow-md shadow-blue-600/25 cursor-pointer"
                 >
                   <Key className="w-3.5 h-3.5" />
                   <span>Ir para Minha Conta e Gerenciar Senha</span>
@@ -1998,13 +1998,13 @@ export default function Integrations() {
           onClick={() => setShowConnectModal(false)}
         >
           <div 
-            className="w-full max-w-md bg-[#0A1426] border border-[#13233E] rounded-3xl p-6 sm:p-7 shadow-2xl relative"
+            className="w-full max-w-md bg-[#141C2E] border border-[#1E293B] rounded-xl p-6 sm:p-7 shadow-2xl relative"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
             <button
               onClick={() => setShowConnectModal(false)}
-              className="absolute top-5 right-5 text-zinc-400 hover:text-white transition-colors"
+              className="absolute top-5 right-5 text-zinc-400 hover:text-white transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -2023,7 +2023,7 @@ export default function Integrations() {
                 onClick={() => {
                   window.location.href = `/api/auth/facebook?userId=${encodeURIComponent(currentUser?.id || '')}`;
                 }}
-                className="w-full py-3 px-4 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-brand/30 transition-transform active:scale-95"
+                className="w-full py-3 px-4 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 shadow-md shadow-blue-600/25 transition-transform active:scale-95 cursor-pointer"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
@@ -2039,7 +2039,7 @@ export default function Integrations() {
                   setCopiedAuthLink(true);
                   setTimeout(() => setCopiedAuthLink(false), 2500);
                 }}
-                className="w-full py-3 px-4 rounded-xl bg-[#0F1D38] hover:bg-[#162A4F] text-zinc-200 border border-[#1E3A68] font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-colors"
+                className="w-full py-3 px-4 rounded-xl bg-[#0D1424] hover:bg-[#182236] text-zinc-200 border border-[#1E293B] font-bold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-colors cursor-pointer"
               >
                 {copiedAuthLink ? (
                   <>
@@ -2201,10 +2201,10 @@ export default function Integrations() {
       {/* Modal de Limite do Plano Free / Trial */}
       {trialLimitModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-[#0A1426] border border-[#1E3A5F] rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
+          <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
             <button 
               onClick={() => setTrialLimitModal(null)}
-              className="absolute top-4 right-4 p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-[#182236] transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -2222,7 +2222,7 @@ export default function Integrations() {
               </p>
             </div>
 
-            <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[11px] text-blue-300 font-sans flex items-center gap-2">
+            <div className="p-3 rounded-xl bg-[#0D1424] border border-[#1E293B] text-[11px] text-blue-300 font-sans flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-blue-400 shrink-0" />
               <span>Seu teste de 7 dias gratuitos está ativo! Faça upgrade a qualquer momento para liberar todos os recursos.</span>
             </div>
@@ -2231,7 +2231,7 @@ export default function Integrations() {
               <button
                 type="button"
                 onClick={() => setTrialLimitModal(null)}
-                className="px-4 py-2 rounded-xl bg-[#070D1A] border border-white/10 text-xs font-semibold text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-[#0D1424] hover:bg-[#182236] border border-[#1E293B] text-xs font-semibold text-zinc-300 hover:text-white transition-colors cursor-pointer"
               >
                 Entendi
               </button>
@@ -2241,7 +2241,7 @@ export default function Integrations() {
                   setTrialLimitModal(null);
                   navigate('/planos');
                 }}
-                className="px-4 py-2 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-xs font-bold text-white shadow-lg shadow-brand/30 transition-all flex items-center gap-1.5 cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-xs font-bold text-white shadow-md shadow-blue-600/25 transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 <span>{trialLimitModal.ctaText || 'Fazer Upgrade'}</span>
                 <span>→</span>
@@ -2262,10 +2262,10 @@ export default function Integrations() {
           }}
         >
           <div 
-            className="bg-[#0C172B] border border-[#1E3254] rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-5"
+            className="bg-[#141C2E] border border-[#1E293B] rounded-xl max-w-md w-full p-6 shadow-2xl relative space-y-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-2 border-b border-[#1E3254]/60">
+            <div className="flex items-center justify-between pb-2 border-b border-[#1E293B]">
               <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
                 <Code2 className="w-4 h-4 text-[#38BDF8]" />
                 <span>Novo Token de API (Documentação)</span>
@@ -2284,7 +2284,7 @@ export default function Integrations() {
 
             {newTokenStep === 1 && (
               <form onSubmit={handleGenerateToken} className="space-y-4">
-                <div className="p-3.5 rounded-xl bg-[#08202A] border border-[#0D404F] text-xs text-zinc-300 space-y-1.5 font-sans">
+                <div className="p-3.5 rounded-xl bg-[#0D1424] border border-[#1E293B] text-xs text-zinc-300 space-y-1.5 font-sans">
                   <div className="flex items-center gap-1.5 text-[#38BDF8] font-bold text-xs">
                     <span>Integração via Documentação Oficial</span>
                   </div>
@@ -2312,7 +2312,7 @@ export default function Integrations() {
                     value={tokenInputName}
                     onChange={(e) => setTokenInputName(e.target.value)}
                     placeholder="Ex: Documentação Oficial, API Própria, Meu Sistema..."
-                    className="w-full px-4 py-2.5 rounded-xl bg-[#060D1A] border border-[#1E3254] text-white placeholder:text-zinc-600 text-xs focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[#0D1424] border border-[#1E293B] text-white placeholder:text-zinc-600 text-xs focus:outline-none focus:border-[#0066FF] transition-colors"
                   />
                 </div>
 
@@ -2324,13 +2324,13 @@ export default function Integrations() {
                       setNewTokenStep(1);
                       setTokenInputName('Documentação');
                     }}
-                    className="px-4 py-2 rounded-lg bg-[#070D1A] hover:bg-white/5 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                    className="px-4 py-2 rounded-lg bg-[#0D1424] hover:bg-[#182236] border border-[#1E293B] text-xs font-bold text-zinc-300 hover:text-white transition-colors cursor-pointer"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 rounded-lg bg-[#1A6DFF] hover:bg-blue-600 text-xs font-bold text-white shadow-md shadow-blue-500/20 transition-colors cursor-pointer"
+                    className="px-4 py-2 rounded-lg bg-[#0066FF] hover:bg-[#0052CC] text-xs font-bold text-white shadow-md shadow-blue-600/25 transition-colors cursor-pointer"
                   >
                     Gerar Token
                   </button>
@@ -2341,7 +2341,7 @@ export default function Integrations() {
             {newTokenStep === 2 && (
               <div className="space-y-4 animate-in fade-in duration-150">
                 {/* Banner de Sucesso verde */}
-                <div className="p-3.5 rounded-xl bg-[#08202A] border border-[#0D404F] text-[#4ADE80] text-xs flex items-center gap-2 font-medium">
+                <div className="p-3.5 rounded-xl bg-[#0D1424] border border-[#1E293B] text-[#4ADE80] text-xs flex items-center gap-2 font-medium">
                   <CheckCircle2 className="w-4 h-4 text-[#4ADE80] shrink-0" />
                   <span>
                     Pronto! Copie as credenciais abaixo para usar na <strong className="text-[#38BDF8] font-bold">Documentação da API</strong>.
@@ -2353,7 +2353,7 @@ export default function Integrations() {
                   <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
                     TOKEN DE AUTENTICAÇÃO
                   </label>
-                  <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#060D1A] border border-[#1E3254]">
+                  <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#0D1424] border border-[#1E293B]">
                     <span className="font-mono text-xs text-zinc-200 select-all truncate pl-1">
                       {recentCreatedToken}
                     </span>
@@ -2364,7 +2364,7 @@ export default function Integrations() {
                         setCopiedRecentToken(true);
                         setTimeout(() => setCopiedRecentToken(false), 2000);
                       }}
-                      className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-xs text-zinc-200 font-medium transition-colors shrink-0 cursor-pointer flex items-center gap-1"
+                      className="px-3 py-1.5 rounded-lg bg-[#141C2E] hover:bg-[#182236] border border-[#1E293B] text-xs text-zinc-200 font-medium transition-colors shrink-0 cursor-pointer flex items-center gap-1"
                     >
                       {copiedRecentToken ? (
                         <>
@@ -2383,7 +2383,7 @@ export default function Integrations() {
                   <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
                     URL DO ENDPOINT (POST)
                   </label>
-                  <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#060D1A] border border-[#1E3254]">
+                  <div className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#0D1424] border border-[#1E293B]">
                     <span className="font-mono text-xs text-zinc-200 select-all truncate pl-1">
                       {(typeof window !== 'undefined' && window.location.origin.includes('localhost') ? window.location.origin : 'https://app.primetrack.top') + '/api/webhooks'}
                     </span>
@@ -2395,7 +2395,7 @@ export default function Integrations() {
                         setCopiedDocEndpoint(true);
                         setTimeout(() => setCopiedDocEndpoint(false), 2000);
                       }}
-                      className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-xs text-zinc-200 font-medium transition-colors shrink-0 cursor-pointer flex items-center gap-1"
+                      className="px-3 py-1.5 rounded-lg bg-[#141C2E] hover:bg-[#182236] border border-[#1E293B] text-xs text-zinc-200 font-medium transition-colors shrink-0 cursor-pointer flex items-center gap-1"
                     >
                       {copiedDocEndpoint ? (
                         <>
@@ -2418,7 +2418,7 @@ export default function Integrations() {
                       setNewTokenStep(1);
                       setTokenInputName('Documentação');
                     }}
-                    className="px-6 py-2 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-colors cursor-pointer"
+                    className="px-6 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-bold shadow-md shadow-blue-600/25 transition-colors cursor-pointer"
                   >
                     Concluir
                   </button>
@@ -2438,11 +2438,11 @@ export default function Integrations() {
           onClick={() => setShowConnectPlatformModal(false)}
         >
           <div 
-            className="bg-[#0C172B] border border-[#1E3254] rounded-2xl max-w-xl w-full p-6 sm:p-7 shadow-2xl relative space-y-5"
+            className="bg-[#141C2E] border border-[#1E293B] rounded-xl max-w-xl w-full p-6 sm:p-7 shadow-2xl relative space-y-5"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header com Título e Botão Fechar */}
-            <div className="flex items-center justify-between pb-3 border-b border-[#1E3254]/60">
+            <div className="flex items-center justify-between pb-3 border-b border-[#1E293B]">
               <h3 className="text-base sm:text-lg font-bold text-white tracking-tight font-sans">
                 Conectar Plataforma
               </h3>
@@ -2464,7 +2464,7 @@ export default function Integrations() {
                     placeholder="Buscar plataforma..."
                     value={searchPlatform}
                     onChange={(e) => setSearchPlatform(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#060D1A] border border-[#1E3254] text-white text-xs placeholder:text-zinc-500 focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#0D1424] border border-[#1E293B] text-white text-xs placeholder:text-zinc-500 focus:outline-none focus:border-[#0066FF] transition-colors"
                   />
                 </div>
 
@@ -2480,10 +2480,10 @@ export default function Integrations() {
                       <div 
                         key={platform.id}
                         onClick={() => handleQuickConnectPlatform(platform)}
-                        className="bg-[#070D1A] hover:bg-[#0E1B33] border border-[#1E3254] hover:border-[#1A6DFF] rounded-xl p-4 transition-all cursor-pointer group flex items-center justify-between shadow-sm"
+                        className="bg-[#0D1424] hover:bg-[#182236] border border-[#1E293B] hover:border-[#0066FF] rounded-xl p-4 transition-all cursor-pointer group flex items-center justify-between shadow-sm"
                       >
                         <span className="font-bold text-white text-sm group-hover:text-[#5C9BFF] transition-colors">{platform.name}</span>
-                        <div className="w-6 h-6 rounded-lg bg-[#0F1D38] group-hover:bg-[#1A6DFF] text-zinc-400 group-hover:text-white flex items-center justify-center transition-all">
+                        <div className="w-6 h-6 rounded-lg bg-[#141C2E] group-hover:bg-[#0066FF] text-zinc-400 group-hover:text-white flex items-center justify-center transition-all">
                           <Plus className="w-3.5 h-3.5" />
                         </div>
                       </div>
@@ -2514,7 +2514,7 @@ export default function Integrations() {
                     value={tokenAliasInput}
                     onChange={(e) => setTokenAliasInput(e.target.value)}
                     placeholder={selectedPlatformName.toLowerCase()}
-                    className="w-full px-4 py-2.5 rounded-xl bg-[#060D1A] border border-[#1E3254] text-white text-xs focus:outline-none focus:border-[#1A6DFF] transition-colors font-sans"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[#0D1424] border border-[#1E293B] text-white text-xs focus:outline-none focus:border-[#0066FF] transition-colors font-sans"
                   />
                 </div>
 
@@ -2522,14 +2522,14 @@ export default function Integrations() {
                   <button
                     type="button"
                     onClick={() => setConnectPlatformStep(1)}
-                    className="px-4 py-2 rounded-xl bg-[#070D1A] hover:bg-white/5 border border-white/10 text-xs font-semibold text-zinc-300 hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-[#0D1424] hover:bg-[#182236] border border-[#1E293B] text-xs font-semibold text-zinc-300 hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
                     <span>←</span>
                     <span>Voltar</span>
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+                    className="px-5 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-bold shadow-md shadow-blue-600/25 transition-all cursor-pointer"
                   >
                     Gerar
                   </button>
@@ -2541,7 +2541,7 @@ export default function Integrations() {
             {connectPlatformStep === 3 && (
               <div className="space-y-5 animate-in fade-in duration-150">
                 {/* Banner de Sucesso verde idêntico ao print */}
-                <div className="p-3.5 rounded-xl bg-[#08202A] border border-[#0D404F] text-[#4ADE80] text-xs flex items-center gap-2 font-medium">
+                <div className="p-3.5 rounded-xl bg-[#0D1424] border border-[#1E293B] text-[#4ADE80] text-xs flex items-center gap-2 font-medium">
                   <CheckCircle2 className="w-4 h-4 text-[#4ADE80] shrink-0" />
                   <span>
                     Pronto! Copie abaixo e cole no painel da <strong className="text-[#38BDF8] font-bold">{selectedPlatformName}</strong>.
@@ -2554,14 +2554,14 @@ export default function Integrations() {
                     <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
                       TOKEN
                     </label>
-                    <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-[#060D1A] border border-[#1E3254]">
+                    <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-[#0D1424] border border-[#1E293B]">
                       <span className="font-mono text-xs text-zinc-200 select-all truncate pl-1">
                         {generatedPlatformToken}
                       </span>
                       <button
                         type="button"
                         onClick={() => copyPlatformField(generatedPlatformToken, 'token')}
-                        className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-xs text-zinc-200 font-medium transition-colors shrink-0 cursor-pointer flex items-center gap-1.5"
+                        className="px-3 py-1.5 rounded-lg bg-[#141C2E] hover:bg-[#182236] border border-[#1E293B] text-xs text-zinc-200 font-medium transition-colors shrink-0 cursor-pointer flex items-center gap-1.5"
                       >
                         {copiedToken ? (
                           <>
@@ -2580,14 +2580,14 @@ export default function Integrations() {
                     <label className="block text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider mb-1.5">
                       URL DO WEBHOOK
                     </label>
-                    <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-[#060D1A] border border-[#1E3254]">
+                    <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-[#0D1424] border border-[#1E293B]">
                       <span className="font-mono text-xs text-zinc-200 select-all truncate pl-1">
                         {generatedPlatformWebhookUrl}
                       </span>
                       <button
                         type="button"
                         onClick={() => copyPlatformField(generatedPlatformWebhookUrl, 'url')}
-                        className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-xs text-zinc-200 font-medium transition-colors shrink-0 cursor-pointer flex items-center gap-1.5"
+                        className="px-3 py-1.5 rounded-lg bg-[#141C2E] hover:bg-[#182236] border border-[#1E293B] text-xs text-zinc-200 font-medium transition-colors shrink-0 cursor-pointer flex items-center gap-1.5"
                       >
                         {copiedWebhookUrl ? (
                           <>
@@ -2610,7 +2610,7 @@ export default function Integrations() {
                       setShowConnectPlatformModal(false);
                       setConnectPlatformStep(1);
                     }}
-                    className="px-6 py-2 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-colors cursor-pointer"
+                    className="px-6 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-bold shadow-md shadow-blue-600/25 transition-colors cursor-pointer"
                   >
                     Concluir
                   </button>
@@ -2629,11 +2629,11 @@ export default function Integrations() {
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150"
         >
           <div 
-            className="bg-[#0C172B] border border-[#1E3254] rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4"
+            className="bg-[#141C2E] border border-[#1E293B] rounded-xl max-w-md w-full p-6 shadow-2xl relative space-y-4"
           >
-            <div className="flex items-center justify-between pb-3 border-b border-[#1E3254]">
+            <div className="flex items-center justify-between pb-3 border-b border-[#1E293B]">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#1A6DFF]/15 border border-[#1A6DFF]/30 flex items-center justify-center text-[#5C9BFF]">
+                <div className="w-8 h-8 rounded-lg bg-[#0066FF]/15 border border-[#0066FF]/30 flex items-center justify-center text-[#5C9BFF]">
                   <Radio className="w-4 h-4" />
                 </div>
                 <h3 className="text-sm font-bold text-white">
@@ -2660,7 +2660,7 @@ export default function Integrations() {
                   placeholder="Ex: Hotmart, Meu Checkout, Pixel Principal"
                   value={newPixelName}
                   onChange={(e) => setNewPixelName(e.target.value)}
-                  className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                  className="w-full bg-[#0D1424] border border-[#1E293B] rounded-xl px-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#0066FF] transition-colors"
                 />
               </div>
 
@@ -2674,7 +2674,7 @@ export default function Integrations() {
                   placeholder="Ex: 1056786567239394"
                   value={newPixelMetaId}
                   onChange={(e) => setNewPixelMetaId(e.target.value)}
-                  className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                  className="w-full bg-[#0D1424] border border-[#1E293B] rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-[#0066FF] transition-colors"
                 />
               </div>
 
@@ -2688,7 +2688,7 @@ export default function Integrations() {
                   placeholder="EAAB... (Token gerado no Gerenciador de Eventos da Meta)"
                   value={newPixelCapiToken}
                   onChange={(e) => setNewPixelCapiToken(e.target.value)}
-                  className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                  className="w-full bg-[#0D1424] border border-[#1E293B] rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-[#0066FF] transition-colors"
                 />
               </div>
 
@@ -2703,8 +2703,8 @@ export default function Integrations() {
                     onClick={() => setNewPixelIcType('css')}
                     className={`py-2 px-2.5 rounded-xl text-center font-bold border transition-all cursor-pointer ${
                       newPixelIcType === 'css' 
-                        ? 'bg-[#1A6DFF]/20 border-[#1A6DFF] text-[#5C9BFF]' 
-                        : 'bg-[#070D1A] border-[#1E3254] text-zinc-400 hover:text-zinc-200'
+                        ? 'bg-[#0066FF]/20 border-[#0066FF] text-[#5C9BFF]' 
+                        : 'bg-[#0D1424] border-[#1E293B] text-zinc-400 hover:text-zinc-200'
                     }`}
                   >
                     Seletor CSS
@@ -2714,8 +2714,8 @@ export default function Integrations() {
                     onClick={() => setNewPixelIcType('url')}
                     className={`py-2 px-2.5 rounded-xl text-center font-bold border transition-all cursor-pointer ${
                       newPixelIcType === 'url' 
-                        ? 'bg-[#1A6DFF]/20 border-[#1A6DFF] text-[#5C9BFF]' 
-                        : 'bg-[#070D1A] border-[#1E3254] text-zinc-400 hover:text-zinc-200'
+                        ? 'bg-[#0066FF]/20 border-[#0066FF] text-[#5C9BFF]' 
+                        : 'bg-[#0D1424] border-[#1E293B] text-zinc-400 hover:text-zinc-200'
                     }`}
                   >
                     Contém na URL
@@ -2725,8 +2725,8 @@ export default function Integrations() {
                     onClick={() => setNewPixelIcType('text')}
                     className={`py-2 px-2.5 rounded-xl text-center font-bold border transition-all cursor-pointer ${
                       newPixelIcType === 'text' 
-                        ? 'bg-[#1A6DFF]/20 border-[#1A6DFF] text-[#5C9BFF]' 
-                        : 'bg-[#070D1A] border-[#1E3254] text-zinc-400 hover:text-zinc-200'
+                        ? 'bg-[#0066FF]/20 border-[#0066FF] text-[#5C9BFF]' 
+                        : 'bg-[#0D1424] border-[#1E293B] text-zinc-400 hover:text-zinc-200'
                     }`}
                   >
                     Contém no Texto
@@ -2744,7 +2744,7 @@ export default function Integrations() {
                   }
                   value={newPixelIcValue}
                   onChange={(e) => setNewPixelIcValue(e.target.value)}
-                  className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                  className="w-full bg-[#0D1424] border border-[#1E293B] rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-[#0066FF] transition-colors"
                 />
                 <p className="text-[11px] text-zinc-500 mt-1">
                   {newPixelIcType === 'css' && 'Dispara quando o usuário clicar em qualquer elemento que tenha a classe/ID configurada.'}
@@ -2763,7 +2763,7 @@ export default function Integrations() {
                   placeholder="Ex: meusite.com, checkout.meusite.com (ou deixe em branco para todos)"
                   value={newPixelDomains}
                   onChange={(e) => setNewPixelDomains(e.target.value)}
-                  className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                  className="w-full bg-[#0D1424] border border-[#1E293B] rounded-xl px-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#0066FF] transition-colors"
                 />
               </div>
 
@@ -2771,13 +2771,13 @@ export default function Integrations() {
                 <button
                   type="button"
                   onClick={() => setShowNewPixelModal(false)}
-                  className="px-4 py-2 rounded-xl bg-[#070D1A] hover:bg-white/5 border border-white/10 text-zinc-300 font-semibold text-xs transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-[#0D1424] hover:bg-[#182236] border border-[#1E293B] text-zinc-300 font-semibold text-xs transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs shadow-md shadow-blue-600/25 transition-all cursor-pointer"
                 >
                   Criar Pixel
                 </button>
@@ -2795,11 +2795,11 @@ export default function Integrations() {
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150"
         >
           <div 
-            className="bg-[#0C172B] border border-[#1E3254] rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4"
+            className="bg-[#141C2E] border border-[#1E293B] rounded-xl max-w-md w-full p-6 shadow-2xl relative space-y-4"
           >
-            <div className="flex items-center justify-between pb-3 border-b border-[#1E3254]">
+            <div className="flex items-center justify-between pb-3 border-b border-[#1E293B]">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-[#1A6DFF]/15 border border-[#1A6DFF]/30 flex items-center justify-center text-[#5C9BFF]">
+                <div className="w-8 h-8 rounded-lg bg-[#0066FF]/15 border border-[#0066FF]/30 flex items-center justify-center text-[#5C9BFF]">
                   <Radio className="w-4 h-4" />
                 </div>
                 <h3 className="text-sm font-bold text-white">
@@ -2826,12 +2826,12 @@ export default function Integrations() {
                   placeholder="Ex: Hotmart, Meu Checkout, Pixel Principal"
                   value={editPixelName}
                   onChange={(e) => setEditPixelName(e.target.value)}
-                  className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                  className="w-full bg-[#0D1424] border border-[#1E293B] rounded-xl px-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#0066FF] transition-colors"
                 />
               </div>
 
               {/* Seção Múltiplos Pixels da Meta (Estilo UTMify) */}
-              <div className="pt-2 pb-1 border-y border-[#1E3254]/60 space-y-3">
+              <div className="pt-2 pb-1 border-y border-[#1E293B] space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-xs font-bold text-white block">Pixels da Meta Conectados</span>
@@ -2841,7 +2841,7 @@ export default function Integrations() {
                     <button
                       type="button"
                       onClick={() => setShowAddSubPixelForm(true)}
-                      className="px-2.5 py-1 rounded-lg bg-[#1A6DFF]/20 hover:bg-[#1A6DFF]/30 border border-[#1A6DFF]/40 text-[#5C9BFF] text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+                      className="px-2.5 py-1 rounded-lg bg-[#0066FF]/20 hover:bg-[#0066FF]/30 border border-[#0066FF]/40 text-[#5C9BFF] text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer"
                     >
                       <Plus className="w-3 h-3" />
                       <span>Adicionar +</span>
@@ -2854,7 +2854,7 @@ export default function Integrations() {
                   {editMetaPixelsList.map((mp, idx) => (
                     <div 
                       key={mp.id || idx}
-                      className="flex items-center justify-between p-2.5 rounded-xl bg-[#060D1A] border border-[#1E3254] text-zinc-200 text-xs font-mono"
+                      className="flex items-center justify-between p-2.5 rounded-xl bg-[#0D1424] border border-[#1E293B] text-zinc-200 text-xs font-mono"
                     >
                       <div className="flex flex-col gap-0.5 min-w-0 pr-2">
                         <div className="flex items-center gap-1.5">
@@ -2875,7 +2875,7 @@ export default function Integrations() {
                             setEditSubPixelIndex(idx);
                             setShowAddSubPixelForm(true);
                           }}
-                          className="px-2 py-1 rounded-lg bg-[#1E3254]/50 hover:bg-[#1A6DFF]/20 text-[#5C9BFF] text-[11px] font-sans font-medium transition-colors cursor-pointer"
+                          className="px-2 py-1 rounded-lg bg-[#141C2E] hover:bg-[#182236] border border-[#1E293B] text-[#5C9BFF] text-[11px] font-sans font-medium transition-colors cursor-pointer"
                         >
                           Editar
                         </button>
@@ -2901,7 +2901,7 @@ export default function Integrations() {
 
                 {/* Formulário para adicionar mais um pixel */}
                 {showAddSubPixelForm && (
-                  <div className="p-3 rounded-xl bg-[#060D1A] border border-[#1A6DFF]/40 space-y-3 animate-in fade-in duration-150">
+                  <div className="p-3 rounded-xl bg-[#0D1424] border border-[#0066FF]/40 space-y-3 animate-in fade-in duration-150">
                     <div className="text-[11px] font-bold text-[#5C9BFF] flex items-center justify-between">
                       <span>{editSubPixelIndex !== null ? 'Editar Pixel Meta' : 'Novo Pixel da Meta (Outra BM / Conta)'}</span>
                       <button
@@ -2910,7 +2910,7 @@ export default function Integrations() {
                           setShowAddSubPixelForm(false);
                           setEditSubPixelIndex(null);
                         }}
-                        className="text-zinc-400 hover:text-white"
+                        className="text-zinc-400 hover:text-white cursor-pointer"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -2925,7 +2925,7 @@ export default function Integrations() {
                         placeholder="Ex: 1342429849238924"
                         value={newMetaSubPixelId}
                         onChange={(e) => setNewMetaSubPixelId(e.target.value)}
-                        className="w-full bg-[#070D1A] border border-[#1E3254] rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-[#1A6DFF]"
+                        className="w-full bg-[#141C2E] border border-[#1E293B] rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-[#0066FF]"
                       />
                     </div>
 
@@ -2938,7 +2938,7 @@ export default function Integrations() {
                         placeholder="EAAB... (Token da BM do novo pixel)"
                         value={newMetaSubPixelToken}
                         onChange={(e) => setNewMetaSubPixelToken(e.target.value)}
-                        className="w-full bg-[#070D1A] border border-[#1E3254] rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-[#1A6DFF]"
+                        className="w-full bg-[#141C2E] border border-[#1E293B] rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-[#0066FF]"
                       />
                     </div>
 
@@ -2951,7 +2951,7 @@ export default function Integrations() {
                         placeholder="Ex: BM 2, Pixel Backup, Conta João"
                         value={newMetaSubPixelName}
                         onChange={(e) => setNewMetaSubPixelName(e.target.value)}
-                        className="w-full bg-[#070D1A] border border-[#1E3254] rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-[#1A6DFF]"
+                        className="w-full bg-[#141C2E] border border-[#1E293B] rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-[#0066FF]"
                       />
                     </div>
 
@@ -2959,14 +2959,14 @@ export default function Integrations() {
                       <button
                         type="button"
                         onClick={() => setShowAddSubPixelForm(false)}
-                        className="px-3 py-1.5 rounded-lg bg-[#070D1A] hover:bg-white/5 text-zinc-300 text-xs"
+                        className="px-3 py-1.5 rounded-lg bg-[#141C2E] hover:bg-[#182236] border border-[#1E293B] text-zinc-300 text-xs cursor-pointer"
                       >
                         Cancelar
                       </button>
                       <button
                         type="button"
                         onClick={handleAddMetaSubPixel}
-                        className="px-4 py-1.5 rounded-lg bg-[#1A6DFF] hover:bg-blue-600 text-white text-xs font-bold shadow-md shadow-blue-500/20"
+                        className="px-4 py-1.5 rounded-lg bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-bold shadow-md shadow-blue-600/25 cursor-pointer"
                       >
                         Confirmar
                       </button>
@@ -2986,8 +2986,8 @@ export default function Integrations() {
                     onClick={() => setEditPixelIcType('css')}
                     className={`py-2 px-2.5 rounded-xl text-center font-bold border transition-all cursor-pointer ${
                       editPixelIcType === 'css' 
-                        ? 'bg-[#1A6DFF]/20 border-[#1A6DFF] text-[#5C9BFF]' 
-                        : 'bg-[#070D1A] border-[#1E3254] text-zinc-400 hover:text-zinc-200'
+                        ? 'bg-[#0066FF]/20 border-[#0066FF] text-[#5C9BFF]' 
+                        : 'bg-[#0D1424] border-[#1E293B] text-zinc-400 hover:text-zinc-200'
                     }`}
                   >
                     Seletor CSS
@@ -2997,8 +2997,8 @@ export default function Integrations() {
                     onClick={() => setEditPixelIcType('url')}
                     className={`py-2 px-2.5 rounded-xl text-center font-bold border transition-all cursor-pointer ${
                       editPixelIcType === 'url' 
-                        ? 'bg-[#1A6DFF]/20 border-[#1A6DFF] text-[#5C9BFF]' 
-                        : 'bg-[#070D1A] border-[#1E3254] text-zinc-400 hover:text-zinc-200'
+                        ? 'bg-[#0066FF]/20 border-[#0066FF] text-[#5C9BFF]' 
+                        : 'bg-[#0D1424] border-[#1E293B] text-zinc-400 hover:text-zinc-200'
                     }`}
                   >
                     Contém na URL
@@ -3008,8 +3008,8 @@ export default function Integrations() {
                     onClick={() => setEditPixelIcType('text')}
                     className={`py-2 px-2.5 rounded-xl text-center font-bold border transition-all cursor-pointer ${
                       editPixelIcType === 'text' 
-                        ? 'bg-[#1A6DFF]/20 border-[#1A6DFF] text-[#5C9BFF]' 
-                        : 'bg-[#070D1A] border-[#1E3254] text-zinc-400 hover:text-zinc-200'
+                        ? 'bg-[#0066FF]/20 border-[#0066FF] text-[#5C9BFF]' 
+                        : 'bg-[#0D1424] border-[#1E293B] text-zinc-400 hover:text-zinc-200'
                     }`}
                   >
                     Contém no Texto
@@ -3027,7 +3027,7 @@ export default function Integrations() {
                   }
                   value={editPixelIcValue}
                   onChange={(e) => setEditPixelIcValue(e.target.value)}
-                  className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                  className="w-full bg-[#0D1424] border border-[#1E293B] rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-[#0066FF] transition-colors"
                 />
                 <p className="text-[11px] text-zinc-500 mt-1">
                   {editPixelIcType === 'css' && 'Dispara quando o usuário clicar em qualquer elemento que tenha a classe/ID configurada.'}
@@ -3046,7 +3046,7 @@ export default function Integrations() {
                   placeholder="Ex: meusite.com, checkout.meusite.com (ou deixe em branco para todos)"
                   value={editPixelDomains}
                   onChange={(e) => setEditPixelDomains(e.target.value)}
-                  className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                  className="w-full bg-[#0D1424] border border-[#1E293B] rounded-xl px-3.5 py-2.5 text-white font-medium focus:outline-none focus:border-[#0066FF] transition-colors"
                 />
               </div>
 
@@ -3054,13 +3054,13 @@ export default function Integrations() {
                 <button
                   type="button"
                   onClick={() => setPixelToEdit(null)}
-                  className="px-4 py-2 rounded-xl bg-[#070D1A] hover:bg-white/5 border border-white/10 text-zinc-300 font-semibold text-xs transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-[#0D1424] hover:bg-[#182236] border border-[#1E293B] text-zinc-300 font-semibold text-xs transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs shadow-md shadow-blue-600/25 transition-all cursor-pointer"
                 >
                   Salvar Alterações
                 </button>
@@ -3079,10 +3079,10 @@ export default function Integrations() {
           onClick={() => setPixelToTest(null)}
         >
           <div 
-            className="bg-[#0C172B] border border-[#1E3254] rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4"
+            className="bg-[#141C2E] border border-[#1E293B] rounded-xl max-w-md w-full p-6 shadow-2xl relative space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-[#1E3254]">
+            <div className="flex items-center justify-between pb-3 border-b border-[#1E293B]">
               <h3 className="text-sm font-bold text-white">
                 Testar Pixel
               </h3>
@@ -3109,7 +3109,7 @@ export default function Integrations() {
                     setTestSiteUrl(e.target.value);
                     if (pixelVerificationResult) setPixelVerificationResult(null);
                   }}
-                  className="w-full bg-[#070D1A] border border-[#1E3254] rounded-xl px-3.5 py-2.5 text-white font-mono placeholder:text-zinc-600 focus:outline-none focus:border-[#1A6DFF] transition-colors"
+                  className="w-full bg-[#0D1424] border border-[#1E293B] rounded-xl px-3.5 py-2.5 text-white font-mono placeholder:text-zinc-600 focus:outline-none focus:border-[#0066FF] transition-colors"
                 />
                 <p className="text-[11px] text-zinc-500 mt-1.5">
                   Vamos verificar se o script da PrimeTrack está instalado.
@@ -3140,14 +3140,14 @@ export default function Integrations() {
                 <button
                   type="button"
                   onClick={() => setPixelToTest(null)}
-                  className="px-4 py-2 rounded-xl bg-[#070D1A] hover:bg-white/5 border border-white/10 text-zinc-300 font-semibold text-xs transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-[#0D1424] hover:bg-[#182236] border border-[#1E293B] text-zinc-300 font-semibold text-xs transition-colors cursor-pointer"
                 >
                   Fechar
                 </button>
                 <button
                   type="submit"
                   disabled={isVerifyingPixel || !testSiteUrl.trim()}
-                  className="px-5 py-2 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all cursor-pointer flex items-center gap-2"
+                  className="px-5 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-blue-600/25 transition-all cursor-pointer flex items-center gap-2"
                 >
                   {isVerifyingPixel && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                   <span>{isVerifyingPixel ? 'Verificando...' : 'Verificar'}</span>
@@ -3167,10 +3167,10 @@ export default function Integrations() {
           onClick={() => setPixelToDelete(null)}
         >
           <div 
-            className="bg-[#0C172B] border border-[#1E3254] rounded-2xl max-w-sm w-full p-6 shadow-2xl relative text-center space-y-4"
+            className="bg-[#141C2E] border border-[#1E293B] rounded-xl max-w-sm w-full p-6 shadow-2xl relative text-center space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-12 h-12 rounded-full bg-[#10203D] border border-[#1E3254] flex items-center justify-center mx-auto text-[#2B66E3]">
+            <div className="w-12 h-12 rounded-full bg-[#0D1424] border border-[#1E293B] flex items-center justify-center mx-auto text-[#0066FF]">
               <AlertTriangle className="w-6 h-6 stroke-[2]" />
             </div>
 
@@ -3185,14 +3185,14 @@ export default function Integrations() {
               <button
                 type="button"
                 onClick={() => setPixelToDelete(null)}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-[#070D1A] hover:bg-white/5 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                className="flex-1 py-2.5 px-4 rounded-xl bg-[#0D1424] hover:bg-[#182236] border border-[#1E293B] text-xs font-bold text-zinc-300 hover:text-white transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={() => handleDeletePixel(pixelToDelete.id)}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 text-xs font-bold text-white shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+                className="flex-1 py-2.5 px-4 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-xs font-bold text-white shadow-md shadow-blue-600/25 transition-all cursor-pointer"
               >
                 Confirmar
               </button>
@@ -3210,11 +3210,11 @@ export default function Integrations() {
           onClick={() => setTokenToDelete(null)}
         >
           <div 
-            className="bg-[#0C172B] border border-[#1E3254] rounded-2xl max-w-sm w-full p-6 shadow-2xl relative text-center space-y-4"
+            className="bg-[#141C2E] border border-[#1E293B] rounded-xl max-w-sm w-full p-6 shadow-2xl relative text-center space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Ícone de alerta em círculo azul */}
-            <div className="w-12 h-12 rounded-full bg-[#10203D] border border-[#1E3254] flex items-center justify-center mx-auto text-[#2B66E3]">
+            <div className="w-12 h-12 rounded-full bg-[#0D1424] border border-[#1E293B] flex items-center justify-center mx-auto text-[#0066FF]">
               <AlertTriangle className="w-6 h-6 stroke-[2]" />
             </div>
 
@@ -3226,7 +3226,7 @@ export default function Integrations() {
               <button
                 type="button"
                 onClick={() => setTokenToDelete(null)}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-[#070D1A] hover:bg-white/5 border border-white/10 text-xs font-bold text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                className="flex-1 py-2.5 px-4 rounded-xl bg-[#0D1424] hover:bg-[#182236] border border-[#1E293B] text-xs font-bold text-zinc-300 hover:text-white transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
@@ -3236,7 +3236,7 @@ export default function Integrations() {
                   handleDeleteToken(tokenToDelete.id);
                   setTokenToDelete(null);
                 }}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-[#1A6DFF] hover:bg-blue-600 text-xs font-bold text-white shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+                className="flex-1 py-2.5 px-4 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-xs font-bold text-white shadow-md shadow-blue-600/25 transition-all cursor-pointer"
               >
                 Confirmar
               </button>

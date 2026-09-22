@@ -77,20 +77,20 @@ export default function PixelManager({ pixelHealth, settings, onSaveSettings }) 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Score Radial Visual */}
-        <div className="card-glass p-6 rounded-2xl flex flex-col items-center justify-center text-center relative overflow-hidden border-brand/30">
-          <div className="absolute inset-0 bg-gradient-to-b from-brand/10 to-transparent pointer-events-none" />
+        <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-6 shadow-md flex flex-col items-center justify-center text-center relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0066FF]/10 to-transparent pointer-events-none" />
           
           <span className="text-xs font-mono uppercase tracking-widest text-zinc-400 mb-2">
             Nota Geral do Pixel (EMQ)
           </span>
 
           <div className="relative my-4 flex items-center justify-center">
-            <div className="w-32 h-32 rounded-full border-4 border-brand/20 flex items-center justify-center relative">
-              <div className="w-28 h-28 rounded-full border-4 border-t-brand border-r-brand border-b-brand border-l-transparent animate-spin-slow flex flex-col items-center justify-center">
+            <div className="w-32 h-32 rounded-full border-4 border-[#0066FF]/20 flex items-center justify-center relative">
+              <div className="w-28 h-28 rounded-full border-4 border-t-[#0066FF] border-r-[#0066FF] border-b-[#0066FF] border-l-transparent animate-spin-slow flex flex-col items-center justify-center">
                 <span className="text-4xl font-extrabold text-white font-mono tracking-tight">
                   9.3
                 </span>
-                <span className="text-[10px] text-brand-light font-mono font-bold uppercase">
+                <span className="text-[10px] text-[#5C9BFF] font-mono font-bold uppercase">
                   de 10.0
                 </span>
               </div>
@@ -108,11 +108,11 @@ export default function PixelManager({ pixelHealth, settings, onSaveSettings }) 
         </div>
 
         {/* Match Keys Breakdown */}
-        <div className="lg:col-span-2 card-glass p-6 rounded-2xl flex flex-col justify-between">
+        <div className="lg:col-span-2 bg-[#141C2E] border border-[#1E293B] rounded-xl p-6 shadow-md flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-white text-base flex items-center gap-2">
-                <Cpu className="w-4 h-4 text-brand" />
+                <Cpu className="w-4 h-4 text-[#0066FF]" />
                 <span>Qualidade dos Parâmetros de Correspondência</span>
               </h3>
               <span className="text-xs font-mono text-zinc-400">Tempo Real</span>
@@ -124,7 +124,7 @@ export default function PixelManager({ pixelHealth, settings, onSaveSettings }) 
                   <span>E-mail Hash (SHA-256)</span>
                   <span className="text-emerald-400 font-bold">{matchBreakdown.emailMatchRate}%</span>
                 </div>
-                <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden">
+                <div className="w-full bg-[#0D1424] h-2 rounded-full overflow-hidden border border-[#1E293B]">
                   <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${matchBreakdown.emailMatchRate}%` }}></div>
                 </div>
               </div>
@@ -134,7 +134,7 @@ export default function PixelManager({ pixelHealth, settings, onSaveSettings }) 
                   <span>Telefone E.164 Hash</span>
                   <span className="text-emerald-400 font-bold">{matchBreakdown.phoneMatchRate}%</span>
                 </div>
-                <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden">
+                <div className="w-full bg-[#0D1424] h-2 rounded-full overflow-hidden border border-[#1E293B]">
                   <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${matchBreakdown.phoneMatchRate}%` }}></div>
                 </div>
               </div>
@@ -142,20 +142,20 @@ export default function PixelManager({ pixelHealth, settings, onSaveSettings }) 
               <div>
                 <div className="flex justify-between text-zinc-300 mb-1">
                   <span>Cookie Meta (_fbp)</span>
-                  <span className="text-brand-light font-bold">{matchBreakdown.fbpMatchRate}%</span>
+                  <span className="text-[#5C9BFF] font-bold">{matchBreakdown.fbpMatchRate}%</span>
                 </div>
-                <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden">
-                  <div className="bg-brand h-full rounded-full" style={{ width: `${matchBreakdown.fbpMatchRate}%` }}></div>
+                <div className="w-full bg-[#0D1424] h-2 rounded-full overflow-hidden border border-[#1E293B]">
+                  <div className="bg-[#0066FF] h-full rounded-full" style={{ width: `${matchBreakdown.fbpMatchRate}%` }}></div>
                 </div>
               </div>
 
               <div>
                 <div className="flex justify-between text-zinc-300 mb-1">
                   <span>Click ID Meta (_fbc)</span>
-                  <span className="text-brand-light font-bold">{matchBreakdown.fbcMatchRate}%</span>
+                  <span className="text-[#5C9BFF] font-bold">{matchBreakdown.fbcMatchRate}%</span>
                 </div>
-                <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden">
-                  <div className="bg-brand h-full rounded-full" style={{ width: `${matchBreakdown.fbcMatchRate}%` }}></div>
+                <div className="w-full bg-[#0D1424] h-2 rounded-full overflow-hidden border border-[#1E293B]">
+                  <div className="bg-[#0066FF] h-full rounded-full" style={{ width: `${matchBreakdown.fbcMatchRate}%` }}></div>
                 </div>
               </div>
 
@@ -164,7 +164,7 @@ export default function PixelManager({ pixelHealth, settings, onSaveSettings }) 
                   <span>IP do Cliente (Client IP)</span>
                   <span className="text-purple-400 font-bold">{matchBreakdown.ipMatchRate}%</span>
                 </div>
-                <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden">
+                <div className="w-full bg-[#0D1424] h-2 rounded-full overflow-hidden border border-[#1E293B]">
                   <div className="bg-purple-500 h-full rounded-full" style={{ width: `${matchBreakdown.ipMatchRate}%` }}></div>
                 </div>
               </div>
@@ -174,14 +174,14 @@ export default function PixelManager({ pixelHealth, settings, onSaveSettings }) 
                   <span>Deduplicação de Eventos</span>
                   <span className="text-purple-400 font-bold">{matchBreakdown.deduplicationAccuracy}%</span>
                 </div>
-                <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden">
+                <div className="w-full bg-[#0D1424] h-2 rounded-full overflow-hidden border border-[#1E293B]">
                   <div className="bg-purple-500 h-full rounded-full" style={{ width: `${matchBreakdown.deduplicationAccuracy}%` }}></div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-white/5 flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-400">
+          <div className="mt-6 pt-4 border-t border-[#1E293B] flex flex-wrap items-center justify-between gap-3 text-xs text-zinc-400">
             <span>✓ Atribuição Cross-Session de 30 dias ativa</span>
             <span>✓ Proteção contra AdBlockers e iOS 14+</span>
             <span>✓ Zero risco de duplicação de vendas</span>
@@ -191,11 +191,11 @@ export default function PixelManager({ pixelHealth, settings, onSaveSettings }) 
       </div>
 
       {/* Pixel Script Installation Box */}
-      <div className="card-glass p-6 rounded-2xl space-y-4 border-brand/20">
+      <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-6 shadow-md space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <h3 className="font-bold text-white text-base flex items-center gap-2">
-              <Code2 className="w-4 h-4 text-brand" />
+              <Code2 className="w-4 h-4 text-[#0066FF]" />
               <span>Código de Instalação (Cole antes de fechar &lt;/head&gt;)</span>
             </h3>
             <p className="text-xs text-zinc-400 mt-0.5">
@@ -204,15 +204,15 @@ export default function PixelManager({ pixelHealth, settings, onSaveSettings }) 
           </div>
           <button
             onClick={handleCopy}
-            className="self-start sm:self-auto px-4 py-2 rounded-xl bg-brand hover:bg-brand-dark text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-brand/30 transition-all"
+            className="self-start sm:self-auto px-4 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-blue-600/25 transition-all cursor-pointer"
           >
-            {copied ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
+            {copied ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4 text-white" />}
             <span>{copied ? 'Código Copiado!' : 'Copiar Código do Pixel'}</span>
           </button>
         </div>
 
         <div className="relative">
-          <pre className="p-4 rounded-xl bg-[#03060D] border border-white/10 font-mono text-xs text-zinc-300 overflow-x-auto selection:bg-brand">
+          <pre className="p-4 rounded-xl bg-[#0D1424] border border-[#1E293B] font-mono text-xs text-zinc-300 overflow-x-auto selection:bg-[#0066FF]">
             <code>{snippet}</code>
           </pre>
         </div>
@@ -224,9 +224,9 @@ export default function PixelManager({ pixelHealth, settings, onSaveSettings }) 
       </div>
 
       {/* Meta API Configuration Form */}
-      <div className="card-glass p-6 rounded-2xl">
+      <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-6 shadow-md">
         <h3 className="font-bold text-white text-base flex items-center gap-2 mb-1">
-          <Key className="w-4 h-4 text-brand" />
+          <Key className="w-4 h-4 text-[#0066FF]" />
           <span>Configuração da API de Conversões do Facebook (CAPI)</span>
         </h3>
         <p className="text-xs text-zinc-400 mb-6">
@@ -244,7 +244,7 @@ export default function PixelManager({ pixelHealth, settings, onSaveSettings }) 
                 value={metaPixelId}
                 onChange={(e) => setMetaPixelId(e.target.value)}
                 placeholder="Ex: 8942189012398"
-                className="w-full px-3 py-2 bg-[#03060D] border border-white/10 rounded-xl text-xs text-white font-mono focus:outline-none focus:border-brand"
+                className="w-full px-3 py-2 bg-[#0D1424] border border-[#1E293B] rounded-xl text-xs text-white font-mono focus:outline-none focus:border-[#0066FF]"
               />
             </div>
 
@@ -257,7 +257,7 @@ export default function PixelManager({ pixelHealth, settings, onSaveSettings }) 
                 value={testEventCode}
                 onChange={(e) => setTestEventCode(e.target.value)}
                 placeholder="Ex: TEST12345"
-                className="w-full px-3 py-2 bg-[#03060D] border border-white/10 rounded-xl text-xs text-white font-mono focus:outline-none focus:border-brand"
+                className="w-full px-3 py-2 bg-[#0D1424] border border-[#1E293B] rounded-xl text-xs text-white font-mono focus:outline-none focus:border-[#0066FF]"
               />
             </div>
           </div>
@@ -271,7 +271,7 @@ export default function PixelManager({ pixelHealth, settings, onSaveSettings }) 
               value={metaAccessToken}
               onChange={(e) => setMetaAccessToken(e.target.value)}
               placeholder="EAAB..."
-              className="w-full px-3 py-2 bg-[#03060D] border border-white/10 rounded-xl text-xs text-white font-mono focus:outline-none focus:border-brand"
+              className="w-full px-3 py-2 bg-[#0D1424] border border-[#1E293B] rounded-xl text-xs text-white font-mono focus:outline-none focus:border-[#0066FF]"
             />
           </div>
 
@@ -285,7 +285,7 @@ export default function PixelManager({ pixelHealth, settings, onSaveSettings }) 
             </div>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-white text-zinc-900 hover:bg-zinc-200 font-bold text-xs flex items-center gap-2 transition-colors shadow-md"
+              className="px-5 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs flex items-center gap-2 transition-all shadow-md shadow-blue-600/25 cursor-pointer"
             >
               <Save className="w-3.5 h-3.5" />
               <span>Salvar Configurações</span>

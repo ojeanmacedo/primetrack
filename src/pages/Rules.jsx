@@ -15,7 +15,7 @@ export default function Rules() {
       </div>
 
       {/* Main Pro Feature Box matching Screenshot */}
-      <div className="w-full bg-[#0A1426] border border-[#13233E] rounded-2xl min-h-[460px] p-8 sm:p-14 flex flex-col items-center justify-center text-center shadow-xl">
+      <div className="w-full bg-[#141C2E] border border-[#1E293B] rounded-xl min-h-[460px] p-8 sm:p-14 flex flex-col items-center justify-center text-center shadow-md">
         
         <h3 className="text-lg sm:text-xl font-bold text-white mb-2 font-sans">
           Recurso do Plano Pro
@@ -32,7 +32,7 @@ export default function Rules() {
         <button
           type="button"
           onClick={() => navigate('/planos')}
-          className="px-6 py-2.5 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-bold text-xs shadow-md transition-all cursor-pointer"
+          className="px-6 py-2.5 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs shadow-md shadow-blue-600/25 transition-all cursor-pointer"
         >
           Fazer Upgrade
         </button>

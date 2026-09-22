@@ -205,7 +205,7 @@ export default function Account() {
           
           {/* Card 1: Detalhes da Conta */}
           <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-5 shadow-md space-y-4">
-            <div className="flex items-center justify-between border-b border-[#182238] pb-3">
+            <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4 text-[#0066FF]" />
                 <h2 className="text-sm sm:text-base font-bold text-white tracking-tight">
@@ -247,7 +247,7 @@ export default function Account() {
                       type="text"
                       disabled
                       value={currentUser?.email || 'contato@gmail.com'}
-                      className="w-full bg-[#0D1424]/60 border border-[#182238] rounded-lg px-3 py-2 text-zinc-400 text-xs cursor-not-allowed opacity-80"
+                      className="w-full bg-[#0D1424]/60 border border-[#1E293B] rounded-lg px-3 py-2 text-zinc-400 text-xs cursor-not-allowed opacity-80"
                     />
                     <Mail className="w-3.5 h-3.5 text-zinc-500 absolute right-3 top-1/2 -translate-y-1/2" />
                   </div>
@@ -296,7 +296,7 @@ export default function Account() {
 
           {/* Card 2: Autenticação de dois fatores (2FA) */}
           <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-5 shadow-md space-y-4">
-            <div className="flex items-center justify-between border-b border-[#182238] pb-3">
+            <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
               <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4 text-[#0066FF]" />
                 <h2 className="text-sm sm:text-base font-bold text-white tracking-tight">
@@ -355,7 +355,7 @@ export default function Account() {
           
           {/* Card: Trocar Senha */}
           <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl p-5 shadow-md space-y-4">
-            <div className="flex items-center justify-between border-b border-[#182238] pb-3">
+            <div className="flex items-center justify-between border-b border-[#1E293B] pb-3">
               <div className="flex items-center gap-2">
                 <KeyRound className="w-4 h-4 text-[#0066FF]" />
                 <h2 className="text-sm sm:text-base font-bold text-white tracking-tight">

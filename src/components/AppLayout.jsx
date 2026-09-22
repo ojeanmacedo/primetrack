@@ -99,7 +99,7 @@ export default function AppLayout() {
       <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#0D1424]">
         
         {/* Topbar matching UTMify */}
-        <header className="h-14 sm:h-16 bg-[#0D1424] border-b border-[#182238] px-3 sm:px-6 flex items-center justify-between shrink-0 select-none z-30">
+        <header className="h-14 sm:h-16 bg-[#0D1424] border-b border-[#1E293B] px-3 sm:px-6 flex items-center justify-between shrink-0 select-none z-30">
           {/* Left: Mobile Menu Button + Page title and action icons */}
           <div className="flex items-center gap-2 sm:gap-3">
             <button
@@ -117,7 +117,7 @@ export default function AppLayout() {
               <button 
                 onClick={handleToggleShowValues}
                 className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                  !showValues ? 'text-blue-400 bg-blue-500/10' : 'hover:text-white'
+                  !showValues ? 'text-[#5C9BFF] bg-blue-500/10' : 'hover:text-white'
                 }`} 
                 title={showValues ? "Ocultar nome dos produtos" : "Mostrar nome dos produtos"}
               >
@@ -127,7 +127,7 @@ export default function AppLayout() {
                 onClick={handleToggleEdit}
                 className={`p-1.5 rounded-lg transition-all cursor-pointer ${
                   isEditingLayout 
-                    ? 'bg-[#0066FF] text-white shadow-md shadow-blue-500/30' 
+                    ? 'bg-[#0066FF] text-white shadow-md shadow-blue-600/25' 
                     : 'hover:text-white hover:bg-white/5 transition-colors'
                 }`} 
                 title={isEditingLayout ? "Concluir edição do layout" : "Editar layout da dashboard"}
@@ -148,7 +148,7 @@ export default function AppLayout() {
             </div>
 
             {/* User Profile */}
-            <div className="flex items-center gap-2 sm:gap-2.5 pl-2 border-l border-[#182238]">
+            <div className="flex items-center gap-2 sm:gap-2.5 pl-2 border-l border-[#1E293B]">
               <div className="text-right hidden sm:block">
                 <div className="text-xs font-bold text-white leading-tight">
                   {userName}
@@ -157,7 +157,7 @@ export default function AppLayout() {
                   Usuário
                 </div>
               </div>
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#1877F2] text-white font-bold text-xs flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#0066FF] text-white font-bold text-xs flex items-center justify-center shadow-md shadow-blue-600/25 shrink-0">
                 {userInitials}
               </div>
             </div>
@@ -173,11 +173,11 @@ export default function AppLayout() {
         </main>
 
         {/* Bottom Mobile Navigation Bar (Estilo App Nativo iOS / Android) */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-14 bg-[#0A0F1D]/95 backdrop-blur-md border-t border-[#182238] flex items-center justify-around px-2 z-40">
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-14 bg-[#0D1424]/95 backdrop-blur-md border-t border-[#1E293B] flex items-center justify-around px-2 z-40">
           <NavLink
             to="/dashboard"
             className={({ isActive }) => `flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-medium transition-colors ${
-              isActive ? 'text-[#1877F2] font-bold' : 'text-zinc-400 hover:text-zinc-200'
+              isActive ? 'text-[#0066FF] font-bold' : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
             <FileText className="w-4 h-4 mb-0.5" />
@@ -187,7 +187,7 @@ export default function AppLayout() {
           <NavLink
             to="/campanhas"
             className={({ isActive }) => `flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-medium transition-colors ${
-              isActive ? 'text-[#1877F2] font-bold' : 'text-zinc-400 hover:text-zinc-200'
+              isActive ? 'text-[#0066FF] font-bold' : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
             <svg 
@@ -208,7 +208,7 @@ export default function AppLayout() {
           <NavLink
             to="/vendas"
             className={({ isActive }) => `flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-medium transition-colors ${
-              isActive ? 'text-[#1877F2] font-bold' : 'text-zinc-400 hover:text-zinc-200'
+              isActive ? 'text-[#0066FF] font-bold' : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
             <ShoppingBag className="w-4 h-4 mb-0.5" />
@@ -218,7 +218,7 @@ export default function AppLayout() {
           <NavLink
             to="/integracoes"
             className={({ isActive }) => `flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-medium transition-colors ${
-              isActive ? 'text-[#1877F2] font-bold' : 'text-zinc-400 hover:text-zinc-200'
+              isActive ? 'text-[#0066FF] font-bold' : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
             <Link2 className="w-4 h-4 mb-0.5" />

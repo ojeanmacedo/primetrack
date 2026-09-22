@@ -24,7 +24,7 @@ export default function Plans() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-stretch">
         
         {/* Basic Plan */}
-        <div className="p-7 rounded-3xl bg-[#0A1426] border border-[#13233E] flex flex-col justify-between shadow-xl">
+        <div className="p-7 rounded-xl bg-[#141C2E] border border-[#1E293B] flex flex-col justify-between shadow-md">
           <div>
             <h3 className="text-xl font-bold text-white font-sans">Basic</h3>
             
@@ -91,14 +91,14 @@ export default function Plans() {
             </ul>
           </div>
 
-          <button className="mt-8 w-full py-3 rounded-2xl bg-[#12223D] hover:bg-[#1A3159] border border-[#1C3663] text-white font-bold text-xs flex items-center justify-between px-5 transition-all">
+          <button className="mt-8 w-full py-3 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs flex items-center justify-between px-5 shadow-md shadow-blue-600/25 transition-all cursor-pointer">
             <span>Assinar Basic</span>
             <span>→</span>
           </button>
         </div>
 
         {/* Pro Plan */}
-        <div className="p-7 rounded-3xl bg-[#0A1426] border border-[#13233E] flex flex-col justify-between shadow-xl">
+        <div className="p-7 rounded-xl bg-[#141C2E] border border-[#1E293B] flex flex-col justify-between shadow-md">
           <div>
             <h3 className="text-xl font-bold text-white font-sans">Pro</h3>
             
@@ -161,14 +161,14 @@ export default function Plans() {
             </ul>
           </div>
 
-          <button className="mt-8 w-full py-3 rounded-2xl bg-[#12223D] hover:bg-[#1A3159] border border-[#1C3663] text-white font-bold text-xs flex items-center justify-between px-5 transition-all">
+          <button className="mt-8 w-full py-3 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs flex items-center justify-between px-5 shadow-md shadow-blue-600/25 transition-all cursor-pointer">
             <span>Assinar Pro</span>
             <span>→</span>
           </button>
         </div>
 
         {/* Scale Plan */}
-        <div className="p-7 rounded-3xl bg-[#0A1426] border border-[#13233E] flex flex-col justify-between shadow-xl">
+        <div className="p-7 rounded-xl bg-[#141C2E] border border-[#1E293B] flex flex-col justify-between shadow-md">
           <div>
             <h3 className="text-xl font-bold text-white font-sans">Scale</h3>
             
@@ -231,7 +231,7 @@ export default function Plans() {
             </ul>
           </div>
 
-          <button className="mt-8 w-full py-3 rounded-2xl bg-[#12223D] hover:bg-[#1A3159] border border-[#1C3663] text-white font-bold text-xs flex items-center justify-between px-5 transition-all">
+          <button className="mt-8 w-full py-3 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs flex items-center justify-between px-5 shadow-md shadow-blue-600/25 transition-all cursor-pointer">
             <span>Assinar Scale</span>
             <span>→</span>
           </button>
