@@ -155,6 +155,7 @@ export default function Dashboard() {
       { i: 'roas', x: 0, y: 1, w: 1, h: 1 },
       { i: 'margem', x: 1, y: 1, w: 1, h: 1 },
       { i: 'pendentes', x: 2, y: 1, w: 1, h: 1 },
+      { i: 'reembolsadas', x: 3, y: 1, w: 1, h: 1 },
       { i: 'products', x: 0, y: 2, w: 1, h: 2 },
       { i: 'sources', x: 1, y: 2, w: 1, h: 2 },
       { i: 'approval', x: 2, y: 2, w: 1, h: 2 },
@@ -170,6 +171,7 @@ export default function Dashboard() {
       { i: 'roas', x: 1, y: 1, w: 1, h: 1 },
       { i: 'margem', x: 2, y: 1, w: 1, h: 1 },
       { i: 'pendentes', x: 0, y: 2, w: 1, h: 1 },
+      { i: 'reembolsadas', x: 1, y: 2, w: 1, h: 1 },
       { i: 'products', x: 0, y: 3, w: 1, h: 2 },
       { i: 'sources', x: 1, y: 3, w: 1, h: 2 },
       { i: 'approval', x: 2, y: 3, w: 1, h: 2 },
@@ -185,6 +187,7 @@ export default function Dashboard() {
       { i: 'roas', x: 0, y: 2, w: 1, h: 1 },
       { i: 'margem', x: 1, y: 2, w: 1, h: 1 },
       { i: 'pendentes', x: 0, y: 3, w: 1, h: 1 },
+      { i: 'reembolsadas', x: 1, y: 3, w: 1, h: 1 },
       { i: 'products', x: 0, y: 4, w: 1, h: 2 },
       { i: 'sources', x: 1, y: 4, w: 1, h: 2 },
       { i: 'approval', x: 0, y: 6, w: 1, h: 2 },
@@ -200,12 +203,13 @@ export default function Dashboard() {
       { i: 'roas', x: 0, y: 4, w: 1, h: 1 },
       { i: 'margem', x: 0, y: 5, w: 1, h: 1 },
       { i: 'pendentes', x: 0, y: 6, w: 1, h: 1 },
-      { i: 'products', x: 0, y: 7, w: 1, h: 2 },
-      { i: 'sources', x: 0, y: 9, w: 1, h: 2 },
-      { i: 'approval', x: 0, y: 11, w: 1, h: 2 },
-      { i: 'payments', x: 0, y: 13, w: 1, h: 2 },
-      { i: 'funnel', x: 0, y: 15, w: 1, h: 2 },
-      { i: 'hourly', x: 0, y: 17, w: 1, h: 2 }
+      { i: 'reembolsadas', x: 0, y: 7, w: 1, h: 1 },
+      { i: 'products', x: 0, y: 8, w: 1, h: 2 },
+      { i: 'sources', x: 0, y: 10, w: 1, h: 2 },
+      { i: 'approval', x: 0, y: 12, w: 1, h: 2 },
+      { i: 'payments', x: 0, y: 14, w: 1, h: 2 },
+      { i: 'funnel', x: 0, y: 16, w: 1, h: 2 },
+      { i: 'hourly', x: 0, y: 18, w: 1, h: 2 }
     ]
   };
 
@@ -217,7 +221,8 @@ export default function Dashboard() {
           const parsed = JSON.parse(saved);
           if (parsed && typeof parsed === 'object' && Array.isArray(parsed.lg)) {
             const hasCpa = parsed.lg.some(item => item.i === 'cpa');
-            if (hasCpa) {
+            const hasRefunded = parsed.lg.some(item => item.i === 'reembolsadas');
+            if (hasCpa && hasRefunded) {
               return parsed;
             }
           }
@@ -1031,6 +1036,13 @@ export default function Dashboard() {
 
   const pctApr = funnelClicks > 0 ? Math.min(pctInic, (funnelApr / funnelClicks) * 100) : 0;
 
+  // Vendas Reembolsadas
+  const refundedOrders = filteredOrders.filter(o => 
+    o.status === 'refunded' || o.status === 'chargeback' || o.status === 'reembolsado' || o.status === 'estornado' || o.status === 'cancelado'
+  );
+  const realRefundedSales = refundedOrders.length;
+  const realRefundedValue = refundedOrders.reduce((acc, o) => acc + Number(o.amount || 0), 0);
+
   const realPendingSales = pendingOrders.length;
 
   const kpiDataMap = {
@@ -1068,6 +1080,13 @@ export default function Dashboard() {
       value: `R$ ${realPendingValue.toFixed(2).replace('.', ',')}`,
       subtitle: `${realPendingSales} ${realPendingSales === 1 ? 'venda pendente' : 'vendas pendentes'}`,
       valueColor: 'text-white'
+    },
+    reembolsadas: {
+      id: 'reembolsadas',
+      label: 'Vendas Reembolsadas',
+      value: `R$ ${realRefundedValue.toFixed(2).replace('.', ',')}`,
+      subtitle: `${realRefundedSales} ${realRefundedSales === 1 ? 'reembolso' : 'reembolsos'}`,
+      valueColor: realRefundedSales > 0 ? 'text-[#EF4444]' : 'text-white'
     },
     roas: {
       id: 'roas',
@@ -1899,6 +1918,7 @@ export default function Dashboard() {
           <div key="roas" className="h-full w-full">{renderKpiCard('roas')}</div>
           <div key="margem" className="h-full w-full">{renderKpiCard('margem')}</div>
           <div key="pendentes" className="h-full w-full">{renderKpiCard('pendentes')}</div>
+          <div key="reembolsadas" className="h-full w-full">{renderKpiCard('reembolsadas')}</div>
           <div key="products" className="h-full w-full">{renderAnalysisCard('products')}</div>
           <div key="sources" className="h-full w-full">{renderAnalysisCard('sources')}</div>
           <div key="approval" className="h-full w-full">{renderAnalysisCard('approval')}</div>
