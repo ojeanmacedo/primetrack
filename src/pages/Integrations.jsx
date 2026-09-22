@@ -85,30 +85,105 @@ export default function Integrations() {
     createdAt: '08/09/2026'
   };
 
-  // Webhook API Tokens State (Inicia 100% Zerado para novos cadastros e conta de teste)
-  const [apiTokens, setApiTokens] = useState(() => {
+  // Dashboard Ativo
+  const [activeDashboard, setActiveDashboard] = useState(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('primetrack_webhook_tokens');
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) return parsed;
-        } catch (e) {}
-      }
+      try {
+        const list = JSON.parse(localStorage.getItem('primetrack_dashboards') || '[]');
+        const activeId = localStorage.getItem('primetrack_active_dashboard_id') || 'principal';
+        return list.find(d => d.id === activeId) || { id: 'principal', isDefault: true, name: 'Principal' };
+      } catch (e) {}
     }
-    return [];
+    return { id: 'principal', isDefault: true, name: 'Principal' };
   });
 
-  // Pixel de Rastreio State (Inicia 100% Zerado para novos cadastros)
-  const [trackingPixels, setTrackingPixels] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('primetrack_pixels');
-      if (saved) {
-        try { return JSON.parse(saved); } catch (e) {}
-      }
+  const activeDashboardId = activeDashboard?.id || 'principal';
+  const isDefaultDashboard = activeDashboardId === 'principal' || activeDashboard?.isDefault === true;
+
+  const getScopedKey = (baseKey) => {
+    return isDefaultDashboard ? baseKey : `${baseKey}_${activeDashboardId}`;
+  };
+
+  const loadApiTokens = (dashId, isDef) => {
+    if (typeof window === 'undefined') return [];
+    const key = isDef || dashId === 'principal' ? 'primetrack_webhook_tokens' : `primetrack_webhook_tokens_${dashId}`;
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {}
     }
     return [];
-  });
+  };
+
+  const loadTrackingPixels = (dashId, isDef) => {
+    if (typeof window === 'undefined') return [];
+    const key = isDef || dashId === 'principal' ? 'primetrack_pixels' : `primetrack_pixels_${dashId}`;
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {}
+    }
+    return [];
+  };
+
+  const loadConnectedProfiles = (dashId, isDef) => {
+    if (typeof window === 'undefined') return [];
+    const key = isDef || dashId === 'principal' ? 'primetrack_connected_profiles' : `primetrack_connected_profiles_${dashId}`;
+    if (localStorage.getItem('primetrack_meta_disconnected') === 'true' && (isDef || dashId === 'principal')) {
+      return [];
+    }
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {}
+    }
+    return [];
+  };
+
+  const loadAdAccounts = (dashId, isDef) => {
+    if (typeof window === 'undefined') return [];
+    const key = isDef || dashId === 'principal' ? 'primetrack_ad_accounts' : `primetrack_ad_accounts_${dashId}`;
+    if (localStorage.getItem('primetrack_meta_disconnected') === 'true' && (isDef || dashId === 'principal')) {
+      return [];
+    }
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {}
+    }
+    return [];
+  };
+
+  // Webhook API Tokens State (Inicia 100% Zerado para novos dashboards)
+  const [apiTokens, setApiTokens] = useState(() => loadApiTokens(activeDashboardId, isDefaultDashboard));
+
+  // Pixel de Rastreio State (Inicia 100% Zerado para novos dashboards)
+  const [trackingPixels, setTrackingPixels] = useState(() => loadTrackingPixels(activeDashboardId, isDefaultDashboard));
+
+  useEffect(() => {
+    const handleDashboardChange = (e) => {
+      const nextDash = e.detail || { id: 'principal', isDefault: true, name: 'Principal' };
+      setActiveDashboard(nextDash);
+      const nextId = nextDash.id || 'principal';
+      const nextIsDef = nextId === 'principal' || nextDash.isDefault === true;
+
+      setApiTokens(loadApiTokens(nextId, nextIsDef));
+      setTrackingPixels(loadTrackingPixels(nextId, nextIsDef));
+      setConnectedProfiles(loadConnectedProfiles(nextId, nextIsDef));
+      setAdAccounts(loadAdAccounts(nextId, nextIsDef));
+    };
+
+    window.addEventListener('primetrack_dashboard_changed', handleDashboardChange);
+    return () => window.removeEventListener('primetrack_dashboard_changed', handleDashboardChange);
+  }, []);
 
   const [showNewPixelModal, setShowNewPixelModal] = useState(false);
   const [newPixelName, setNewPixelName] = useState('');
@@ -171,48 +246,11 @@ export default function Integrations() {
   const [showFacebookOAuth, setShowFacebookOAuth] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
 
-  const [connectedProfiles, setConnectedProfiles] = useState(() => {
-    // Se o usuário marcou como desconectado
-    if (typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true') {
-      return [];
-    }
-    const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_connected_profiles') : null;
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
-    }
-    return [];
-  });
+  const [connectedProfiles, setConnectedProfiles] = useState(() => loadConnectedProfiles(activeDashboardId, isDefaultDashboard));
 
   const tabs = INTEGRATION_TABS;
 
-  const [adAccounts, setAdAccounts] = useState(() => {
-    if (typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true') {
-      return [];
-    }
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = localStorage.getItem('primetrack_ad_accounts');
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            return parsed.map(acc => {
-              const accId = String(acc.id || acc.accountId || '').replace('act_', '');
-              const isRealPrepay = acc.isPrepay === true || accId === '1218349886840112';
-              const isUsd = acc.currency === 'USD' || acc.rawCurrency === 'USD' || ['1043285988469816', '1092137896602979', '1611243834049326', '28591581777115664'].includes(accId);
-              const isAccountActive = acc.status === 'Ativa' || acc.status === 'ACTIVE' || acc.account_status === 1 || ['1043285988469816', '1092137896602979', '978598688985724', '768142077735838', '719933136445425', '1394391128741416', '1611243834049326', '28591581777115664'].includes(accId);
-              return {
-                ...acc,
-                currency: isUsd ? 'USD' : (acc.currency || 'BRL'),
-                status: isAccountActive ? 'Ativa' : 'Bloqueada',
-                balance: isRealPrepay ? (acc.balance || '4,05') : '0,00'
-              };
-            });
-          }
-        }
-      } catch (e) {}
-    }
-    return [];
-  });
+  const [adAccounts, setAdAccounts] = useState(() => loadAdAccounts(activeDashboardId, isDefaultDashboard));
 
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
@@ -427,7 +465,7 @@ export default function Integrations() {
     const updated = [newTokenItem, ...apiTokens];
     setApiTokens(updated);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('primetrack_webhook_tokens', JSON.stringify(updated));
+      localStorage.setItem(getScopedKey('primetrack_webhook_tokens'), JSON.stringify(updated));
     }
     fetch('/api/webhook/tokens', {
       method: 'POST',
@@ -490,7 +528,7 @@ export default function Integrations() {
     const updated = [newTokenItem, ...apiTokens];
     setApiTokens(updated);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('primetrack_webhook_tokens', JSON.stringify(updated));
+      localStorage.setItem(getScopedKey('primetrack_webhook_tokens'), JSON.stringify(updated));
     }
     fetch('/api/webhook/tokens', {
       method: 'POST',
@@ -520,7 +558,7 @@ export default function Integrations() {
     const updated = apiTokens.filter(t => t.id !== tokenId);
     setApiTokens(updated);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('primetrack_webhook_tokens', JSON.stringify(updated));
+      localStorage.setItem(getScopedKey('primetrack_webhook_tokens'), JSON.stringify(updated));
     }
     fetch('/api/webhook/tokens', {
       method: 'POST',
@@ -557,7 +595,7 @@ export default function Integrations() {
     setAdAccounts(updated);
     const activeIds = updated.filter(a => a.sync).map(a => a.id);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('primetrack_ad_accounts', JSON.stringify(updated));
+      localStorage.setItem(getScopedKey('primetrack_ad_accounts'), JSON.stringify(updated));
     }
 
     // Persiste no backend imediatamente para nunca perder a configuração
@@ -620,7 +658,7 @@ export default function Integrations() {
     const updated = [newPx, ...trackingPixels];
     setTrackingPixels(updated);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('primetrack_pixels', JSON.stringify(updated));
+      localStorage.setItem(getScopedKey('primetrack_pixels'), JSON.stringify(updated));
     }
     fetch('/api/pixels', {
       method: 'POST',
@@ -741,7 +779,7 @@ export default function Integrations() {
 
     setTrackingPixels(updated);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('primetrack_pixels', JSON.stringify(updated));
+      localStorage.setItem(getScopedKey('primetrack_pixels'), JSON.stringify(updated));
     }
     fetch('/api/pixels', {
       method: 'POST',
@@ -797,7 +835,7 @@ export default function Integrations() {
     const updated = trackingPixels.map(px => px.id === pxId ? { ...px, status: px.status === 'Ativo' ? 'Inativo' : 'Ativo' } : px);
     setTrackingPixels(updated);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('primetrack_pixels', JSON.stringify(updated));
+      localStorage.setItem(getScopedKey('primetrack_pixels'), JSON.stringify(updated));
     }
     fetch('/api/pixels', {
       method: 'POST',
@@ -810,7 +848,7 @@ export default function Integrations() {
     const updated = trackingPixels.filter(px => px.id !== pxId);
     setTrackingPixels(updated);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('primetrack_pixels', JSON.stringify(updated));
+      localStorage.setItem(getScopedKey('primetrack_pixels'), JSON.stringify(updated));
     }
     fetch('/api/pixels', {
       method: 'POST',
@@ -948,6 +986,16 @@ export default function Integrations() {
       setTimeout(() => setConnectionSuccessMsg(null), 5000);
       window.history.replaceState({}, document.title, window.location.pathname);
       window.dispatchEvent(new Event('primetrack_profile_sync'));
+    }
+
+    // Se estiver em um dashboard secundário, NÃO carrega os dados do dashboard Principal:
+    // Começa 100% zerado e isolado para este dashboard
+    if (!isDefaultDashboard) {
+      setConnectedProfiles(loadConnectedProfiles(activeDashboardId, false));
+      setAdAccounts(loadAdAccounts(activeDashboardId, false));
+      setTrackingPixels(loadTrackingPixels(activeDashboardId, false));
+      setApiTokens(loadApiTokens(activeDashboardId, false));
+      return;
     }
 
     // Busca status real das conexões salvas no backend (isolado por usuário)
