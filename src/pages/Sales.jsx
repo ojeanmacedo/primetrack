@@ -31,6 +31,25 @@ export default function Sales() {
   });
   const [loading, setLoading] = useState(() => liveOrders.length === 0);
 
+  const [activeDashboard, setActiveDashboard] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const list = JSON.parse(localStorage.getItem('primetrack_dashboards') || '[]');
+        const activeId = localStorage.getItem('primetrack_active_dashboard_id') || 'principal';
+        return list.find(d => d.id === activeId) || null;
+      } catch (e) {}
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    const handleDashChange = (e) => {
+      setActiveDashboard(e.detail || null);
+    };
+    window.addEventListener('primetrack_dashboard_changed', handleDashChange);
+    return () => window.removeEventListener('primetrack_dashboard_changed', handleDashChange);
+  }, []);
+
   const fetchSales = () => {
     const userHeaders = user?.id ? { 'x-user-id': user.id } : {};
     const userParam = user?.id ? `?userId=${encodeURIComponent(user.id)}` : '';
@@ -63,6 +82,32 @@ export default function Sales() {
   const deduplicatedLiveOrders = React.useMemo(() => {
     const orderMap = new Map();
     for (const o of liveOrders) {
+      // Se for uma dashboard secundária (não é a Principal), ela começa 100% ZERADA
+      // a menos que receba vendas do seu produto/plataforma ou vinculadas a ela
+      if (activeDashboard && !activeDashboard.isDefault && activeDashboard.id !== 'principal') {
+        const hasCustomPlat = activeDashboard.platformType === 'custom' && Array.isArray(activeDashboard.platforms) && activeDashboard.platforms.length > 0;
+        const hasCustomProd = activeDashboard.productType === 'custom' && Boolean(activeDashboard.products?.trim());
+
+        if (!hasCustomPlat && !hasCustomProd && (!o.dashboardId || o.dashboardId !== activeDashboard.id)) {
+          continue;
+        }
+
+        if (o.dashboardId && o.dashboardId === activeDashboard.id) {
+          // Permite
+        } else {
+          if (hasCustomPlat) {
+            const plat = (o.platform || o.gateway || '').toLowerCase();
+            const matchPlat = activeDashboard.platforms.some(p => plat.includes(p.toLowerCase()));
+            if (!matchPlat) continue;
+          }
+          if (hasCustomProd) {
+            const prodName = (o.productName || '').toLowerCase();
+            const targetProd = activeDashboard.products.toLowerCase().trim();
+            if (!prodName.includes(targetProd)) continue;
+          }
+        }
+      }
+
       const key = o.id || o.orderCode;
       if (!orderMap.has(key)) {
         orderMap.set(key, o);
@@ -74,7 +119,7 @@ export default function Sales() {
       }
     }
     return Array.from(orderMap.values());
-  }, [liveOrders]);
+  }, [liveOrders, activeDashboard]);
 
 
 const DDD_MAP = {

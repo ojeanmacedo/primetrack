@@ -828,8 +828,17 @@ export default function Dashboard() {
     return Array.from(set);
   }, [deduplicatedOrders]);
 
-  // Filtra as campanhas baseado na conta selecionada
+  // Filtra as campanhas baseado na conta selecionada e no dashboard ativo
   const filteredCampaigns = useMemo(() => {
+    // Se o dashboard ativo não é o padrão ("Principal"), ele vem zerado a menos que tenha campanhas/contas vinculadas
+    if (activeDashboard && !activeDashboard.isDefault && activeDashboard.id !== 'principal') {
+      const hasSpecificAccs = Array.isArray(activeDashboard.adAccounts) && activeDashboard.adAccounts.length > 0;
+      const hasSpecificCamps = Array.isArray(activeDashboard.campaignIds) && activeDashboard.campaignIds.length > 0;
+      if (!hasSpecificAccs && !hasSpecificCamps) {
+        return [];
+      }
+    }
+
     return campaigns.filter(c => {
       const cAdId = String(c.adAccountId || '').replace('act_', '');
       if (selectedAccount !== 'Todas') {
@@ -842,7 +851,7 @@ export default function Dashboard() {
       }
       return true;
     });
-  }, [campaigns, selectedAccount, adAccountsList]);
+  }, [campaigns, selectedAccount, adAccountsList, activeDashboard]);
 
   // Filtra as vendas baseado no período e filtros selecionados
   const filteredOrders = useMemo(() => {
@@ -935,15 +944,32 @@ export default function Dashboard() {
         }
       }
 
-      // Filtro de isolamento do Dashboard ativo (plataforma ou produto específico)
-      if (activeDashboard) {
-        if (activeDashboard.platformType === 'custom' && Array.isArray(activeDashboard.platforms) && activeDashboard.platforms.length > 0) {
+      // Filtro de isolamento do Dashboard ativo:
+      // Se for uma dashboard secundária (não é a Principal), ela começa 100% ZERADA
+      // a menos que receba vendas do seu produto/plataforma ou vinculadas a ela
+      if (activeDashboard && !activeDashboard.isDefault && activeDashboard.id !== 'principal') {
+        const hasCustomPlat = activeDashboard.platformType === 'custom' && Array.isArray(activeDashboard.platforms) && activeDashboard.platforms.length > 0;
+        const hasCustomProd = activeDashboard.productType === 'custom' && Boolean(activeDashboard.products?.trim());
+
+        // Se o novo dashboard não tem regra de produto nem de plataforma, e o pedido não é explicitamente dele, vem ZERADO
+        if (!hasCustomPlat && !hasCustomProd && (!o.dashboardId || o.dashboardId !== activeDashboard.id)) {
+          return false;
+        }
+
+        // Se o pedido tiver o ID direto deste dashboard
+        if (o.dashboardId && o.dashboardId === activeDashboard.id) {
+          return true;
+        }
+
+        // Se configurou plataforma isolada
+        if (hasCustomPlat) {
           const plat = (o.platform || o.gateway || '').toLowerCase();
           const matchPlat = activeDashboard.platforms.some(p => plat.includes(p.toLowerCase()));
           if (!matchPlat) return false;
         }
 
-        if (activeDashboard.productType === 'custom' && activeDashboard.products?.trim()) {
+        // Se configurou produto isolado
+        if (hasCustomProd) {
           const prodName = (o.productName || '').toLowerCase();
           const targetProd = activeDashboard.products.toLowerCase().trim();
           if (!prodName.includes(targetProd)) return false;
@@ -1121,6 +1147,13 @@ export default function Dashboard() {
     };
   }, [approvedOrders]);
 
+  const effectivePixelStats = useMemo(() => {
+    if (activeDashboard && !activeDashboard.isDefault && activeDashboard.id !== 'principal') {
+      return { pageViews: 0, initiateCheckouts: 0, totalEvents: 0 };
+    }
+    return pixelStats;
+  }, [activeDashboard, pixelStats]);
+
   // Cálculos do Funil de Conversão (Meta Ads + Pixel PrimeTrack + MonsterPay)
   const totalMetaClicks = useMemo(() => {
     return filteredCampaigns.reduce((acc, c) => acc + Number(c.clicks || 0), 0);
@@ -1128,8 +1161,8 @@ export default function Dashboard() {
 
   const funnelApr = realApprovedSales;
   const funnelInic = Math.max(filteredOrders.length, funnelApr);
-  const funnelIcs = Math.max(pixelStats.initiateCheckouts || 0, funnelInic);
-  const funnelVis = Math.max(pixelStats.pageViews || 0, funnelIcs);
+  const funnelIcs = Math.max(effectivePixelStats.initiateCheckouts || 0, funnelInic);
+  const funnelVis = Math.max(effectivePixelStats.pageViews || 0, funnelIcs);
   const funnelClicks = Math.max(totalMetaClicks, funnelVis);
 
   const pctClicks = funnelClicks > 0 ? 100 : 0;

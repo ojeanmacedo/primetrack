@@ -69,7 +69,27 @@ export default function AppLayout() {
       .then(r => r.json())
       .then(orders => {
         if (Array.isArray(orders)) {
-          const approvedSum = orders
+          let targetOrders = orders;
+          if (activeDashboard && !activeDashboard.isDefault && activeDashboard.id !== 'principal') {
+            const hasCustomPlat = activeDashboard.platformType === 'custom' && Array.isArray(activeDashboard.platforms) && activeDashboard.platforms.length > 0;
+            const hasCustomProd = activeDashboard.productType === 'custom' && Boolean(activeDashboard.products?.trim());
+
+            targetOrders = orders.filter(o => {
+              if (o.dashboardId && o.dashboardId === activeDashboard.id) return true;
+              if (hasCustomPlat) {
+                const plat = (o.platform || o.gateway || '').toLowerCase();
+                if (!activeDashboard.platforms.some(p => plat.includes(p.toLowerCase()))) return false;
+              }
+              if (hasCustomProd) {
+                const prodName = (o.productName || '').toLowerCase();
+                if (!prodName.includes(activeDashboard.products.toLowerCase().trim())) return false;
+              }
+              if (!hasCustomPlat && !hasCustomProd && (!o.dashboardId || o.dashboardId !== activeDashboard.id)) return false;
+              return true;
+            });
+          }
+
+          const approvedSum = targetOrders
             .filter(o => o.status === 'approved' || o.status === 'paid' || o.status === 'pago')
             .reduce((acc, o) => acc + Number(o.amount || 0), 0);
           setTotalFaturado(approvedSum);
@@ -78,7 +98,7 @@ export default function AppLayout() {
         }
       })
       .catch(() => setTotalFaturado(0));
-  }, [location.pathname, user?.id]);
+  }, [location.pathname, user?.id, activeDashboard]);
 
   const userName = user?.name || user?.email?.split('@')[0] || 'Jean Macedo';
   const userInitials = user?.name 
