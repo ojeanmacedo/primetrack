@@ -375,6 +375,14 @@ export default function Integrations() {
 
   const handleGenerateToken = (e) => {
     if (e) e.preventDefault();
+    if (trialStatus.isTrial && apiTokens.length >= 1) {
+      setTrialLimitModal({
+        title: 'Limite do Plano Free Atingido',
+        message: 'No Plano Free você pode conectar 1 plataforma de vendas (webhook). Faça o upgrade para o Plano Pro para conectar múltiplas plataformas de checkout ilimitadas.',
+        ctaText: 'Ver Planos Pro'
+      });
+      return;
+    }
     const rawName = tokenInputName.trim() || 'Documentação';
     
     // Gera token de 48 caracteres hexadecimais no padrão pt_
@@ -424,6 +432,14 @@ export default function Integrations() {
 
   const handleGenerateConnectToken = (e) => {
     if (e) e.preventDefault();
+    if (trialStatus.isTrial && apiTokens.length >= 1) {
+      setTrialLimitModal({
+        title: 'Limite do Plano Free Atingido',
+        message: 'No Plano Free você pode conectar 1 plataforma de vendas (webhook). Faça o upgrade para o Plano Pro para conectar múltiplas plataformas de checkout ilimitadas.',
+        ctaText: 'Ver Planos Pro'
+      });
+      return;
+    }
     const platform = SUPPORTED_GATEWAY_PLATFORMS.find(p => p.name.toLowerCase() === selectedPlatformName.toLowerCase() || p.slug === selectedPlatformName.toLowerCase()) || {
       name: selectedPlatformName,
       slug: selectedPlatformName.toLowerCase().replace(/\s+/g, ''),
@@ -482,6 +498,15 @@ export default function Integrations() {
   };
 
   const handleQuickConnectPlatform = (platformOrName = 'Monsterpay') => {
+    if (trialStatus.isTrial && apiTokens.length >= 1) {
+      setShowConnectPlatformModal(false);
+      setTrialLimitModal({
+        title: 'Limite do Plano Free Atingido',
+        message: 'No Plano Free você pode conectar 1 plataforma de vendas (webhook). Faça o upgrade para o Plano Pro para conectar múltiplas plataformas de checkout ilimitadas.',
+        ctaText: 'Ver Planos Pro'
+      });
+      return;
+    }
     const platform = typeof platformOrName === 'object'
       ? platformOrName
       : SUPPORTED_GATEWAY_PLATFORMS.find(p => p.name.toLowerCase() === platformOrName.toLowerCase() || p.slug === platformOrName.toLowerCase()) || {
@@ -579,13 +604,13 @@ export default function Integrations() {
     } else {
       // Se está ativando
       if (trialStatus.isTrial) {
-        // No Plano Free de 7 dias, apenas 1 conta pode ficar ativa por vez!
+        // No Plano Free, apenas 1 conta pode ficar ativa por vez!
         // Desativa todas as outras e ativa esta
         updated = adAccounts.map(a => ({
           ...a,
           sync: a.id === accountId
         }));
-        setAccountSwitchToast(`Conta "${target.name}" ativada com sucesso! (No Plano Free de 7 dias, apenas 1 conta pode ficar ativa simultaneamente)`);
+        setAccountSwitchToast(`Conta "${target.name}" ativada com sucesso! (No Plano Free, 1 conta de anúncio ativa)`);
       } else {
         updated = adAccounts.map(a => a.id === accountId ? { ...a, sync: true } : a);
         setAccountSwitchToast(`Conta "${target.name}" ativada com sucesso.`);
@@ -625,7 +650,7 @@ export default function Integrations() {
     if (trialStatus.isTrial && trackingPixels.length >= 1) {
       setTrialLimitModal({
         title: 'Limite do Plano Free Atingido',
-        message: 'No período de teste de 7 dias gratuito você pode criar no máximo 1 pixel de rastreio. Faça o upgrade para o Plano Pro para criar múltiplos pixels ilimitados.',
+        message: 'No Plano Free você pode criar no máximo 1 pixel de rastreio. Faça o upgrade para o Plano Pro para criar múltiplos pixels ilimitados.',
         ctaText: 'Ver Planos Pro'
       });
       return;
@@ -1312,8 +1337,8 @@ export default function Integrations() {
               <h3 className="font-bold text-white text-sm flex items-center gap-2">
                 <span>Contas de Anúncio ({adAccounts.length})</span>
                 {trialStatus.isTrial && (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/20 font-bold">
-                    {adAccounts.filter(a => a.sync).length}/1 ativa no Trial
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/20 font-bold">
+                    {adAccounts.filter(a => a.sync).length}/1 ativa no Plano Free
                   </span>
                 )}
               </h3>
@@ -1477,8 +1502,8 @@ export default function Integrations() {
               <h3 className="font-bold text-white text-sm flex items-center gap-2">
                 <span>Pixels de Rastreio ({trackingPixels.length}/{trialStatus.isTrial ? 1 : '∞'})</span>
                 {trialStatus.isTrial && (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/20 font-bold">
-                    Máx 1 no Trial
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/20 font-bold">
+                    Máx 1 no Plano Free
                   </span>
                 )}
               </h3>
@@ -1489,7 +1514,7 @@ export default function Integrations() {
                     if (trialStatus.isTrial && trackingPixels.length >= 1) {
                       setTrialLimitModal({
                         title: 'Limite do Plano Free Atingido',
-                        message: 'No período de teste de 7 dias gratuito você pode criar no máximo 1 pixel de rastreio. Faça o upgrade para o Plano Pro para criar múltiplos pixels ilimitados.',
+                        message: 'No Plano Free você pode criar no máximo 1 pixel de rastreio da PrimeTrack. Faça o upgrade para o Plano Pro para criar múltiplos pixels ilimitados.',
                         ctaText: 'Ver Planos Pro'
                       });
                       return;
@@ -1806,10 +1831,10 @@ export default function Integrations() {
           <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl overflow-hidden shadow-md">
             <div className="p-4 border-b border-[#1E293B] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <h3 className="font-bold text-white text-sm flex items-center gap-2">
-                <span>Tokens de API ({apiTokens.length}/{trialStatus.isTrial ? 1 : 2})</span>
+                <span>Tokens de API ({apiTokens.length}/{trialStatus.isTrial ? 1 : '∞'})</span>
                 {trialStatus.isTrial && (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/20 font-bold">
-                    Máx 1 no Trial
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/20 font-bold">
+                    Máx 1 no Plano Free
                   </span>
                 )}
               </h3>
@@ -1817,6 +1842,14 @@ export default function Integrations() {
               <div className="flex items-center gap-2">
                 <button 
                   onClick={() => {
+                    if (trialStatus.isTrial && apiTokens.length >= 1) {
+                      setTrialLimitModal({
+                        title: 'Limite do Plano Free Atingido',
+                        message: 'No Plano Free você pode conectar 1 plataforma de vendas (webhook). Faça o upgrade para o Plano Pro para conectar múltiplas plataformas de checkout ilimitadas.',
+                        ctaText: 'Ver Planos Pro'
+                      });
+                      return;
+                    }
                     setShowConnectPlatformModal(true);
                     setConnectPlatformStep(1);
                     setSearchPlatform('');
@@ -1833,6 +1866,14 @@ export default function Integrations() {
                 </button>
                 <button 
                   onClick={() => {
+                    if (trialStatus.isTrial && apiTokens.length >= 1) {
+                      setTrialLimitModal({
+                        title: 'Limite do Plano Free Atingido',
+                        message: 'No Plano Free você pode conectar 1 plataforma de vendas (webhook). Faça o upgrade para o Plano Pro para conectar múltiplas plataformas de checkout ilimitadas.',
+                        ctaText: 'Ver Planos Pro'
+                      });
+                      return;
+                    }
                     setShowNewTokenModal(true);
                     setNewTokenStep(1);
                     setTokenInputName('Documentação');

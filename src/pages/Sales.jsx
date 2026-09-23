@@ -314,15 +314,15 @@ function resolveCustomerCityState(cust, o) {
               Vendas
             </h1>
             {trialStatus.isTrial && (
-              <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-amber-400" />
-                <span>{displayedSales.filter(s => s.capi === 'approved').length}/50 vendas aprovadas no Trial</span>
+              <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30 font-bold flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-blue-400" />
+                <span>{displayedSales.filter(s => s.capi === 'approved').length}/50 vendas aprovadas no Plano Free</span>
               </span>
             )}
           </div>
           <p className="text-xs text-zinc-400 font-sans mt-0.5">
             {trialStatus.isTrial 
-              ? `${displayedSales.length} vendas registradas (limite de 50 vendas no período de 7 dias gratuito)` 
+              ? `${displayedSales.length} vendas registradas (limite de 50 vendas no Plano Free)` 
               : `${displayedSales.length} vendas hoje`}
           </p>
         </div>

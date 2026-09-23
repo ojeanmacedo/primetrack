@@ -1785,19 +1785,21 @@ export default function Dashboard() {
   return (
     <div className="space-y-3 pb-12 font-sans select-none">
 
-      {/* Banner de Aviso no estilo exato da UTMify */}
+      {/* Banner do Plano Free */}
       {trialStatus.isTrial && (
-        <div className="bg-[#24131A] border border-red-900/40 rounded-xl px-4 py-2.5 text-xs text-red-400 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-sm">
-          <div>
-            <span className="font-bold text-red-400 mr-2">Conta teste ativo!</span>
-            <span className="text-red-300">
-              Seu período de avaliação gratuito está ativo ({trialStatus.daysLeft} dias restantes). Não interrompa seu crescimento agora.
+        <div className="bg-[#141C2E] border border-blue-500/25 rounded-xl px-4 py-2.5 text-xs text-zinc-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-sm">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="px-2 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-400 font-bold text-[11px] font-mono">
+              Plano Free
+            </span>
+            <span className="text-zinc-300">
+              Sua conta possui acesso a 1 conta de anúncio ativa, 1 pixel PrimeTrack e 1 webhook de vendas.
             </span>
             <button 
               onClick={() => navigate('/planos')}
-              className="underline text-red-400 hover:text-red-300 ml-2 font-semibold cursor-pointer"
+              className="text-[#0066FF] hover:underline font-semibold cursor-pointer ml-1"
             >
-              Gerenciar assinatura
+              Fazer upgrade para o Pro →
             </button>
           </div>
         </div>

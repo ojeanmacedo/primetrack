@@ -265,15 +265,15 @@ export default function Account() {
                       </div>
                       <div>
                         <div className="text-xs font-bold text-white flex items-center gap-2">
-                          <span>Plano {isPro ? 'Pro' : 'Gratuito'}</span>
+                          <span>Plano {isPro ? 'Pro' : 'Free'}</span>
                           <span className={`text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded ${
-                            isPro ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-zinc-500/10 text-zinc-400'
+                            isPro ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-blue-500/10 border border-blue-500/20 text-blue-400'
                           }`}>
-                            {isPro ? 'Ativo' : 'Trial'}
+                            {isPro ? 'Ativo' : 'Plano Free'}
                           </span>
                         </div>
                         <p className="text-[11px] text-zinc-400">
-                          {isPro ? 'Acesso ilimitado a todas as métricas, pixels e integrações' : 'Período de avaliação'}
+                          {isPro ? 'Acesso ilimitado a todas as métricas, pixels e integrações' : '1 conta de anúncio ativa, 1 pixel e 1 webhook de vendas'}
                         </p>
                       </div>
                     </div>
