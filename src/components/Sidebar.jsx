@@ -184,6 +184,13 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }
       localStorage.setItem('primetrack_active_dashboard_id', dash.id);
       window.dispatchEvent(new CustomEvent('primetrack_dashboard_changed', { detail: dash }));
     }
+    if (path === '/integracoes') {
+      try {
+        sessionStorage.removeItem('primetrack_integrations_active_tab');
+        localStorage.removeItem('primetrack_integrations_active_tab');
+      } catch (e) {}
+      window.dispatchEvent(new Event('primetrack_integrations_nav'));
+    }
     navigate(path);
   };
 
@@ -371,6 +378,15 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }
                     <NavLink
                       key={item.label}
                       to={item.to}
+                      onClick={() => {
+                        if (item.to === '/integracoes') {
+                          try {
+                            sessionStorage.removeItem('primetrack_integrations_active_tab');
+                            localStorage.removeItem('primetrack_integrations_active_tab');
+                          } catch (e) {}
+                          window.dispatchEvent(new Event('primetrack_integrations_nav'));
+                        }
+                      }}
                       title={collapsed && !mobileOpen ? item.label : undefined}
                       className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
                         isActive

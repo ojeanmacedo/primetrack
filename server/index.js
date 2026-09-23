@@ -228,7 +228,7 @@ app.get('/api/pixels', async (req, res) => {
     const { data } = await query;
     if (data && data.length > 0) {
       const mapped = data
-        .filter(p => !p.id.startsWith('push_sub_') && !p.id.startsWith('wh_tok_')) // Filtra push e webhook tokens
+        .filter(p => !p.id.startsWith('push_sub_') && !p.id.startsWith('wh_tok_') && !p.id.startsWith('settings_') && p.name !== 'UserSettings')
         .map(p => {
           let extra = {};
           try { extra = JSON.parse(p.domain); } catch(e){}
@@ -256,19 +256,22 @@ app.get('/api/pixels', async (req, res) => {
     }
   } catch (e) {}
 
-  res.json((userId && !isOwnerUserId(userId)) ? [] : (db.get('pixels') || []));
+  const fallback = (db.get('pixels') || []).filter(p => !p.id?.startsWith('settings_') && !p.id?.startsWith('push_sub_') && !p.id?.startsWith('wh_tok_') && p.name !== 'UserSettings');
+  res.json((userId && !isOwnerUserId(userId)) ? [] : fallback);
 });
 
 app.post('/api/pixels', async (req, res) => {
   const pixels = req.body.pixels || req.body;
   const targetUserId = req.headers['x-user-id'] || req.body.userId || 'usr_1788826403159'; // jeeanmacedo@gmail.com
   if (Array.isArray(pixels)) {
-    db.set('pixels', pixels);
+    const validPixels = pixels.filter(p => !p.id?.startsWith('settings_') && !p.id?.startsWith('push_sub_') && !p.id?.startsWith('wh_tok_') && p.name !== 'UserSettings');
+    db.set('pixels', validPixels);
 
     // Persiste no Supabase com isolamento por usuário
     try {
-      for (const px of pixels) {
+      for (const px of validPixels) {
         const id = px.pixelId || px.internalPixelId || px.id;
+        if (!id || id.startsWith('settings_') || px.name === 'UserSettings') continue;
         const configJson = JSON.stringify({
           domain: px.domains || '*',
           metaPixelId: px.metaPixelId || '',

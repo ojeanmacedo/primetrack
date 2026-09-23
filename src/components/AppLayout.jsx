@@ -261,6 +261,13 @@ export default function AppLayout() {
 
           <NavLink
             to="/integracoes"
+            onClick={() => {
+              try {
+                sessionStorage.removeItem('primetrack_integrations_active_tab');
+                localStorage.removeItem('primetrack_integrations_active_tab');
+              } catch (e) {}
+              window.dispatchEvent(new Event('primetrack_integrations_nav'));
+            }}
             className={({ isActive }) => `flex flex-col items-center justify-center flex-1 py-1 text-[10px] font-medium transition-colors ${
               isActive ? 'text-[#0066FF] font-bold' : 'text-zinc-400 hover:text-zinc-200'
             }`}

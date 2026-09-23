@@ -35,6 +35,13 @@ const INTEGRATION_TABS = [
   'Baixe nosso App'
 ];
 
+let isWindowUnloading = false;
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    isWindowUnloading = true;
+  });
+}
+
 export default function Integrations() {
   const navigate = useNavigate();
   const currentUser = getCurrentUser();
@@ -46,9 +53,25 @@ export default function Integrations() {
 
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window !== 'undefined') {
-      const savedTab = localStorage.getItem('primetrack_integrations_active_tab');
-      if (savedTab && INTEGRATION_TABS.includes(savedTab)) {
-        return savedTab;
+      let isReload = false;
+      try {
+        const navEntries = performance.getEntriesByType('navigation');
+        if (navEntries && navEntries.length > 0) {
+          isReload = navEntries[0].type === 'reload';
+        } else if (window.performance && window.performance.navigation) {
+          isReload = window.performance.navigation.type === 1;
+        }
+      } catch (e) {}
+
+      // Só mantém na mesma aba se a página foi explicitamente recarregada (F5 / Refresh)
+      if (isReload) {
+        const savedTab = sessionStorage.getItem('primetrack_integrations_active_tab');
+        if (savedTab && INTEGRATION_TABS.includes(savedTab)) {
+          return savedTab;
+        }
+      } else {
+        sessionStorage.removeItem('primetrack_integrations_active_tab');
+        localStorage.removeItem('primetrack_integrations_active_tab');
       }
     }
     return 'Facebook Ads';
@@ -57,9 +80,35 @@ export default function Integrations() {
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('primetrack_integrations_active_tab', tab);
+      sessionStorage.setItem('primetrack_integrations_active_tab', tab);
+      localStorage.removeItem('primetrack_integrations_active_tab');
     }
   };
+
+  // Se o usuário clicar em "Integrações" em qualquer lugar do menu, reseta imediatamente para Facebook Ads
+  useEffect(() => {
+    const handleNavReset = () => {
+      setActiveTab('Facebook Ads');
+      try {
+        sessionStorage.removeItem('primetrack_integrations_active_tab');
+        localStorage.removeItem('primetrack_integrations_active_tab');
+      } catch (e) {}
+    };
+    window.addEventListener('primetrack_integrations_nav', handleNavReset);
+    return () => window.removeEventListener('primetrack_integrations_nav', handleNavReset);
+  }, []);
+
+  // Ao sair de Integrações para outra página (desmontagem SPA sem F5), limpa a aba salva para sempre reabrir em Facebook Ads
+  useEffect(() => {
+    return () => {
+      try {
+        if (!isWindowUnloading) {
+          sessionStorage.removeItem('primetrack_integrations_active_tab');
+          localStorage.removeItem('primetrack_integrations_active_tab');
+        }
+      } catch (e) {}
+    };
+  }, []);
   const [copiedUTM, setCopiedUTM] = useState(false);
   const [copiedPixel, setCopiedPixel] = useState(false);
   const [copiedConnectLink, setCopiedConnectLink] = useState(false);
@@ -127,7 +176,9 @@ export default function Integrations() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) {
+          return parsed.filter(p => p && p.name !== 'UserSettings' && !String(p.id || '').startsWith('settings_'));
+        }
       } catch (e) {}
     }
     return [];
@@ -342,6 +393,7 @@ export default function Integrations() {
       badge: 'Nativa',
       badgeColor: 'emerald',
       type: 'token',
+      logo: '/logos/monsterpay.png',
       tutorialUrl: 'https://docs.primetrack.top',
       description: 'Integração direta via token no painel da Monsterpay'
     },
@@ -352,6 +404,7 @@ export default function Integrations() {
       badge: 'Webhook',
       badgeColor: 'blue',
       type: 'webhook_url',
+      logo: '/logos/perfectpay.png',
       tutorialUrl: 'https://docs.primetrack.top',
       description: 'Envio automático de pedidos via URL de Webhook'
     },
@@ -362,6 +415,7 @@ export default function Integrations() {
       badge: 'Webhook',
       badgeColor: 'blue',
       type: 'webhook_url',
+      logo: '/logos/hotmart.png',
       tutorialUrl: 'https://docs.primetrack.top',
       description: 'Integração via Webhook no painel da Hotmart'
     },
@@ -372,10 +426,20 @@ export default function Integrations() {
       badge: 'Webhook',
       badgeColor: 'blue',
       type: 'webhook_url',
+      logo: '/logos/kiwify.png',
       tutorialUrl: 'https://docs.primetrack.top',
       description: 'Integração via Webhook no painel da Kiwify'
     }
   ];
+
+  const getPlatformLogo = (platformNameOrSlug) => {
+    const norm = String(platformNameOrSlug || '').toLowerCase();
+    if (norm.includes('monster')) return '/logos/monsterpay.png';
+    if (norm.includes('perfect')) return '/logos/perfectpay.png';
+    if (norm.includes('hotmart')) return '/logos/hotmart.png';
+    if (norm.includes('kiwify')) return '/logos/kiwify.png';
+    return null;
+  };
 
   const handleGenerateToken = (e) => {
     if (e) e.preventDefault();
@@ -1135,9 +1199,10 @@ export default function Integrations() {
       .then(res => res.json())
       .then(pixels => {
         if (Array.isArray(pixels)) {
-          setTrackingPixels(pixels);
+          const cleanPixels = pixels.filter(p => p && p.name !== 'UserSettings' && !String(p.id || '').startsWith('settings_'));
+          setTrackingPixels(cleanPixels);
           if (typeof window !== 'undefined') {
-            localStorage.setItem('primetrack_pixels', JSON.stringify(pixels));
+            localStorage.setItem('primetrack_pixels', JSON.stringify(cleanPixels));
           }
         }
       })
@@ -1982,9 +2047,16 @@ export default function Integrations() {
                       return (
                         <tr key={tok.id} className="hover:bg-[#182236]/50 transition-colors">
                           <td className="py-4 px-4 font-bold text-white">
-                            <span className="px-2.5 py-0.5 rounded-full bg-[#0066FF] text-white font-mono text-[10px] font-bold">
-                              {displayName}
-                            </span>
+                            <div className="flex items-center gap-2.5">
+                              {getPlatformLogo(displayName) && (
+                                <div className="w-6 h-6 rounded-md bg-[#141C2E] border border-[#1E293B] flex items-center justify-center p-0.5 shrink-0 overflow-hidden">
+                                  <img src={getPlatformLogo(displayName)} alt={displayName} className="w-full h-full object-contain" />
+                                </div>
+                              )}
+                              <span className="px-2.5 py-0.5 rounded-full bg-[#0066FF] text-white font-mono text-[10px] font-bold">
+                                {displayName}
+                              </span>
+                            </div>
                           </td>
                           <td className="py-4 px-4 font-mono text-zinc-300">
                             {effectiveWebhookUrl ? (
@@ -2597,10 +2669,22 @@ export default function Integrations() {
                       <div 
                         key={platform.id}
                         onClick={() => handleQuickConnectPlatform(platform)}
-                        className="bg-[#0D1424] hover:bg-[#182236] border border-[#1E293B] hover:border-[#0066FF] rounded-xl p-4 transition-all cursor-pointer group flex items-center justify-between shadow-sm"
+                        className="bg-[#0D1424] hover:bg-[#182236] border border-[#1E293B] hover:border-[#0066FF] rounded-xl p-3.5 transition-all cursor-pointer group flex items-center justify-between shadow-sm"
                       >
-                        <span className="font-bold text-white text-sm group-hover:text-[#5C9BFF] transition-colors">{platform.name}</span>
-                        <div className="w-6 h-6 rounded-lg bg-[#141C2E] group-hover:bg-[#0066FF] text-zinc-400 group-hover:text-white flex items-center justify-center transition-all">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-[#141C2E] border border-[#1E293B] flex items-center justify-center p-1.5 shrink-0 overflow-hidden group-hover:border-[#0066FF]/60 transition-colors shadow-inner">
+                            {platform.logo ? (
+                              <img src={platform.logo} alt={platform.name} className="w-full h-full object-contain" />
+                            ) : (
+                              <span className="text-sm font-bold text-white">{platform.name.charAt(0)}</span>
+                            )}
+                          </div>
+                          <div>
+                            <span className="font-bold text-white text-sm group-hover:text-[#5C9BFF] transition-colors block">{platform.name}</span>
+                            <span className="text-[10px] text-zinc-400 font-sans block">{platform.type === 'token' ? 'Integração Nativa' : 'Webhook'}</span>
+                          </div>
+                        </div>
+                        <div className="w-7 h-7 rounded-lg bg-[#141C2E] group-hover:bg-[#0066FF] text-zinc-400 group-hover:text-white flex items-center justify-center transition-all shrink-0">
                           <Plus className="w-3.5 h-3.5" />
                         </div>
                       </div>
@@ -2617,8 +2701,15 @@ export default function Integrations() {
             {/* PASSO 2: Apelido do Token (Opcional) */}
             {connectPlatformStep === 2 && (
               <form onSubmit={handleGenerateConnectToken} className="space-y-5 animate-in fade-in duration-150">
-                <div className="text-xs text-zinc-400 font-sans">
-                  Plataforma: <strong className="text-[#5C9BFF] font-bold">{selectedPlatformName}</strong>
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-[#0D1424] border border-[#1E293B]">
+                  {getPlatformLogo(selectedPlatformName) && (
+                    <div className="w-9 h-9 rounded-xl bg-[#141C2E] border border-[#1E293B] flex items-center justify-center p-1.5 shrink-0 overflow-hidden">
+                      <img src={getPlatformLogo(selectedPlatformName)} alt={selectedPlatformName} className="w-full h-full object-contain" />
+                    </div>
+                  )}
+                  <div className="text-xs text-zinc-400 font-sans">
+                    Plataforma selecionada: <strong className="text-white font-bold text-sm block">{selectedPlatformName}</strong>
+                  </div>
                 </div>
 
                 <div>
@@ -2657,9 +2748,15 @@ export default function Integrations() {
             {/* PASSO 3: Resultado Gerado (Conforme Screenshot do Usuário) */}
             {connectPlatformStep === 3 && (
               <div className="space-y-5 animate-in fade-in duration-150">
-                {/* Banner de Sucesso verde idêntico ao print */}
-                <div className="p-3.5 rounded-xl bg-[#0D1424] border border-[#1E293B] text-[#4ADE80] text-xs flex items-center gap-2 font-medium">
-                  <CheckCircle2 className="w-4 h-4 text-[#4ADE80] shrink-0" />
+                {/* Banner de Sucesso verde */}
+                <div className="p-3.5 rounded-xl bg-[#0D1424] border border-[#1E293B] text-[#4ADE80] text-xs flex items-center gap-3 font-medium">
+                  {getPlatformLogo(selectedPlatformName) ? (
+                    <div className="w-8 h-8 rounded-lg bg-[#141C2E] border border-[#1E293B] flex items-center justify-center p-1 shrink-0 overflow-hidden">
+                      <img src={getPlatformLogo(selectedPlatformName)} alt={selectedPlatformName} className="w-full h-full object-contain" />
+                    </div>
+                  ) : (
+                    <CheckCircle2 className="w-5 h-5 text-[#4ADE80] shrink-0" />
+                  )}
                   <span>
                     Pronto! Copie abaixo e cole no painel da <strong className="text-[#38BDF8] font-bold">{selectedPlatformName}</strong>.
                   </span>
