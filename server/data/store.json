@@ -18826,14 +18826,14 @@
   "facebook_connections": [
     {
       "id": "122109599696599930",
-      "userId": "usr_1788826403159",
-      "user_id": "usr_1788826403159",
+      "userId": "usr_1790177682943",
+      "user_id": "usr_1790177682943",
       "name": "Angel Kerry",
-      "email": "{\"activeAccounts\":[\"1095793299643643\",\"2013649985959956\",\"719933136445425\",\"4357287371268652\",\"1387392810034708\"]}",
-      "avatarUrl": "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=122109599696599930&height=200&width=200&ext=1791750901&hash=AfuRPM5C4M3vhYUtaqouDSEs",
-      "accessToken": "EAAXc4rzj1ukBSTcASkKPXisoeeyxx5gZAUZA7gcvjr9YnGBZCOc8SoxMHJP5X6ru3ZC7ArzWwCmwMM38OhYJJcurVJAithNMWi9MrQn0ZCVD4AAvoYT0ybsZCjruuwKAIUeH869tEylxiCXasGLkxPpEW0PLF6DlS4HOsRNiZCQ3UDQARdoX0vjYAC0fLalnumGV0gTtjbBevg7",
+      "email": "{\"activeAccounts\":[]}",
+      "avatarUrl": "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=122109599696599930&height=200&width=200&ext=1792769713&hash=AfuvJSmI_wQSjrftuEkeZV4X",
+      "accessToken": "EAAXc4rzj1ukBSnYn3jrhUbNZCvCc5NU2PF3PYSHY2cuqg1n4z8MCroDVLyvDUKAP4UkiXzcfjSvbFy1bbECiKYRMhpjL2TuAWMkLCv8zrwmdreQUU83OJZAytR9hZAWcgoZBhQi1tRZBblwgYDGjfaBUxOXkENCCcYOxNp7gEDFGd3pZARUZBj0vo6xcEvTZBogYCDRcLDO7QNxDrWZAt",
       "accountsCount": 8,
-      "connectedAt": "2026-09-11T20:35:01.97+00:00"
+      "connectedAt": "2026-09-23T15:35:14.13+00:00"
     }
   ],
   "ad_accounts": [
@@ -18850,7 +18850,7 @@
       "status": "Bloqueada",
       "amountSpent": "321.27",
       "balance": "0.00",
-      "syncActive": true
+      "syncActive": false
     },
     {
       "id": "act_2013649985959956",
@@ -18865,7 +18865,7 @@
       "status": "Bloqueada",
       "amountSpent": "636.43",
       "balance": "0.00",
-      "syncActive": true
+      "syncActive": false
     },
     {
       "id": "act_1084136023986167",
@@ -18895,7 +18895,7 @@
       "status": "Bloqueada",
       "amountSpent": "329.47",
       "balance": "0.00",
-      "syncActive": true
+      "syncActive": false
     },
     {
       "id": "act_4357287371268652",
@@ -18910,7 +18910,7 @@
       "status": "Bloqueada",
       "amountSpent": "74.15",
       "balance": "0.00",
-      "syncActive": true
+      "syncActive": false
     },
     {
       "id": "act_1101817232408751",
@@ -18955,7 +18955,127 @@
       "status": "Ativa",
       "amountSpent": "0.00",
       "balance": "0.00",
-      "syncActive": true
+      "syncActive": false
+    },
+    {
+      "id": "act_1095793299643643",
+      "accountId": "1095793299643643",
+      "userId": "usr_1790177682943",
+      "user_id": "usr_1790177682943",
+      "profileId": "122109599696599930",
+      "profileName": "Angel Kerry",
+      "name": "CA03",
+      "businessName": "DIGITAL JM SOLUCOES LTDA",
+      "currency": "BRL",
+      "status": "Bloqueada",
+      "amountSpent": "321.27",
+      "balance": "0.00",
+      "syncActive": false
+    },
+    {
+      "id": "act_2013649985959956",
+      "accountId": "2013649985959956",
+      "userId": "usr_1790177682943",
+      "user_id": "usr_1790177682943",
+      "profileId": "122109599696599930",
+      "profileName": "Angel Kerry",
+      "name": "CA03 JEFFREY",
+      "businessName": "DIGITAL MEI",
+      "currency": "USD",
+      "status": "Bloqueada",
+      "amountSpent": "641.04",
+      "balance": "0.00",
+      "syncActive": false
+    },
+    {
+      "id": "act_1084136023986167",
+      "accountId": "1084136023986167",
+      "userId": "usr_1790177682943",
+      "user_id": "usr_1790177682943",
+      "profileId": "122109599696599930",
+      "profileName": "Angel Kerry",
+      "name": "CA01 BM2",
+      "businessName": "Maringá lanches",
+      "currency": "USD",
+      "status": "Bloqueada",
+      "amountSpent": "449.33",
+      "balance": "0.00",
+      "syncActive": false
+    },
+    {
+      "id": "act_719933136445425",
+      "accountId": "719933136445425",
+      "userId": "usr_1790177682943",
+      "user_id": "usr_1790177682943",
+      "profileId": "122109599696599930",
+      "profileName": "Angel Kerry",
+      "name": "CA01",
+      "businessName": "DIGITAL JM SOLUCOES LTDA",
+      "currency": "BRL",
+      "status": "Bloqueada",
+      "amountSpent": "329.47",
+      "balance": "0.00",
+      "syncActive": false
+    },
+    {
+      "id": "act_4357287371268652",
+      "accountId": "4357287371268652",
+      "userId": "usr_1790177682943",
+      "user_id": "usr_1790177682943",
+      "profileId": "122109599696599930",
+      "profileName": "Angel Kerry",
+      "name": "CA02",
+      "businessName": "DIGITAL JM SOLUCOES LTDA",
+      "currency": "BRL",
+      "status": "Bloqueada",
+      "amountSpent": "74.15",
+      "balance": "0.00",
+      "syncActive": false
+    },
+    {
+      "id": "act_1101817232408751",
+      "accountId": "1101817232408751",
+      "userId": "usr_1790177682943",
+      "user_id": "usr_1790177682943",
+      "profileId": "122109599696599930",
+      "profileName": "Angel Kerry",
+      "name": "CA02 JEFFREY",
+      "businessName": "DIGITAL MEI",
+      "currency": "USD",
+      "status": "Bloqueada",
+      "amountSpent": "448.55",
+      "balance": "0.00",
+      "syncActive": false
+    },
+    {
+      "id": "act_1588922422580250",
+      "accountId": "1588922422580250",
+      "userId": "usr_1790177682943",
+      "user_id": "usr_1790177682943",
+      "profileId": "122109599696599930",
+      "profileName": "Angel Kerry",
+      "name": "CA01 JEFFREY",
+      "businessName": "DIGITAL MEI",
+      "currency": "USD",
+      "status": "Ativa",
+      "amountSpent": "430.48",
+      "balance": "0.00",
+      "syncActive": false
+    },
+    {
+      "id": "act_1387392810034708",
+      "accountId": "1387392810034708",
+      "userId": "usr_1790177682943",
+      "user_id": "usr_1790177682943",
+      "profileId": "122109599696599930",
+      "profileName": "Angel Kerry",
+      "name": "Angel Kerry",
+      "businessName": "BM Principal",
+      "currency": "USD",
+      "status": "Ativa",
+      "amountSpent": "0.00",
+      "balance": "0.00",
+      "syncActive": false
     }
   ],
   "meta_ads": [

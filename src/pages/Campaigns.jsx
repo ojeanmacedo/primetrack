@@ -630,7 +630,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             // Prioridade: status retornado do backend / sincronizado > fallback para localStorage
             const isSyncActive = a.syncActive !== undefined
               ? (a.syncActive === true)
-              : (localSyncMap[accId] !== undefined ? localSyncMap[accId] === true : true);
+              : (localSyncMap[accId] !== undefined ? localSyncMap[accId] === true : false);
 
             return {
               name: a.name || 'Conta',
@@ -644,19 +644,17 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             };
           });
 
-        const activeAccs = mappedAccs.filter(a => a.sync === true);
-        const finalAccsList = activeAccs.length > 0 ? activeAccs : mappedAccs;
-
-        setAdAccountsList(finalAccsList);
+        // Salva a lista completa com os status atualizados para manter sincronizado com Integrações
         if (typeof window !== 'undefined') {
-          localStorage.setItem('primetrack_ad_accounts', JSON.stringify(finalAccsList));
+          localStorage.setItem('primetrack_ad_accounts', JSON.stringify(mappedAccs));
         }
 
-        if (accountFilter !== 'Todas' && !finalAccsList.some(a => a.id === accountFilter || a.name === accountFilter)) {
-          const existsInAll = mappedAccs.some(a => a.id === accountFilter || a.name === accountFilter);
-          if (!existsInAll) {
-            setAccountFilter('Todas');
-          }
+        // Em Campanhas, APENAS as contas marcadas como ativas (sync === true) em Integrações devem ser exibidas!
+        const activeAccs = mappedAccs.filter(a => a.sync === true);
+        setAdAccountsList(activeAccs);
+
+        if (accountFilter !== 'Todas' && !activeAccs.some(a => a.id === accountFilter || a.name === accountFilter)) {
+          setAccountFilter('Todas');
         }
       } else if (data && Array.isArray(data.adAccounts) && data.adAccounts.length === 0) {
         setAdAccountsList([]);
@@ -885,10 +883,19 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
     // Dispara sincronização direta com a API do Meta Ads
     try {
+      const activeUser = user || getCurrentUser();
       const res = await fetch('/api/campaigns/status', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: targetId, status: nextStatus })
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-user-id': activeUser?.id || ''
+        },
+        body: JSON.stringify({ 
+          id: targetId, 
+          status: nextStatus,
+          userId: activeUser?.id,
+          accountId: accountFilter !== 'Todas' ? accountFilter : null
+        })
       });
       const data = await res.json();
       if (data && data.metaSynced) {
@@ -1036,10 +1043,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         payload.bidStrategy = editStrategy;
       }
 
+      const activeUser = user || getCurrentUser();
       const res = await fetch('/api/campaigns/update', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-user-id': activeUser?.id || ''
+        },
+        body: JSON.stringify({ ...payload, userId: activeUser?.id })
       });
       const data = await res.json();
       if (data.metaError) {
@@ -1134,7 +1145,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       const res = await fetch('/api/campaigns/status-bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(user?.id ? { 'x-user-id': user.id } : {}) },
-        body: JSON.stringify({ ids, status: enable })
+        body: JSON.stringify({ 
+          ids, 
+          status: enable,
+          userId: user?.id,
+          accountId: accountFilter !== 'Todas' ? accountFilter : null
+        })
       });
       const data = await res.json();
       if (data && data.success) {
@@ -1256,8 +1272,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
         const res = await fetch('/api/campaigns/update', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-user-id': user?.id || ''
+          },
+          body: JSON.stringify({ ...payload, userId: user?.id })
         });
         const data = await res.json();
         if (data.metaError) {
@@ -2710,12 +2729,18 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               onChange={e => setAccountFilter(e.target.value)}
               className="bg-transparent text-white font-semibold text-xs focus:outline-none cursor-pointer max-w-[160px] sm:max-w-[180px] truncate"
             >
-              <option value="Todas" className="bg-[#141C2E] text-white">Todas as Contas ({adAccountsList.length})</option>
-              {adAccountsList.map(acc => (
-                <option key={acc.id} value={acc.id} className="bg-[#141C2E] text-white">
-                  {acc.name} ({acc.id.slice(-4)})
-                </option>
-              ))}
+              {adAccountsList.length === 0 ? (
+                <option value="Todas" className="bg-[#141C2E] text-zinc-400">Nenhuma conta ativa (0)</option>
+              ) : (
+                <>
+                  <option value="Todas" className="bg-[#141C2E] text-white">Todas as Contas Ativas ({adAccountsList.length})</option>
+                  {adAccountsList.map(acc => (
+                    <option key={acc.id} value={acc.id} className="bg-[#141C2E] text-white">
+                      {acc.name} ({acc.id.slice(-4)})
+                    </option>
+                  ))}
+                </>
+              )}
             </select>
           </div>
 

@@ -2823,7 +2823,7 @@ app.get('/api/auth/facebook/callback', async (req, res) => {
       userId: callbackUserId,
       user_id: callbackUserId,
       name: userProfile.name,
-      email: userProfile.email,
+      email: JSON.stringify({ activeAccounts: [] }),
       avatarUrl: userProfile.avatarUrl,
       accessToken,
       tokenType: tokenData.tokenType,
@@ -2840,7 +2840,7 @@ app.get('/api/auth/facebook/callback', async (req, res) => {
         id: userProfile.id,
         user_id: callbackUserId,
         name: userProfile.name,
-        email: userProfile.email || null,
+        email: JSON.stringify({ activeAccounts: [] }),
         avatar_url: userProfile.avatarUrl || null,
         access_token: accessToken,
         accounts_count: adAccounts.length,
@@ -2850,18 +2850,16 @@ app.get('/api/auth/facebook/callback', async (req, res) => {
       console.warn('[Supabase Conexão Meta] Aviso ao persistir no Supabase:', supaErr.message);
     }
 
-    // Salva as contas de anúncios no Banco de Dados
+    // Salva as contas de anúncios no Banco de Dados (Iniciam 100% desativadas para o usuário escolher em Integrações)
     const existingAccounts = db.get('ad_accounts') || [];
     const accountsWithProfile = adAccounts.map(acc => {
-      const cleanId = (acc.accountId || acc.id || '').replace('act_', '');
-      const prev = existingAccounts.find(a => (a.accountId || a.id || '').replace('act_', '') === cleanId);
       return {
         ...acc,
         userId: callbackUserId,
         user_id: callbackUserId,
         profileId: userProfile.id,
         profileName: userProfile.name,
-        syncActive: prev ? prev.syncActive !== false : true
+        syncActive: false
       };
     });
     
@@ -2996,7 +2994,7 @@ export async function reconcileFacebookData(force = false, userId = null) {
           status: acc.status || 'Ativa',
           amountSpent: String(acc.amountSpent || '0.00'),
           balance: String(acc.balance || '0.00'),
-          syncActive: activeSet.size === 0 ? true : activeSet.has(cleanId)
+          syncActive: activeSet.has(cleanId)
         };
       });
     } catch (err) {
@@ -3062,7 +3060,7 @@ export async function reconcileFacebookData(force = false, userId = null) {
             status: a.status || 'Ativa',
             amountSpent: String(a.amount_spent || '0.00'),
             balance: String(a.balance || '0.00'),
-            syncActive: activeSet.size === 0 ? true : activeSet.has(cleanId)
+            syncActive: activeSet.has(cleanId)
           };
         });
       }
@@ -3171,7 +3169,7 @@ app.post('/api/meta/connect-token', async (req, res) => {
       userId: targetUserId,
       user_id: targetUserId,
       name: userProfile.name,
-      email: userProfile.email || null,
+      email: JSON.stringify({ activeAccounts: [] }),
       avatarUrl: userProfile.avatarUrl || null,
       accessToken: cleanToken,
       accountsCount: adAccounts.length,
@@ -3186,7 +3184,7 @@ app.post('/api/meta/connect-token', async (req, res) => {
         id: userProfile.id,
         user_id: targetUserId,
         name: userProfile.name,
-        email: userProfile.email || null,
+        email: JSON.stringify({ activeAccounts: [] }),
         avatar_url: userProfile.avatarUrl || null,
         access_token: cleanToken,
         accounts_count: adAccounts.length,
@@ -3204,7 +3202,7 @@ app.post('/api/meta/connect-token', async (req, res) => {
         user_id: targetUserId,
         profileId: userProfile.id,
         profileName: userProfile.name,
-        syncActive: true
+        syncActive: false
       }));
       const otherAccounts = existingAccounts.filter(a => a.profileId !== userProfile.id);
       db.set('ad_accounts', [...otherAccounts, ...accountsWithProfile]);
@@ -3378,19 +3376,11 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
     const actClean = accountId.replace('act_', '');
     targetAccounts = allAdAccounts.filter(a => a.id === accountId || a.id === `act_${actClean}` || a.accountId === actClean);
   } else {
-    // Sincroniza contas marcadas com syncActive ou todas as contas com status Ativa/ACTIVE
+    // Sincroniza apenas contas expressamente ativadas pelo usuário em Integrações
     targetAccounts = allAdAccounts.filter(a => a.syncActive === true);
-    if (targetAccounts.length === 0) {
-      targetAccounts = allAdAccounts.filter(a => a.status === 'Ativa' || a.status === 'ACTIVE' || !a.status);
-    }
   }
 
-  // Se ainda estiver vazio, usa todas as contas disponíveis
-  if (targetAccounts.length === 0 && allAdAccounts.length > 0) {
-    targetAccounts = allAdAccounts;
-  }
-
-  // Se nenhuma conta estiver ativa nas integrações, não puxa nada
+  // Se nenhuma conta estiver ativa nas integrações, não puxa nada e retorna vazio
   if (targetAccounts.length === 0) {
     return { 
       success: true, 
@@ -3902,10 +3892,65 @@ app.post('/api/meta/disconnect', async (req, res) => {
   }
 });
 
+// Helper centralizado para obter Access Token válido e atualizado da Meta
+export async function getValidMetaAccessToken(userId = null, targetAccountId = null) {
+  // 1. Prioridade máxima: Supabase (busca a conexão mais recente e com token válido)
+  try {
+    let q = supabaseAdmin.from('facebook_connections').select('*').order('connected_at', { ascending: false });
+    if (userId) {
+      if (isOwnerUserId(userId)) {
+        q = q.or(`user_id.in.(${OWNER_USER_IDS.join(',')}),user_id.is.null`);
+      } else {
+        q = q.eq('user_id', userId);
+      }
+    }
+    const { data: supaConns } = await q;
+    if (supaConns && supaConns.length > 0) {
+      for (const conn of supaConns) {
+        if (conn.access_token && conn.access_token.trim().length > 15) {
+          return conn.access_token.trim();
+        }
+      }
+    }
+
+    // Se não encontrou filtrando por userId específico, busca a conexão mais recente globalmente
+    const { data: latestConns } = await supabaseAdmin
+      .from('facebook_connections')
+      .select('*')
+      .order('connected_at', { ascending: false })
+      .limit(5);
+
+    if (latestConns && latestConns.length > 0) {
+      for (const conn of latestConns) {
+        if (conn.access_token && conn.access_token.trim().length > 15) {
+          return conn.access_token.trim();
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[getValidMetaAccessToken Supabase Warning]:', e.message);
+  }
+
+  // 2. Fallback: banco local ordenado pelo mais recente
+  const allLocal = db.get('facebook_connections') || [];
+  const filtered = userId
+    ? allLocal.filter(c => isOwnerUserId(userId) ? (!c.userId || isOwnerUserId(c.userId) || !c.user_id || isOwnerUserId(c.user_id)) : (c.userId === userId || c.user_id === userId))
+    : allLocal;
+
+  const pool = filtered.length > 0 ? filtered : allLocal;
+  if (pool.length > 0) {
+    const sorted = [...pool].sort((a, b) => new Date(b.connectedAt || b.connected_at || 0) - new Date(a.connectedAt || a.connected_at || 0));
+    return sorted[0].accessToken || sorted[0].access_token || null;
+  }
+
+  return null;
+}
+
 // F. Atualizar Status no Gerenciador Meta Ads (Ligar / Desligar Campanha, Conjunto ou Anúncio)
 app.post('/api/campaigns/status', async (req, res) => {
   try {
-    const { id, status } = req.body;
+    const { id, status, userId: bodyUserId, accountId } = req.body;
+    const userId = req.headers['x-user-id'] || bodyUserId || req.query.userId || null;
     if (!id) return res.status(400).json({ error: 'ID é obrigatório' });
     const strId = String(id);
     const boolStatus = Boolean(status);
@@ -3961,16 +4006,8 @@ app.post('/api/campaigns/status', async (req, res) => {
     db.set('campaigns', updatedCampaigns);
     campaignsCache.clear();
 
-    // 2. Dispara sincronização com a API da Meta
-    let connections = db.get('facebook_connections') || [];
-    if (connections.length === 0) {
-      try {
-        const { data: supaConns } = await supabaseAdmin.from('facebook_connections').select('*');
-        if (supaConns && supaConns.length > 0) connections = supaConns;
-      } catch (e) {}
-    }
-
-    const token = connections[0]?.access_token || connections[0]?.accessToken;
+    // 2. Dispara sincronização com a API da Meta usando o token válido do usuário
+    const token = await getValidMetaAccessToken(userId, accountId);
     let metaSuccess = false;
     let metaError = null;
 
@@ -3982,13 +4019,17 @@ app.post('/api/campaigns/status', async (req, res) => {
         console.warn(`[Meta Status Update Error]:`, err.message);
         metaError = err.message;
       }
+    } else {
+      metaError = 'Nenhuma conexão do Facebook ativa ou token válido encontrado para este usuário.';
     }
 
     res.json({
       success: true,
       metaSynced: metaSuccess,
       metaError,
-      message: metaSuccess ? 'Status atualizado com sucesso no Gerenciador da Meta!' : 'Status atualizado localmente na PrimeTrack.'
+      status: boolStatus,
+      statusText,
+      message: metaSuccess ? 'Status atualizado com sucesso no Gerenciador da Meta!' : (metaError || 'Status atualizado localmente na PrimeTrack.')
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -3998,7 +4039,8 @@ app.post('/api/campaigns/status', async (req, res) => {
 // F1.1 Atualizar Status em Massa no Gerenciador Meta Ads com proteção contra rate-limit
 app.post('/api/campaigns/status-bulk', async (req, res) => {
   try {
-    const { ids, status } = req.body;
+    const { ids, status, userId: bodyUserId, accountId } = req.body;
+    const userId = req.headers['x-user-id'] || bodyUserId || req.query.userId || null;
     if (!Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ error: 'Lista de IDs é obrigatória' });
     }
@@ -4057,15 +4099,7 @@ app.post('/api/campaigns/status-bulk', async (req, res) => {
     campaignsCache.clear();
 
     // 2. Dispara atualizações para a Meta sequencialmente com delay de 120ms para evitar rate-limit #17
-    let connections = db.get('facebook_connections') || [];
-    if (connections.length === 0) {
-      try {
-        const { data: supaConns } = await supabaseAdmin.from('facebook_connections').select('*');
-        if (supaConns && supaConns.length > 0) connections = supaConns;
-      } catch (e) {}
-    }
-
-    const token = connections[0]?.access_token || connections[0]?.accessToken;
+    const token = await getValidMetaAccessToken(userId, accountId);
     let successCount = 0;
     let lastError = null;
 
@@ -4080,6 +4114,8 @@ app.post('/api/campaigns/status-bulk', async (req, res) => {
           lastError = err.message;
         }
       }
+    } else {
+      lastError = 'Nenhuma conexão do Facebook ativa ou token válido encontrado.';
     }
 
     res.json({
@@ -4164,15 +4200,8 @@ app.post('/api/campaigns/update', async (req, res) => {
     db.set('campaigns', campaigns);
     campaignsCache.clear();
 
-    let connections = db.get('facebook_connections') || [];
-    if (connections.length === 0) {
-      try {
-        const { data: supaConns } = await supabaseAdmin.from('facebook_connections').select('*');
-        if (supaConns && supaConns.length > 0) connections = supaConns;
-      } catch (e) {}
-    }
-
-    const token = connections[0]?.access_token || connections[0]?.accessToken;
+    const userId = req.headers['x-user-id'] || req.body?.userId || req.query.userId || null;
+    const token = await getValidMetaAccessToken(userId);
     let metaSuccess = false;
     let metaError = null;
 
