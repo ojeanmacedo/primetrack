@@ -518,6 +518,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const [editStrategy, setEditStrategy] = useState('LOWEST_COST_WITHOUT_CAP');
   const [savingEdit, setSavingEdit] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState(null);
+  const [togglingItems, setTogglingItems] = useState(new Set());
 
   // Menu de Ações em Massa (Batch Actions)
   const [bulkMenuOpen, setBulkMenuOpen] = useState(false);
@@ -893,58 +894,87 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setSyncing(false);
   };
 
-  const handleToggleStatus = async (itemId) => {
-    let nextStatus = false;
-    let targetId = String(itemId);
-    const statusText = (status) => status ? 'ACTIVE' : 'PAUSED';
+  const handleToggleStatus = async (itemId, directItem = null) => {
+    const rawTargetId = String(itemId);
+    if (togglingItems.has(rawTargetId)) return;
 
-    setCampaignsList(prev => {
-      const updated = prev.map(c => {
-        if (String(c.id) === targetId) {
-          nextStatus = !isStatusActive(c);
-          return {
-            ...c,
-            status: nextStatus,
-            rawStatus: statusText(nextStatus),
-            effectiveStatus: statusText(nextStatus)
-          };
+    let targetItem = directItem || null;
+    let parentCamp = null;
+
+    // Localiza sincronamente o item e sua conta de anúncio na lista em memória
+    for (const c of campaignsList) {
+      if (String(c.id) === rawTargetId) {
+        if (!targetItem) targetItem = c;
+        parentCamp = c;
+        break;
+      }
+      if (Array.isArray(c.adsets)) {
+        const foundAs = c.adsets.find(as => String(as.id) === rawTargetId || String(as.adsetId) === rawTargetId);
+        if (foundAs) {
+          if (!targetItem) targetItem = foundAs;
+          parentCamp = c;
+          break;
         }
+      }
+      if (Array.isArray(c.ads)) {
+        const foundAd = c.ads.find(ad => String(ad.id) === rawTargetId || String(ad.adId) === rawTargetId);
+        if (foundAd) {
+          if (!targetItem) targetItem = foundAd;
+          parentCamp = c;
+          break;
+        }
+      }
+    }
+
+    const currentStatus = targetItem ? isStatusActive(targetItem) : false;
+    const nextStatus = !currentStatus;
+    const statusText = (status) => status ? 'ACTIVE' : 'PAUSED';
+    const targetId = targetItem?.id || targetItem?.adsetId || targetItem?.adId || rawTargetId;
+    const targetAccountId = targetItem?.accountId || targetItem?.adAccountId || parentCamp?.accountId || parentCamp?.adAccountId || (accountFilter !== 'Todas' ? accountFilter : null);
+
+    setTogglingItems(prev => new Set(prev).add(String(targetId)));
+
+    // Função utilitária para aplicar status local na lista
+    const applyStatusUpdate = (list, newStatus) => {
+      return list.map(c => {
+        const isCamp = String(c.id) === String(targetId);
         let adsetsUpdated = false;
         let adsUpdated = false;
 
         const newAdsets = c.adsets ? c.adsets.map(as => {
-          if (String(as.id) === targetId || String(as.adsetId) === targetId) {
-            nextStatus = !isStatusActive(as);
-            targetId = as.id || as.adsetId;
+          if (String(as.id) === String(targetId) || String(as.adsetId) === String(targetId)) {
             adsetsUpdated = true;
             return {
               ...as,
-              status: nextStatus,
-              rawStatus: statusText(nextStatus),
-              effectiveStatus: statusText(nextStatus)
+              status: newStatus,
+              rawStatus: statusText(newStatus),
+              effectiveStatus: statusText(newStatus)
             };
           }
           return as;
         }) : c.adsets;
 
         const newAds = c.ads ? c.ads.map(ad => {
-          if (String(ad.id) === targetId || String(ad.adId) === targetId) {
-            nextStatus = !isStatusActive(ad);
-            targetId = ad.id || ad.adId;
+          if (String(ad.id) === String(targetId) || String(ad.adId) === String(targetId)) {
             adsUpdated = true;
             return {
               ...ad,
-              status: nextStatus,
-              rawStatus: statusText(nextStatus),
-              effectiveStatus: statusText(nextStatus)
+              status: newStatus,
+              rawStatus: statusText(newStatus),
+              effectiveStatus: statusText(newStatus)
             };
           }
           return ad;
         }) : c.ads;
 
-        if (adsetsUpdated || adsUpdated) {
+        if (isCamp || adsetsUpdated || adsUpdated) {
           return {
             ...c,
+            ...(isCamp ? {
+              status: newStatus,
+              rawStatus: statusText(newStatus),
+              effectiveStatus: statusText(newStatus)
+            } : {}),
             adsets: newAdsets,
             ads: newAds
           };
@@ -952,18 +982,18 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
         return c;
       });
+    };
 
-      // Persiste imediatamente no cache local do navegador
-      try {
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(updated));
-        }
-      } catch (e) {}
+    // 1. Atualização otimista imediata na interface
+    const optimisticList = applyStatusUpdate(campaignsList, nextStatus);
+    setCampaignsList(optimisticList);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(optimisticList));
+      }
+    } catch (e) {}
 
-      return updated;
-    });
-
-    // Dispara sincronização direta com a API do Meta Ads
+    // 2. Dispara sincronização com a API do Meta Ads enviando o status correto (nextStatus)
     try {
       const activeUser = user || getCurrentUser();
       const res = await fetch('/api/campaigns/status', {
@@ -976,20 +1006,45 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           id: targetId, 
           status: nextStatus,
           userId: activeUser?.id,
-          accountId: accountFilter !== 'Todas' ? accountFilter : null
+          accountId: targetAccountId
         })
       });
-      const data = await res.json();
-      if (data && data.metaSynced) {
+
+      const data = await res.json().catch(() => null);
+
+      if (res.ok && data && (data.metaSynced || data.success)) {
         setSaveSuccessMsg(nextStatus ? '🟢 Ativada com sucesso no Gerenciador Meta!' : '⚪ Desativada com sucesso no Gerenciador Meta!');
-      } else if (data && data.metaError) {
-        setSaveSuccessMsg(`⚠️ ${data.metaError}`);
       } else {
-        setSaveSuccessMsg('Status atualizado na PrimeTrack!');
+        // ROLLBACK: Meta recusou ou deu erro -> Reverte o status imediatamente para o original
+        const rolledBackList = applyStatusUpdate(campaignsList, currentStatus);
+        setCampaignsList(rolledBackList);
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(rolledBackList));
+          }
+        } catch (e) {}
+        const errText = data?.metaError || data?.error || 'Erro ao sincronizar status com a Meta.';
+        setSaveSuccessMsg(`⚠️ ${errText}`);
       }
       setTimeout(() => setSaveSuccessMsg(null), 5000);
     } catch (e) {
       console.warn('Erro ao sincronizar status com a Meta:', e);
+      // ROLLBACK no erro de rede
+      const rolledBackList = applyStatusUpdate(campaignsList, currentStatus);
+      setCampaignsList(rolledBackList);
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(rolledBackList));
+        }
+      } catch (err) {}
+      setSaveSuccessMsg(`⚠️ Erro de conexão ao tentar atualizar status no Meta Ads: ${e.message}`);
+      setTimeout(() => setSaveSuccessMsg(null), 5000);
+    } finally {
+      setTogglingItems(prev => {
+        const next = new Set(prev);
+        next.delete(String(targetId));
+        return next;
+      });
     }
   };
 
@@ -1161,68 +1216,65 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
     const strIds = new Set(ids.map(String));
     const statusText = enable ? 'ACTIVE' : 'PAUSED';
+    const previousList = campaignsList;
 
     // 1. Atualiza imediatamente e com precisão na tabela
-    setCampaignsList(prev => {
-      const updated = prev.map(c => {
-        const campMatches = strIds.has(String(c.id));
-        let adsetsUpdated = false;
-        let adsUpdated = false;
+    const updated = campaignsList.map(c => {
+      const campMatches = strIds.has(String(c.id));
+      let adsetsUpdated = false;
+      let adsUpdated = false;
 
-        const newAdsets = c.adsets ? c.adsets.map(as => {
-          if (strIds.has(String(as.id)) || strIds.has(String(as.adsetId))) {
-            adsetsUpdated = true;
-            return {
-              ...as,
-              status: enable,
-              rawStatus: statusText,
-              effectiveStatus: statusText
-            };
-          }
-          return as;
-        }) : c.adsets;
-
-        const newAds = c.ads ? c.ads.map(ad => {
-          if (strIds.has(String(ad.id)) || strIds.has(String(ad.adId))) {
-            adsUpdated = true;
-            return {
-              ...ad,
-              status: enable,
-              rawStatus: statusText,
-              effectiveStatus: statusText
-            };
-          }
-          return ad;
-        }) : c.ads;
-
-        if (campMatches || adsetsUpdated || adsUpdated) {
+      const newAdsets = c.adsets ? c.adsets.map(as => {
+        if (strIds.has(String(as.id)) || strIds.has(String(as.adsetId))) {
+          adsetsUpdated = true;
           return {
-            ...c,
-            ...(campMatches ? {
-              status: enable,
-              rawStatus: statusText,
-              effectiveStatus: statusText
-            } : {}),
-            adsets: newAdsets,
-            ads: newAds
+            ...as,
+            status: enable,
+            rawStatus: statusText,
+            effectiveStatus: statusText
           };
         }
-        return c;
-      });
+        return as;
+      }) : c.adsets;
 
-      // 2. Salva no cache local do navegador para persistir após recarregar a página
-      try {
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(updated));
+      const newAds = c.ads ? c.ads.map(ad => {
+        if (strIds.has(String(ad.id)) || strIds.has(String(ad.adId))) {
+          adsUpdated = true;
+          return {
+            ...ad,
+            status: enable,
+            rawStatus: statusText,
+            effectiveStatus: statusText
+          };
         }
-      } catch (e) {}
+        return ad;
+      }) : c.ads;
 
-      return updated;
+      if (campMatches || adsetsUpdated || adsUpdated) {
+        return {
+          ...c,
+          ...(campMatches ? {
+            status: enable,
+            rawStatus: statusText,
+            effectiveStatus: statusText
+          } : {}),
+          adsets: newAdsets,
+          ads: newAds
+        };
+      }
+      return c;
     });
 
-    setSaveSuccessMsg(`${enable ? 'Ativando' : 'Desativando'} ${ids.length} ${subTab.toLowerCase()}...`);
+    setCampaignsList(updated);
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(updated));
+      }
+    } catch (e) {}
 
-    // 3. Dispara chamada em lote para o backend
+    setSaveSuccessMsg(`${enable ? 'Ativando' : 'Desativando'} ${ids.length} ${subTab.toLowerCase()} no Gerenciador Meta...`);
+
+    // 2. Dispara chamada em lote para o backend
     try {
       const res = await fetch('/api/campaigns/status-bulk', {
         method: 'POST',
@@ -1234,14 +1286,27 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           accountId: accountFilter !== 'Todas' ? accountFilter : null
         })
       });
-      const data = await res.json();
-      if (data && data.success) {
-        setSaveSuccessMsg(`${ids.length} ${subTab.toLowerCase()} ${enable ? 'ativadas' : 'desativadas'} com sucesso!`);
+      const data = await res.json().catch(() => null);
+      if (res.ok && data && data.success && (data.syncedCount > 0 || ids.length === 0)) {
+        setSaveSuccessMsg(`🟢 ${data.syncedCount || ids.length} ${subTab.toLowerCase()} ${enable ? 'ativadas' : 'desativadas'} com sucesso no Gerenciador Meta!`);
       } else {
-        setSaveSuccessMsg(`⚠️ ${data.error || 'Erro ao sincronizar com a Meta'}`);
+        // Rollback se falhou na Meta
+        setCampaignsList(previousList);
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(previousList));
+          }
+        } catch (e) {}
+        setSaveSuccessMsg(`⚠️ ${data?.error || data?.metaError || 'Falha ao sincronizar em lote com a Meta'}`);
       }
     } catch (e) {
-      setSaveSuccessMsg(`${ids.length} ${subTab.toLowerCase()} ${enable ? 'ativadas' : 'desativadas'} localmente!`);
+      setCampaignsList(previousList);
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(previousList));
+        }
+      } catch (err) {}
+      setSaveSuccessMsg(`⚠️ Erro de conexão com o Meta Ads: ${e.message}`);
     }
 
     setTimeout(() => setSaveSuccessMsg(null), 5000);
@@ -3318,17 +3383,27 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
                       {/* Status Toggle fixo na lateral apenas em desktop */}
                       <td className={`py-4 pl-4 pr-3 w-[94px] min-w-[94px] max-w-[94px] md:sticky md:left-[48px] md:z-10 transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0066FF]/20' : 'bg-[#141C2E] group-hover:bg-[#182236]'}`}>
-                        <button
-                          type="button"
-                          onClick={() => handleToggleStatus(item.id || item.adsetId || item.adId || item.campaignId)}
-                          className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors cursor-pointer ${
-                            isStatusActive(item) ? 'bg-[#0066FF]' : 'bg-zinc-700'
-                          }`}
-                        >
-                          <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                            isStatusActive(item) ? 'translate-x-4' : 'translate-x-0'
-                          }`} />
-                        </button>
+                        {(() => {
+                          const targetKey = String(item.id || item.adsetId || item.adId || item.campaignId);
+                          const isToggling = togglingItems.has(targetKey);
+                          return (
+                            <button
+                              type="button"
+                              disabled={isToggling}
+                              onClick={() => handleToggleStatus(item.id || item.adsetId || item.adId || item.campaignId, item)}
+                              className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-all cursor-pointer ${
+                                isToggling ? 'opacity-50 cursor-wait' : ''
+                              } ${
+                                isStatusActive(item) ? 'bg-[#0066FF]' : 'bg-zinc-700'
+                              }`}
+                              title={isStatusActive(item) ? 'Clique para pausar no Gerenciador Meta Ads' : 'Clique para ativar no Gerenciador Meta Ads'}
+                            >
+                              <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                                isStatusActive(item) ? 'translate-x-4' : 'translate-x-0'
+                              }`} />
+                            </button>
+                          );
+                        })()}
                       </td>
 
                       {/* Nome do Item fixo na lateral apenas em desktop */}

@@ -3980,7 +3980,40 @@ app.post('/api/meta/disconnect', async (req, res) => {
 
 // Helper centralizado para obter Access Token válido e atualizado da Meta
 export async function getValidMetaAccessToken(userId = null, targetAccountId = null) {
-  // 1. Prioridade máxima: Supabase (busca a conexão mais recente e com token válido)
+  const cleanAccId = targetAccountId ? String(targetAccountId).replace('act_', '').trim() : null;
+
+  // 1. Se informou targetAccountId, busca especificamente a conexão dona dessa conta de anúncio
+  if (cleanAccId) {
+    try {
+      const localAccounts = db.get('ad_accounts') || [];
+      const matchAcc = localAccounts.find(a => 
+        String(a.id || '').replace('act_', '') === cleanAccId || 
+        String(a.accountId || '') === cleanAccId ||
+        (a.name && cleanAccId.length > 5 && a.name.toLowerCase() === cleanAccId.toLowerCase())
+      );
+      if (matchAcc && matchAcc.profileId) {
+        // Busca token dessa conexão no Supabase
+        const { data: profileConn } = await supabaseAdmin
+          .from('facebook_connections')
+          .select('access_token')
+          .eq('id', matchAcc.profileId)
+          .maybeSingle();
+        if (profileConn?.access_token && profileConn.access_token.trim().length > 15) {
+          return profileConn.access_token.trim();
+        }
+        // Fallback local
+        const localConns = db.get('facebook_connections') || [];
+        const localC = localConns.find(c => c.id === matchAcc.profileId);
+        if (localC?.accessToken && localC.accessToken.trim().length > 15) {
+          return localC.accessToken.trim();
+        }
+      }
+    } catch (e) {
+      console.warn('[getValidMetaAccessToken Account Lookup Warning]:', e.message);
+    }
+  }
+
+  // 2. Prioridade: Supabase filtrado por userId (busca a conexão mais recente e com token válido)
   try {
     let q = supabaseAdmin.from('facebook_connections').select('*').order('connected_at', { ascending: false });
     if (userId) {
@@ -4017,7 +4050,7 @@ export async function getValidMetaAccessToken(userId = null, targetAccountId = n
     console.warn('[getValidMetaAccessToken Supabase Warning]:', e.message);
   }
 
-  // 2. Fallback: banco local ordenado pelo mais recente
+  // 3. Fallback: banco local ordenado pelo mais recente
   const allLocal = db.get('facebook_connections') || [];
   const filtered = userId
     ? allLocal.filter(c => isOwnerUserId(userId) ? (!c.userId || isOwnerUserId(c.userId) || !c.user_id || isOwnerUserId(c.user_id)) : (c.userId === userId || c.user_id === userId))
@@ -4042,7 +4075,35 @@ app.post('/api/campaigns/status', async (req, res) => {
     const boolStatus = Boolean(status);
     const statusText = boolStatus ? 'ACTIVE' : 'PAUSED';
 
-    // 1. Atualiza status IMEDIATAMENTE no banco local para não depender de roundtrip da Meta
+    // 1. Obtém o token válido para a conta/usuário
+    const token = await getValidMetaAccessToken(userId, accountId);
+    let metaSuccess = false;
+    let metaError = null;
+
+    if (token) {
+      try {
+        await updateMetaItemStatus(strId, boolStatus, token);
+        metaSuccess = true;
+      } catch (err) {
+        console.warn(`[Meta Status Update Error for ${strId}]:`, err.message);
+        metaError = err.message;
+      }
+    } else {
+      metaError = 'Nenhuma conexão do Facebook ativa ou token válido encontrado para este usuário.';
+    }
+
+    // 2. Se a sincronização com a Meta falhou, NÃO atualiza o banco local com o status errado!
+    // Retorna erro para que o frontend reverta o botão de ligar/desligar!
+    if (!metaSuccess) {
+      return res.status(400).json({
+        success: false,
+        metaSynced: false,
+        metaError: metaError || 'Falha ao atualizar status no Gerenciador Meta Ads.',
+        error: metaError || 'Falha ao atualizar status no Gerenciador Meta Ads.'
+      });
+    }
+
+    // 3. Sucesso na Meta: agora atualiza com segurança no banco local
     const campaigns = db.get('campaigns') || [];
     const updatedCampaigns = campaigns.map(c => {
       const campMatches = String(c.id) === strId;
@@ -4092,33 +4153,26 @@ app.post('/api/campaigns/status', async (req, res) => {
     db.set('campaigns', updatedCampaigns);
     campaignsCache.clear();
 
-    // 2. Dispara sincronização com a API da Meta usando o token válido do usuário
-    const token = await getValidMetaAccessToken(userId, accountId);
-    let metaSuccess = false;
-    let metaError = null;
-
-    if (token) {
-      try {
-        await updateMetaItemStatus(strId, boolStatus, token);
-        metaSuccess = true;
-      } catch (err) {
-        console.warn(`[Meta Status Update Error]:`, err.message);
-        metaError = err.message;
-      }
-    } else {
-      metaError = 'Nenhuma conexão do Facebook ativa ou token válido encontrado para este usuário.';
+    // 4. Persiste no Supabase se existir
+    try {
+      await supabaseAdmin.from('campaigns').update({
+        status: boolStatus,
+        raw_status: statusText,
+        updated_at: new Date().toISOString()
+      }).eq('id', strId);
+    } catch (e) {
+      console.warn('[Supabase Campaign Status Sync Warning]:', e.message);
     }
 
-    res.json({
+    return res.json({
       success: true,
-      metaSynced: metaSuccess,
-      metaError,
+      metaSynced: true,
       status: boolStatus,
       statusText,
-      message: metaSuccess ? 'Status atualizado com sucesso no Gerenciador da Meta!' : (metaError || 'Status atualizado localmente na PrimeTrack.')
+      message: boolStatus ? '🟢 Ativada com sucesso no Gerenciador Meta!' : '⚪ Desativada com sucesso no Gerenciador Meta!'
     });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, metaSynced: false, error: err.message });
   }
 });
 
@@ -4134,7 +4188,37 @@ app.post('/api/campaigns/status-bulk', async (req, res) => {
     const boolStatus = Boolean(status);
     const statusText = boolStatus ? 'ACTIVE' : 'PAUSED';
 
-    // 1. Atualiza status IMEDIATAMENTE no banco local para todos os IDs de uma só vez
+    // 1. Obtém o token válido
+    const token = await getValidMetaAccessToken(userId, accountId);
+    let successCount = 0;
+    let lastError = null;
+
+    if (token) {
+      for (const targetId of ids) {
+        try {
+          await updateMetaItemStatus(String(targetId), boolStatus, token);
+          successCount++;
+          await new Promise(r => setTimeout(r, 120));
+        } catch (err) {
+          console.warn(`[Meta Bulk Status Error for ${targetId}]:`, err.message);
+          lastError = err.message;
+        }
+      }
+    } else {
+      lastError = 'Nenhuma conexão do Facebook ativa ou token válido encontrado.';
+    }
+
+    if (successCount === 0 && lastError) {
+      return res.status(400).json({
+        success: false,
+        syncedCount: 0,
+        totalRequested: ids.length,
+        error: lastError,
+        metaError: lastError
+      });
+    }
+
+    // 2. Atualiza status no banco local
     const campaigns = db.get('campaigns') || [];
     const updatedCampaigns = campaigns.map(c => {
       const campMatches = strIds.has(String(c.id));
@@ -4184,24 +4268,15 @@ app.post('/api/campaigns/status-bulk', async (req, res) => {
     db.set('campaigns', updatedCampaigns);
     campaignsCache.clear();
 
-    // 2. Dispara atualizações para a Meta sequencialmente com delay de 120ms para evitar rate-limit #17
-    const token = await getValidMetaAccessToken(userId, accountId);
-    let successCount = 0;
-    let lastError = null;
-
-    if (token) {
-      for (const targetId of ids) {
-        try {
-          await updateMetaItemStatus(String(targetId), boolStatus, token);
-          successCount++;
-          await new Promise(r => setTimeout(r, 120));
-        } catch (err) {
-          console.warn(`[Meta Bulk Status Error for ${targetId}]:`, err.message);
-          lastError = err.message;
-        }
-      }
-    } else {
-      lastError = 'Nenhuma conexão do Facebook ativa ou token válido encontrado.';
+    // 3. Atualiza no Supabase
+    try {
+      await supabaseAdmin.from('campaigns').update({
+        status: boolStatus,
+        raw_status: statusText,
+        updated_at: new Date().toISOString()
+      }).in('id', ids.map(String));
+    } catch (e) {
+      console.warn('[Supabase Bulk Campaign Status Sync Warning]:', e.message);
     }
 
     res.json({
@@ -4209,7 +4284,7 @@ app.post('/api/campaigns/status-bulk', async (req, res) => {
       syncedCount: successCount,
       totalRequested: ids.length,
       metaError: lastError,
-      message: `${successCount} item(ns) ${boolStatus ? 'ativados' : 'desativados'} com sucesso!`
+      message: `${successCount} item(ns) ${boolStatus ? 'ativados' : 'desativados'} com sucesso no Gerenciador Meta!`
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
