@@ -485,6 +485,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   const [isClientMode, setIsClientMode] = useState(clientMode === 'clean');
   const [syncing, setSyncing] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState('Agora');
   const [currentTime, setCurrentTime] = useState(() => {
     const d = new Date();
@@ -622,14 +623,24 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       query = `datePreset=${datePreset}`;
     }
 
-    const userHeaders = user?.id ? { 'x-user-id': user.id } : {};
+    if (currentActiveAccs.length > 0 && campaignsList.length === 0) {
+      setIsLoadingData(true);
+    }
+
+    const activeAccountsParam = currentActiveAccs.length > 0 
+      ? `&activeAccounts=${encodeURIComponent(currentActiveAccs.map(a => a.id).join(','))}` 
+      : '';
+    const activeHeader = currentActiveAccs.length > 0
+      ? { 'x-active-accounts': currentActiveAccs.map(a => a.id).join(',') }
+      : {};
+    const userHeaders = user?.id ? { 'x-user-id': user.id, ...activeHeader } : { ...activeHeader };
     const userParam = user?.id ? `&userId=${encodeURIComponent(user.id)}` : '';
     const userParamFirst = user?.id ? `?userId=${encodeURIComponent(user.id)}` : '';
 
     try {
       const [statusRes, crRes] = await Promise.all([
         fetch('/api/meta/status' + userParamFirst, { headers: userHeaders }),
-        fetch(`/api/campaigns?${query}${userParam}`, { headers: userHeaders })
+        fetch(`/api/campaigns?${query}${userParam}${activeAccountsParam}`, { headers: userHeaders })
       ]);
 
       const data = await statusRes.json().catch(() => ({}));
@@ -733,6 +744,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       }
     } catch (err) {
       console.log('Erro ao carregar dados:', err);
+    } finally {
+      if (reqId === latestRequestIdRef.current) {
+        setIsLoadingData(false);
+      }
     }
   };
 
@@ -3149,7 +3164,19 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       {/* ── VIEWS 1, 2, 3: SUB-ABAS CAMPANHAS, CONJUNTOS, ANÚNCIOS (TABELA COM SCROLL INTERNO E CABEÇALHO/RODAPÉ FIXOS) ── */}
       {subTab !== 'Contas' && (
         <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl overflow-hidden shadow-md flex flex-col">
-          {currentItems.length === 0 ? (
+          {isLoadingData && currentItems.length === 0 ? (
+            <div className="p-16 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-[#0066FF]/10 border border-[#0066FF]/30 flex items-center justify-center mx-auto mb-3 text-[#5C9BFF]">
+                <RefreshCw className="w-6 h-6 animate-spin text-[#0066FF]" />
+              </div>
+              <div className="font-bold text-white text-sm">
+                Sincronizando campanhas do Meta Ads...
+              </div>
+              <p className="text-zinc-400 text-xs mt-1 max-w-sm mx-auto">
+                Buscando métricas e anúncios da sua conta ativa em tempo real.
+              </p>
+            </div>
+          ) : currentItems.length === 0 ? (
             <div className="p-12 text-center">
               <div className="w-12 h-12 rounded-2xl bg-[#0D1424] border border-[#1E293B] flex items-center justify-center mx-auto mb-3 text-zinc-500">
                 <ShieldAlert className="w-6 h-6 text-zinc-500" />

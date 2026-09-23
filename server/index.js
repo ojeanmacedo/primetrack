@@ -2105,29 +2105,37 @@ app.get('/api/campaigns', async (req, res) => {
 
   const savedCampaigns = (db.get('campaigns') || []).filter(c => isOwnerUserId(userId) ? (!c.userId || isOwnerUserId(c.userId)) : (c.userId === userId));
 
-  const { datePreset = 'today', since, until, refresh } = req.query;
+  const { datePreset = 'today', since, until, refresh, activeAccounts: clientActiveAccounts } = req.query;
+  const clientActiveAccountsHeader = req.headers['x-active-accounts'];
   const resolvedRange = resolveDateRange(datePreset, since, until);
   const timeRange = (resolvedRange.since && resolvedRange.until) ? resolvedRange : (resolvedRange.isMaximum ? { isMaximum: true } : null);
   const cacheKey = `${userId || 'all'}_${resolvedRange.isMaximum ? 'maximum' : (timeRange ? `${timeRange.since}_${timeRange.until}` : datePreset)}`;
   const now = Date.now();
   const cached = campaignsCache.get(cacheKey);
 
-  // Extrai IDs das contas ativas do usuário
+  // Extrai IDs das contas ativas do usuário (prioridade: enviado pelo cliente > salvo nas conexões)
   const userActiveIds = new Set();
-  connections.forEach(c => {
-    if (c.email) {
-      try {
-        const meta = JSON.parse(c.email);
-        if (Array.isArray(meta?.activeAccounts)) {
-          meta.activeAccounts.forEach(id => userActiveIds.add(String(id).replace('act_', '')));
-        }
-      } catch (e) {}
-    }
-  });
+  const rawClientAct = clientActiveAccounts || clientActiveAccountsHeader;
+  if (rawClientAct) {
+    String(rawClientAct).split(',').map(s => s.trim().replace('act_', '')).filter(Boolean).forEach(id => userActiveIds.add(id));
+  }
+
+  if (userActiveIds.size === 0) {
+    connections.forEach(c => {
+      if (c.email) {
+        try {
+          const meta = JSON.parse(c.email);
+          if (Array.isArray(meta?.activeAccounts)) {
+            meta.activeAccounts.forEach(id => userActiveIds.add(String(id).replace('act_', '')));
+          }
+        } catch (e) {}
+      }
+    });
+  }
 
   // Se não há nenhuma conta ativa configurada pelo usuário em Integrações, NUNCA retorna campanhas!
+  // ATENÇÃO: NÃO armazena [] em cache para não travar a resposta quando o usuário ativar uma conta!
   if (userActiveIds.size === 0) {
-    campaignsCache.set(cacheKey, { timestamp: now, campaigns: [] });
     return res.json([]);
   }
 
@@ -2137,20 +2145,26 @@ app.get('/api/campaigns', async (req, res) => {
       const cActId = String(c.adAccountId || c.accountId || '').replace('act_', '');
       return userActiveIds.has(cActId);
     });
-    return res.json(filteredCached);
+    if (filteredCached.length > 0) {
+      return res.json(filteredCached);
+    }
   }
 
   // Busca SEMPRE em tempo real os dados exatos do período na API da Meta
   let syncResult = null;
   try {
-    syncResult = await executeMetaSync({ datePreset, timeRange, userId });
+    syncResult = await executeMetaSync({ 
+      datePreset, 
+      timeRange, 
+      userId, 
+      accountIds: Array.from(userActiveIds) 
+    });
   } catch (e) {
     console.warn('[Sync Campaigns Error]:', e.message);
   }
 
-  // Se nenhuma conta estiver ativa em Integrações, encerra com lista vazia!
+  // Se nenhuma conta estiver ativa em Integrações, encerra com lista vazia sem cachear!
   if (syncResult && syncResult.noActiveAccounts) {
-    campaignsCache.set(cacheKey, { timestamp: now, campaigns: [] });
     return res.json([]);
   }
 
@@ -2332,10 +2346,12 @@ app.get('/api/campaigns', async (req, res) => {
     }
   } catch (eSyncSupa) {}
 
-  campaignsCache.set(cacheKey, {
-    timestamp: now,
-    campaigns: enrichedCampaigns
-  });
+  if (Array.isArray(enrichedCampaigns) && enrichedCampaigns.length > 0) {
+    campaignsCache.set(cacheKey, {
+      timestamp: now,
+      campaigns: enrichedCampaigns
+    });
+  }
 
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.json(enrichedCampaigns);
@@ -3409,6 +3425,19 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
   if (Array.isArray(accountIds) && accountIds.length > 0) {
     const idSet = new Set(accountIds.map(id => String(id).replace('act_', '')));
     targetAccounts = allAdAccounts.filter(a => idSet.has((a.accountId || a.id || '').replace('act_', '')));
+    if (targetAccounts.length === 0) {
+      targetAccounts = accountIds.map(id => {
+        const clean = String(id).replace('act_', '');
+        return {
+          id: `act_${clean}`,
+          accountId: clean,
+          name: 'Conta de Anúncio',
+          currency: 'BRL',
+          status: 'ACTIVE',
+          syncActive: true
+        };
+      });
+    }
   } else if (accountId) {
     const actClean = accountId.replace('act_', '');
     targetAccounts = allAdAccounts.filter(a => a.id === accountId || a.id === `act_${actClean}` || a.accountId === actClean);

@@ -634,13 +634,21 @@ export default function Integrations() {
       body: JSON.stringify({ activeAccounts: activeIds, userId: currentUser?.id })
     }).catch(err => console.warn('Erro ao salvar status da conta no servidor:', err.message));
 
-    // Se ativou conta(s), dispara sincronização com o Meta Ads imediatamente
+    // Se ativou conta(s), dispara sincronização com o Meta Ads imediatamente e armazena resultado no cache
     if (activeIds.length > 0) {
       fetch('/api/meta/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
         body: JSON.stringify({ accountIds: activeIds, datePreset: 'today', userId: currentUser?.id })
-      }).catch(err => console.warn('Erro ao sincronizar Meta:', err.message));
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data && Array.isArray(data.campaigns) && data.campaigns.length > 0) {
+          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(data.campaigns));
+          window.dispatchEvent(new Event('primetrack_profile_sync'));
+        }
+      })
+      .catch(err => console.warn('Erro ao sincronizar Meta:', err.message));
     }
 
     window.dispatchEvent(new Event('primetrack_profile_sync'));
