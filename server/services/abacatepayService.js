@@ -1,0 +1,217 @@
+import { supabaseAdmin } from '../supabase.js';
+
+const ABACATEPAY_API_BASE = 'https://api.abacatepay.com/v2';
+const ABACATEPAY_API_KEY = process.env.ABACATEPAY_API_KEY || 'abc_dev_juZxUN4huhzfLDAwnXKABQbU';
+
+export const PLANS_CONFIG = {
+  basic: {
+    externalId: 'plan_basic',
+    name: 'Plano Basic',
+    price: 4700, // R$ 47,00 em centavos
+    description: 'Plano Basic PrimeTrack - R$ 47/mês'
+  },
+  pro: {
+    externalId: 'plan_pro',
+    name: 'Plano Pro',
+    price: 9700, // R$ 97,00 em centavos
+    description: 'Plano Pro PrimeTrack - R$ 97/mês'
+  },
+  scale: {
+    externalId: 'plan_scale',
+    name: 'Plano Scale',
+    price: 24700, // R$ 247,00 em centavos
+    description: 'Plano Scale PrimeTrack - R$ 247/mês'
+  }
+};
+
+let cachedProducts = null;
+
+/**
+ * Obtém ou auto-provisiona os produtos de planos na AbacatePay
+ */
+export async function getOrProvisionProducts() {
+  if (cachedProducts) return cachedProducts;
+
+  try {
+    // 1. Lista produtos existentes
+    const listRes = await fetch(`${ABACATEPAY_API_BASE}/products/list`, {
+      headers: {
+        'Authorization': `Bearer ${ABACATEPAY_API_KEY}`
+      }
+    });
+    const listData = await listRes.json();
+    const existing = listData?.data || [];
+
+    const productsMap = {};
+
+    for (const [key, plan] of Object.entries(PLANS_CONFIG)) {
+      const found = existing.find(p => p.externalId === plan.externalId || p.name.toLowerCase() === plan.name.toLowerCase());
+      if (found) {
+        productsMap[key] = found.id;
+      } else {
+        // Cria produto se ainda não existir
+        const createRes = await fetch(`${ABACATEPAY_API_BASE}/products/create`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${ABACATEPAY_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: plan.name,
+            price: plan.price,
+            currency: 'BRL',
+            description: plan.description,
+            externalId: plan.externalId
+          })
+        });
+        const createData = await createRes.json();
+        if (createData?.data?.id) {
+          productsMap[key] = createData.data.id;
+        }
+      }
+    }
+
+    cachedProducts = productsMap;
+    return productsMap;
+  } catch (err) {
+    console.error('[AbacatePay] Erro ao provisionar produtos:', err.message);
+    // Fallback para os IDs provisionados no setup
+    return {
+      basic: 'prod_2dsnKEUPk1bhFyLM16kQF4Y4',
+      pro: 'prod_RxZ3nsu4yAR5wu4Kb2rzpwQY',
+      scale: 'prod_DNXAnbctjH0xRwJExYQKQ2kE'
+    };
+  }
+}
+
+/**
+ * Garante que o Webhook está configurado na AbacatePay
+ */
+export async function ensureWebhookConfigured() {
+  try {
+    const listRes = await fetch(`${ABACATEPAY_API_BASE}/webhooks/list`, {
+      headers: {
+        'Authorization': `Bearer ${ABACATEPAY_API_KEY}`
+      }
+    });
+    const listData = await listRes.json();
+    const existing = listData?.data || [];
+    const targetUrl = 'https://app.primetrack.top/api/abacatepay/webhook';
+
+    const found = existing.find(w => w.endpoint === targetUrl);
+    if (!found) {
+      await fetch(`${ABACATEPAY_API_BASE}/webhooks/create`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${ABACATEPAY_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: 'PrimeTrack Webhook',
+          endpoint: targetUrl,
+          secret: 'whsec_pt_abacatepay_9a2f1b4c6e8d',
+          events: ['checkout.completed']
+        })
+      });
+      console.log('[AbacatePay] Webhook configurado com sucesso para:', targetUrl);
+    }
+  } catch (e) {
+    console.warn('[AbacatePay] Falha ao verificar/configurar webhook:', e.message);
+  }
+}
+
+/**
+ * Cria uma sessão de Checkout na AbacatePay para o plano desejado
+ */
+export async function createCheckout({ plan, userId, userEmail, userName, baseUrl }) {
+  const normPlan = String(plan || 'basic').toLowerCase().trim();
+  const planInfo = PLANS_CONFIG[normPlan] || PLANS_CONFIG.basic;
+  const productsMap = await getOrProvisionProducts();
+  const productId = productsMap[normPlan] || productsMap.basic;
+
+  const originUrl = baseUrl || 'https://app.primetrack.top';
+  const returnUrl = `${originUrl}/planos`;
+  const completionUrl = `${originUrl}/planos?payment=success&plan=${normPlan}`;
+
+  const payload = {
+    items: [
+      {
+        id: productId,
+        quantity: 1
+      }
+    ],
+    methods: ['PIX'],
+    externalId: `${userId || 'guest'}_${normPlan}_${Date.now()}`,
+    metadata: {
+      userId: userId || '',
+      userEmail: userEmail || '',
+      userName: userName || '',
+      plan: normPlan
+    },
+    returnUrl,
+    completionUrl
+  };
+
+  const res = await fetch(`${ABACATEPAY_API_BASE}/checkouts/create`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ABACATEPAY_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+  if (!data?.success || !data?.data?.url) {
+    throw new Error(data?.error || 'Erro ao gerar checkout na AbacatePay');
+  }
+
+  return {
+    success: true,
+    checkoutId: data.data.id,
+    url: data.data.url,
+    amount: data.data.amount,
+    plan: normPlan
+  };
+}
+
+/**
+ * Processa a notificação de pagamento recebida no Webhook
+ */
+export async function handleWebhookEvent(eventPayload) {
+  const event = eventPayload?.event;
+  const data = eventPayload?.data;
+
+  if (event === 'checkout.completed' && data) {
+    const metadata = data.metadata || {};
+    const userId = metadata.userId;
+    const userEmail = (metadata.userEmail || data.customer?.email || '').toLowerCase().trim();
+    const newPlan = (metadata.plan || 'pro').toLowerCase();
+
+    console.log(`[AbacatePay Webhook] Pagamento confirmado! Usuário: ${userEmail || userId}, Novo Plano: ${newPlan}`);
+
+    // 1. Atualiza no Supabase caso tenhamos userId ou email
+    if (userId || userEmail) {
+      let query = supabaseAdmin.from('users').update({
+        plan: newPlan
+      });
+
+      if (userId && !userId.startsWith('guest')) {
+        query = query.eq('id', userId);
+      } else if (userEmail) {
+        query = query.eq('email', userEmail);
+      }
+
+      const { error } = await query;
+      if (error) {
+        console.error('[AbacatePay Webhook] Erro ao atualizar usuário no Supabase:', error.message);
+      } else {
+        console.log(`[AbacatePay Webhook] Usuário ${userId || userEmail} promovido para plano ${newPlan} no Supabase com sucesso.`);
+      }
+    }
+
+    return { success: true, processed: true, user: userEmail || userId, plan: newPlan };
+  }
+
+  return { success: true, ignored: true, event };
+}

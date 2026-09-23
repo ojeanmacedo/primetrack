@@ -1,14 +1,91 @@
-import React from 'react';
-import { ArrowRight, AlertTriangle, Snowflake, Sparkles, CheckCircle2 } from 'lucide-react';
-import { getCurrentUser, getTrialStatus } from '../utils/auth';
+import React, { useState, useEffect } from 'react';
+import { ArrowRight, AlertTriangle, Snowflake, Sparkles, CheckCircle2, Loader2, PartyPopper } from 'lucide-react';
+import confetti from 'canvas-confetti';
+import { getCurrentUser, setCurrentUser, getTrialStatus } from '../utils/auth';
 
 export default function Plans() {
-  const user = getCurrentUser();
+  const [user, setUser] = useState(getCurrentUser());
   const trialStatus = getTrialStatus(user);
+  const [loadingPlan, setLoadingPlan] = useState(null);
+  const [paymentSuccess, setPaymentSuccess] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
 
-  const handleSubscribe = (planName) => {
-    const msg = encodeURIComponent(`Olá! Quero assinar o Plano ${planName} do PrimeTrack para minha conta (${user?.email || 'meu email'}).`);
-    window.open(`https://instagram.com/primetrack.com.br`, '_blank');
+  useEffect(() => {
+    const handleProfileSync = () => {
+      setUser(getCurrentUser());
+    };
+    window.addEventListener('primetrack_profile_sync', handleProfileSync);
+
+    // Checa retorno do checkout AbacatePay
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('payment') === 'success') {
+      const planPaid = params.get('plan') || 'pro';
+      setPaymentSuccess(planPaid);
+
+      try {
+        confetti({
+          particleCount: 150,
+          spread: 80,
+          origin: { y: 0.55 },
+          zIndex: 9999
+        });
+      } catch (e) {}
+
+      const curUser = getCurrentUser();
+      if (curUser) {
+        curUser.plan = planPaid;
+        setCurrentUser(curUser);
+        setUser(curUser);
+        window.dispatchEvent(new Event('primetrack_profile_sync'));
+
+        fetch(`/api/auth/me?userId=${curUser.id}`)
+          .then(r => r.json())
+          .then(res => {
+            if (res.success && res.user) {
+              setCurrentUser(res.user);
+              setUser(res.user);
+              window.dispatchEvent(new Event('primetrack_profile_sync'));
+            }
+          })
+          .catch(() => {});
+      }
+
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    return () => window.removeEventListener('primetrack_profile_sync', handleProfileSync);
+  }, []);
+
+  const handleSubscribe = async (planName) => {
+    setErrorMessage(null);
+    setLoadingPlan(planName);
+
+    try {
+      const res = await fetch('/api/abacatepay/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(user?.id ? { 'x-user-id': user.id } : {})
+        },
+        body: JSON.stringify({
+          plan: planName.toLowerCase(),
+          userId: user?.id,
+          userEmail: user?.email,
+          userName: user?.name
+        })
+      });
+
+      const data = await res.json();
+      if (!data?.success || !data?.url) {
+        throw new Error(data?.error || 'Não foi possível gerar a cobrança. Tente novamente.');
+      }
+
+      window.location.href = data.url;
+    } catch (err) {
+      console.error('Erro ao assinar plano:', err);
+      setErrorMessage(err.message || 'Erro ao conectar à AbacatePay.');
+      setLoadingPlan(null);
+    }
   };
 
   return (
@@ -23,6 +100,22 @@ export default function Plans() {
           Comece pequeno. Escale quando precisar.
         </p>
       </div>
+
+      {paymentSuccess && (
+        <div className="p-4 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 font-bold text-xs sm:text-sm flex items-center gap-3 animate-in fade-in duration-300 shadow-lg">
+          <PartyPopper className="w-5 h-5 text-emerald-400 shrink-0" />
+          <div>
+            🎉 Parabéns! Pagamento confirmado com sucesso via AbacatePay. O seu <strong>Plano {paymentSuccess.toUpperCase()}</strong> já está 100% ativo!
+          </div>
+        </div>
+      )}
+
+      {errorMessage && (
+        <div className="p-4 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-300 font-medium text-xs flex items-center gap-3">
+          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+          <span>{errorMessage}</span>
+        </div>
+      )}
 
       {/* Warning / Notification Banner dinâmico por ciclo de vida */}
       {trialStatus.isFrozen ? (
@@ -119,11 +212,12 @@ export default function Plans() {
           </div>
 
           <button 
+            disabled={loadingPlan !== null}
             onClick={() => handleSubscribe('Basic')}
-            className="mt-8 w-full py-3 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs flex items-center justify-between px-5 shadow-md shadow-blue-600/25 transition-all cursor-pointer"
+            className="mt-8 w-full py-3 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-50 text-white font-bold text-xs flex items-center justify-between px-5 shadow-md shadow-blue-600/25 transition-all cursor-pointer"
           >
-            <span>Assinar Basic</span>
-            <span>→</span>
+            <span>{loadingPlan === 'Basic' ? 'Gerando Pix...' : (user?.plan === 'basic' ? 'Plano Atual' : 'Assinar Basic')}</span>
+            {loadingPlan === 'Basic' ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>→</span>}
           </button>
         </div>
 
@@ -192,11 +286,12 @@ export default function Plans() {
           </div>
 
           <button 
+            disabled={loadingPlan !== null}
             onClick={() => handleSubscribe('Pro')}
-            className="mt-8 w-full py-3 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs flex items-center justify-between px-5 shadow-md shadow-blue-600/25 transition-all cursor-pointer"
+            className="mt-8 w-full py-3 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-50 text-white font-bold text-xs flex items-center justify-between px-5 shadow-md shadow-blue-600/25 transition-all cursor-pointer"
           >
-            <span>Assinar Pro</span>
-            <span>→</span>
+            <span>{loadingPlan === 'Pro' ? 'Gerando Pix...' : (user?.plan === 'pro' ? 'Plano Atual' : 'Assinar Pro')}</span>
+            {loadingPlan === 'Pro' ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>→</span>}
           </button>
         </div>
 
@@ -265,11 +360,12 @@ export default function Plans() {
           </div>
 
           <button 
+            disabled={loadingPlan !== null}
             onClick={() => handleSubscribe('Scale')}
-            className="mt-8 w-full py-3 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs flex items-center justify-between px-5 shadow-md shadow-blue-600/25 transition-all cursor-pointer"
+            className="mt-8 w-full py-3 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-50 text-white font-bold text-xs flex items-center justify-between px-5 shadow-md shadow-blue-600/25 transition-all cursor-pointer"
           >
-            <span>Assinar Scale</span>
-            <span>→</span>
+            <span>{loadingPlan === 'Scale' ? 'Gerando Pix...' : (user?.plan === 'scale' ? 'Plano Atual' : 'Assinar Scale')}</span>
+            {loadingPlan === 'Scale' ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>→</span>}
           </button>
         </div>
 

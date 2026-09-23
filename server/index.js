@@ -23,6 +23,7 @@ import {
   getUsdToBrlRate
 } from './services/metaService.js';
 import { supabaseAdmin } from './supabase.js';
+import { createCheckout, handleWebhookEvent, ensureWebhookConfigured } from './services/abacatepayService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -5875,12 +5876,85 @@ app.post('/api/push/test', async (req, res) => {
     console.error('[WebPush] Erro no endpoint /api/push/test:', err);
     res.status(500).json({ success: false, error: err.message });
   }
+// ==========================================
+// ABACATEPAY PAYMENTS & CHECKOUT
+// ==========================================
+app.post('/api/abacatepay/checkout', async (req, res) => {
+  try {
+    const { plan, userId, userEmail, userName } = req.body;
+    const reqUserId = req.headers['x-user-id'] || userId;
+    const baseUrl = (req.headers.origin || req.headers.host)
+      ? `${req.protocol}://${req.get('host')}`
+      : 'https://app.primetrack.top';
+
+    const checkout = await createCheckout({
+      plan,
+      userId: reqUserId,
+      userEmail,
+      userName,
+      baseUrl
+    });
+
+    return res.json(checkout);
+  } catch (err) {
+    console.error('Erro ao gerar checkout AbacatePay:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/abacatepay/webhook', async (req, res) => {
+  try {
+    const result = await handleWebhookEvent(req.body);
+    return res.json(result);
+  } catch (err) {
+    console.error('Erro no webhook AbacatePay:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/auth/me', async (req, res) => {
+  try {
+    const userId = req.headers['x-user-id'] || req.query.userId;
+    const email = (req.query.email || '').trim().toLowerCase();
+
+    let query = supabaseAdmin.from('users').select('*');
+    if (userId) {
+      query = query.eq('id', userId);
+    } else if (email) {
+      query = query.eq('email', email);
+    } else {
+      return res.status(400).json({ success: false, error: 'Identificador do usuário ausente' });
+    }
+
+    const { data: userRecord } = await query.maybeSingle();
+    if (!userRecord) {
+      return res.status(404).json({ success: false, error: 'Usuário não encontrado' });
+    }
+
+    return res.json({
+      success: true,
+      user: {
+        id: userRecord.id,
+        name: userRecord.name,
+        email: userRecord.email,
+        role: userRecord.role || 'client',
+        plan: userRecord.plan || 'trial',
+        avatarLetter: (userRecord.name || userRecord.email).charAt(0).toUpperCase(),
+        createdAt: userRecord.created_at,
+        trialStartedAt: userRecord.trial_started_at || userRecord.created_at,
+        hasSetPassword: Boolean(userRecord.password && userRecord.password.trim().length >= 6)
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 if (process.env.VERCEL !== '1') {
   // Inicialização local: reconcilia e sincroniza automaticamente dados do Supabase e Meta na inicialização do localhost
   (async () => {
     try {
+      ensureWebhookConfigured().catch(() => {});
       const reconciled = await reconcileFacebookData();
       console.log(`[PrimeTrack Local] Reconciliado com sucesso: ${reconciled.connections.length} perfil(is) e ${reconciled.adAccounts.length} conta(s) ativas.`);
     } catch (err) {
