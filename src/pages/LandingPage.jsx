@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getCurrentUser } from '../utils/auth';
 
 export default function LandingPage({ onGoToDashboard }) {
   const navigate = useNavigate();
-  const handleGoToDashboard = onGoToDashboard || (() => navigate('/login'));
+  const user = typeof window !== 'undefined' ? getCurrentUser() : null;
+  const handleGoToDashboard = onGoToDashboard || (() => navigate(user ? '/dashboard' : '/login'));
   const [openFaq, setOpenFaq] = useState(null);
 
   const toggleFaq = (idx) => {

@@ -19,7 +19,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
 import ErrorBoundary from './components/ErrorBoundary';
 import { supabase } from './lib/supabase';
-import { loginWithGoogle } from './utils/auth';
+import { loginWithGoogle, getCurrentUser } from './utils/auth';
 
 function AuthListener() {
   const navigate = useNavigate();
@@ -113,13 +113,9 @@ export default function App() {
               <Route path="/docs/webhook" element={<DocsWebhook />} />
               <Route path="/documentacao" element={<DocsWebhook />} />
 
-              {/* Rota 1: Landing Page Pública (Redireciona para login no app standalone) */}
+              {/* Rota 1: Página de Apresentação (Landing Page Pública) ou Dashboard se já autenticado */}
               <Route path="/" element={
-                (typeof window !== 'undefined' && (
-                  window.matchMedia('(display-mode: standalone)').matches || 
-                  window.navigator.standalone === true ||
-                  window.location.hostname.startsWith('app.')
-                )) ? <Navigate to="/login" replace /> : <LandingPage />
+                getCurrentUser() ? <Navigate to="/dashboard" replace /> : <LandingPage />
               } />
 
               {/* Políticas e Termos exigidos pelo Facebook / Meta Review */}
