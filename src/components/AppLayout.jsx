@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet, Navigate, useLocation, NavLink } from 'react-router-dom';
+import { Outlet, Navigate, useLocation, NavLink, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import { getCurrentUser } from '../utils/auth';
+import { getCurrentUser, getTrialStatus } from '../utils/auth';
 import { 
   Eye, 
   EyeOff, 
@@ -17,6 +17,8 @@ import {
 export default function AppLayout() {
   const [user, setUser] = useState(getCurrentUser());
   const location = useLocation();
+  const navigate = useNavigate();
+  const trialStatus = getTrialStatus(user);
   const [totalFaturado, setTotalFaturado] = useState(0);
   const [showValues, setShowValues] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -276,6 +278,40 @@ export default function AppLayout() {
           </button>
         </nav>
       </div>
+
+      {/* Modal Bloqueador de Conta Congelada (quando expira os 7 dias + 2 dias de tolerância) */}
+      {trialStatus.isFrozen && location.pathname !== '/planos' && location.pathname !== '/suporte' && location.pathname !== '/conta' && location.pathname !== '/minha-conta' && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#141C2E] border border-rose-500/30 rounded-2xl max-w-md w-full p-6 text-center shadow-2xl space-y-4 animate-in fade-in">
+            <div className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mx-auto text-2xl">
+              ❄️
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-bold text-white">Conta Congelada</h3>
+              <p className="text-xs text-zinc-300 leading-relaxed">
+                Seu período de teste de 7 dias e os 2 dias adicionais de tolerância expiraram. Sua conta foi congelada e os serviços estão pausados.
+              </p>
+            </div>
+            <div className="p-3 bg-[#0D1424] rounded-xl border border-[#1E293B] text-xs text-zinc-400 text-left space-y-1">
+              <div className="flex items-center justify-between text-zinc-300 font-medium">
+                <span>Status da Conta:</span>
+                <span className="text-rose-400 font-bold font-mono">CONGELADA</span>
+              </div>
+              <p className="text-[11px] text-zinc-500">
+                Assine qualquer um dos nossos planos para reativar seu acesso e suas integrações imediatamente.
+              </p>
+            </div>
+            <div className="pt-2">
+              <button
+                onClick={() => navigate('/planos')}
+                className="w-full py-2.5 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs shadow-lg shadow-blue-600/30 transition-all cursor-pointer"
+              >
+                Escolher Plano e Desbloquear
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

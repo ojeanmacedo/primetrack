@@ -442,36 +442,63 @@ export function getTrialStatus(user) {
     };
   }
 
-  // Conta Digital JM / Admin / Pro: NUNCA expira, não exibe banner de renovação urgente
-  if (current.email === 'digitaljmsolucoes@gmail.com' || current.email === 'jeeanmacedo@gmail.com' || current.plan === 'pro' || current.role === 'admin') {
+  // Conta Digital JM / Admin / Planos pagos: NUNCA expiram, não exibem banner de renovação urgente
+  const isPaidOrAdmin = current.email === 'digitaljmsolucoes@gmail.com' || 
+                        current.email === 'jeeanmacedo@gmail.com' || 
+                        current.plan === 'pro' || 
+                        current.plan === 'basic' || 
+                        current.plan === 'scale' || 
+                        current.role === 'admin';
+
+  if (isPaidOrAdmin) {
     return {
       showExpiredBanner: false,
       isExpired: false,
       isTrial: false,
+      isInTrial: false,
+      isGracePeriod: false,
+      isFrozen: false,
       daysLeft: null,
-      dayLabel: 'Pro',
-      planLabel: 'Plano Pro'
+      dayLabel: 'Ativo',
+      planLabel: current.plan ? `Plano ${current.plan.toUpperCase()}` : 'Plano Pro'
     };
   }
 
-  // Clientes normais em período de 7 dias grátis
+  // Clientes normais em período de Plano Free (7 dias grátis + 2 dias adicionais de tolerância)
   const startRaw = current.trialStartedAt || current.trial_started_at || current.createdAt || current.created_at;
   const start = startRaw ? new Date(startRaw) : new Date();
   const now = new Date();
   const diffMs = Math.max(0, now.getTime() - (isNaN(start.getTime()) ? now.getTime() : start.getTime()));
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-  const TRIAL_DAYS = 7;
+  const TRIAL_DAYS = 7; // 7 dias grátis
+  const GRACE_DAYS = 2; // 2 dias de tolerância após os 7 dias
+  const TOTAL_DAYS = TRIAL_DAYS + GRACE_DAYS; // 9 dias no total
+
+  // Fase 1: Primeiros 7 dias (0 a 6 dias) -> Plano Free 100% ativo sem aviso de expiração
+  const isInTrial = diffDays < TRIAL_DAYS;
+  const trialDaysLeft = Math.max(1, TRIAL_DAYS - diffDays);
+
+  // Fase 2: Do 7º ao 8º dia (7 ou 8 dias) -> Bateu 7 dias: restam até 2 dias de tolerância antes de congelar
+  const isGracePeriod = diffDays >= TRIAL_DAYS && diffDays < TOTAL_DAYS;
+  const graceDaysLeft = Math.max(1, TOTAL_DAYS - diffDays);
+
+  // Fase 3: A partir do 9º dia (9+ dias) -> Período de tolerância esgotado: conta congelada
+  const isFrozen = diffDays >= TOTAL_DAYS;
   const isExpired = diffDays >= TRIAL_DAYS;
-  const daysLeft = Math.max(0, TRIAL_DAYS - diffDays);
 
   return {
-    showExpiredBanner: isExpired, // Aparece assim que passar os 7 dias grátis
+    showExpiredBanner: isGracePeriod, // Aparece SOMENTE quando bater os 7 dias e estiver nos 2 dias de tolerância
     isExpired,
-    isTrial: true,
-    daysLeft,
-    dayLabel: isExpired ? 'Expirado' : `${daysLeft} dia`,
-    planLabel: isExpired ? 'Plano Expirado' : 'Plano Free',
+    isTrial: !isFrozen && (current.plan === 'trial' || !current.plan || current.plan === 'free'),
+    isInTrial,
+    isGracePeriod,
+    isFrozen,
+    trialDaysLeft,
+    graceDaysLeft,
+    daysLeft: isInTrial ? trialDaysLeft : (isGracePeriod ? graceDaysLeft : 0),
+    dayLabel: isFrozen ? 'Conta Congelada' : isGracePeriod ? `Tolerância (${graceDaysLeft}d)` : `${trialDaysLeft} dias restantes`,
+    planLabel: isFrozen ? 'Conta Congelada' : isGracePeriod ? 'Plano Expirado' : 'Plano Free',
     limits: {
       maxAdAccounts: 1,
       maxPixels: 1,

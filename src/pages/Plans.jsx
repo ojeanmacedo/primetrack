@@ -1,7 +1,16 @@
 import React from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, AlertTriangle, Snowflake, Sparkles, CheckCircle2 } from 'lucide-react';
+import { getCurrentUser, getTrialStatus } from '../utils/auth';
 
 export default function Plans() {
+  const user = getCurrentUser();
+  const trialStatus = getTrialStatus(user);
+
+  const handleSubscribe = (planName) => {
+    const msg = encodeURIComponent(`Olá! Quero assinar o Plano ${planName} do PrimeTrack para minha conta (${user?.email || 'meu email'}).`);
+    window.open(`https://instagram.com/primetrack.com.br`, '_blank');
+  };
+
   return (
     <div className="space-y-6 pb-16">
       
@@ -15,10 +24,28 @@ export default function Plans() {
         </p>
       </div>
 
-      {/* Warning / Notification Banner matching Screenshot 1 */}
-      <div className="w-full bg-[#20180B] border border-[#3E2F13] text-[#E5B54F] px-4 py-3 rounded-2xl text-xs sm:text-sm font-medium text-center shadow-md">
-        <span>Seu plano expirou. Restam <strong>2 dias</strong> para renovar antes da pausa dos serviços.</span>
-      </div>
+      {/* Warning / Notification Banner dinâmico por ciclo de vida */}
+      {trialStatus.isFrozen ? (
+        <div className="w-full bg-rose-950/40 border border-rose-500/30 text-rose-300 px-4 py-3 rounded-2xl text-xs sm:text-sm font-medium text-center shadow-md flex items-center justify-center gap-2">
+          <Snowflake className="w-4 h-4 text-rose-400 shrink-0" />
+          <span>Sua conta está <strong>congelada</strong> por expiração do período de teste e tolerância. Escolha um dos planos abaixo para desbloquear seu acesso imediatamente.</span>
+        </div>
+      ) : trialStatus.isGracePeriod ? (
+        <div className="w-full bg-[#20180B] border border-[#3E2F13] text-[#E5B54F] px-4 py-3 rounded-2xl text-xs sm:text-sm font-medium text-center shadow-md flex items-center justify-center gap-2 animate-pulse">
+          <AlertTriangle className="w-4 h-4 text-[#E5B54F] shrink-0" />
+          <span>Seu plano expirou. Restam <strong>{trialStatus.graceDaysLeft} {trialStatus.graceDaysLeft === 1 ? 'dia' : 'dias'}</strong> para renovar antes da pausa dos serviços.</span>
+        </div>
+      ) : trialStatus.isInTrial ? (
+        <div className="w-full bg-[#141C2E] border border-blue-500/25 text-blue-300 px-4 py-3 rounded-2xl text-xs sm:text-sm font-medium text-center shadow-md flex items-center justify-center gap-2">
+          <Sparkles className="w-4 h-4 text-blue-400 shrink-0" />
+          <span>Você está no <strong>Plano Free</strong>. Restam <strong>{trialStatus.trialDaysLeft} {trialStatus.trialDaysLeft === 1 ? 'dia' : 'dias'}</strong> de acesso gratuito para testar todas as funcionalidades.</span>
+        </div>
+      ) : (
+        <div className="w-full bg-[#141C2E] border border-emerald-500/25 text-emerald-400 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-medium text-center shadow-md flex items-center justify-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>Sua assinatura está ativa ({trialStatus.planLabel}). Aproveite todos os recursos liberados.</span>
+        </div>
+      )}
 
       {/* 3 Plans Grid matching Screenshot 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-stretch">
@@ -91,7 +118,10 @@ export default function Plans() {
             </ul>
           </div>
 
-          <button className="mt-8 w-full py-3 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs flex items-center justify-between px-5 shadow-md shadow-blue-600/25 transition-all cursor-pointer">
+          <button 
+            onClick={() => handleSubscribe('Basic')}
+            className="mt-8 w-full py-3 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs flex items-center justify-between px-5 shadow-md shadow-blue-600/25 transition-all cursor-pointer"
+          >
             <span>Assinar Basic</span>
             <span>→</span>
           </button>
@@ -161,7 +191,10 @@ export default function Plans() {
             </ul>
           </div>
 
-          <button className="mt-8 w-full py-3 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs flex items-center justify-between px-5 shadow-md shadow-blue-600/25 transition-all cursor-pointer">
+          <button 
+            onClick={() => handleSubscribe('Pro')}
+            className="mt-8 w-full py-3 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs flex items-center justify-between px-5 shadow-md shadow-blue-600/25 transition-all cursor-pointer"
+          >
             <span>Assinar Pro</span>
             <span>→</span>
           </button>
@@ -231,7 +264,10 @@ export default function Plans() {
             </ul>
           </div>
 
-          <button className="mt-8 w-full py-3 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs flex items-center justify-between px-5 shadow-md shadow-blue-600/25 transition-all cursor-pointer">
+          <button 
+            onClick={() => handleSubscribe('Scale')}
+            className="mt-8 w-full py-3 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs flex items-center justify-between px-5 shadow-md shadow-blue-600/25 transition-all cursor-pointer"
+          >
             <span>Assinar Scale</span>
             <span>→</span>
           </button>
