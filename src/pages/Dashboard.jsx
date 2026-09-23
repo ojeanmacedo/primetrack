@@ -1785,26 +1785,6 @@ export default function Dashboard() {
   return (
     <div className="space-y-3 pb-12 font-sans select-none">
 
-      {/* Banner do Plano Free */}
-      {trialStatus.isTrial && (
-        <div className="bg-[#141C2E] border border-blue-500/25 rounded-xl px-4 py-2.5 text-xs text-zinc-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-sm">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="px-2 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-400 font-bold text-[11px] font-mono">
-              Plano Free
-            </span>
-            <span className="text-zinc-300">
-              Sua conta possui acesso a 1 conta de anúncio ativa, 1 pixel PrimeTrack e 1 webhook de vendas.
-            </span>
-            <button 
-              onClick={() => navigate('/planos')}
-              className="text-[#0066FF] hover:underline font-semibold cursor-pointer ml-1"
-            >
-              Fazer upgrade para o Pro →
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Banner de Edição Ativa (Idêntico ao Utmify do vídeo) */}
       {isEditingLayout && (
         <div className="bg-[#141C2E] border border-blue-500/50 rounded-xl px-4 py-3 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3 animate-fadeIn">
