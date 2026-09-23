@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  ArrowRight, 
   AlertTriangle, 
   Snowflake, 
   Sparkles, 
@@ -11,8 +10,7 @@ import {
   X,
   CreditCard,
   Lock,
-  ShieldCheck,
-  Tag
+  ShieldCheck
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { getCurrentUser, setCurrentUser, getTrialStatus } from '../utils/auth';
@@ -107,13 +105,7 @@ export default function Plans() {
   const [holderName, setHolderName] = useState(user?.name || '');
   const [cpfCnpj, setCpfCnpj] = useState('');
   const [phone, setPhone] = useState('');
-  const [cep, setCep] = useState('');
-  const [addressNumber, setAddressNumber] = useState('');
   const [isConfirmedHolder, setIsConfirmedHolder] = useState(true);
-  const [hasCoupon, setHasCoupon] = useState(false);
-  const [couponCode, setCouponCode] = useState('');
-  const [discountPercent, setDiscountPercent] = useState(0);
-  const [couponFeedback, setCouponFeedback] = useState(null);
 
   useEffect(() => {
     const handleProfileSync = () => {
@@ -221,42 +213,12 @@ export default function Plans() {
     }
   };
 
-  const handleCepChange = (e) => {
-    const digits = e.target.value.replace(/\D/g, '').slice(0, 8);
-    let res = digits;
-    if (digits.length > 5) res = digits.replace(/(\d{5})(\d{1,3})/, '$1-$2');
-    setCep(res);
-  };
-
   // Abre o modal de cartão com o plano selecionado
   const handleOpenPlanModal = (plan) => {
     setSelectedPlanModal(plan);
     setModalError(null);
-    setDiscountPercent(0);
-    setCouponApplied(false);
-    setCouponFeedback(null);
     if (user?.name && !holderName) {
       setHolderName(user.name);
-    }
-  };
-
-  // Aplicação de cupom de desconto
-  const handleApplyCoupon = (e) => {
-    e.preventDefault();
-    const code = couponCode.trim().toUpperCase();
-    if (!code) {
-      setCouponFeedback({ type: 'error', text: 'Informe um código de cupom.' });
-      return;
-    }
-
-    if (code === 'ESCALA10' || code === 'PRIME10') {
-      setDiscountPercent(10);
-      setCouponFeedback({ type: 'success', text: 'Cupom de 10% aplicado com sucesso!' });
-    } else if (code === 'PRIME20' || code === 'ESCALA20') {
-      setDiscountPercent(20);
-      setCouponFeedback({ type: 'success', text: 'Cupom de 20% aplicado com sucesso!' });
-    } else {
-      setCouponFeedback({ type: 'error', text: 'Cupom inválido ou expirado.' });
     }
   };
 
@@ -269,16 +231,6 @@ export default function Plans() {
     const month = pad(d.getMonth() + 1);
     const year = String(d.getFullYear()).slice(-2);
     return `${day}/${month}/${year}`;
-  };
-
-  // Cálculo do valor final
-  const getFinalPrice = () => {
-    if (!selectedPlanModal) return 'R$ 0,00';
-    if (discountPercent > 0) {
-      const discounted = selectedPlanModal.rawPrice * (1 - discountPercent / 100);
-      return `R$ ${discounted.toFixed(2).replace('.', ',')}`;
-    }
-    return selectedPlanModal.formattedPrice;
   };
 
   // Submissão do Pagamento da Assinatura
@@ -347,9 +299,7 @@ export default function Plans() {
             expiry: cardExpiry,
             cvv: cardCvv,
             cpfCnpj: cleanCpf,
-            phone: cleanPhoneDigits,
-            cep: cep.replace(/\D/g, ''),
-            streetNumber: addressNumber.trim()
+            phone: cleanPhoneDigits
           }
         })
       });
@@ -516,7 +466,7 @@ export default function Plans() {
                 </button>
 
                 <p className="text-[10.5px] text-zinc-400 text-center mt-2.5 flex items-center justify-center gap-1 font-sans">
-                  <span>💳 Assinatura mensal no Cartão de Crédito</span>
+                  <span>💳 Cartão de Crédito</span>
                 </p>
               </div>
             </div>
@@ -526,7 +476,7 @@ export default function Plans() {
 
       {/* Footer Text */}
       <div className="text-center text-xs text-zinc-500 font-sans pt-4">
-        Sem fidelidade &nbsp;·&nbsp; Sem taxa por venda &nbsp;·&nbsp; Cobrança mensal 1x no cartão &nbsp;·&nbsp; Cancele quando quiser
+        Sem fidelidade &nbsp;·&nbsp; Sem taxa por venda &nbsp;·&nbsp; Cancele quando quiser
       </div>
 
       {/* ========================================================= */}
@@ -704,40 +654,9 @@ export default function Plans() {
                       />
                     </div>
 
-                    {/* CEP e Número */}
-                    <div className="grid grid-cols-2 gap-3 mb-3">
-                      <div>
-                        <label className="block text-[11.5px] font-semibold text-zinc-700 mb-1">
-                          Código Postal (CEP)
-                        </label>
-                        <input 
-                          type="text"
-                          inputMode="numeric"
-                          placeholder="00000-000"
-                          value={cep}
-                          onChange={handleCepChange}
-                          className="w-full border border-zinc-250 rounded-lg px-3.5 py-2.5 text-xs sm:text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all bg-white shadow-xs font-mono"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11.5px] font-semibold text-zinc-700 mb-1">
-                          Número da residência
-                        </label>
-                        <input 
-                          type="text"
-                          placeholder="Ex: 278, Casa 1"
-                          value={addressNumber}
-                          onChange={(e) => setAddressNumber(e.target.value)}
-                          className="w-full border border-zinc-250 rounded-lg px-3.5 py-2.5 text-xs sm:text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all bg-white shadow-xs"
-                          required
-                        />
-                      </div>
-                    </div>
-
                     {/* Termos de Serviço */}
                     <p className="text-[10.5px] text-zinc-400 leading-relaxed mb-3">
-                      Ao continuar você aceita nossos termos e condições e declara que as informações de endereço estão corretas.
+                      Ao continuar você aceita nossos termos e condições.
                     </p>
 
                     {/* Checkboxes */}
@@ -751,41 +670,6 @@ export default function Plans() {
                         />
                         <span>Confirmo que o responsável pela compra é o titular do cartão</span>
                       </label>
-
-                      <label className="flex items-center gap-2 text-xs text-zinc-700 cursor-pointer select-none">
-                        <input 
-                          type="checkbox"
-                          checked={hasCoupon}
-                          onChange={(e) => setHasCoupon(e.target.checked)}
-                          className="w-4 h-4 rounded text-blue-600 border-zinc-300 focus:ring-blue-500 cursor-pointer"
-                        />
-                        <span>Tem um cupom de desconto? Clique aqui</span>
-                      </label>
-
-                      {hasCoupon && (
-                        <div className="pt-1.5 flex gap-2 items-center">
-                          <input 
-                            type="text"
-                            placeholder="Código do cupom (Ex: ESCALA10)"
-                            value={couponCode}
-                            onChange={(e) => setCouponCode(e.target.value)}
-                            className="flex-1 border border-zinc-300 rounded-lg px-3 py-1.5 text-xs text-zinc-900 uppercase font-mono"
-                          />
-                          <button 
-                            type="button"
-                            onClick={handleApplyCoupon}
-                            className="px-3 py-1.5 rounded-lg bg-zinc-900 text-white font-bold text-xs hover:bg-zinc-800 transition-all cursor-pointer"
-                          >
-                            Aplicar
-                          </button>
-                        </div>
-                      )}
-
-                      {couponFeedback && (
-                        <p className={`text-[11px] font-medium ${couponFeedback.type === 'success' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          {couponFeedback.text}
-                        </p>
-                      )}
                     </div>
 
                   </div>
@@ -796,16 +680,9 @@ export default function Plans() {
                     
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-zinc-500">Valor a pagar</span>
-                      <div className="text-right">
-                        {discountPercent > 0 && (
-                          <span className="line-through text-zinc-400 text-[11px] mr-2">
-                            {selectedPlanModal.formattedPrice}
-                          </span>
-                        )}
-                        <span className="font-extrabold text-zinc-900 text-sm">
-                          {getFinalPrice()}
-                        </span>
-                      </div>
+                      <span className="font-extrabold text-zinc-900 text-sm">
+                        {selectedPlanModal.formattedPrice}
+                      </span>
                     </div>
 
                     <div className="flex justify-between items-center text-xs">
@@ -868,13 +745,11 @@ export default function Plans() {
               </div>
 
               {/* Selos de Confiança no Rodapé */}
-              <div className="w-full pt-3 border-t border-zinc-200/80 flex items-center justify-center gap-4 text-[11px] text-zinc-500 font-medium">
+              <div className="w-full pt-3 border-t border-zinc-200/80 flex items-center justify-center text-[11px] text-zinc-500 font-medium">
                 <span className="flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
                   <span>Ambiente Seguro</span>
                 </span>
-                <span>·</span>
-                <span>Assinatura 1x Mensal</span>
               </div>
 
             </div>
