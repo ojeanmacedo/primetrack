@@ -40,6 +40,9 @@ export default function Integrations() {
   const currentUser = getCurrentUser();
   const isAdmin = isMasterAdmin(currentUser);
   const trialStatus = getTrialStatus(currentUser);
+  const userAccKey = currentUser?.id ? `primetrack_ad_accounts_${currentUser.id}` : 'primetrack_ad_accounts';
+  const userCampKey = currentUser?.id ? `primetrack_cached_campaigns_${currentUser.id}` : 'primetrack_cached_campaigns';
+  const userDisconKey = currentUser?.id ? `primetrack_meta_disconnected_${currentUser.id}` : 'primetrack_meta_disconnected';
 
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -148,11 +151,12 @@ export default function Integrations() {
 
   const loadAdAccounts = (dashId, isDef) => {
     if (typeof window === 'undefined') return [];
-    const key = isDef || dashId === 'principal' ? 'primetrack_ad_accounts' : `primetrack_ad_accounts_${dashId}`;
-    if (localStorage.getItem('primetrack_meta_disconnected') === 'true' && (isDef || dashId === 'principal')) {
+    const isDisc = localStorage.getItem(userDisconKey) === 'true' || localStorage.getItem('primetrack_meta_disconnected') === 'true';
+    if (isDisc && (isDef || dashId === 'principal')) {
       return [];
     }
-    const saved = localStorage.getItem(key);
+    const key = isDef || dashId === 'principal' ? 'primetrack_ad_accounts' : `primetrack_ad_accounts_${dashId}`;
+    const saved = localStorage.getItem(userAccKey) || localStorage.getItem(key);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -621,8 +625,10 @@ export default function Integrations() {
     const activeIds = updated.filter(a => a.sync).map(a => a.id);
     if (typeof window !== 'undefined') {
       localStorage.setItem('primetrack_ad_accounts', JSON.stringify(updated));
+      localStorage.setItem(userAccKey, JSON.stringify(updated));
       localStorage.setItem(getScopedKey('primetrack_ad_accounts'), JSON.stringify(updated));
       if (activeIds.length === 0) {
+        localStorage.removeItem(userCampKey);
         localStorage.removeItem('primetrack_cached_campaigns');
       }
     }
@@ -644,6 +650,7 @@ export default function Integrations() {
       .then(res => res.json())
       .then(data => {
         if (data && Array.isArray(data.campaigns) && data.campaigns.length > 0) {
+          localStorage.setItem(userCampKey, JSON.stringify(data.campaigns));
           localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(data.campaigns));
           window.dispatchEvent(new Event('primetrack_profile_sync'));
         }
@@ -1059,14 +1066,18 @@ export default function Integrations() {
           setAdAccounts([]);
           localStorage.removeItem('primetrack_connected_profiles');
           localStorage.removeItem('primetrack_ad_accounts');
+          localStorage.removeItem(userAccKey);
         }
 
         if (Array.isArray(data.adAccounts)) {
           if (data.adAccounts.length === 0) {
             setAdAccounts([]);
             localStorage.removeItem('primetrack_ad_accounts');
+            localStorage.removeItem(userAccKey);
           } else {
-            const savedLocal = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
+            const savedLocal = typeof window !== 'undefined' 
+              ? (localStorage.getItem(userAccKey) || localStorage.getItem('primetrack_ad_accounts')) 
+              : null;
             let localSyncMap = {};
             if (savedLocal) {
               try {
@@ -1111,6 +1122,7 @@ export default function Integrations() {
             });
             setAdAccounts(mappedAccs);
             localStorage.setItem('primetrack_ad_accounts', JSON.stringify(mappedAccs));
+            localStorage.setItem(userAccKey, JSON.stringify(mappedAccs));
           }
         }
       })

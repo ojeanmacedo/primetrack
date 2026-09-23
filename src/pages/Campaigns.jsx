@@ -366,6 +366,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const navigate = useNavigate();
   const user = getCurrentUser();
   const isAdmin = isMasterAdmin(user);
+  const userId = user?.id || '';
+  const userAccKey = userId ? `primetrack_ad_accounts_${userId}` : 'primetrack_ad_accounts';
+  const userCampKey = userId ? `primetrack_cached_campaigns_${userId}` : 'primetrack_cached_campaigns';
+  const userCampDateKey = userId ? `primetrack_cached_campaigns_date_${userId}` : 'primetrack_cached_campaigns_date';
+  const userDisconKey = userId ? `primetrack_meta_disconnected_${userId}` : 'primetrack_meta_disconnected';
   const [subTab, setSubTabState] = useState(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -500,7 +505,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const [tempColumnsConfig, setTempColumnsConfig] = useState([]);
   const [draggedColId, setDraggedColId] = useState(null);
   
-  const isDisconnected = typeof window !== 'undefined' && localStorage.getItem('primetrack_meta_disconnected') === 'true';
+  const isDisconnected = typeof window !== 'undefined' && (
+    localStorage.getItem(userDisconKey) === 'true' || 
+    localStorage.getItem('primetrack_meta_disconnected') === 'true'
+  );
 
   const defaultCampaignData = [
     {
@@ -554,8 +562,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   const [campaignsList, setCampaignsList] = useState(() => {
     if (typeof window !== 'undefined') {
-      // Se não há nenhuma conta ativa nas Integrações, NUNCA carrega campanhas do cache
-      const savedAccs = localStorage.getItem('primetrack_ad_accounts');
+      const isDisc = localStorage.getItem(userDisconKey) === 'true' || localStorage.getItem('primetrack_meta_disconnected') === 'true';
+      if (isDisc) return [];
+
+      const savedAccs = localStorage.getItem(userAccKey) || localStorage.getItem('primetrack_ad_accounts');
       let hasActiveAcc = false;
       if (savedAccs) {
         try {
@@ -564,18 +574,17 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         } catch (e) {}
       }
       if (!hasActiveAcc) {
-        localStorage.removeItem('primetrack_cached_campaigns');
         return [];
       }
 
-      const saved = localStorage.getItem('primetrack_cached_campaigns');
+      const saved = localStorage.getItem(userCampKey) || localStorage.getItem('primetrack_cached_campaigns');
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
             const sanitized = sanitizeCampaignsData(parsed);
             const savedPeriod = 'Hoje';
-            const savedDate = localStorage.getItem('primetrack_cached_campaigns_date');
+            const savedDate = localStorage.getItem(userCampDateKey) || localStorage.getItem('primetrack_cached_campaigns_date');
             const todayYMD = getBrazilTodayYMD();
             if (savedPeriod === 'Hoje' && savedDate && savedDate !== todayYMD) {
               // O dia virou! Preserva estrutura das campanhas para não sumirem, mas zera métricas de ontem
@@ -645,7 +654,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   const [adAccountsList, setAdAccountsList] = useState(() => {
     if (isDisconnected) return [];
-    const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
+    const saved = typeof window !== 'undefined' 
+      ? (localStorage.getItem(userAccKey) || localStorage.getItem('primetrack_ad_accounts'))
+      : null;
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -745,9 +756,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     });
   };
 
-  const loadData = async (customPreset = periodFilterRef.current, customRangeObj = customRangeRef.current) => {
+  const loadData = async (customPreset = periodFilterRef.current, customRangeObj = customRangeRef.current, isBackground = false) => {
     const reqId = ++latestRequestIdRef.current;
-    const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
+    const saved = typeof window !== 'undefined' 
+      ? (localStorage.getItem(userAccKey) || localStorage.getItem('primetrack_ad_accounts')) 
+      : null;
     let localSyncMap = {};
     let currentActiveAccs = [];
     if (saved) {
@@ -765,12 +778,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           currentActiveAccs = activeList;
           if (activeList.length > 0) {
             setAdAccountsList(activeList);
-          } else {
-            setAdAccountsList([]);
-            setCampaignsList([]);
-            if (typeof window !== 'undefined') {
-              localStorage.removeItem('primetrack_cached_campaigns');
-            }
           }
         }
       } catch (e) {}
@@ -802,7 +809,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       query = `datePreset=${datePreset}`;
     }
 
-    if (currentActiveAccs.length > 0 && campaignsList.length === 0) {
+    if (!isBackground && currentActiveAccs.length > 0 && campaignsList.length === 0) {
       setIsLoadingData(true);
     }
 
@@ -825,14 +832,25 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       const data = await statusRes.json().catch(() => ({}));
 
       if (data && data.connections && data.connections.length > 0) {
-        localStorage.removeItem('primetrack_meta_disconnected');
-      } else if (data && Array.isArray(data.connections) && data.connections.length === 0) {
-        currentActiveAccs = [];
-        setAdAccountsList([]);
-        setCampaignsList([]);
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('primetrack_ad_accounts');
-          localStorage.removeItem('primetrack_cached_campaigns');
+          localStorage.removeItem(userDisconKey);
+          localStorage.removeItem('primetrack_meta_disconnected');
+        }
+      } else if (data && Array.isArray(data.connections) && data.connections.length === 0) {
+        const isUserDisc = typeof window !== 'undefined' && (
+          localStorage.getItem(userDisconKey) === 'true' || 
+          localStorage.getItem('primetrack_meta_disconnected') === 'true'
+        );
+        if (isUserDisc) {
+          currentActiveAccs = [];
+          setAdAccountsList([]);
+          setCampaignsList([]);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem(userAccKey);
+            localStorage.removeItem('primetrack_ad_accounts');
+            localStorage.removeItem(userCampKey);
+            localStorage.removeItem('primetrack_cached_campaigns');
+          }
         }
       }
 
@@ -840,7 +858,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         const mappedAccs = data.adAccounts
           .map(a => {
             const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
-            // Prioridade: status retornado do backend / sincronizado > fallback para localStorage
             const isSyncActive = a.syncActive !== undefined
               ? (a.syncActive === true)
               : (localSyncMap[accId] !== undefined ? localSyncMap[accId] === true : false);
@@ -857,71 +874,67 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             };
           });
 
-        // Salva a lista completa com os status atualizados para manter sincronizado com Integrações
         if (typeof window !== 'undefined') {
+          localStorage.setItem(userAccKey, JSON.stringify(mappedAccs));
           localStorage.setItem('primetrack_ad_accounts', JSON.stringify(mappedAccs));
         }
 
-        // Em Campanhas, APENAS as contas marcadas como ativas (sync === true) em Integrações devem ser exibidas!
-        currentActiveAccs = mappedAccs.filter(a => a.sync === true);
-        setAdAccountsList(currentActiveAccs);
-
-        if (currentActiveAccs.length === 0) {
-          setCampaignsList([]);
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('primetrack_cached_campaigns');
-          }
+        const freshActive = mappedAccs.filter(a => a.sync === true);
+        if (freshActive.length > 0) {
+          currentActiveAccs = freshActive;
+          setAdAccountsList(freshActive);
+        } else if (data.adAccounts.every(a => a.syncActive === false) && (!data.connections || data.connections.length === 0)) {
+          currentActiveAccs = [];
+          setAdAccountsList([]);
         }
 
         if (accountFilter !== 'Todas' && !currentActiveAccs.some(a => a.id === accountFilter || a.name === accountFilter)) {
           setAccountFilter('Todas');
         }
-      } else if (data && Array.isArray(data.adAccounts) && data.adAccounts.length === 0) {
-        currentActiveAccs = [];
-        setAdAccountsList([]);
-        setCampaignsList([]);
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('primetrack_ad_accounts');
-          localStorage.removeItem('primetrack_cached_campaigns');
-        }
       }
 
       const cData = await crRes.json().catch(() => null);
       if (reqId !== latestRequestIdRef.current) {
-        // Descarta requisição obsoleta
         return;
       }
       
-      // Se não há NENHUMA conta ativa nas Integrações, NUNCA exibe campanhas
-      if (!currentActiveAccs || currentActiveAccs.length === 0) {
-        setCampaignsList([]);
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('primetrack_cached_campaigns');
-        }
-      } else if (Array.isArray(cData) && cData.length > 0) {
+      if (Array.isArray(cData) && cData.length > 0) {
         const activeIds = new Set(currentActiveAccs.map(a => String(a.id).replace('act_', '')));
         const activeNames = new Set(currentActiveAccs.map(a => (a.name || '').toLowerCase().trim()));
         const sanitized = sanitizeCampaignsData(cData);
-        // Exibe apenas campanhas das contas que estão expressamente ativas
-        const onlyActive = sanitized.filter(c => {
-          const cAdId = String(c.adAccountId || c.accountId || '').replace('act_', '');
-          const cAccName = (c.accountName || '').toLowerCase().trim();
-          return (cAdId && activeIds.has(cAdId)) || (cAccName && activeNames.has(cAccName));
-        });
+        const onlyActive = activeIds.size > 0 
+          ? sanitized.filter(c => {
+              const cAdId = String(c.adAccountId || c.accountId || '').replace('act_', '');
+              const cAccName = (c.accountName || '').toLowerCase().trim();
+              return (cAdId && activeIds.has(cAdId)) || (cAccName && activeNames.has(cAccName));
+            })
+          : sanitized;
+
         setCampaignsList(prev => {
           const merged = mergeCampaignsPreservingOrder(prev, onlyActive);
           if (typeof window !== 'undefined') {
+            localStorage.setItem(userCampKey, JSON.stringify(merged));
             localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(merged));
             if (customPreset === 'Hoje' || (!customPreset && periodFilterRef.current === 'Hoje')) {
+              localStorage.setItem(userCampDateKey, getBrazilTodayYMD());
               localStorage.setItem('primetrack_cached_campaigns_date', getBrazilTodayYMD());
             }
           }
           return merged;
         });
       } else if (Array.isArray(cData) && cData.length === 0) {
-        setCampaignsList([]);
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('primetrack_cached_campaigns');
+        // Se a resposta retornou vazia, NÃO limpa as campanhas se o usuário ainda tiver contas ativas!
+        // Apenas limpa se realmente o usuário desconectou ou não tem contas ativas.
+        const isDisc = typeof window !== 'undefined' && (
+          localStorage.getItem(userDisconKey) === 'true' || 
+          localStorage.getItem('primetrack_meta_disconnected') === 'true'
+        );
+        if (isDisc || (currentActiveAccs.length === 0 && (!data.connections || data.connections.length === 0))) {
+          setCampaignsList([]);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem(userCampKey);
+            localStorage.removeItem('primetrack_cached_campaigns');
+          }
         }
       }
     } catch (err) {
@@ -971,7 +984,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
     // Auto-refresh a cada 45 segundos para refletir vendas em tempo real sem estourar limite de taxa da Meta
     const autoRefreshInterval = setInterval(() => {
-      loadData(periodFilterRef.current, customRangeRef.current);
+      loadData(periodFilterRef.current, customRangeRef.current, true);
     }, 45000);
 
     window.addEventListener('primetrack_profile_sync', handleProfileSync);
@@ -987,11 +1000,17 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   }, []);
 
   const handleSyncNow = async (preset = periodFilterRef.current, customRangeObj = customRangeRef.current) => {
-    if (!adAccountsList || adAccountsList.length === 0) {
-      setCampaignsList([]);
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('primetrack_cached_campaigns');
-      }
+    const activeAccs = (adAccountsList && adAccountsList.length > 0) 
+      ? adAccountsList 
+      : (() => {
+          try {
+            const raw = localStorage.getItem(userAccKey) || localStorage.getItem('primetrack_ad_accounts');
+            if (raw) return JSON.parse(raw).filter(a => a.sync === true);
+          } catch (e) {}
+          return [];
+        })();
+
+    if (!activeAccs || activeAccs.length === 0) {
       return;
     }
 
@@ -1021,7 +1040,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       const syncPayload = {};
 
       if (accountFilter && accountFilter !== 'Todas') {
-        const targetAcc = adAccountsList.find(a => a.name === accountFilter || a.id === accountFilter);
+        const targetAcc = activeAccs.find(a => a.name === accountFilter || a.id === accountFilter);
         if (targetAcc) {
           syncPayload.accountId = targetAcc.id;
         }
@@ -1042,8 +1061,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       });
       const syncData = await syncRes.json();
       if (syncData && Array.isArray(syncData.campaigns)) {
-        const activeIds = new Set(adAccountsList.map(a => String(a.id).replace('act_', '')));
-        const activeNames = new Set(adAccountsList.map(a => (a.name || '').toLowerCase().trim()));
+        const activeIds = new Set(activeAccs.map(a => String(a.id).replace('act_', '')));
+        const activeNames = new Set(activeAccs.map(a => (a.name || '').toLowerCase().trim()));
         const onlyActive = syncData.campaigns.filter(c => {
           const cAdId = String(c.adAccountId || c.accountId || '').replace('act_', '');
           const cAccName = (c.accountName || '').toLowerCase().trim();
@@ -1054,22 +1073,19 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           setCampaignsList(prev => {
             const merged = mergeCampaignsPreservingOrder(prev, onlyActive);
             if (typeof window !== 'undefined') {
+              localStorage.setItem(userCampKey, JSON.stringify(merged));
               localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(merged));
               if (selectedPreset === 'Hoje') {
+                localStorage.setItem(userCampDateKey, getBrazilTodayYMD());
                 localStorage.setItem('primetrack_cached_campaigns_date', getBrazilTodayYMD());
               }
             }
             return merged;
           });
-        } else {
-          setCampaignsList([]);
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('primetrack_cached_campaigns');
-          }
         }
       }
 
-      await loadData(selectedPreset, customRangeObj);
+      await loadData(selectedPreset, customRangeObj, true);
       const now = new Date();
       setLastSyncTime(`${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`);
     } catch (e) {
@@ -1865,7 +1881,20 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     }
   };
 
-  const isNoAccountActive = adAccountsList.length === 0 && campaignsList.length === 0;
+  const isNoAccountActive = !isLoadingData && !syncing && 
+    adAccountsList.length === 0 && 
+    campaignsList.length === 0 && 
+    (() => {
+      if (typeof window === 'undefined') return true;
+      const raw = localStorage.getItem(userAccKey) || localStorage.getItem('primetrack_ad_accounts');
+      if (!raw) return true;
+      try {
+        const p = JSON.parse(raw);
+        return !(Array.isArray(p) && p.some(a => a.sync === true));
+      } catch (e) {
+        return true;
+      }
+    })();
   const activeAdAccount = adAccountsList.length > 0 ? adAccountsList[0] : null;
 
   // Seleção independente por nível (Campanhas, Conjuntos, Anúncios)

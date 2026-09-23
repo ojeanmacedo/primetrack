@@ -2185,24 +2185,24 @@ app.get('/api/campaigns', async (req, res) => {
   const now = Date.now();
   const cached = campaignsCache.get(cacheKey);
 
-  // Extrai IDs das contas ativas do usuário (prioridade: enviado pelo cliente > salvo nas conexões)
+  // Extrai IDs das contas ativas do usuário:
+  // A fonte primária de verdade é a configuração oficial salva nas conexões do usuário no Supabase/DB
   const userActiveIds = new Set();
-  const rawClientAct = clientActiveAccounts || clientActiveAccountsHeader;
-  if (rawClientAct) {
-    String(rawClientAct).split(',').map(s => s.trim().replace('act_', '')).filter(Boolean).forEach(id => userActiveIds.add(id));
-  }
+  connections.forEach(c => {
+    if (c.email) {
+      try {
+        const meta = JSON.parse(c.email);
+        if (Array.isArray(meta?.activeAccounts)) {
+          meta.activeAccounts.forEach(id => userActiveIds.add(String(id).replace('act_', '')));
+        }
+      } catch (e) {}
+    }
+  });
 
-  if (userActiveIds.size === 0) {
-    connections.forEach(c => {
-      if (c.email) {
-        try {
-          const meta = JSON.parse(c.email);
-          if (Array.isArray(meta?.activeAccounts)) {
-            meta.activeAccounts.forEach(id => userActiveIds.add(String(id).replace('act_', '')));
-          }
-        } catch (e) {}
-      }
-    });
+  // Fallback caso a conexão ainda não tenha gravado o JSON no Supabase
+  const rawClientAct = clientActiveAccounts || clientActiveAccountsHeader;
+  if (userActiveIds.size === 0 && rawClientAct) {
+    String(rawClientAct).split(',').map(s => s.trim().replace('act_', '')).filter(Boolean).forEach(id => userActiveIds.add(id));
   }
 
   // Se não há nenhuma conta ativa configurada pelo usuário em Integrações, NUNCA retorna campanhas!
@@ -3209,24 +3209,31 @@ export async function reconcileFacebookData(force = false, userId = null) {
   }
 
   // 2. Atualiza conexões locais preservando as dos outros usuários
+  const isThisUser = (targetUserId) => {
+    if (!targetUserId) return false;
+    if (userId) {
+      if (isOwnerUserId(userId)) {
+        return isOwnerUserId(targetUserId);
+      }
+      return targetUserId === userId;
+    }
+    return false;
+  };
+
   const existingAllConns = db.get('facebook_connections') || [];
   const otherConns = existingAllConns.filter(c => {
     const cUserId = c.userId || c.user_id;
-    if (userId) {
-      return isOwnerUserId(userId) 
-        ? (!cUserId && !isOwnerUserId(cUserId))
-        : (cUserId !== userId);
-    }
-    return false;
+    return !isThisUser(cUserId);
   });
   const updatedUserConns = connections.map(c => {
     const rawId = String(c.id || '');
     const cleanProfileId = rawId.includes('___') ? rawId.split('___')[0] : rawId;
+    const effectiveUser = userId || c.user_id || 'usr_1788826403159';
     return {
-      id: cleanProfileId,
+      id: `${cleanProfileId}___${effectiveUser}`,
       profileId: cleanProfileId,
-      userId: userId || c.user_id || 'usr_1788826403159',
-      user_id: userId || c.user_id || 'usr_1788826403159',
+      userId: effectiveUser,
+      user_id: effectiveUser,
       name: c.name,
       email: c.email,
       avatarUrl: c.avatar_url || c.avatarUrl,
@@ -3237,18 +3244,37 @@ export async function reconcileFacebookData(force = false, userId = null) {
   });
   db.set('facebook_connections', [...otherConns, ...updatedUserConns]);
 
-  // 3. Lê contas ativas salvas em JSON
-  let activeSet = new Set();
-  connections.forEach(c => {
-    if (c.email) {
+  // 3. Mapeia contas ativas de forma isolada por usuário/conexão
+  // Garante que mesmo com o mesmo perfil do FB conectado em usuários distintos, cada usuário mantém suas contas ativas separadas
+  const getActiveSetForConnection = (connObj) => {
+    const set = new Set();
+    if (connObj && connObj.email) {
       try {
-        const parsedMeta = JSON.parse(c.email);
+        const parsedMeta = JSON.parse(connObj.email);
         if (parsedMeta && Array.isArray(parsedMeta.activeAccounts)) {
-          parsedMeta.activeAccounts.forEach(acc => activeSet.add(String(acc).replace('act_', '')));
+          parsedMeta.activeAccounts.forEach(acc => set.add(String(acc).replace('act_', '')));
         }
       } catch (e) {}
     }
-  });
+    return set;
+  };
+
+  const getActiveSetForUser = (targetUserId) => {
+    const set = new Set();
+    connections.forEach(c => {
+      const cUser = c.user_id || c.userId;
+      const matches = targetUserId && (
+        isOwnerUserId(targetUserId) 
+          ? (isOwnerUserId(cUser) || !cUser)
+          : (cUser === targetUserId)
+      );
+      if (matches || !targetUserId) {
+        const connSet = getActiveSetForConnection(c);
+        connSet.forEach(id => set.add(id));
+      }
+    });
+    return set;
+  };
 
   // 4. Busca em paralelo todas as contas oficiais de cada perfil conectado
   const fetchPromises = connections.map(async (conn) => {
@@ -3256,13 +3282,16 @@ export async function reconcileFacebookData(force = false, userId = null) {
     if (!token) return [];
     try {
       const accounts = await fetchAdAccounts(token);
+      const connUser = conn.user_id || conn.userId || userId || 'usr_1788826403159';
+      const connActiveSet = getActiveSetForConnection(conn);
+
       return (accounts || []).map(acc => {
         const cleanId = (acc.accountId || acc.id || '').split('___')[0].replace('act_', '');
         return {
           id: `act_${cleanId}`,
           accountId: cleanId,
-          userId: userId || conn.user_id || 'usr_1788826403159',
-          user_id: userId || conn.user_id || 'usr_1788826403159',
+          userId: connUser,
+          user_id: connUser,
           profileId: conn.id,
           profileName: conn.name,
           name: acc.name || 'Conta de Anúncio',
@@ -3271,7 +3300,7 @@ export async function reconcileFacebookData(force = false, userId = null) {
           status: acc.status || 'Ativa',
           amountSpent: String(acc.amountSpent || '0.00'),
           balance: String(acc.balance || '0.00'),
-          syncActive: activeSet.has(cleanId)
+          syncActive: connActiveSet.has(cleanId)
         };
       });
     } catch (err) {
@@ -3292,7 +3321,7 @@ export async function reconcileFacebookData(force = false, userId = null) {
     try {
       const rows = validAccounts.map(acc => {
         const cleanId = (acc.accountId || acc.id || '').split('___')[0].replace('act_', '');
-        const targetUser = userId || acc.user_id || 'usr_1788826403159';
+        const targetUser = acc.user_id || acc.userId || userId || 'usr_1788826403159';
         return {
           id: `act_${cleanId}___${targetUser}`,
           user_id: targetUser,
@@ -3307,18 +3336,19 @@ export async function reconcileFacebookData(force = false, userId = null) {
       await supabaseAdmin.from('ad_accounts').upsert(rows);
     } catch (e) {}
 
-    // 7. Atualiza db local de contas
+    // 7. Atualiza db local de contas preservando contas dos outros usuários
     const allLocalAccs = db.get('ad_accounts') || [];
-    const otherLocalAccs = allLocalAccs.filter(a => {
-      const aUserId = a.userId || a.user_id;
-      if (userId) {
-        return isOwnerUserId(userId)
-          ? (!aUserId && !isOwnerUserId(aUserId))
-          : (aUserId !== userId);
-      }
-      return false;
-    });
-    db.set('ad_accounts', [...otherLocalAccs, ...validAccounts]);
+    let updatedLocalAccs;
+    if (userId) {
+      const otherLocalAccs = allLocalAccs.filter(a => {
+        const aUserId = a.userId || a.user_id;
+        return !isThisUser(aUserId);
+      });
+      updatedLocalAccs = [...otherLocalAccs, ...validAccounts];
+    } else {
+      updatedLocalAccs = validAccounts;
+    }
+    db.set('ad_accounts', updatedLocalAccs);
   } else if (connections.length > 0) {
     // Se a busca ao vivo na Meta falhou (ex: rate limit ou erro de rede temporário),
     // recupera as contas existentes já salvas no Supabase e no banco local para não apagar a visualização do usuário
@@ -3336,11 +3366,13 @@ export async function reconcileFacebookData(force = false, userId = null) {
       if (supaAccs && supaAccs.length > 0) {
         existingAccounts = supaAccs.map(a => {
           const cleanId = (a.id || '').split('___')[0].replace('act_', '');
+          const accUser = a.user_id || userId || 'usr_1788826403159';
+          const userSet = getActiveSetForUser(accUser);
           return {
             id: `act_${cleanId}`,
             accountId: cleanId,
-            userId: userId || a.user_id || 'usr_1788826403159',
-            user_id: userId || a.user_id || 'usr_1788826403159',
+            userId: accUser,
+            user_id: accUser,
             profileId: connections[0]?.id,
             profileName: connections[0]?.name,
             name: a.name,
@@ -3349,7 +3381,7 @@ export async function reconcileFacebookData(force = false, userId = null) {
             status: a.status || 'Ativa',
             amountSpent: String(a.amount_spent || '0.00'),
             balance: String(a.balance || '0.00'),
-            syncActive: activeSet.has(cleanId)
+            syncActive: userSet.has(cleanId)
           };
         });
       }
@@ -4092,7 +4124,7 @@ app.post('/api/meta/sync', async (req, res) => {
       }
     } catch (eSyncSupa) {}
 
-    const cacheKey = (isMaximum || datePreset === 'maximum') ? 'maximum' : (timeRange ? `${since}_${until}` : datePreset);
+    const cacheKey = `${userId || 'all'}_${(isMaximum || datePreset === 'maximum') ? 'maximum' : (timeRange ? `${since}_${until}` : datePreset)}`;
     campaignsCache.set(cacheKey, {
       timestamp: Date.now(),
       campaigns: enrichedCampaigns
@@ -4143,41 +4175,56 @@ app.post('/api/meta/accounts/sync-status', async (req, res) => {
       } catch (e) {}
     }
     
+    const isThisUser = (targetUserId) => {
+      if (!targetUserId) return false;
+      if (userId) {
+        if (isOwnerUserId(userId)) {
+          return isOwnerUserId(targetUserId);
+        }
+        return targetUserId === userId;
+      }
+      return false;
+    };
+
     let explicitActiveIds = [];
     if (Array.isArray(activeAccounts)) {
       explicitActiveIds = activeAccounts.map(id => String(id).replace('act_', ''));
       const activeSet = new Set(explicitActiveIds);
       adAccounts = adAccounts.map(acc => {
         const clean = (acc.accountId || acc.id || '').replace('act_', '');
-        return {
-          ...acc,
-          syncActive: activeSet.has(clean)
-        };
+        const aUser = acc.userId || acc.user_id;
+        if (!userId || isThisUser(aUser)) {
+          return {
+            ...acc,
+            syncActive: activeSet.has(clean)
+          };
+        }
+        return acc;
       });
     } else if (accountId !== undefined) {
       const cleanTarget = String(accountId).replace('act_', '');
       adAccounts = adAccounts.map(acc => {
         const clean = (acc.accountId || acc.id || '').replace('act_', '');
-        if (clean === cleanTarget) {
+        const aUser = acc.userId || acc.user_id;
+        if ((!userId || isThisUser(aUser)) && clean === cleanTarget) {
           return { ...acc, syncActive: !!syncActive };
         }
         return acc;
       });
       explicitActiveIds = adAccounts
-        .filter(a => a.syncActive)
+        .filter(a => (!userId || isThisUser(a.userId || a.user_id)) && a.syncActive)
         .map(a => (a.accountId || a.id || '').replace('act_', ''));
     }
     db.set('ad_accounts', adAccounts);
 
-    // Salva o mapa de contas ativas no Supabase (em TODOS os perfis do Facebook do usuário/owners)
+    // Salva o mapa de contas ativas no Supabase (apenas nos perfis do Facebook deste usuário específico)
+    const effectiveTargetUser = userId || 'usr_1788826403159';
     try {
       let connQuery = supabaseAdmin.from('facebook_connections').select('id');
-      if (userId) {
-        if (isOwnerUserId(userId)) {
-          connQuery = connQuery.or(`user_id.in.(${OWNER_USER_IDS.join(',')}),user_id.is.null`);
-        } else {
-          connQuery = connQuery.eq('user_id', userId);
-        }
+      if (isOwnerUserId(effectiveTargetUser)) {
+        connQuery = connQuery.or(`user_id.in.(${OWNER_USER_IDS.join(',')}),user_id.is.null`);
+      } else {
+        connQuery = connQuery.eq('user_id', effectiveTargetUser);
       }
       const { data: conns } = await connQuery;
       if (conns && conns.length > 0) {
@@ -4190,12 +4237,12 @@ app.post('/api/meta/accounts/sync-status', async (req, res) => {
       console.warn('[Supabase Sync Status] Aviso:', supaSyncErr.message);
     }
 
-    // Atualiza conexões locais em memória para resposta imediata
+    // Atualiza conexões locais em memória para resposta imediata (apenas para este usuário)
     try {
       const localConns = db.get('facebook_connections') || [];
       const updatedConns = localConns.map(c => {
         const cUser = c.userId || c.user_id;
-        if (!userId || cUser === userId || (isOwnerUserId(userId) && (isOwnerUserId(cUser) || !cUser))) {
+        if (isThisUser(cUser)) {
           return {
             ...c,
             email: JSON.stringify({ activeAccounts: explicitActiveIds })
