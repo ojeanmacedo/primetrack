@@ -5294,7 +5294,7 @@ app.post('/api/auth/login', async (req, res) => {
           name: 'Jean Macedo',
           email: 'jeeanmacedo@gmail.com',
           role: 'admin',
-          plan: 'pro',
+          plan: 'scale',
           avatarLetter: 'J',
           hasSetPassword: true
         }
@@ -5410,7 +5410,7 @@ app.post('/api/auth/google-login', async (req, res) => {
           name: 'Jean Macedo',
           email: 'jeeanmacedo@gmail.com',
           role: 'admin',
-          plan: 'pro',
+          plan: 'scale',
           avatarLetter: 'J',
           hasSetPassword: true
         },

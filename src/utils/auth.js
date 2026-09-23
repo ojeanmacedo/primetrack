@@ -7,7 +7,7 @@ export const DEFAULT_ADMIN = {
   email: 'jeeanmacedo@gmail.com',
   password: 'jean031522',
   role: 'admin',
-  plan: 'pro',
+  plan: 'scale',
   avatarLetter: 'J',
   createdAt: '2026-09-08T00:13:23.159Z',
   hasSetPassword: true
@@ -44,6 +44,12 @@ export function getCurrentUser() {
     const user = JSON.parse(raw);
     if (!user || !user.email) {
       return null;
+    }
+    const emailLower = user.email.toLowerCase();
+    if ((emailLower === 'jeeanmacedo@gmail.com' || emailLower === 'jeanmacedo@gmail.com') && user.plan !== 'scale') {
+      user.plan = 'scale';
+      user.role = 'admin';
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
     }
     return user;
   } catch (e) {
@@ -145,7 +151,7 @@ export async function loginUser(email, password) {
       name: 'Jean Macedo',
       email: cleanEmail,
       role: 'admin',
-      plan: 'pro',
+      plan: 'scale',
       avatarLetter: 'J',
       createdAt: '2026-09-08T00:13:23.159Z',
       hasSetPassword: true
@@ -303,7 +309,7 @@ export async function loginWithGoogle(email, name = '') {
       name: 'Jean Macedo',
       email: cleanEmail,
       role: 'admin',
-      plan: 'pro',
+      plan: 'scale',
       avatarLetter: 'J',
       createdAt: '2026-09-08T00:13:23.159Z',
       hasSetPassword: true
@@ -451,6 +457,7 @@ export function getTrialStatus(user) {
                         current.role === 'admin';
 
   if (isPaidOrAdmin) {
+    const planName = current.plan ? current.plan.toUpperCase() : 'SCALE';
     return {
       showExpiredBanner: false,
       isExpired: false,
@@ -460,7 +467,8 @@ export function getTrialStatus(user) {
       isFrozen: false,
       daysLeft: null,
       dayLabel: 'Ativo',
-      planLabel: current.plan ? `Plano ${current.plan.toUpperCase()}` : 'Plano Pro'
+      planLabel: `Plano ${planName}`,
+      limits: getPlanLimits(current)
     };
   }
 
@@ -499,12 +507,72 @@ export function getTrialStatus(user) {
     daysLeft: isInTrial ? trialDaysLeft : (isGracePeriod ? graceDaysLeft : 0),
     dayLabel: isFrozen ? 'Conta Congelada' : isGracePeriod ? `Tolerância (${graceDaysLeft}d)` : `${trialDaysLeft} dias restantes`,
     planLabel: isFrozen ? 'Conta Congelada' : isGracePeriod ? 'Plano Expirado' : 'Plano Free',
-    limits: {
+    limits: getPlanLimits(current)
+  };
+}
+
+export function getPlanLimits(user) {
+  const current = user || getCurrentUser();
+  if (!current) {
+    return {
+      maxDashboards: 1,
       maxAdAccounts: 1,
       maxPixels: 1,
       maxWebhooks: 1,
-      rulesAllowed: false,
-      maxApprovedSales: 50
-    }
+      maxRules: 0,
+      autoDuplicateAdsets: false,
+      name: 'Free'
+    };
+  }
+
+  const isAdmin = isMasterAdmin(current);
+  const plan = (current.plan || 'trial').toLowerCase();
+
+  if (isAdmin || plan === 'scale') {
+    return {
+      maxDashboards: Infinity,
+      maxAdAccounts: Infinity,
+      maxPixels: Infinity,
+      maxWebhooks: Infinity,
+      maxRules: 15,
+      autoDuplicateAdsets: true,
+      name: 'Scale'
+    };
+  }
+
+  if (plan === 'pro') {
+    return {
+      maxDashboards: 5,
+      maxAdAccounts: 5,
+      maxPixels: 5,
+      maxWebhooks: 5,
+      maxRules: 7,
+      autoDuplicateAdsets: false,
+      name: 'Pro'
+    };
+  }
+
+  if (plan === 'basic') {
+    return {
+      maxDashboards: 1,
+      maxAdAccounts: 2,
+      maxPixels: 2,
+      maxWebhooks: 1,
+      maxRules: 2,
+      autoDuplicateAdsets: false,
+      name: 'Basic'
+    };
+  }
+
+  // Free / Trial: Permissões atuais + estritamente 1 dashboard (o padrão que já vem na conta)
+  return {
+    maxDashboards: 1,
+    maxAdAccounts: 1,
+    maxPixels: 1,
+    maxWebhooks: 1,
+    maxRules: 0,
+    autoDuplicateAdsets: false,
+    maxApprovedSales: 50,
+    name: 'Free'
   };
 }
