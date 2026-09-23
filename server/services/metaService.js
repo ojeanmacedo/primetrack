@@ -315,7 +315,8 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     }
   } catch (e) {}
 
-  const isUsd = metaCurrency === 'USD' || accountCurrency === 'USD' || actId.includes('1092137896602979') || actId.includes('2013649985959956') || actId.includes('1084136023986167') || actId.includes('1588922422580250');
+  const isUsd = metaCurrency === 'USD' || accountCurrency === 'USD' || 
+    ['1092137896602979', '2013649985959956', '1084136023986167', '1588922422580250', '1101817232408751', '1387392810034708', '1043285988469816', '1611243834049326', '28591581777115664'].some(id => actId.includes(id));
   const usdRate = isUsd ? await getUsdToBrlRate() : 1.0;
 
   // Fallback: se a Meta bloquear leitura da estrutura por rate limit, recupera do db local
@@ -748,7 +749,10 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       rawSpendUsd: isUsd ? rawSpend.toFixed(2) : null,
       rawBudgetUsd: isUsd && rawDailyBudget !== null ? rawDailyBudget.toFixed(2) : null,
       usdRate: isUsd ? usdRate : null,
-      currency: 'BRL',
+      currency: isUsd ? 'USD' : (metaCurrency || 'BRL'),
+      isUsd: Boolean(isUsd),
+      adAccountId: actId,
+      accountId: cleanAct,
       impressions,
       clicks,
       cpc: realCpc.toFixed(2),
@@ -839,7 +843,10 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       spend: realSpend.toFixed(2),
       rawSpendUsd: isUsd ? rawSpend.toFixed(2) : null,
       usdRate: isUsd ? usdRate : null,
-      currency: 'BRL',
+      currency: isUsd ? 'USD' : (metaCurrency || 'BRL'),
+      isUsd: Boolean(isUsd),
+      adAccountId: actId,
+      accountId: cleanAct,
       impressions,
       clicks,
       cpc: realCpc.toFixed(2),
@@ -1026,7 +1033,8 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       adAccountId: actId,
       accountId: actId.replace('act_', ''),
       accountName: accountName || 'Conta de Anúncios',
-      currency: 'BRL',
+      currency: isUsd ? 'USD' : (metaCurrency || 'BRL'),
+      isUsd: Boolean(isUsd),
       adsets: campAdsets,
       ads: campAds,
       date: isMaximum ? 'Máximo' : (effectiveRange?.since || 'Hoje'),

@@ -4143,17 +4143,16 @@ app.post('/api/meta/accounts/sync-status', async (req, res) => {
       } catch (e) {}
     }
     
+    let explicitActiveIds = [];
     if (Array.isArray(activeAccounts)) {
-      const activeSet = new Set(activeAccounts.map(id => String(id).replace('act_', '')));
+      explicitActiveIds = activeAccounts.map(id => String(id).replace('act_', ''));
+      const activeSet = new Set(explicitActiveIds);
       adAccounts = adAccounts.map(acc => {
         const clean = (acc.accountId || acc.id || '').replace('act_', '');
-        if (!userId || acc.userId === userId || (isOwnerUserId(userId) && (isOwnerUserId(acc.userId) || !acc.userId))) {
-          return {
-            ...acc,
-            syncActive: activeSet.has(clean)
-          };
-        }
-        return acc;
+        return {
+          ...acc,
+          syncActive: activeSet.has(clean)
+        };
       });
     } else if (accountId !== undefined) {
       const cleanTarget = String(accountId).replace('act_', '');
@@ -4164,14 +4163,14 @@ app.post('/api/meta/accounts/sync-status', async (req, res) => {
         }
         return acc;
       });
+      explicitActiveIds = adAccounts
+        .filter(a => a.syncActive)
+        .map(a => (a.accountId || a.id || '').replace('act_', ''));
     }
     db.set('ad_accounts', adAccounts);
 
-    // Salva o mapa de contas ativas no Supabase (no registro do perfil do Facebook)
+    // Salva o mapa de contas ativas no Supabase (em TODOS os perfis do Facebook do usuário/owners)
     try {
-      const activeIds = adAccounts
-        .filter(a => a.syncActive && (!userId || a.userId === userId || (isOwnerUserId(userId) && (isOwnerUserId(a.userId) || !a.userId))))
-        .map(a => (a.accountId || a.id || '').replace('act_', ''));
       let connQuery = supabaseAdmin.from('facebook_connections').select('id');
       if (userId) {
         if (isOwnerUserId(userId)) {
@@ -4180,11 +4179,12 @@ app.post('/api/meta/accounts/sync-status', async (req, res) => {
           connQuery = connQuery.eq('user_id', userId);
         }
       }
-      const { data: conns } = await connQuery.limit(1);
+      const { data: conns } = await connQuery;
       if (conns && conns.length > 0) {
+        const connIds = conns.map(c => c.id);
         await supabaseAdmin.from('facebook_connections').update({
-          email: JSON.stringify({ activeAccounts: activeIds })
-        }).eq('id', conns[0].id);
+          email: JSON.stringify({ activeAccounts: explicitActiveIds })
+        }).in('id', connIds);
       }
     } catch (supaSyncErr) {
       console.warn('[Supabase Sync Status] Aviso:', supaSyncErr.message);
@@ -4194,10 +4194,11 @@ app.post('/api/meta/accounts/sync-status', async (req, res) => {
     try {
       const localConns = db.get('facebook_connections') || [];
       const updatedConns = localConns.map(c => {
-        if (!userId || c.userId === userId || c.user_id === userId || (isOwnerUserId(userId) && (isOwnerUserId(c.userId) || !c.userId))) {
+        const cUser = c.userId || c.user_id;
+        if (!userId || cUser === userId || (isOwnerUserId(userId) && (isOwnerUserId(cUser) || !cUser))) {
           return {
             ...c,
-            email: JSON.stringify({ activeAccounts: activeIds })
+            email: JSON.stringify({ activeAccounts: explicitActiveIds })
           };
         }
         return c;
@@ -4212,7 +4213,7 @@ app.post('/api/meta/accounts/sync-status', async (req, res) => {
     const filteredReturn = userId 
       ? adAccounts.filter(a => a.userId === userId || (isOwnerUserId(userId) && (isOwnerUserId(a.userId) || !a.userId)))
       : adAccounts;
-    res.json({ success: true, adAccounts: filteredReturn });
+    res.json({ success: true, adAccounts: filteredReturn, activeAccounts: explicitActiveIds });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -4654,7 +4655,7 @@ app.post('/api/campaigns/status-bulk', async (req, res) => {
 // F2. Atualizar Campanha, Orçamento e Bid Cap diretamente no Gerenciador Meta Ads
 app.post('/api/campaigns/update', async (req, res) => {
   try {
-    const { id, name, budget, bidCap, bidStrategy, profileType, itemType, accountId, isLifetime } = req.body;
+    const { id, name, budget, bidCap, bidStrategy, profileType, itemType, accountId, isLifetime, currency, isUsd: clientIsUsd } = req.body;
     const userId = req.headers['x-user-id'] || req.body?.userId || req.query.userId || null;
     if (!id) return res.status(400).json({ success: false, error: 'ID é obrigatório' });
 
@@ -4662,6 +4663,7 @@ app.post('/api/campaigns/update', async (req, res) => {
     const campaigns = db.get('campaigns') || [];
     let target = null;
     let itemUpdated = false;
+    let parentCamp = null;
 
     // 1. Edição de conjunto (adset)
     if (itemType === 'adset') {
@@ -4669,13 +4671,17 @@ app.post('/api/campaigns/update', async (req, res) => {
         if (camp.adsets && Array.isArray(camp.adsets)) {
           const asIdx = camp.adsets.findIndex(a => String(a.id) === strId || String(a.adsetId) === strId);
           if (asIdx !== -1) {
+            parentCamp = camp;
             const newBidCap = bidStrategy === 'LOWEST_COST_WITHOUT_CAP' ? null : (bidCap !== undefined ? (bidCap && Number(bidCap) > 0 ? String(bidCap) : null) : camp.adsets[asIdx].bidCap);
             camp.adsets[asIdx] = {
               ...camp.adsets[asIdx],
               ...(name ? { name } : {}),
               ...(budget !== undefined && budget !== null ? { budget: String(budget) } : {}),
               bidCap: newBidCap,
-              ...(bidStrategy ? { bidStrategy } : {})
+              ...(bidStrategy ? { bidStrategy } : {}),
+              accountId: camp.adsets[asIdx].accountId || camp.accountId || (camp.adAccountId ? String(camp.adAccountId).replace('act_', '') : null),
+              adAccountId: camp.adsets[asIdx].adAccountId || camp.adAccountId,
+              currency: camp.adsets[asIdx].currency || camp.currency
             };
             target = camp.adsets[asIdx];
             itemUpdated = true;
@@ -4691,9 +4697,13 @@ app.post('/api/campaigns/update', async (req, res) => {
         if (camp.ads && Array.isArray(camp.ads)) {
           const adIdx = camp.ads.findIndex(a => String(a.id) === strId || String(a.adId) === strId);
           if (adIdx !== -1) {
+            parentCamp = camp;
             camp.ads[adIdx] = {
               ...camp.ads[adIdx],
-              ...(name ? { name } : {})
+              ...(name ? { name } : {}),
+              accountId: camp.ads[adIdx].accountId || camp.accountId || (camp.adAccountId ? String(camp.adAccountId).replace('act_', '') : null),
+              adAccountId: camp.ads[adIdx].adAccountId || camp.adAccountId,
+              currency: camp.ads[adIdx].currency || camp.currency
             };
             target = camp.ads[adIdx];
             itemUpdated = true;
@@ -4707,6 +4717,7 @@ app.post('/api/campaigns/update', async (req, res) => {
     if (!itemUpdated && itemType !== 'ad') {
       const index = campaigns.findIndex(c => String(c.id) === strId);
       if (index !== -1) {
+        parentCamp = campaigns[index];
         const newBidCap = bidStrategy === 'LOWEST_COST_WITHOUT_CAP' ? null : (bidCap !== undefined ? (bidCap && Number(bidCap) > 0 ? String(bidCap) : null) : campaigns[index].bidCap);
         campaigns[index] = {
           ...campaigns[index],
@@ -4738,16 +4749,65 @@ app.post('/api/campaigns/update', async (req, res) => {
     });
     campaignsCache.clear();
 
-    const effectiveAccId = accountId || target?.accountId || target?.adAccountId || null;
-    const token = await getValidMetaAccessToken(userId, effectiveAccId);
+    const effectiveAccId = accountId || target?.accountId || target?.adAccountId || parentCamp?.accountId || parentCamp?.adAccountId || null;
+    const cleanEffectiveAccId = effectiveAccId ? String(effectiveAccId).replace('act_', '') : null;
+    const token = await getValidMetaAccessToken(userId, cleanEffectiveAccId);
 
-    // Identifica se a conta opera em USD
+    // Contas comprovadamente em USD
+    const KNOWN_USD_ACCOUNTS = new Set([
+      '1092137896602979', '2013649985959956', '1084136023986167', 
+      '1588922422580250', '1101817232408751', '1387392810034708', 
+      '1043285988469816', '1611243834049326', '28591581777115664'
+    ]);
+
     const adAccounts = db.get('ad_accounts') || [];
-    const matchedAccount = adAccounts.find(a => 
-      (effectiveAccId && (String(a.id).replace('act_', '') === String(effectiveAccId).replace('act_', '') || String(a.accountId) === String(effectiveAccId))) ||
-      (a.userId === userId && a.currency)
-    );
-    const isUsd = (matchedAccount?.currency || target?.currency || 'BRL').toUpperCase() === 'USD';
+    const matchedAccount = cleanEffectiveAccId 
+      ? adAccounts.find(a => String(a.accountId || a.id || '').replace('act_', '') === cleanEffectiveAccId)
+      : null;
+
+    let isUsd = false;
+    if (clientIsUsd === true || (currency && String(currency).toUpperCase() === 'USD')) {
+      isUsd = true;
+    } else if (cleanEffectiveAccId && KNOWN_USD_ACCOUNTS.has(cleanEffectiveAccId)) {
+      isUsd = true;
+    } else if (matchedAccount && String(matchedAccount.currency || '').toUpperCase() === 'USD') {
+      isUsd = true;
+    } else if (target && String(target.currency || '').toUpperCase() === 'USD') {
+      isUsd = true;
+    } else if (parentCamp && String(parentCamp.currency || '').toUpperCase() === 'USD') {
+      isUsd = true;
+    } else if (cleanEffectiveAccId) {
+      try {
+        const { data: sAcc } = await supabaseAdmin.from('ad_accounts').select('currency').like('id', `%${cleanEffectiveAccId}%`).limit(1);
+        if (sAcc && sAcc[0]?.currency && sAcc[0].currency.toUpperCase() === 'USD') {
+          isUsd = true;
+        }
+      } catch (e) {}
+    }
+
+    // Se ainda não determinou e temos token, descobre o account_id real via Meta Graph API
+    if (!isUsd && !cleanEffectiveAccId && token) {
+      try {
+        const metaItemRes = await fetch(`${GRAPH_BASE_URL}/${strId}?fields=account_id&access_token=${token}`).catch(() => null);
+        if (metaItemRes) {
+          const itemMeta = await metaItemRes.json().catch(() => ({}));
+          if (itemMeta?.account_id) {
+            const cleanMetaAcc = String(itemMeta.account_id).replace('act_', '');
+            if (KNOWN_USD_ACCOUNTS.has(cleanMetaAcc)) {
+              isUsd = true;
+            } else {
+              const accRes = await fetch(`${GRAPH_BASE_URL}/act_${cleanMetaAcc}?fields=currency&access_token=${token}`).catch(() => null);
+              if (accRes) {
+                const accData = await accRes.json().catch(() => ({}));
+                if (accData?.currency && accData.currency.toUpperCase() === 'USD') {
+                  isUsd = true;
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {}
+    }
 
     let metaSuccess = false;
     let metaError = null;

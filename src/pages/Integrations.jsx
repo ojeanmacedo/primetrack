@@ -1073,7 +1073,11 @@ export default function Integrations() {
                 const parsed = JSON.parse(savedLocal);
                 if (Array.isArray(parsed)) {
                   parsed.forEach(p => {
-                    if (p.id) localSyncMap[p.id] = p.sync;
+                    if (p.id) {
+                      const cleanKey = String(p.id).replace('act_', '');
+                      localSyncMap[cleanKey] = p.sync;
+                      localSyncMap[`act_${cleanKey}`] = p.sync;
+                    }
                   });
                 }
               } catch (e) {}
@@ -1082,10 +1086,10 @@ export default function Integrations() {
             const mappedAccs = data.adAccounts.map(a => {
               const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
               const isAccountActive = a.status === 'ACTIVE' || a.status === 'Ativa' || a.account_status === 1;
-              // Prioridade: localStorage (escolha manual do usuário) > syncActive retornado do backend
-              const isSyncActive = localSyncMap[accId] !== undefined
-                ? localSyncMap[accId] === true
-                : (a.syncActive === true);
+              // Prioridade: status real do backend/Supabase > fallback para localStorage local
+              const isSyncActive = a.syncActive !== undefined
+                ? (a.syncActive === true)
+                : (localSyncMap[accId] !== undefined ? localSyncMap[accId] === true : false);
 
               const isRealPrepay = a.isPrepay === true || accId === '1218349886840112';
               const realBalance = isRealPrepay ? (a.balance || '4,05') : '0,00';

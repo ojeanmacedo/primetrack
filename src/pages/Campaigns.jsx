@@ -755,7 +755,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
           parsed.forEach(p => {
-            if (p.id) localSyncMap[p.id] = p.sync;
+            if (p.id) {
+              const cleanKey = String(p.id).replace('act_', '');
+              localSyncMap[cleanKey] = p.sync;
+              localSyncMap[`act_${cleanKey}`] = p.sync;
+            }
           });
           const activeList = parsed.filter(a => a.sync === true);
           currentActiveAccs = activeList;
@@ -1391,13 +1395,44 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
     // Envia ao servidor estritamente o campo isolado que você alterou
     try {
-      const targetAccountId = editingItem?.accountId || editingItem?.adAccountId || editingCampaign?.accountId || editingCampaign?.adAccountId || (accountFilter !== 'Todas' ? accountFilter : null);
+      // Resolve com máxima precisão o accountId do item ou campanha
+      let resolvedAccountId = editingItem?.accountId || editingItem?.adAccountId || editingCampaign?.accountId || editingCampaign?.adAccountId;
+      if (!resolvedAccountId && editingCampaign?.id) {
+        const foundInList = campaignsList.find(c => c.id === editingCampaign.id);
+        if (foundInList) resolvedAccountId = foundInList.accountId || foundInList.adAccountId;
+      }
+      if (!resolvedAccountId && accountFilter !== 'Todas') {
+        resolvedAccountId = accountFilter;
+      }
+      if (!resolvedAccountId && adAccountsList.length === 1) {
+        resolvedAccountId = adAccountsList[0].id;
+      }
+
+      // Resolve se a conta opera em USD
+      const matchedAcc = adAccountsList.find(a => 
+        (resolvedAccountId && (String(a.id).replace('act_', '') === String(resolvedAccountId).replace('act_', ''))) ||
+        (a.name && (editingItem?.accountName === a.name || editingCampaign?.accountName === a.name))
+      );
+      const isAccountUsd = Boolean(
+        matchedAcc?.currency === 'USD' || 
+        editingItem?.currency === 'USD' || 
+        editingCampaign?.currency === 'USD' ||
+        editingItem?.isUsd ||
+        editingCampaign?.isUsd ||
+        editingItem?.rawSpendUsd ||
+        editingCampaign?.rawSpendUsd ||
+        editingItem?.usdRate ||
+        editingCampaign?.usdRate ||
+        ['1092137896602979', '2013649985959956', '1084136023986167', '1588922422580250', '1101817232408751', '1387392810034708', '1043285988469816', '1611243834049326', '28591581777115664'].includes(String(resolvedAccountId).replace('act_', ''))
+      );
 
       const payload = {
         id: targetId,
         itemType: subTab === 'Conjuntos' ? 'adset' : (subTab === 'Anúncios' ? 'ad' : 'campaign'),
         profileType: 'standard',
-        accountId: targetAccountId,
+        accountId: resolvedAccountId,
+        currency: isAccountUsd ? 'USD' : (matchedAcc?.currency || 'BRL'),
+        isUsd: isAccountUsd,
         isLifetime: editingItem?.budgetType === 'Vitalício' || editingCampaign?.budgetType === 'Vitalício'
       };
 
