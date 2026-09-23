@@ -686,9 +686,7 @@ export default function LandingPage({ onGoToDashboard }) {
               </div>
               <div className="text-[12px] text-zinc-400 leading-relaxed pt-2">
                 <strong className="text-white block mb-0.5">PRIMETRACK</strong>
-                CNPJ: 51.309.642/0001-08<br />
-                Avenida Mafra, 453<br />
-                Guaratuba - PR, 83.280-000
+                CNPJ: 48.390.123/0001-02
               </div>
             </div>
 
