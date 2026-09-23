@@ -102,6 +102,38 @@ export const setStatusOverride = (id, status) => {
   } catch (e) {}
 };
 
+export const getDetailOverrides = () => {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem('primetrack_detail_overrides');
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    const now = Date.now();
+    const clean = {};
+    for (const [id, entry] of Object.entries(parsed)) {
+      if (entry && entry.timestamp && (now - entry.timestamp) < 15 * 60 * 1000) {
+        clean[id] = entry;
+      }
+    }
+    return clean;
+  } catch (e) {
+    return {};
+  }
+};
+
+export const setDetailOverride = (id, details) => {
+  if (typeof window === 'undefined' || !id || !details) return;
+  try {
+    const overrides = getDetailOverrides();
+    overrides[String(id)] = {
+      ...(overrides[String(id)] || {}),
+      ...details,
+      timestamp: Date.now()
+    };
+    localStorage.setItem('primetrack_detail_overrides', JSON.stringify(overrides));
+  } catch (e) {}
+};
+
 export const getDeletedIds = () => {
   if (typeof window === 'undefined') return new Set();
   try {
@@ -166,6 +198,7 @@ export const sanitizeCampaignsData = (cData) => {
   if (!Array.isArray(cData)) return [];
   const deletedIds = getDeletedIds();
   const overrides = getStatusOverrides();
+  const detailOverrides = getDetailOverrides();
 
   return cData
     .filter(c => c && c.id && !deletedIds.has(String(c.id)))
@@ -173,25 +206,29 @@ export const sanitizeCampaignsData = (cData) => {
       const campIdStr = String(c.id);
       const campOverride = overrides[campIdStr];
       const campActive = campOverride !== undefined ? campOverride.status : isStatusActive(c);
+      const cDetail = detailOverrides[campIdStr];
 
       const spend = Number(c.spend || 0);
       const clicks = Number(c.clicks || 0);
-      const campNameUpper = (c.name || '').toUpperCase();
+      const baseName = cDetail?.name || c.name || '';
+      const campNameUpper = baseName.toUpperCase();
       const explicitCboInName = campNameUpper.includes('CBO') || campNameUpper.includes('BID') || campNameUpper.includes('COST CAP');
-      const hasCampLevelBudget = Boolean(c.daily_budget || c.lifetime_budget || (c.isCbo === true) || (c.budgetType === 'Diário' && !c.isAbo));
-      const hasBidCapStrategy = c.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || c.bidStrategy === 'COST_CAP' || (c.bidCap && Number(c.bidCap) > 0);
+      const hasCampLevelBudget = Boolean(c.daily_budget || c.lifetime_budget || (c.isCbo === true) || (c.budgetType === 'Diário' && !c.isAbo) || cDetail?.budget);
+      const hasBidCapStrategy = c.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || c.bidStrategy === 'COST_CAP' || (c.bidCap && Number(c.bidCap) > 0) || (cDetail?.bidCap && Number(cDetail.bidCap) > 0);
       
       const isCbo = Boolean(explicitCboInName || c.isCbo === true || hasBidCapStrategy || hasCampLevelBudget);
       const isAbo = !isCbo;
 
       const rawCampBid = isCbo
-        ? ((c.bidCap !== undefined && c.bidCap !== null && Number(c.bidCap) > 0)
-            ? String(c.bidCap)
-            : ((c.adsets || []).find(a => a.bidCap && Number(a.bidCap) > 0)?.bidCap || null))
+        ? (cDetail?.bidCap !== undefined
+            ? (cDetail.bidCap && Number(cDetail.bidCap) > 0 ? String(cDetail.bidCap) : null)
+            : ((c.bidCap !== undefined && c.bidCap !== null && Number(c.bidCap) > 0)
+                ? String(c.bidCap)
+                : ((c.adsets || []).find(a => a.bidCap && Number(a.bidCap) > 0)?.bidCap || null)))
         : null;
       
-      const isCostCap = isCbo && (c.bidStrategy === 'COST_CAP' || campNameUpper.includes('COST CAP'));
-      const isBidCap = isCbo && Boolean(rawCampBid || c.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || campNameUpper.includes('BID'));
+      const isCostCap = isCbo && ((cDetail?.bidStrategy || c.bidStrategy) === 'COST_CAP' || campNameUpper.includes('COST CAP'));
+      const isBidCap = isCbo && Boolean(rawCampBid || (cDetail?.bidStrategy || c.bidStrategy) === 'LOWEST_COST_WITH_BID_CAP' || campNameUpper.includes('BID'));
 
       let campBidStrategy = 'LOWEST_COST_WITHOUT_CAP';
       if (rawCampBid || isCostCap || isBidCap) {
@@ -208,13 +245,17 @@ export const sanitizeCampaignsData = (cData) => {
             active = false;
           }
 
-          const asNameUpper = (a.name || '').toUpperCase();
+          const asDetail = detailOverrides[asIdStr];
+          const asBaseName = asDetail?.name || a.name || '';
+          const asNameUpper = asBaseName.toUpperCase();
           const rawAdsetBid = isCbo
-            ? ((a.bidCap !== undefined && a.bidCap !== null && Number(a.bidCap) > 0) ? String(a.bidCap) : rawCampBid)
+            ? (asDetail?.bidCap !== undefined
+                ? (asDetail.bidCap && Number(asDetail.bidCap) > 0 ? String(asDetail.bidCap) : null)
+                : ((a.bidCap !== undefined && a.bidCap !== null && Number(a.bidCap) > 0) ? String(a.bidCap) : rawCampBid))
             : null;
           
-          const asIsCost = isCbo && (a.bidStrategy === 'COST_CAP' || asNameUpper.includes('COST CAP') || isCostCap);
-          const asIsBid = isCbo && Boolean(rawAdsetBid || a.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || asNameUpper.includes('BID') || isBidCap);
+          const asIsCost = isCbo && ((asDetail?.bidStrategy || a.bidStrategy) === 'COST_CAP' || asNameUpper.includes('COST CAP') || isCostCap);
+          const asIsBid = isCbo && Boolean(rawAdsetBid || (asDetail?.bidStrategy || a.bidStrategy) === 'LOWEST_COST_WITH_BID_CAP' || asNameUpper.includes('BID') || isBidCap);
 
           let asBidStrategy = 'LOWEST_COST_WITHOUT_CAP';
           if (rawAdsetBid || asIsCost || asIsBid) {
@@ -223,12 +264,13 @@ export const sanitizeCampaignsData = (cData) => {
 
           return {
             ...a,
+            name: asBaseName,
             status: active,
             rawStatus: active ? 'ACTIVE' : 'PAUSED',
             effectiveStatus: active ? 'ACTIVE' : 'PAUSED',
             isAbo,
             isCbo,
-            budget: isCbo ? (c.budget || a.budget || '127.58') : (a.budget || '10.00'),
+            budget: asDetail?.budget !== undefined ? asDetail.budget : (isCbo ? (cDetail?.budget || c.budget || a.budget || '127.58') : (a.budget || '10.00')),
             budgetType: isCbo ? (c.budgetType || 'Diário') : (a.budgetType || 'Diário'),
             bidCap: rawAdsetBid,
             bidStrategy: asBidStrategy
@@ -244,8 +286,10 @@ export const sanitizeCampaignsData = (cData) => {
           if (!campActive && adOverride === undefined) {
             adActive = false;
           }
+          const adDetail = detailOverrides[adIdStr];
           return {
             ...ad,
+            name: adDetail?.name || ad.name,
             status: adActive,
             rawStatus: adActive ? 'ACTIVE' : 'PAUSED',
             effectiveStatus: adActive ? 'ACTIVE' : 'PAUSED'
@@ -254,12 +298,13 @@ export const sanitizeCampaignsData = (cData) => {
 
       let updatedC = {
         ...c,
+        name: baseName,
         status: campActive,
         rawStatus: campActive ? 'ACTIVE' : 'PAUSED',
         effectiveStatus: campActive ? 'ACTIVE' : 'PAUSED',
         isAbo,
         isCbo,
-        budget: c.budget || '127.58',
+        budget: cDetail?.budget !== undefined ? cDetail.budget : (c.budget || '127.58'),
         budgetType: isAbo ? 'Nível de Conjunto' : (c.budgetType || 'Diário'),
         bidCap: rawCampBid,
         bidStrategy: campBidStrategy,
@@ -1175,6 +1220,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       return;
     }
 
+    // Regra do Usuário: "só pode alterar o valor do lance que ja esta na campanha. sem alterar pra costcap ou bidcap. ou criar bidcap ou cost cap, entao em conjuntos de abo tambem remover a canerinha. deixar somente o traço que esta."
+    if (field === 'bid') {
+      if ((isConjunto && isAbo) || !rawBidCapNum || rawBidCapNum <= 0) {
+        return; // Não permite abrir modal de edição se for ABO ou não tiver limite configurado na Meta
+      }
+    }
+
     setEditingItem(item);
     setEditingCampaign(parentCamp);
     setEditingField(field);
@@ -1219,9 +1271,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     const normalizedBudget = cleanNumber(editBudget);
     const normalizedBidCap = cleanNumber(editBidCap);
 
-    // Salva sobrescrita no cache local
+    // Salva sobrescrita no cache local para persistência de 0ms sem delay
     if (editingField === 'name') {
       saveItemNameOverride(targetId, editName);
+      setDetailOverride(targetId, { name: editName });
+    } else if (editingField === 'budget') {
+      setDetailOverride(targetId, { budget: normalizedBudget });
+    } else if (editingField === 'bid') {
+      setDetailOverride(targetId, { bidCap: normalizedBidCap, bidStrategy: editStrategy });
     }
 
     const previousList = campaignsList;
@@ -1540,6 +1597,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     const normalizedVal = cleanNumber(bulkInputValue);
 
     // Atualiza otimista na tabela
+    ids.forEach(targetId => {
+      if (bulkModalAction === 'budget') {
+        setDetailOverride(targetId, { budget: normalizedVal });
+      } else {
+        setDetailOverride(targetId, { bidCap: normalizedVal });
+      }
+    });
+
     setCampaignsList(prev => prev.map(c => {
       const hasMatchingAdset = c.adsets && c.adsets.some(a => ids.includes(a.id) || ids.includes(a.adsetId));
       if (ids.includes(c.id) || hasMatchingAdset) {
@@ -2691,40 +2756,47 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       }
 
       case 'bid': {
-        // Regra do Usuário: "limite de lance ele só é a limite de conjunto nunca na campanha. na campanha tira tambem deixa só um risquinho."
-        // Na aba Campanhas e na aba Anúncios, é estritamente um risquinho "—"
-        if (subTab === 'Campanhas' || subTab === 'Anúncios') {
+        // Regra do Usuário:
+        // 1. Em Anúncios: traço estático "—".
+        // 2. Em Conjuntos ABO: remover canetinha e deixar somente o traço estático "—".
+        // 3. Qualquer item que NÃO possua limite previamente ativo na Meta: apenas traço estático "—" (sem canetinha e sem criar).
+        // 4. Só exibe canetinha para alterar o VALOR do lance se o item JÁ TIVER um limite configurado previamente na Meta.
+        if (subTab === 'Anúncios') {
           return <span className="text-zinc-500 font-mono text-xs select-none">—</span>;
         }
 
+        const isConjunto = subTab === 'Conjuntos' || Boolean(item.adsetId);
+        const parentCamp = campaignsList.find(c => c.id === item.id || c.id === item.campaignId) || item;
+        const parentNameUpper = (parentCamp.name || '').toUpperCase();
         const itemNameUpper = (item.name || '').toUpperCase();
-        const rawBidVal = (item.bidCap !== undefined && item.bidCap !== null && Number(item.bidCap) > 0 && Number(item.bidCap) < 500)
-          ? Number(item.bidCap)
-          : 0;
 
-        const isCostCap = item.bidStrategy === 'COST_CAP' || itemNameUpper.includes('COST CAP');
+        const explicitCbo = parentNameUpper.includes('CBO') || parentNameUpper.includes('BID') || parentNameUpper.includes('COST CAP') || itemNameUpper.includes('CBO');
+        const hasCampLevelBudget = Boolean(parentCamp.daily_budget || parentCamp.lifetime_budget || (parentCamp.isCbo === true) || (parentCamp.budgetType === 'Diário' && !parentCamp.isAbo));
+        const hasCampBidCapStrategy = parentCamp.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || parentCamp.bidStrategy === 'COST_CAP' || (parentCamp.bidCap && Number(parentCamp.bidCap) > 0);
+        const isCbo = Boolean(explicitCbo || parentCamp.isCbo === true || hasCampBidCapStrategy || hasCampLevelBudget);
+        const isAbo = !isCbo;
+
+        // Regra explícita: Em conjuntos de ABO remover a canetinha e deixar somente o traço estático
+        if (isConjunto && isAbo) {
+          return <span className="text-zinc-500 font-mono text-xs select-none">—</span>;
+        }
+
+        // Valor do lance configurado na Meta
+        const rawBidVal = (item.bidCap !== undefined && item.bidCap !== null && Number(item.bidCap) > 0 && Number(item.bidCap) < 10000)
+          ? Number(item.bidCap)
+          : (isCbo && parentCamp.bidCap && Number(parentCamp.bidCap) > 0 ? Number(parentCamp.bidCap) : 0);
+
+        const isCostCap = item.bidStrategy === 'COST_CAP' || itemNameUpper.includes('COST CAP') || (isCbo && (parentCamp.bidStrategy === 'COST_CAP' || parentNameUpper.includes('COST CAP')));
         const isBidCap = item.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || (!isCostCap && (rawBidVal > 0 || itemNameUpper.includes('BID')));
 
         const hasCappedBid = rawBidVal > 0 && (isCostCap || isBidCap);
 
-        // Se ainda não tem limite configurado (Volume mais alto): exibe risquinho clicável para definir
+        // Se NÃO tem limite configurado previamente: deixa somente o traço estático "—", SEM canetinha e SEM clique
         if (!hasCappedBid) {
-          return (
-            <div 
-              onClick={(e) => {
-                if (e.shiftKey) return;
-                handleOpenEdit(item, 'bid');
-              }}
-              className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group flex items-center gap-1.5"
-              title="Clique para definir limite de lance ou meta de custo para este conjunto"
-            >
-              <span className="text-zinc-500 font-mono text-xs group-hover:text-[#5C9BFF] select-none">—</span>
-              <Edit3 className="w-2.5 h-2.5 text-zinc-600 opacity-0 group-hover:opacity-100 group-hover:text-[#5C9BFF] transition-opacity" />
-            </div>
-          );
+          return <span className="text-zinc-500 font-mono text-xs select-none">—</span>;
         }
 
-        // Se for Limite de lance ou Meta de custo com valor positivo no conjunto: mostra valor, texto e canetinha
+        // Se já tiver limite configurado: exibe valor e canetinha para alterar exclusivamente o valor
         const formattedBid = rawBidVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         const strategyLabel = isCostCap ? 'Meta de custo' : 'Limite de lance';
 
@@ -2735,7 +2807,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               handleOpenEdit(item, 'bid');
             }}
             className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group"
-            title={`Clique para alterar ${strategyLabel.toLowerCase()}`}
+            title={`Clique para alterar o valor de ${strategyLabel.toLowerCase()}`}
           >
             <div className="font-bold text-white font-mono flex items-center gap-1.5">
               <span>R$ {formattedBid}</span>
@@ -4395,43 +4467,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
               {editingField === 'bid' && (
                 <div className="space-y-3">
-                  <label className="block text-zinc-300 font-semibold mb-1">
-                    Tipo de Limite de Lance
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setEditStrategy('LOWEST_COST_WITH_BID_CAP')}
-                      className={`px-3 py-2 rounded-xl border text-xs font-semibold flex flex-col items-start gap-1 transition-all cursor-pointer ${
-                        editStrategy === 'LOWEST_COST_WITH_BID_CAP'
-                          ? 'bg-[#0066FF]/20 border-[#0066FF] text-white shadow-sm shadow-blue-500/20'
-                          : 'bg-[#0D1424] border-[#1E293B] text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      <span className="font-bold flex items-center gap-1.5">
-                        <span className={`w-2 h-2 rounded-full ${editStrategy === 'LOWEST_COST_WITH_BID_CAP' ? 'bg-[#0066FF]' : 'bg-zinc-600'}`} />
-                        Limite de Lance
-                      </span>
-                      <span className="text-[10px] text-zinc-400 font-normal">Bid Cap no leilão</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setEditStrategy('COST_CAP')}
-                      className={`px-3 py-2 rounded-xl border text-xs font-semibold flex flex-col items-start gap-1 transition-all cursor-pointer ${
-                        editStrategy === 'COST_CAP'
-                          ? 'bg-[#0066FF]/20 border-[#0066FF] text-white shadow-sm shadow-blue-500/20'
-                          : 'bg-[#0D1424] border-[#1E293B] text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      <span className="font-bold flex items-center gap-1.5">
-                        <span className={`w-2 h-2 rounded-full ${editStrategy === 'COST_CAP' ? 'bg-[#0066FF]' : 'bg-zinc-600'}`} />
-                        Meta de Custo
-                      </span>
-                      <span className="text-[10px] text-zinc-400 font-normal">Cost Cap por resultado</span>
-                    </button>
-                  </div>
-
                   <div className="pt-1">
                     <label className="block text-zinc-300 font-semibold mb-1.5">
                       {editStrategy === 'COST_CAP' ? 'Valor da Meta de Custo (R$)' : 'Valor do Limite de Lance (R$)'}

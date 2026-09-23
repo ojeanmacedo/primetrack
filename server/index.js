@@ -1362,6 +1362,9 @@ export const recentStatusOverrides = new Map(); // itemId -> { status: boolean, 
 // Registro em memória de itens excluídos recentemente (TTL de 24 horas) para nunca ressuscitar itens excluídos na sincronização
 export const recentDeletedItemIds = new Map(); // itemId -> timestamp
 
+// Registro em memória de orçamentos, lances e nomes alterados recentemente (TTL de 15 minutos) para zero delay
+export const recentDetailOverrides = new Map(); // itemId -> { budget, bidCap, name, bidStrategy, timestamp: number }
+
 export function recordStatusOverride(id, status) {
   if (!id) return;
   recentStatusOverrides.set(String(id), { status: Boolean(status), timestamp: Date.now() });
@@ -1392,6 +1395,27 @@ export function isItemDeleted(id) {
     return false;
   }
   return true;
+}
+
+export function recordDetailOverride(id, details) {
+  if (!id || !details) return;
+  const existing = recentDetailOverrides.get(String(id)) || {};
+  recentDetailOverrides.set(String(id), {
+    ...existing,
+    ...details,
+    timestamp: Date.now()
+  });
+}
+
+export function getEffectiveDetailOverride(id) {
+  if (!id) return null;
+  const entry = recentDetailOverrides.get(String(id));
+  if (!entry) return null;
+  if (Date.now() - entry.timestamp > 15 * 60 * 1000) {
+    recentDetailOverrides.delete(String(id));
+    return null;
+  }
+  return entry;
 }
 
 // Deduplicação de alertas de perfil bloqueado: avisa apenas 1 vez por perfil
@@ -2094,15 +2118,20 @@ app.get('/api/campaigns', async (req, res) => {
       }
       const { data: supaConns } = await q;
       if (supaConns && supaConns.length > 0) {
-        connections = supaConns.map(c => ({
-          id: c.id,
-          name: c.name,
-          email: c.email,
-          avatarUrl: c.avatar_url,
-          accessToken: c.access_token,
-          accountsCount: c.accounts_count,
-          connectedAt: c.connected_at
-        }));
+        connections = supaConns.map(c => {
+          const rawId = String(c.id || '');
+          const cleanProfileId = rawId.includes('___') ? rawId.split('___')[0] : rawId;
+          return {
+            id: cleanProfileId,
+            profileId: cleanProfileId,
+            name: c.name,
+            email: c.email,
+            avatarUrl: c.avatar_url,
+            accessToken: c.access_token,
+            accountsCount: c.accounts_count,
+            connectedAt: c.connected_at
+          };
+        });
       }
     } catch (e) {}
 
@@ -2122,15 +2151,20 @@ app.get('/api/campaigns', async (req, res) => {
       try {
         const { data: supaConns } = await supabaseAdmin.from('facebook_connections').select('*');
         if (supaConns && supaConns.length > 0) {
-          connections = supaConns.map(c => ({
-            id: c.id,
-            name: c.name,
-            email: c.email,
-            avatarUrl: c.avatar_url,
-            accessToken: c.access_token,
-            accountsCount: c.accounts_count,
-            connectedAt: c.connected_at
-          }));
+          connections = supaConns.map(c => {
+            const rawId = String(c.id || '');
+            const cleanProfileId = rawId.includes('___') ? rawId.split('___')[0] : rawId;
+            return {
+              id: cleanProfileId,
+              profileId: cleanProfileId,
+              name: c.name,
+              email: c.email,
+              avatarUrl: c.avatar_url,
+              accessToken: c.access_token,
+              accountsCount: c.accounts_count,
+              connectedAt: c.connected_at
+            };
+          });
           db.set('facebook_connections', connections);
         }
       } catch (e) {}
@@ -2186,8 +2220,17 @@ app.get('/api/campaigns', async (req, res) => {
     }).map(c => {
       const campOverride = getEffectiveStatusOverride(c.id);
       const campStatus = campOverride !== undefined ? campOverride : c.status;
+      const cDetail = getEffectiveDetailOverride(c.id);
+      const campBudget = cDetail?.budget !== undefined ? cDetail.budget : c.budget;
+      const campBidCap = cDetail?.bidCap !== undefined ? cDetail.bidCap : c.bidCap;
+      const campBidStrat = cDetail?.bidStrategy !== undefined ? cDetail.bidStrategy : c.bidStrategy;
+      const campName = cDetail?.name || c.name;
       return {
         ...c,
+        name: campName,
+        budget: campBudget,
+        bidCap: campBidCap,
+        bidStrategy: campBidStrat,
         status: campStatus,
         rawStatus: campStatus ? 'ACTIVE' : 'PAUSED',
         effectiveStatus: campStatus ? 'ACTIVE' : 'PAUSED',
@@ -2195,8 +2238,13 @@ app.get('/api/campaigns', async (req, res) => {
           const asOverride = getEffectiveStatusOverride(a.id || a.adsetId);
           let asStatus = asOverride !== undefined ? asOverride : a.status;
           if (!campStatus && asOverride === undefined) asStatus = false;
+          const asDetail = getEffectiveDetailOverride(a.id || a.adsetId);
           return {
             ...a,
+            name: asDetail?.name || a.name,
+            budget: asDetail?.budget !== undefined ? asDetail.budget : a.budget,
+            bidCap: asDetail?.bidCap !== undefined ? asDetail.bidCap : a.bidCap,
+            bidStrategy: asDetail?.bidStrategy !== undefined ? asDetail.bidStrategy : a.bidStrategy,
             status: asStatus,
             rawStatus: asStatus ? 'ACTIVE' : 'PAUSED',
             effectiveStatus: asStatus ? 'ACTIVE' : 'PAUSED'
@@ -2206,8 +2254,10 @@ app.get('/api/campaigns', async (req, res) => {
           const adOverride = getEffectiveStatusOverride(ad.id || ad.adId);
           let adStatus = adOverride !== undefined ? adOverride : ad.status;
           if (!campStatus && adOverride === undefined) adStatus = false;
+          const adDetail = getEffectiveDetailOverride(ad.id || ad.adId);
           return {
             ...ad,
+            name: adDetail?.name || ad.name,
             status: adStatus,
             rawStatus: adStatus ? 'ACTIVE' : 'PAUSED',
             effectiveStatus: adStatus ? 'ACTIVE' : 'PAUSED'
@@ -2421,8 +2471,17 @@ app.get('/api/campaigns', async (req, res) => {
     .map(c => {
       const campOverride = getEffectiveStatusOverride(c.id);
       const campStatus = campOverride !== undefined ? campOverride : c.status;
+      const cDetail = getEffectiveDetailOverride(c.id);
+      const campBudget = cDetail?.budget !== undefined ? cDetail.budget : c.budget;
+      const campBidCap = cDetail?.bidCap !== undefined ? cDetail.bidCap : c.bidCap;
+      const campBidStrat = cDetail?.bidStrategy !== undefined ? cDetail.bidStrategy : c.bidStrategy;
+      const campName = cDetail?.name || c.name;
       return {
         ...c,
+        name: campName,
+        budget: campBudget,
+        bidCap: campBidCap,
+        bidStrategy: campBidStrat,
         status: campStatus,
         rawStatus: campStatus ? 'ACTIVE' : 'PAUSED',
         effectiveStatus: campStatus ? 'ACTIVE' : 'PAUSED',
@@ -2430,8 +2489,13 @@ app.get('/api/campaigns', async (req, res) => {
           const asOverride = getEffectiveStatusOverride(a.id || a.adsetId);
           let asStatus = asOverride !== undefined ? asOverride : a.status;
           if (!campStatus && asOverride === undefined) asStatus = false;
+          const asDetail = getEffectiveDetailOverride(a.id || a.adsetId);
           return {
             ...a,
+            name: asDetail?.name || a.name,
+            budget: asDetail?.budget !== undefined ? asDetail.budget : a.budget,
+            bidCap: asDetail?.bidCap !== undefined ? asDetail.bidCap : a.bidCap,
+            bidStrategy: asDetail?.bidStrategy !== undefined ? asDetail.bidStrategy : a.bidStrategy,
             status: asStatus,
             rawStatus: asStatus ? 'ACTIVE' : 'PAUSED',
             effectiveStatus: asStatus ? 'ACTIVE' : 'PAUSED'
@@ -2441,8 +2505,10 @@ app.get('/api/campaigns', async (req, res) => {
           const adOverride = getEffectiveStatusOverride(ad.id || ad.adId);
           let adStatus = adOverride !== undefined ? adOverride : ad.status;
           if (!campStatus && adOverride === undefined) adStatus = false;
+          const adDetail = getEffectiveDetailOverride(ad.id || ad.adId);
           return {
             ...ad,
+            name: adDetail?.name || ad.name,
             status: adStatus,
             rawStatus: adStatus ? 'ACTIVE' : 'PAUSED',
             effectiveStatus: adStatus ? 'ACTIVE' : 'PAUSED'
@@ -2972,12 +3038,17 @@ app.get('/api/auth/facebook/callback', async (req, res) => {
     console.log('[Meta OAuth] Buscando contas de anúncios...');
     const adAccounts = await fetchAdAccounts(accessToken);
 
-    // Salva a conexão no Banco de Dados
+    // Salva a conexão no Banco de Dados isolada por usuário para permitir múltiplos usuários com o mesmo perfil
     const existingConnections = db.get('facebook_connections') || [];
-    const updatedConnections = existingConnections.filter(c => c.id !== userProfile.id);
+    const updatedConnections = existingConnections.filter(c => {
+      const cProfileId = c.profileId || (c.id ? c.id.split('___')[0] : '');
+      const cUserId = c.userId || c.user_id;
+      return !(cProfileId === userProfile.id && cUserId === callbackUserId);
+    });
     
     updatedConnections.unshift({
       id: userProfile.id,
+      profileId: userProfile.id,
       userId: callbackUserId,
       user_id: callbackUserId,
       name: userProfile.name,
@@ -2992,10 +3063,11 @@ app.get('/api/auth/facebook/callback', async (req, res) => {
 
     db.set('facebook_connections', updatedConnections);
 
-    // Salva também no Supabase para persistir em produção associado ao user_id
+    // Salva no Supabase usando chave primária composta `${userProfile.id}___${callbackUserId}` para que múltiplas contas possam conectar o mesmo perfil
     try {
+      const supaConnId = `${userProfile.id}___${callbackUserId}`;
       await supabaseAdmin.from('facebook_connections').upsert({
-        id: userProfile.id,
+        id: supaConnId,
         user_id: callbackUserId,
         name: userProfile.name,
         email: JSON.stringify({ activeAccounts: [] }),
@@ -3004,6 +3076,8 @@ app.get('/api/auth/facebook/callback', async (req, res) => {
         accounts_count: adAccounts.length,
         connected_at: new Date().toISOString()
       });
+      // Se houver registro legado com o id puro para este mesmo usuário, limpa para não duplicar
+      await supabaseAdmin.from('facebook_connections').delete().eq('id', userProfile.id).eq('user_id', callbackUserId);
     } catch (supaErr) {
       console.warn('[Supabase Conexão Meta] Aviso ao persistir no Supabase:', supaErr.message);
     }
@@ -3011,8 +3085,11 @@ app.get('/api/auth/facebook/callback', async (req, res) => {
     // Salva as contas de anúncios no Banco de Dados (Iniciam 100% desativadas para o usuário escolher em Integrações)
     const existingAccounts = db.get('ad_accounts') || [];
     const accountsWithProfile = adAccounts.map(acc => {
+      const cleanId = (acc.accountId || acc.id || '').split('___')[0].replace('act_', '');
       return {
         ...acc,
+        id: `act_${cleanId}`,
+        accountId: cleanId,
         userId: callbackUserId,
         user_id: callbackUserId,
         profileId: userProfile.id,
@@ -3021,23 +3098,30 @@ app.get('/api/auth/facebook/callback', async (req, res) => {
       };
     });
     
-    const otherAccounts = existingAccounts.filter(a => a.profileId !== userProfile.id);
+    const otherAccounts = existingAccounts.filter(a => {
+      const aProfileId = a.profileId || '';
+      const aUserId = a.userId || a.user_id;
+      return !(aProfileId === userProfile.id && aUserId === callbackUserId);
+    });
     const mergedAccounts = [...otherAccounts, ...accountsWithProfile];
     db.set('ad_accounts', mergedAccounts);
 
-    // Persiste contas no Supabase associadas ao user_id
+    // Persiste contas no Supabase associadas ao user_id usando chave composta
     try {
       if (adAccounts.length > 0) {
-        const rows = adAccounts.map(acc => ({
-          id: acc.id || `act_${acc.accountId}`,
-          user_id: callbackUserId,
-          name: acc.name || 'Conta de Anúncio',
-          bm_name: acc.businessName || null,
-          currency: acc.currency || acc.rawCurrency || 'BRL',
-          status: acc.status || 'ACTIVE',
-          amount_spent: Number(acc.amountSpent || 0),
-          balance: Number(acc.balance || 0)
-        }));
+        const rows = adAccounts.map(acc => {
+          const cleanId = (acc.accountId || acc.id || '').split('___')[0].replace('act_', '');
+          return {
+            id: `act_${cleanId}___${callbackUserId}`,
+            user_id: callbackUserId,
+            name: acc.name || 'Conta de Anúncio',
+            bm_name: acc.businessName || null,
+            currency: acc.currency || acc.rawCurrency || 'BRL',
+            status: acc.status || 'ACTIVE',
+            amount_spent: Number(acc.amountSpent || 0),
+            balance: Number(acc.balance || 0)
+          };
+        });
         await supabaseAdmin.from('ad_accounts').upsert(rows);
       }
     } catch (supaAccErr) {
@@ -3081,7 +3165,22 @@ export async function reconcileFacebookData(force = false, userId = null) {
     }
     const { data: supaConns } = await query;
     if (supaConns && supaConns.length > 0) {
-      connections = supaConns;
+      connections = supaConns.map(c => {
+        const rawId = String(c.id || '');
+        const cleanProfileId = rawId.includes('___') ? rawId.split('___')[0] : rawId;
+        return {
+          ...c,
+          id: cleanProfileId,
+          profileId: cleanProfileId,
+          supaId: rawId,
+          userId: c.user_id,
+          user_id: c.user_id,
+          avatarUrl: c.avatar_url,
+          accessToken: c.access_token,
+          accountsCount: c.accounts_count,
+          connectedAt: c.connected_at
+        };
+      });
     }
   } catch (e) {
     console.warn('[Reconcile FB] Erro ao ler conexões do Supabase:', e.message);
@@ -3104,18 +3203,31 @@ export async function reconcileFacebookData(force = false, userId = null) {
 
   // 2. Atualiza conexões locais preservando as dos outros usuários
   const existingAllConns = db.get('facebook_connections') || [];
-  const otherConns = existingAllConns.filter(c => isOwnerUserId(userId) ? (!c.userId && !isOwnerUserId(c.userId) && !isOwnerUserId(c.user_id)) : (c.userId !== userId && c.user_id !== userId));
-  const updatedUserConns = connections.map(c => ({
-    id: c.id,
-    userId: userId || c.user_id || 'usr_1788826403159',
-    user_id: userId || c.user_id || 'usr_1788826403159',
-    name: c.name,
-    email: c.email,
-    avatarUrl: c.avatar_url || c.avatarUrl,
-    accessToken: c.access_token || c.accessToken,
-    accountsCount: c.accounts_count || c.accountsCount,
-    connectedAt: c.connected_at || c.connectedAt
-  }));
+  const otherConns = existingAllConns.filter(c => {
+    const cUserId = c.userId || c.user_id;
+    if (userId) {
+      return isOwnerUserId(userId) 
+        ? (!cUserId && !isOwnerUserId(cUserId))
+        : (cUserId !== userId);
+    }
+    return false;
+  });
+  const updatedUserConns = connections.map(c => {
+    const rawId = String(c.id || '');
+    const cleanProfileId = rawId.includes('___') ? rawId.split('___')[0] : rawId;
+    return {
+      id: cleanProfileId,
+      profileId: cleanProfileId,
+      userId: userId || c.user_id || 'usr_1788826403159',
+      user_id: userId || c.user_id || 'usr_1788826403159',
+      name: c.name,
+      email: c.email,
+      avatarUrl: c.avatar_url || c.avatarUrl,
+      accessToken: c.access_token || c.accessToken,
+      accountsCount: c.accounts_count || c.accountsCount,
+      connectedAt: c.connected_at || c.connectedAt
+    };
+  });
   db.set('facebook_connections', [...otherConns, ...updatedUserConns]);
 
   // 3. Lê contas ativas salvas em JSON
@@ -3138,9 +3250,9 @@ export async function reconcileFacebookData(force = false, userId = null) {
     try {
       const accounts = await fetchAdAccounts(token);
       return (accounts || []).map(acc => {
-        const cleanId = (acc.accountId || acc.id || '').replace('act_', '');
+        const cleanId = (acc.accountId || acc.id || '').split('___')[0].replace('act_', '');
         return {
-          id: acc.id?.startsWith('act_') ? acc.id : `act_${cleanId}`,
+          id: `act_${cleanId}`,
           accountId: cleanId,
           userId: userId || conn.user_id || 'usr_1788826403159',
           user_id: userId || conn.user_id || 'usr_1788826403159',
@@ -3169,24 +3281,36 @@ export async function reconcileFacebookData(force = false, userId = null) {
   if (liveAccounts.length > 0) {
     validAccounts = liveAccounts;
 
-    // 6. Persiste contas no Supabase
+    // 6. Persiste contas no Supabase associadas ao user_id usando chave composta
     try {
-      const rows = validAccounts.map(acc => ({
-        id: acc.id,
-        user_id: userId || acc.user_id || 'usr_1788826403159',
-        name: acc.name || 'Conta de Anúncio',
-        bm_name: acc.businessName || null,
-        currency: acc.currency || 'BRL',
-        status: acc.status || 'ACTIVE',
-        amount_spent: Number(acc.amountSpent || 0),
-        balance: Number(acc.balance || 0)
-      }));
+      const rows = validAccounts.map(acc => {
+        const cleanId = (acc.accountId || acc.id || '').split('___')[0].replace('act_', '');
+        const targetUser = userId || acc.user_id || 'usr_1788826403159';
+        return {
+          id: `act_${cleanId}___${targetUser}`,
+          user_id: targetUser,
+          name: acc.name || 'Conta de Anúncio',
+          bm_name: acc.businessName || null,
+          currency: acc.currency || 'BRL',
+          status: acc.status || 'ACTIVE',
+          amount_spent: Number(acc.amountSpent || 0),
+          balance: Number(acc.balance || 0)
+        };
+      });
       await supabaseAdmin.from('ad_accounts').upsert(rows);
     } catch (e) {}
 
     // 7. Atualiza db local de contas
     const allLocalAccs = db.get('ad_accounts') || [];
-    const otherLocalAccs = allLocalAccs.filter(a => isOwnerUserId(userId) ? (!a.userId && !isOwnerUserId(a.userId) && !isOwnerUserId(a.user_id)) : (a.userId !== userId && a.user_id !== userId));
+    const otherLocalAccs = allLocalAccs.filter(a => {
+      const aUserId = a.userId || a.user_id;
+      if (userId) {
+        return isOwnerUserId(userId)
+          ? (!aUserId && !isOwnerUserId(aUserId))
+          : (aUserId !== userId);
+      }
+      return false;
+    });
     db.set('ad_accounts', [...otherLocalAccs, ...validAccounts]);
   } else if (connections.length > 0) {
     // Se a busca ao vivo na Meta falhou (ex: rate limit ou erro de rede temporário),
@@ -3204,9 +3328,9 @@ export async function reconcileFacebookData(force = false, userId = null) {
       const { data: supaAccs } = await query;
       if (supaAccs && supaAccs.length > 0) {
         existingAccounts = supaAccs.map(a => {
-          const cleanId = (a.id || '').replace('act_', '');
+          const cleanId = (a.id || '').split('___')[0].replace('act_', '');
           return {
-            id: a.id?.startsWith('act_') ? a.id : `act_${cleanId}`,
+            id: `act_${cleanId}`,
             accountId: cleanId,
             userId: userId || a.user_id || 'usr_1788826403159',
             user_id: userId || a.user_id || 'usr_1788826403159',
@@ -3238,14 +3362,19 @@ export async function reconcileFacebookData(force = false, userId = null) {
     }
   }
 
-  const sanitizedConnections = connections.map(c => ({
-    id: c.id,
-    name: c.name,
-    email: c.email,
-    avatarUrl: c.avatar_url || c.avatarUrl,
-    accountsCount: validAccounts.length || c.accounts_count || c.accountsCount,
-    connectedAt: c.connected_at || c.connectedAt
-  }));
+  const sanitizedConnections = connections.map(c => {
+    const rawId = String(c.id || '');
+    const cleanProfileId = rawId.includes('___') ? rawId.split('___')[0] : rawId;
+    return {
+      id: cleanProfileId,
+      profileId: cleanProfileId,
+      name: c.name,
+      email: c.email,
+      avatarUrl: c.avatar_url || c.avatarUrl,
+      accountsCount: validAccounts.length || c.accounts_count || c.accountsCount,
+      connectedAt: c.connected_at || c.connectedAt
+    };
+  });
 
   reconcileCache[cacheKey] = {
     data: {
@@ -3319,11 +3448,16 @@ app.post('/api/meta/connect-token', async (req, res) => {
 
     const adAccounts = await fetchAdAccounts(cleanToken);
 
-    // Atualiza facebook_connections
+    // Atualiza facebook_connections isolando por usuário
     const existingConnections = db.get('facebook_connections') || [];
-    const updatedConnections = existingConnections.filter(c => c.id !== userProfile.id);
+    const updatedConnections = existingConnections.filter(c => {
+      const cProfileId = c.profileId || (c.id ? c.id.split('___')[0] : '');
+      const cUserId = c.userId || c.user_id;
+      return !(cProfileId === userProfile.id && cUserId === targetUserId);
+    });
     const newConn = {
       id: userProfile.id,
+      profileId: userProfile.id,
       userId: targetUserId,
       user_id: targetUserId,
       name: userProfile.name,
@@ -3336,10 +3470,11 @@ app.post('/api/meta/connect-token', async (req, res) => {
     updatedConnections.unshift(newConn);
     db.set('facebook_connections', updatedConnections);
 
-    // Salva no Supabase
+    // Salva no Supabase com chave primária composta `${userProfile.id}___${targetUserId}`
     try {
+      const supaConnId = `${userProfile.id}___${targetUserId}`;
       await supabaseAdmin.from('facebook_connections').upsert({
-        id: userProfile.id,
+        id: supaConnId,
         user_id: targetUserId,
         name: userProfile.name,
         email: JSON.stringify({ activeAccounts: [] }),
@@ -3348,34 +3483,48 @@ app.post('/api/meta/connect-token', async (req, res) => {
         accounts_count: adAccounts.length,
         connected_at: new Date().toISOString()
       });
+      // Se houver registro legado com o id puro para este mesmo usuário, limpa para não duplicar
+      await supabaseAdmin.from('facebook_connections').delete().eq('id', userProfile.id).eq('user_id', targetUserId);
     } catch (e) {
       console.warn('[Supabase Token Connect]:', e.message);
     }
 
     if (adAccounts.length > 0) {
       const existingAccounts = db.get('ad_accounts') || [];
-      const accountsWithProfile = adAccounts.map(acc => ({
-        ...acc,
-        userId: targetUserId,
-        user_id: targetUserId,
-        profileId: userProfile.id,
-        profileName: userProfile.name,
-        syncActive: false
-      }));
-      const otherAccounts = existingAccounts.filter(a => a.profileId !== userProfile.id);
+      const accountsWithProfile = adAccounts.map(acc => {
+        const cleanId = (acc.accountId || acc.id || '').split('___')[0].replace('act_', '');
+        return {
+          ...acc,
+          id: `act_${cleanId}`,
+          accountId: cleanId,
+          userId: targetUserId,
+          user_id: targetUserId,
+          profileId: userProfile.id,
+          profileName: userProfile.name,
+          syncActive: false
+        };
+      });
+      const otherAccounts = existingAccounts.filter(a => {
+        const aProfileId = a.profileId || '';
+        const aUserId = a.userId || a.user_id;
+        return !(aProfileId === userProfile.id && aUserId === targetUserId);
+      });
       db.set('ad_accounts', [...otherAccounts, ...accountsWithProfile]);
 
       try {
-        const rows = adAccounts.map(acc => ({
-          id: acc.id || `act_${acc.accountId}`,
-          user_id: targetUserId,
-          name: acc.name || 'Conta de Anúncio',
-          bm_name: acc.businessName || null,
-          currency: acc.currency || acc.rawCurrency || 'BRL',
-          status: acc.status || 'ACTIVE',
-          amount_spent: Number(acc.amountSpent || 0),
-          balance: Number(acc.balance || 0)
-        }));
+        const rows = adAccounts.map(acc => {
+          const cleanId = (acc.accountId || acc.id || '').split('___')[0].replace('act_', '');
+          return {
+            id: `act_${cleanId}___${targetUserId}`,
+            user_id: targetUserId,
+            name: acc.name || 'Conta de Anúncio',
+            bm_name: acc.businessName || null,
+            currency: acc.currency || acc.rawCurrency || 'BRL',
+            status: acc.status || 'ACTIVE',
+            amount_spent: Number(acc.amountSpent || 0),
+            balance: Number(acc.balance || 0)
+          };
+        });
         await supabaseAdmin.from('ad_accounts').upsert(rows);
       } catch (e) {}
     }
@@ -4063,21 +4212,45 @@ app.post('/api/meta/disconnect', async (req, res) => {
     if (profileId) {
       console.log(`[Meta Disconnect] Desconectando perfil ID: ${profileId} do usuário ${userId || 'geral'}`);
 
-      // 1. Remove perfil do Supabase
+      // 1. Remove perfil do Supabase apenas para este usuário
       try {
-        let query = supabaseAdmin.from('facebook_connections').delete().eq('id', profileId);
-        if (userId) query = query.eq('user_id', userId);
+        const supaConnId = `${profileId}___${userId}`;
+        let query = supabaseAdmin.from('facebook_connections').delete();
+        if (userId) {
+          query = query.or(`id.eq.${supaConnId},and(id.eq.${profileId},user_id.eq.${userId})`);
+        } else {
+          query = query.or(`id.eq.${profileId},id.like.${profileId}___%`);
+        }
         await query;
       } catch (e) {
         console.warn('[Disconnect] Erro ao deletar do Supabase:', e.message);
       }
 
-      // 2. Remove perfil do db local
+      // 2. Remove perfil do db local isolando pelo usuário
       const connections = db.get('facebook_connections') || [];
-      const remaining = connections.filter(c => String(c.id) !== String(profileId));
+      const remaining = connections.filter(c => {
+        const cProfileId = c.profileId || (c.id ? c.id.split('___')[0] : '');
+        const cUserId = c.userId || c.user_id;
+        if (userId) {
+          return !(cProfileId === String(profileId) && cUserId === userId);
+        }
+        return cProfileId !== String(profileId);
+      });
       db.set('facebook_connections', remaining);
 
-      // 3. Reconcilia as contas restantes (remove do Supabase e db local qualquer conta do perfil desconectado)
+      // 3. Remove contas deste perfil apenas para este usuário
+      const allAccs = db.get('ad_accounts') || [];
+      const remainingAccs = allAccs.filter(a => {
+        const aProfileId = a.profileId || '';
+        const aUserId = a.userId || a.user_id;
+        if (userId) {
+          return !(aProfileId === String(profileId) && aUserId === userId);
+        }
+        return aProfileId !== String(profileId);
+      });
+      db.set('ad_accounts', remainingAccs);
+
+      // 4. Reconcilia as contas restantes (remove do Supabase e db local qualquer conta do perfil desconectado)
       reconcileCache = {};
       const reconciled = await reconcileFacebookData(true, userId);
 
@@ -4143,17 +4316,21 @@ export async function getValidMetaAccessToken(userId = null, targetAccountId = n
       );
       if (matchAcc && matchAcc.profileId) {
         // Busca token dessa conexão no Supabase
-        const { data: profileConn } = await supabaseAdmin
+        let profQuery = supabaseAdmin
           .from('facebook_connections')
           .select('access_token')
-          .eq('id', matchAcc.profileId)
-          .maybeSingle();
-        if (profileConn?.access_token && profileConn.access_token.trim().length > 15) {
-          return profileConn.access_token.trim();
+          .or(`id.eq.${matchAcc.profileId},id.like.${matchAcc.profileId}___%`);
+        if (userId) profQuery = profQuery.eq('user_id', userId);
+        const { data: profileConns } = await profQuery.limit(1);
+        if (profileConns && profileConns[0]?.access_token && profileConns[0].access_token.trim().length > 15) {
+          return profileConns[0].access_token.trim();
         }
         // Fallback local
         const localConns = db.get('facebook_connections') || [];
-        const localC = localConns.find(c => c.id === matchAcc.profileId);
+        const localC = localConns.find(c => 
+          (c.profileId === matchAcc.profileId || c.id === matchAcc.profileId || (c.id && c.id.startsWith(matchAcc.profileId))) &&
+          (!userId || c.userId === userId || c.user_id === userId)
+        );
         if (localC?.accessToken && localC.accessToken.trim().length > 15) {
           return localC.accessToken.trim();
         }
@@ -4539,6 +4716,12 @@ app.post('/api/campaigns/update', async (req, res) => {
     }
 
     db.set('campaigns', campaigns);
+    recordDetailOverride(strId, {
+      ...(name ? { name } : {}),
+      ...(budget !== undefined && budget !== null ? { budget: String(budget) } : {}),
+      ...(bidCap !== undefined ? { bidCap: (bidStrategy === 'LOWEST_COST_WITHOUT_CAP' ? null : (bidCap && Number(bidCap) > 0 ? String(bidCap) : null)) } : {}),
+      ...(bidStrategy ? { bidStrategy } : {})
+    });
     campaignsCache.clear();
 
     const effectiveAccId = accountId || target?.accountId || target?.adAccountId || null;
