@@ -680,10 +680,13 @@ export default function LandingPage({ onGoToDashboard }) {
               <h5 className="font-mono text-white text-[11px] uppercase tracking-wider font-bold">
                 Contato
               </h5>
-              <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/[0.07] text-white text-xs flex items-center gap-2.5">
+              <a 
+                href="mailto:contato.primetrack@gmail.com" 
+                className="p-3.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.07] text-white text-xs flex items-center gap-2.5 transition-colors"
+              >
                 <span>✉️</span>
-                <span>contato@primetrack.com.br</span>
-              </div>
+                <span>contato.primetrack@gmail.com</span>
+              </a>
               <div className="text-[12px] text-zinc-400 leading-relaxed pt-2">
                 <strong className="text-white block mb-0.5">PRIMETRACK</strong>
                 CNPJ: 48.390.123/0001-02
