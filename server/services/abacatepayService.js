@@ -133,14 +133,18 @@ export async function createCheckout({ plan, userId, userEmail, userName, baseUr
   const returnUrl = `${originUrl}/planos`;
   const completionUrl = `${originUrl}/planos?payment=success&plan=${normPlan}`;
 
-  const payload = {
+  // 1. Tenta gerar checkout com PIX e CARTÃO DE CRÉDITO (com parcelamento até 12x)
+  const payloadWithCard = {
     items: [
       {
         id: productId,
         quantity: 1
       }
     ],
-    methods: ['PIX'],
+    methods: ['PIX', 'CARD'],
+    card: {
+      maxInstallments: 12
+    },
     externalId: `${userId || 'guest'}_${normPlan}_${Date.now()}`,
     metadata: {
       userId: userId || '',
@@ -152,16 +156,34 @@ export async function createCheckout({ plan, userId, userEmail, userName, baseUr
     completionUrl
   };
 
-  const res = await fetch(`${ABACATEPAY_API_BASE}/checkouts/create`, {
+  let res = await fetch(`${ABACATEPAY_API_BASE}/checkouts/create`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${ABACATEPAY_API_KEY}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payloadWithCard)
   });
 
-  const data = await res.json();
+  let data = await res.json();
+
+  // 2. Se a loja na AbacatePay ainda não teve o método Cartão liberado pela plataforma (ex: sandbox/verificação pendente), faz fallback para PIX
+  if (!data?.success && data?.error && typeof data.error === 'string' && data.error.includes('CARD is not available')) {
+    console.warn('[AbacatePay] Cartão de crédito ainda pendente de liberação para esta loja. Gerando checkout com PIX...');
+    const payloadPix = { ...payloadWithCard, methods: ['PIX'] };
+    delete payloadPix.card;
+
+    res = await fetch(`${ABACATEPAY_API_BASE}/checkouts/create`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${ABACATEPAY_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payloadPix)
+    });
+    data = await res.json();
+  }
+
   if (!data?.success || !data?.data?.url) {
     throw new Error(data?.error || 'Erro ao gerar checkout na AbacatePay');
   }

@@ -216,9 +216,14 @@ export default function Plans() {
             onClick={() => handleSubscribe('Basic')}
             className="mt-8 w-full py-3 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-50 text-white font-bold text-xs flex items-center justify-between px-5 shadow-md shadow-blue-600/25 transition-all cursor-pointer"
           >
-            <span>{loadingPlan === 'Basic' ? 'Gerando Pix...' : (user?.plan === 'basic' ? 'Plano Atual' : 'Assinar Basic')}</span>
+            <span>{loadingPlan === 'Basic' ? 'Gerando Pagamento...' : (user?.plan === 'basic' ? 'Plano Atual' : 'Assinar Basic')}</span>
             {loadingPlan === 'Basic' ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>→</span>}
           </button>
+          <p className="text-[10px] text-zinc-400 text-center mt-2.5 flex items-center justify-center gap-1.5 font-sans">
+            <span>💳 Cartão de Crédito</span>
+            <span>·</span>
+            <span>⚡ Pix</span>
+          </p>
         </div>
 
         {/* Pro Plan */}
@@ -290,9 +295,14 @@ export default function Plans() {
             onClick={() => handleSubscribe('Pro')}
             className="mt-8 w-full py-3 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-50 text-white font-bold text-xs flex items-center justify-between px-5 shadow-md shadow-blue-600/25 transition-all cursor-pointer"
           >
-            <span>{loadingPlan === 'Pro' ? 'Gerando Pix...' : (user?.plan === 'pro' ? 'Plano Atual' : 'Assinar Pro')}</span>
+            <span>{loadingPlan === 'Pro' ? 'Gerando Pagamento...' : (user?.plan === 'pro' ? 'Plano Atual' : 'Assinar Pro')}</span>
             {loadingPlan === 'Pro' ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>→</span>}
           </button>
+          <p className="text-[10px] text-zinc-400 text-center mt-2.5 flex items-center justify-center gap-1.5 font-sans">
+            <span>💳 Cartão de Crédito</span>
+            <span>·</span>
+            <span>⚡ Pix</span>
+          </p>
         </div>
 
         {/* Scale Plan */}
@@ -364,16 +374,21 @@ export default function Plans() {
             onClick={() => handleSubscribe('Scale')}
             className="mt-8 w-full py-3 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] disabled:opacity-50 text-white font-bold text-xs flex items-center justify-between px-5 shadow-md shadow-blue-600/25 transition-all cursor-pointer"
           >
-            <span>{loadingPlan === 'Scale' ? 'Gerando Pix...' : (user?.plan === 'scale' ? 'Plano Atual' : 'Assinar Scale')}</span>
+            <span>{loadingPlan === 'Scale' ? 'Gerando Pagamento...' : (user?.plan === 'scale' ? 'Plano Atual' : 'Assinar Scale')}</span>
             {loadingPlan === 'Scale' ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>→</span>}
           </button>
+          <p className="text-[10px] text-zinc-400 text-center mt-2.5 flex items-center justify-center gap-1.5 font-sans">
+            <span>💳 Cartão de Crédito</span>
+            <span>·</span>
+            <span>⚡ Pix</span>
+          </p>
         </div>
 
       </div>
 
       {/* Footer Text */}
       <div className="text-center text-xs text-zinc-500 font-sans pt-4">
-        Sem fidelidade &nbsp;·&nbsp; Sem taxa por venda &nbsp;·&nbsp; Cancele quando quiser
+        Sem fidelidade &nbsp;·&nbsp; Sem taxa por venda &nbsp;·&nbsp; Pix ou Cartão em até 12x &nbsp;·&nbsp; Cancele quando quiser
       </div>
 
     </div>
