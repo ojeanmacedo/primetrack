@@ -1127,19 +1127,22 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       saveItemNameOverride(targetId, editName);
     }
 
-    // Atualiza imediatamente na tabela APENAS o campo específico que foi editado no item exato
-    setCampaignsList(prev => prev.map(c => {
-      const isTargetCamp = c.id === targetId || c.name === editingCampaign.name;
-      const matchingAdset = c.adsets && c.adsets.some(a => a.id === targetId || a.adsetId === targetId);
+    const previousList = campaignsList;
 
-      if (isTargetCamp || matchingAdset) {
+    // Atualiza imediatamente na tabela o campo específico que foi editado no item exato
+    const updatedList = campaignsList.map(c => {
+      const isTargetCamp = String(c.id) === targetId || c.name === editingCampaign?.name;
+      const matchingAdset = c.adsets && c.adsets.some(a => String(a.id) === targetId || String(a.adsetId) === targetId);
+      const matchingAd = c.ads && c.ads.some(a => String(a.id) === targetId || String(a.adId) === targetId);
+
+      if (isTargetCamp || matchingAdset || matchingAd) {
         return {
           ...c,
           ...(isTargetCamp && editingField === 'name' ? { name: editName } : {}),
           ...(isTargetCamp && editingField === 'budget' ? { budget: normalizedBudget } : {}),
           ...(isTargetCamp && editingField === 'bid' ? { bidCap: normalizedBidCap, bidStrategy: editStrategy } : {}),
           adsets: (c.adsets || []).map(a => {
-            const isMatch = (a.id === targetId || a.adsetId === targetId);
+            const isMatch = (String(a.id) === targetId || String(a.adsetId) === targetId);
             if (isMatch) {
               return {
                 ...a,
@@ -1157,18 +1160,39 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               };
             }
             return a;
+          }),
+          ads: (c.ads || []).map(ad => {
+            const isMatch = (String(ad.id) === targetId || String(ad.adId) === targetId);
+            if (isMatch) {
+              return {
+                ...ad,
+                ...(editingField === 'name' ? { name: editName } : {})
+              };
+            }
+            return ad;
           })
         };
       }
       return c;
-    }));
+    });
 
-    // Envia ao servidor estritamente o campo isolado que você alterou (inclusive Nome para a Meta)
+    setCampaignsList(updatedList);
     try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(updatedList));
+      }
+    } catch (e) {}
+
+    // Envia ao servidor estritamente o campo isolado que você alterou
+    try {
+      const targetAccountId = editingItem?.accountId || editingItem?.adAccountId || editingCampaign?.accountId || editingCampaign?.adAccountId || (accountFilter !== 'Todas' ? accountFilter : null);
+
       const payload = {
         id: targetId,
         itemType: subTab === 'Conjuntos' ? 'adset' : (subTab === 'Anúncios' ? 'ad' : 'campaign'),
-        profileType: 'standard'
+        profileType: 'standard',
+        accountId: targetAccountId,
+        isLifetime: editingItem?.budgetType === 'Vitalício' || editingCampaign?.budgetType === 'Vitalício'
       };
 
       if (editingField === 'name') {
@@ -1189,17 +1213,30 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         },
         body: JSON.stringify({ ...payload, userId: activeUser?.id })
       });
-      const data = await res.json();
-      if (data.metaError) {
-        setSaveSuccessMsg(`⚠️ ${data.metaError}`);
+      const data = await res.json().catch(() => null);
+
+      if (res.ok && data && (data.success || data.metaSuccess)) {
+        const fieldLabel = editingField === 'name' 
+          ? (subTab === 'Anúncios' ? 'Nome do Anúncio' : (subTab === 'Conjuntos' ? 'Nome do Conjunto' : 'Nome da Campanha'))
+          : (editingField === 'budget' ? 'Orçamento' : (editStrategy === 'COST_CAP' ? 'Meta de Custo' : 'Limite de Lance'));
+        setSaveSuccessMsg(`🟢 ${fieldLabel} atualizado com sucesso no Gerenciador Meta!`);
       } else {
-        setSaveSuccessMsg(data.message || 'Atualizado com sucesso!');
+        // Rollback se a Meta recusou
+        setCampaignsList(previousList);
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(previousList));
+          }
+        } catch (e) {}
+        const errMsg = data?.metaError || data?.error || 'Erro ao sincronizar com o Gerenciador Meta';
+        setSaveSuccessMsg(`⚠️ ${errMsg}`);
       }
       setTimeout(() => setSaveSuccessMsg(null), 6000);
       setEditingCampaign(null);
       setEditingItem(null);
     } catch (err) {
-      setSaveSuccessMsg('Salvo na PrimeTrack com sucesso!');
+      setCampaignsList(previousList);
+      setSaveSuccessMsg(`⚠️ Erro de conexão com o Meta Ads: ${err.message}`);
       setTimeout(() => setSaveSuccessMsg(null), 5000);
       setEditingCampaign(null);
       setEditingItem(null);
@@ -2523,19 +2560,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         }
 
         const itemNameUpper = (item.name || '').toUpperCase();
-        // Determinação estrita CBO vs ABO:
-        const isItemCbo = Boolean(
-          item.isCbo === true ||
-          (item.budgetType && !item.budgetType.includes('Conjunto') && item.budgetType !== 'Nível de Conjunto' && item.isAbo !== true)
-        );
-        const isItemAbo = !isItemCbo;
-
-        // Se o conjunto pertencer a uma campanha ABO, ou se for ABO:
-        // Estritamente um risquinho "—" (Volume mais alto, sem limite de lance!)
-        if (isItemAbo) {
-          return <span className="text-zinc-500 font-mono text-xs select-none">—</span>;
-        }
-
         const rawBidVal = (item.bidCap !== undefined && item.bidCap !== null && Number(item.bidCap) > 0 && Number(item.bidCap) < 500)
           ? Number(item.bidCap)
           : 0;
@@ -2545,9 +2569,21 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
         const hasCappedBid = rawBidVal > 0 && (isCostCap || isBidCap);
 
-        // Se for Volume mais alto (sem limite / padrão): só um risquinho
+        // Se ainda não tem limite configurado (Volume mais alto): exibe risquinho clicável para definir
         if (!hasCappedBid) {
-          return <span className="text-zinc-500 font-mono text-xs select-none">—</span>;
+          return (
+            <div 
+              onClick={(e) => {
+                if (e.shiftKey) return;
+                handleOpenEdit(item, 'bid');
+              }}
+              className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group flex items-center gap-1.5"
+              title="Clique para definir limite de lance ou meta de custo para este conjunto"
+            >
+              <span className="text-zinc-500 font-mono text-xs group-hover:text-[#5C9BFF] select-none">—</span>
+              <Edit3 className="w-2.5 h-2.5 text-zinc-600 opacity-0 group-hover:opacity-100 group-hover:text-[#5C9BFF] transition-opacity" />
+            </div>
+          );
         }
 
         // Se for Limite de lance ou Meta de custo com valor positivo no conjunto: mostra valor, texto e canetinha
@@ -4170,7 +4206,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                   <h3 className="font-bold text-white text-xs">
                     {editingField === 'bid' 
                        ? (editStrategy === 'COST_CAP' ? 'Editar Meta de Custo' : 'Editar Limite de Lance') 
-                      : (editingField === 'name' ? 'Editar Nome' : (subTab === 'Conjuntos' ? 'Editar Orçamento do Conjunto' : 'Editar Orçamento da Campanha'))}
+                      : (editingField === 'name' 
+                          ? (subTab === 'Anúncios' ? 'Editar Nome do Anúncio' : (subTab === 'Conjuntos' ? 'Editar Nome do Conjunto' : 'Editar Nome da Campanha')) 
+                          : (subTab === 'Conjuntos' ? 'Editar Orçamento do Conjunto' : 'Editar Orçamento da Campanha'))}
                   </h3>
                   <span className="text-[10px] font-mono text-zinc-400 truncate max-w-[200px] block">
                     {editingItem?.name || editingCampaign?.name}
@@ -4218,27 +4256,66 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               )}
 
               {editingField === 'bid' && (
-                <div>
-                  <label className="block text-zinc-300 font-semibold mb-1.5">
-                    {editStrategy === 'COST_CAP' ? 'Meta de Custo (R$)' : 'Limite de Lance (R$)'}
+                <div className="space-y-3">
+                  <label className="block text-zinc-300 font-semibold mb-1">
+                    Tipo de Limite de Lance
                   </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-zinc-500 font-mono">R$</span>
-                    <input 
-                      type="text"
-                      autoFocus
-                      value={editBidCap}
-                      onChange={e => setEditBidCap(formatCurrencyInput(e.target.value))}
-                      className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#0D1424] border border-[#1E293B] text-white focus:outline-none focus:border-[#0066FF] font-mono font-bold text-sm"
-                      placeholder="11,00"
-                      required
-                    />
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditStrategy('LOWEST_COST_WITH_BID_CAP')}
+                      className={`px-3 py-2 rounded-xl border text-xs font-semibold flex flex-col items-start gap-1 transition-all cursor-pointer ${
+                        editStrategy === 'LOWEST_COST_WITH_BID_CAP'
+                          ? 'bg-[#0066FF]/20 border-[#0066FF] text-white shadow-sm shadow-blue-500/20'
+                          : 'bg-[#0D1424] border-[#1E293B] text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <span className="font-bold flex items-center gap-1.5">
+                        <span className={`w-2 h-2 rounded-full ${editStrategy === 'LOWEST_COST_WITH_BID_CAP' ? 'bg-[#0066FF]' : 'bg-zinc-600'}`} />
+                        Limite de Lance
+                      </span>
+                      <span className="text-[10px] text-zinc-400 font-normal">Bid Cap no leilão</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setEditStrategy('COST_CAP')}
+                      className={`px-3 py-2 rounded-xl border text-xs font-semibold flex flex-col items-start gap-1 transition-all cursor-pointer ${
+                        editStrategy === 'COST_CAP'
+                          ? 'bg-[#0066FF]/20 border-[#0066FF] text-white shadow-sm shadow-blue-500/20'
+                          : 'bg-[#0D1424] border-[#1E293B] text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <span className="font-bold flex items-center gap-1.5">
+                        <span className={`w-2 h-2 rounded-full ${editStrategy === 'COST_CAP' ? 'bg-[#0066FF]' : 'bg-zinc-600'}`} />
+                        Meta de Custo
+                      </span>
+                      <span className="text-[10px] text-zinc-400 font-normal">Cost Cap por resultado</span>
+                    </button>
                   </div>
-                  <p className="text-[10px] text-zinc-500 mt-1.5">
-                    {editStrategy === 'COST_CAP' 
-                      ? 'A Meta buscará manter o custo médio por evento próximo a este valor.'
-                      : 'A Meta não dará lances acima deste valor no leilão.'}
-                  </p>
+
+                  <div className="pt-1">
+                    <label className="block text-zinc-300 font-semibold mb-1.5">
+                      {editStrategy === 'COST_CAP' ? 'Valor da Meta de Custo (R$)' : 'Valor do Limite de Lance (R$)'}
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-zinc-500 font-mono">R$</span>
+                      <input 
+                        type="text"
+                        autoFocus
+                        value={editBidCap}
+                        onChange={e => setEditBidCap(formatCurrencyInput(e.target.value))}
+                        className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-[#0D1424] border border-[#1E293B] text-white focus:outline-none focus:border-[#0066FF] font-mono font-bold text-sm"
+                        placeholder="11,00"
+                        required
+                      />
+                    </div>
+                    <p className="text-[10px] text-zinc-400 mt-1.5">
+                      {editStrategy === 'COST_CAP' 
+                        ? 'A Meta buscará manter o custo médio por evento próximo a este valor.'
+                        : 'A Meta não dará lances acima deste valor no leilão.'}
+                    </p>
+                  </div>
                 </div>
               )}
 

@@ -1102,7 +1102,7 @@ export async function updateMetaItemStatus(itemId, status, accessToken) {
 /**
  * 8. Atualiza orçamento (budget), limite de lance (bid_amount), estratégia ou NOME no Meta Ads
  */
-export async function updateMetaItemDetails(itemId, { name, budget, bidCap, bidStrategy, itemType = 'campaign' }, accessToken, isUsd = false, usdRate = 1.0) {
+export async function updateMetaItemDetails(itemId, { name, budget, bidCap, bidStrategy, itemType = 'campaign', isLifetime = false }, accessToken, isUsd = false, usdRate = 1.0) {
   const url = `${GRAPH_BASE_URL}/${itemId}?access_token=${accessToken}`;
   const body = {};
 
@@ -1110,27 +1110,43 @@ export async function updateMetaItemDetails(itemId, { name, budget, bidCap, bidS
     body.name = name.trim();
   }
 
-  if (budget !== undefined && budget !== null && budget !== '') {
+  // Só atualiza orçamento em campanhas ou adsets (anúncios não têm budget)
+  if (itemType !== 'ad' && budget !== undefined && budget !== null && budget !== '') {
     const numBudget = Number(budget);
     if (!isNaN(numBudget) && numBudget > 0) {
       // Converte se a conta for em USD
       const budgetInAccountCurrency = isUsd ? (numBudget / usdRate) : numBudget;
       const budgetInCents = Math.round(budgetInAccountCurrency * 100);
-      body.daily_budget = budgetInCents;
+      if (isLifetime) {
+        body.lifetime_budget = budgetInCents;
+      } else {
+        body.daily_budget = budgetInCents;
+      }
     }
   }
 
-  if (bidCap !== undefined && bidCap !== null && bidCap !== '') {
-    const numBid = Number(bidCap);
-    if (!isNaN(numBid) && numBid > 0) {
-      const bidInAccountCurrency = isUsd ? (numBid / usdRate) : numBid;
-      const bidInCents = Math.round(bidInAccountCurrency * 100);
-      body.bid_amount = bidInCents;
+  // Estratégia de lance e limite (Bid Cap / Cost Cap / Volume Mais Alto)
+  if (itemType !== 'ad') {
+    if (bidStrategy === 'LOWEST_COST_WITHOUT_CAP') {
+      body.bid_strategy = 'LOWEST_COST_WITHOUT_CAP';
+    } else if (bidStrategy === 'COST_CAP' || bidStrategy === 'LOWEST_COST_WITH_BID_CAP') {
+      body.bid_strategy = bidStrategy;
+      if (bidCap !== undefined && bidCap !== null && bidCap !== '') {
+        const numBid = Number(bidCap);
+        if (!isNaN(numBid) && numBid > 0) {
+          const bidInAccountCurrency = isUsd ? (numBid / usdRate) : numBid;
+          const bidInCents = Math.round(bidInAccountCurrency * 100);
+          body.bid_amount = bidInCents;
+        }
+      }
+    } else if (bidCap !== undefined && bidCap !== null && bidCap !== '') {
+      const numBid = Number(bidCap);
+      if (!isNaN(numBid) && numBid > 0) {
+        const bidInAccountCurrency = isUsd ? (numBid / usdRate) : numBid;
+        const bidInCents = Math.round(bidInAccountCurrency * 100);
+        body.bid_amount = bidInCents;
+      }
     }
-  }
-
-  if (bidStrategy) {
-    body.bid_strategy = bidStrategy;
   }
 
   if (Object.keys(body).length === 0) {
@@ -1142,8 +1158,29 @@ export async function updateMetaItemDetails(itemId, { name, budget, bidCap, bidS
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   });
-  const data = await res.json();
-  if (data.error) throw new Error(data.error.message);
+  let data = await res.json();
+
+  // Tratamento de exigência DSA / compliance_section da Meta para conjuntos de anúncios
+  if (data?.error && (data.error.error_subcode === 3858634 || (data.error.error_data && data.error.error_data.includes('compliance_section')))) {
+    const dsaPayload = {
+      ...body,
+      dsa_beneficiary: 'Anunciante',
+      dsa_payor: 'Anunciante'
+    };
+    const retryRes = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dsaPayload)
+    });
+    data = await retryRes.json();
+  }
+
+  if (data?.error) {
+    if (data.error.code === 613 || data.error.error_subcode === 4841018) {
+      throw new Error('Aguarde cerca de 30 segundos para alterar novamente este mesmo item no Meta Ads.');
+    }
+    throw new Error(data.error.message || 'Erro ao comunicar com o Meta Ads');
+  }
   return data;
 }
 
@@ -1235,11 +1272,11 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, targe
           throw new Error(createdCampData.error?.message || 'Falha ao criar campanha na conta de destino');
         }
       } else {
-        // Duplicação nativa na mesma conta/perfil
+        // Duplicação nativa na mesma conta/perfil (deep_copy clona campanha, conjuntos e anúncios atomicamente na Meta)
         const copyUrl = `${GRAPH_BASE_URL}/${campaignId}/copies`;
         const params = new URLSearchParams();
         params.append('access_token', accessToken);
-        params.append('deep_copy', 'false');
+        params.append('deep_copy', 'true');
         params.append('status_option', status || 'ACTIVE');
 
         if (cleanTargetAcc) {
@@ -1261,8 +1298,8 @@ export async function duplicateMetaCampaign(campaignId, { targetAccountId, targe
         rootCopyData = data;
       }
 
-      // 2. Clona cada conjunto de anúncio para a nova campanha
-      if (originalAdsetsWithAds.length > 0 && newCampaignId) {
+      // 2. Clona cada conjunto de anúncio para a nova campanha (necessário apenas em cross-account ou com novo pixel/página)
+      if ((isCrossAccount || cleanTargetPixel || cleanTargetPage) && originalAdsetsWithAds.length > 0 && newCampaignId) {
         for (const adset of originalAdsetsWithAds) {
           try {
             let newAdsetId = null;

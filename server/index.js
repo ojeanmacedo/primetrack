@@ -4294,18 +4294,20 @@ app.post('/api/campaigns/status-bulk', async (req, res) => {
 // F2. Atualizar Campanha, Orçamento e Bid Cap diretamente no Gerenciador Meta Ads
 app.post('/api/campaigns/update', async (req, res) => {
   try {
-    const { id, name, budget, bidCap, bidStrategy, profileType, itemType } = req.body;
+    const { id, name, budget, bidCap, bidStrategy, profileType, itemType, accountId, isLifetime } = req.body;
+    const userId = req.headers['x-user-id'] || req.body?.userId || req.query.userId || null;
+    if (!id) return res.status(400).json({ success: false, error: 'ID é obrigatório' });
+
+    const strId = String(id);
     const campaigns = db.get('campaigns') || [];
-    const index = campaigns.findIndex(c => c.id === id || c.name === 'TESTE MI');
-
     let target = null;
-    let adsetUpdated = false;
+    let itemUpdated = false;
 
-    // Se for edição de conjunto, procura nos adsets das campanhas
+    // 1. Edição de conjunto (adset)
     if (itemType === 'adset') {
       for (const camp of campaigns) {
         if (camp.adsets && Array.isArray(camp.adsets)) {
-          const asIdx = camp.adsets.findIndex(a => a.id === id || a.adsetId === id);
+          const asIdx = camp.adsets.findIndex(a => String(a.id) === strId || String(a.adsetId) === strId);
           if (asIdx !== -1) {
             const newBidCap = bidStrategy === 'LOWEST_COST_WITHOUT_CAP' ? null : (bidCap !== undefined ? (bidCap && Number(bidCap) > 0 ? String(bidCap) : null) : camp.adsets[asIdx].bidCap);
             camp.adsets[asIdx] = {
@@ -4316,14 +4318,34 @@ app.post('/api/campaigns/update', async (req, res) => {
               ...(bidStrategy ? { bidStrategy } : {})
             };
             target = camp.adsets[asIdx];
-            adsetUpdated = true;
+            itemUpdated = true;
             break;
           }
         }
       }
     }
 
-    if (!adsetUpdated) {
+    // 2. Edição de anúncio (ad)
+    if (itemType === 'ad') {
+      for (const camp of campaigns) {
+        if (camp.ads && Array.isArray(camp.ads)) {
+          const adIdx = camp.ads.findIndex(a => String(a.id) === strId || String(a.adId) === strId);
+          if (adIdx !== -1) {
+            camp.ads[adIdx] = {
+              ...camp.ads[adIdx],
+              ...(name ? { name } : {})
+            };
+            target = camp.ads[adIdx];
+            itemUpdated = true;
+            break;
+          }
+        }
+      }
+    }
+
+    // 3. Edição de campanha
+    if (!itemUpdated && itemType !== 'ad') {
+      const index = campaigns.findIndex(c => String(c.id) === strId);
       if (index !== -1) {
         const newBidCap = bidStrategy === 'LOWEST_COST_WITHOUT_CAP' ? null : (bidCap !== undefined ? (bidCap && Number(bidCap) > 0 ? String(bidCap) : null) : campaigns[index].bidCap);
         campaigns[index] = {
@@ -4343,54 +4365,61 @@ app.post('/api/campaigns/update', async (req, res) => {
           }));
         }
         target = campaigns[index];
-      } else if (itemType !== 'adset') {
-        target = {
-          id: id || "52604661655655",
-          name: name || "TESTE MI",
-          status: true,
-          budget: String(budget || "256.99"),
-          bidCap: bidCap ? String(bidCap) : null,
-          bidStrategy: bidStrategy || "LOWEST_COST_WITHOUT_CAP",
-          spend: "123.41",
-          sales: 15,
-          revenue: "139.67"
-        };
-        campaigns.unshift(target);
+        itemUpdated = true;
       }
     }
+
     db.set('campaigns', campaigns);
     campaignsCache.clear();
 
-    const userId = req.headers['x-user-id'] || req.body?.userId || req.query.userId || null;
-    const token = await getValidMetaAccessToken(userId);
+    const effectiveAccId = accountId || target?.accountId || target?.adAccountId || null;
+    const token = await getValidMetaAccessToken(userId, effectiveAccId);
+
+    // Identifica se a conta opera em USD
+    const adAccounts = db.get('ad_accounts') || [];
+    const matchedAccount = adAccounts.find(a => 
+      (effectiveAccId && (String(a.id).replace('act_', '') === String(effectiveAccId).replace('act_', '') || String(a.accountId) === String(effectiveAccId))) ||
+      (a.userId === userId && a.currency)
+    );
+    const isUsd = (matchedAccount?.currency || target?.currency || 'BRL').toUpperCase() === 'USD';
+
     let metaSuccess = false;
     let metaError = null;
 
-    if (token && id) {
+    if (token) {
       try {
         const usdRate = await getUsdToBrlRate();
-        await updateMetaItemDetails(id, { name, budget, bidCap, bidStrategy, itemType }, token, true, usdRate);
+        await updateMetaItemDetails(strId, { name, budget, bidCap, bidStrategy, itemType, isLifetime }, token, isUsd, usdRate);
         metaSuccess = true;
       } catch (err) {
-        console.warn(`[Meta Details Update Error]:`, err.message);
+        console.warn(`[Meta Details Update Error for ${strId}]:`, err.message);
         metaError = err.message;
       }
+    } else {
+      metaError = 'Nenhuma conexão do Facebook ativa ou token válido encontrado.';
     }
 
-    const isBackupProfile = profileType === 'backup';
-    const message = metaSuccess
-      ? 'Alteração salva e sincronizada com sucesso no Gerenciador da Meta!'
-      : (isBackupProfile 
-          ? '🛡️ Perfil Backup: Valor atualizado na PrimeTrack.'
-          : 'Alteração salva com sucesso na PrimeTrack.');
+    // Persiste nome no Supabase se for campanha
+    if (name && (itemType === 'campaign' || !itemType)) {
+      try {
+        await supabaseAdmin.from('campaigns').update({ name, updated_at: new Date().toISOString() }).eq('id', strId);
+      } catch (e) {}
+    }
+
+    if (!metaSuccess && metaError) {
+      return res.status(400).json({
+        success: false,
+        metaError,
+        error: metaError,
+        message: `⚠️ Erro na Meta: ${metaError}`
+      });
+    }
 
     res.json({
       success: true,
+      metaSuccess: true,
       campaign: target,
-      isBackupProfile,
-      metaSynced: metaSuccess,
-      metaError,
-      message
+      message: 'Alteração sincronizada com sucesso no Gerenciador Meta Ads!'
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
