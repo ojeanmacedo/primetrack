@@ -23,7 +23,7 @@ import {
   getUsdToBrlRate
 } from './services/metaService.js';
 import { supabaseAdmin } from './supabase.js';
-import { createCheckout, handleWebhookEvent, ensureWebhookConfigured } from './services/abacatepayService.js';
+import { createCheckout, handleWebhookEvent, ensureWebhookConfigured, subscribeWithCard } from './services/abacatepayService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -5876,6 +5876,8 @@ app.post('/api/push/test', async (req, res) => {
     console.error('[WebPush] Erro no endpoint /api/push/test:', err);
     res.status(500).json({ success: false, error: err.message });
   }
+});
+
 // ==========================================
 // ABACATEPAY PAYMENTS & CHECKOUT
 // ==========================================
@@ -5899,6 +5901,26 @@ app.post('/api/abacatepay/checkout', async (req, res) => {
   } catch (err) {
     console.error('Erro ao gerar checkout AbacatePay:', err);
     return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/abacatepay/subscribe-card', async (req, res) => {
+  try {
+    const { plan, userId, userEmail, userName, cardData } = req.body;
+    const reqUserId = req.headers['x-user-id'] || userId;
+
+    const result = await subscribeWithCard({
+      plan,
+      userId: reqUserId,
+      userEmail,
+      userName,
+      cardData
+    });
+
+    return res.json(result);
+  } catch (err) {
+    console.error('Erro ao processar assinatura via cartão:', err);
+    return res.status(400).json({ success: false, error: err.message });
   }
 });
 

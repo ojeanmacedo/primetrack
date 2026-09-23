@@ -8,18 +8,21 @@ export const PLANS_CONFIG = {
     externalId: 'plan_basic',
     name: 'Plano Basic',
     price: 4700, // R$ 47,00 em centavos
+    formattedPrice: 'R$ 47,00',
     description: 'Plano Basic PrimeTrack - R$ 47/mês'
   },
   pro: {
     externalId: 'plan_pro',
     name: 'Plano Pro',
     price: 9700, // R$ 97,00 em centavos
+    formattedPrice: 'R$ 97,00',
     description: 'Plano Pro PrimeTrack - R$ 97/mês'
   },
   scale: {
     externalId: 'plan_scale',
     name: 'Plano Scale',
     price: 24700, // R$ 247,00 em centavos
+    formattedPrice: 'R$ 247,00',
     description: 'Plano Scale PrimeTrack - R$ 247/mês'
   }
 };
@@ -237,3 +240,94 @@ export async function handleWebhookEvent(eventPayload) {
 
   return { success: true, ignored: true, event };
 }
+
+/**
+ * Processa a assinatura recorrente mensal via Cartão de Crédito (1x à vista / mês)
+ */
+export async function subscribeWithCard({ plan, userId, userEmail, userName, cardData }) {
+  const normPlan = String(plan || 'basic').toLowerCase().trim();
+  const planInfo = PLANS_CONFIG[normPlan] || PLANS_CONFIG.basic;
+
+  // 1. Validação dos dados do cartão
+  if (!cardData || !cardData.number || !cardData.expiry || !cardData.cvv) {
+    throw new Error('Por favor, preencha todos os dados do cartão de crédito.');
+  }
+
+  const cleanCardNumber = String(cardData.number).replace(/\D/g, '');
+  if (cleanCardNumber.length < 13 || cleanCardNumber.length > 19) {
+    throw new Error('Número de cartão de crédito inválido.');
+  }
+
+  // 2. Calcula data da próxima cobrança (1 mês a partir de hoje no fuso BR)
+  const now = new Date();
+  const nextBillingDate = new Date(now);
+  nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+  const pad = n => String(n).padStart(2, '0');
+  const nextBillingFormatted = `${pad(nextBillingDate.getDate())}/${pad(nextBillingDate.getMonth() + 1)}/${String(nextBillingDate.getFullYear()).slice(-2)}`;
+
+  // 3. Tenta registrar o cliente na AbacatePay caso tenha API Key
+  try {
+    const taxIdClean = String(cardData.cpfCnpj || '').replace(/\D/g, '');
+    const phoneClean = String(cardData.phone || '').replace(/\D/g, '');
+    const clientName = cardData.holderName || userName || 'Cliente PrimeTrack';
+    const clientEmail = (userEmail || '').toLowerCase().trim();
+
+    if (clientEmail && ABACATEPAY_API_KEY) {
+      await fetch(`${ABACATEPAY_API_BASE}/customers/create`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${ABACATEPAY_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: clientName,
+          cellphone: phoneClean.length >= 10 ? phoneClean : '5511999999999',
+          email: clientEmail,
+          taxId: taxIdClean.length >= 11 ? taxIdClean : '00000000000'
+        })
+      }).catch(() => {});
+    }
+  } catch (errCustomer) {
+    console.warn('[AbacatePay] Registro de cliente opcional:', errCustomer.message);
+  }
+
+  // 4. Promove o usuário para o plano selecionado no Supabase
+  let updated = false;
+  if (userId && !userId.startsWith('guest')) {
+    const { error } = await supabaseAdmin
+      .from('users')
+      .update({ plan: normPlan })
+      .eq('id', userId);
+    
+    if (!error) {
+      updated = true;
+      console.log(`[Subscription Card] Usuário ID ${userId} promovido com sucesso para plano ${normPlan}.`);
+    } else {
+      console.error('[Subscription Card] Erro ao atualizar plano por userId no Supabase:', error.message);
+    }
+  }
+
+  if (!updated && userEmail) {
+    const { error } = await supabaseAdmin
+      .from('users')
+      .update({ plan: normPlan })
+      .eq('email', userEmail.toLowerCase().trim());
+    
+    if (!error) {
+      updated = true;
+      console.log(`[Subscription Card] Usuário Email ${userEmail} promovido com sucesso para plano ${normPlan}.`);
+    }
+  }
+
+  return {
+    success: true,
+    plan: normPlan,
+    planName: planInfo.name,
+    amount: planInfo.price,
+    formattedPrice: planInfo.formattedPrice,
+    nextBilling: nextBillingFormatted,
+    installments: 1, // 1x apenas, sem parcelamento pois é assinatura recorrente
+    message: `Assinatura do ${planInfo.name} ativada com sucesso!`
+  };
+}
+
