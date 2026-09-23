@@ -620,7 +620,11 @@ export default function Integrations() {
     setAdAccounts(updated);
     const activeIds = updated.filter(a => a.sync).map(a => a.id);
     if (typeof window !== 'undefined') {
+      localStorage.setItem('primetrack_ad_accounts', JSON.stringify(updated));
       localStorage.setItem(getScopedKey('primetrack_ad_accounts'), JSON.stringify(updated));
+      if (activeIds.length === 0) {
+        localStorage.removeItem('primetrack_cached_campaigns');
+      }
     }
 
     // Persiste no backend imediatamente para nunca perder a configuração

@@ -2112,9 +2112,32 @@ app.get('/api/campaigns', async (req, res) => {
   const now = Date.now();
   const cached = campaignsCache.get(cacheKey);
 
+  // Extrai IDs das contas ativas do usuário
+  const userActiveIds = new Set();
+  connections.forEach(c => {
+    if (c.email) {
+      try {
+        const meta = JSON.parse(c.email);
+        if (Array.isArray(meta?.activeAccounts)) {
+          meta.activeAccounts.forEach(id => userActiveIds.add(String(id).replace('act_', '')));
+        }
+      } catch (e) {}
+    }
+  });
+
+  // Se não há nenhuma conta ativa configurada pelo usuário em Integrações, NUNCA retorna campanhas!
+  if (userActiveIds.size === 0) {
+    campaignsCache.set(cacheKey, { timestamp: now, campaigns: [] });
+    return res.json([]);
+  }
+
   // Cache de 30 segundos para navegação ultrarrápida e proteção contra rate limits da Meta
   if (cached && (now - cached.timestamp < 30 * 1000) && refresh !== 'true') {
-    return res.json(cached.campaigns);
+    const filteredCached = (cached.campaigns || []).filter(c => {
+      const cActId = String(c.adAccountId || c.accountId || '').replace('act_', '');
+      return userActiveIds.has(cActId);
+    });
+    return res.json(filteredCached);
   }
 
   // Busca SEMPRE em tempo real os dados exatos do período na API da Meta
@@ -2123,6 +2146,12 @@ app.get('/api/campaigns', async (req, res) => {
     syncResult = await executeMetaSync({ datePreset, timeRange, userId });
   } catch (e) {
     console.warn('[Sync Campaigns Error]:', e.message);
+  }
+
+  // Se nenhuma conta estiver ativa em Integrações, encerra com lista vazia!
+  if (syncResult && syncResult.noActiveAccounts) {
+    campaignsCache.set(cacheKey, { timestamp: now, campaigns: [] });
+    return res.json([]);
   }
 
   let allCampaigns = (syncResult && Array.isArray(syncResult.campaigns) && syncResult.campaigns.length > 0)
@@ -2135,6 +2164,14 @@ app.get('/api/campaigns', async (req, res) => {
   }
   if ((!allCampaigns || allCampaigns.length === 0) && savedCampaigns.length > 0) {
     allCampaigns = savedCampaigns;
+  }
+
+  // Filtra expressamente para garantir que só exibe campanhas de contas ativas
+  if (Array.isArray(allCampaigns) && allCampaigns.length > 0) {
+    allCampaigns = allCampaigns.filter(c => {
+      const cActId = String(c.adAccountId || c.accountId || '').replace('act_', '');
+      return userActiveIds.has(cActId);
+    });
   }
 
   const todayBrazil = toBrazilYMD(new Date());
@@ -3312,7 +3349,7 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
           status: a.status,
           amountSpent: String(a.amount_spent || '0.00'),
           balance: String(a.balance || '0.00'),
-          syncActive: activeSet.size === 0 ? true : activeSet.has(cleanId)
+          syncActive: activeSet.has(cleanId)
         };
       });
     }
@@ -3354,7 +3391,7 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
                   status: acc.status,
                   amountSpent: String(acc.amountSpent || '0.00'),
                   balance: String(acc.balance || '0.00'),
-                  syncActive: true
+                  syncActive: activeSet.has(clean)
                 });
               }
             });
@@ -3384,6 +3421,7 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
   if (targetAccounts.length === 0) {
     return { 
       success: true, 
+      noActiveAccounts: true,
       message: 'Nenhuma conta ativa selecionada em integrações.',
       syncedCampaigns: 0,
       syncedAds: 0,
@@ -3809,6 +3847,25 @@ app.post('/api/meta/accounts/sync-status', async (req, res) => {
     } catch (supaSyncErr) {
       console.warn('[Supabase Sync Status] Aviso:', supaSyncErr.message);
     }
+
+    // Atualiza conexões locais em memória para resposta imediata
+    try {
+      const localConns = db.get('facebook_connections') || [];
+      const updatedConns = localConns.map(c => {
+        if (!userId || c.userId === userId || c.user_id === userId || (isOwnerUserId(userId) && (isOwnerUserId(c.userId) || !c.userId))) {
+          return {
+            ...c,
+            email: JSON.stringify({ activeAccounts: activeIds })
+          };
+        }
+        return c;
+      });
+      db.set('facebook_connections', updatedConns);
+    } catch (e) {}
+
+    // Invalida caches para que as campanhas reflitam imediatamente as contas ativas/desativadas
+    reconcileCache = {};
+    campaignsCache.clear();
 
     const filteredReturn = userId 
       ? adAccounts.filter(a => a.userId === userId || (isOwnerUserId(userId) && (isOwnerUserId(a.userId) || !a.userId)))

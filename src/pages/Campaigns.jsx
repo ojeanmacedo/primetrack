@@ -380,6 +380,20 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   const [campaignsList, setCampaignsList] = useState(() => {
     if (typeof window !== 'undefined') {
+      // Se não há nenhuma conta ativa nas Integrações, NUNCA carrega campanhas do cache
+      const savedAccs = localStorage.getItem('primetrack_ad_accounts');
+      let hasActiveAcc = false;
+      if (savedAccs) {
+        try {
+          const parsedAccs = JSON.parse(savedAccs);
+          hasActiveAcc = Array.isArray(parsedAccs) && parsedAccs.some(a => a.sync === true);
+        } catch (e) {}
+      }
+      if (!hasActiveAcc) {
+        localStorage.removeItem('primetrack_cached_campaigns');
+        return [];
+      }
+
       const saved = localStorage.getItem('primetrack_cached_campaigns');
       if (saved) {
         try {
@@ -559,6 +573,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     const reqId = ++latestRequestIdRef.current;
     const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
     let localSyncMap = {};
+    let currentActiveAccs = [];
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -567,8 +582,15 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             if (p.id) localSyncMap[p.id] = p.sync;
           });
           const activeList = parsed.filter(a => a.sync === true);
+          currentActiveAccs = activeList;
           if (activeList.length > 0) {
             setAdAccountsList(activeList);
+          } else {
+            setAdAccountsList([]);
+            setCampaignsList([]);
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('primetrack_cached_campaigns');
+            }
           }
         }
       } catch (e) {}
@@ -615,6 +637,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       if (data && data.connections && data.connections.length > 0) {
         localStorage.removeItem('primetrack_meta_disconnected');
       } else if (data && Array.isArray(data.connections) && data.connections.length === 0) {
+        currentActiveAccs = [];
         setAdAccountsList([]);
         setCampaignsList([]);
         if (typeof window !== 'undefined') {
@@ -650,16 +673,26 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         }
 
         // Em Campanhas, APENAS as contas marcadas como ativas (sync === true) em Integrações devem ser exibidas!
-        const activeAccs = mappedAccs.filter(a => a.sync === true);
-        setAdAccountsList(activeAccs);
+        currentActiveAccs = mappedAccs.filter(a => a.sync === true);
+        setAdAccountsList(currentActiveAccs);
 
-        if (accountFilter !== 'Todas' && !activeAccs.some(a => a.id === accountFilter || a.name === accountFilter)) {
+        if (currentActiveAccs.length === 0) {
+          setCampaignsList([]);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('primetrack_cached_campaigns');
+          }
+        }
+
+        if (accountFilter !== 'Todas' && !currentActiveAccs.some(a => a.id === accountFilter || a.name === accountFilter)) {
           setAccountFilter('Todas');
         }
       } else if (data && Array.isArray(data.adAccounts) && data.adAccounts.length === 0) {
+        currentActiveAccs = [];
         setAdAccountsList([]);
+        setCampaignsList([]);
         if (typeof window !== 'undefined') {
           localStorage.removeItem('primetrack_ad_accounts');
+          localStorage.removeItem('primetrack_cached_campaigns');
         }
       }
 
@@ -668,23 +701,34 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         // Descarta requisição obsoleta
         return;
       }
-      if (Array.isArray(cData) && cData.length > 0) {
-        const sanitized = sanitizeCampaignsData(cData);
-        setCampaignsList(sanitized);
+      
+      // Se não há NENHUMA conta ativa nas Integrações, NUNCA exibe campanhas
+      if (!currentActiveAccs || currentActiveAccs.length === 0) {
+        setCampaignsList([]);
         if (typeof window !== 'undefined') {
-          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(sanitized));
+          localStorage.removeItem('primetrack_cached_campaigns');
+        }
+      } else if (Array.isArray(cData) && cData.length > 0) {
+        const activeIds = new Set(currentActiveAccs.map(a => String(a.id).replace('act_', '')));
+        const activeNames = new Set(currentActiveAccs.map(a => (a.name || '').toLowerCase().trim()));
+        const sanitized = sanitizeCampaignsData(cData);
+        // Exibe apenas campanhas das contas que estão expressamente ativas
+        const onlyActive = sanitized.filter(c => {
+          const cAdId = String(c.adAccountId || c.accountId || '').replace('act_', '');
+          const cAccName = (c.accountName || '').toLowerCase().trim();
+          return (cAdId && activeIds.has(cAdId)) || (cAccName && activeNames.has(cAccName));
+        });
+        setCampaignsList(onlyActive);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(onlyActive));
           if (customPreset === 'Hoje' || (!customPreset && periodFilterRef.current === 'Hoje')) {
             localStorage.setItem('primetrack_cached_campaigns_date', getBrazilTodayYMD());
           }
         }
       } else if (Array.isArray(cData) && cData.length === 0) {
-        if (!data?.connections || data.connections.length === 0) {
-          setCampaignsList([]);
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('primetrack_cached_campaigns');
-          }
-        } else {
-          console.warn('[Campaigns] Nenhuma campanha retornada no período para o usuário.');
+        setCampaignsList([]);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('primetrack_cached_campaigns');
         }
       }
     } catch (err) {
@@ -746,6 +790,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   }, []);
 
   const handleSyncNow = async (preset = periodFilterRef.current, customRangeObj = customRangeRef.current) => {
+    if (!adAccountsList || adAccountsList.length === 0) {
+      setCampaignsList([]);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('primetrack_cached_campaigns');
+      }
+      return;
+    }
+
     setSyncing(true);
     try {
       const selectedPreset = typeof preset === 'string' ? preset : periodFilterRef.current;
@@ -792,12 +844,27 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         body: JSON.stringify(syncPayload)
       });
       const syncData = await syncRes.json();
-      if (syncData && Array.isArray(syncData.campaigns) && syncData.campaigns.length > 0) {
-        setCampaignsList(syncData.campaigns);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(syncData.campaigns));
-          if (selectedPreset === 'Hoje') {
-            localStorage.setItem('primetrack_cached_campaigns_date', getBrazilTodayYMD());
+      if (syncData && Array.isArray(syncData.campaigns)) {
+        const activeIds = new Set(adAccountsList.map(a => String(a.id).replace('act_', '')));
+        const activeNames = new Set(adAccountsList.map(a => (a.name || '').toLowerCase().trim()));
+        const onlyActive = syncData.campaigns.filter(c => {
+          const cAdId = String(c.adAccountId || c.accountId || '').replace('act_', '');
+          const cAccName = (c.accountName || '').toLowerCase().trim();
+          return (cAdId && activeIds.has(cAdId)) || (cAccName && activeNames.has(cAccName));
+        });
+
+        if (onlyActive.length > 0) {
+          setCampaignsList(onlyActive);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(onlyActive));
+            if (selectedPreset === 'Hoje') {
+              localStorage.setItem('primetrack_cached_campaigns_date', getBrazilTodayYMD());
+            }
+          }
+        } else {
+          setCampaignsList([]);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('primetrack_cached_campaigns');
           }
         }
       }
@@ -1547,35 +1614,50 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   // Filtragem - se campaignsList já possui dados, exibe imediatamente
   // O filtro activeCampaignFilterIds só é removido se o usuário clicar explicitamente para remover o filtro
-  const filteredCampaigns = campaignsList.filter(c => {
-    const cIdStr = String(c.id);
-    if (activeCampaignFilterIds.size > 0 && !activeCampaignFilterIds.has(cIdStr)) {
-      return false;
+  const filteredCampaigns = React.useMemo(() => {
+    // Se não há nenhuma conta ativa nas Integrações, NUNCA exibe campanhas
+    if (!adAccountsList || adAccountsList.length === 0) {
+      return [];
     }
 
-    // Filtro de Status
-    if (statusFilter === 'Ativo' && !isStatusActive(c)) return false;
-    if (statusFilter === 'Desativadas' && isStatusActive(c)) return false;
+    const activeAccIds = new Set(adAccountsList.map(a => String(a.id).replace('act_', '')));
+    const activeAccNames = new Set(adAccountsList.map(a => (a.name || '').toLowerCase().trim()));
 
-    const cAdId = String(c.adAccountId || c.accountId || '').replace('act_', '');
-    if (accountFilter !== 'Todas') {
-      const selectedAcc = adAccountsList.find(a => a.name === accountFilter || a.id === accountFilter || `act_${a.id}` === accountFilter);
-      if (selectedAcc) {
-        const selId = String(selectedAcc.id).replace('act_', '');
-        const selName = (selectedAcc.name || '').toLowerCase().trim();
-        const cAccName = (c.accountName || '').toLowerCase().trim();
-        return (cAdId && cAdId === selId) || (cAccName && (cAccName === selName || selName.includes(cAccName) || cAccName.includes(selName)));
+    return campaignsList.filter(c => {
+      // Garante que a campanha pertence a uma das contas ATIVAS em Integrações
+      const cAdId = String(c.adAccountId || c.accountId || '').replace('act_', '');
+      const cAccName = (c.accountName || '').toLowerCase().trim();
+      const belongsToActive = (cAdId && activeAccIds.has(cAdId)) || (cAccName && activeAccNames.has(cAccName));
+      if (!belongsToActive && activeAccIds.size > 0) {
+        return false;
       }
-      return (c.accountName && c.accountName === accountFilter) || (cAdId && cAdId === accountFilter);
-    }
-    // Quando 'Todas as Contas' está selecionado, exibe todas as campanhas retornadas da Meta
-    return true;
-  }).sort((a, b) => {
-    const aActive = isStatusActive(a) ? 1 : 0;
-    const bActive = isStatusActive(b) ? 1 : 0;
-    if (bActive !== aActive) return bActive - aActive;
-    return 0;
-  });
+
+      const cIdStr = String(c.id);
+      if (activeCampaignFilterIds.size > 0 && !activeCampaignFilterIds.has(cIdStr)) {
+        return false;
+      }
+
+      // Filtro de Status
+      if (statusFilter === 'Ativo' && !isStatusActive(c)) return false;
+      if (statusFilter === 'Desativadas' && isStatusActive(c)) return false;
+
+      if (accountFilter !== 'Todas') {
+        const selectedAcc = adAccountsList.find(a => a.name === accountFilter || a.id === accountFilter || `act_${a.id}` === accountFilter);
+        if (selectedAcc) {
+          const selId = String(selectedAcc.id).replace('act_', '');
+          const selName = (selectedAcc.name || '').toLowerCase().trim();
+          return (cAdId && cAdId === selId) || (cAccName && (cAccName === selName || selName.includes(cAccName) || cAccName.includes(selName)));
+        }
+        return (c.accountName && c.accountName === accountFilter) || (cAdId && cAdId === accountFilter);
+      }
+      return true;
+    }).sort((a, b) => {
+      const aActive = isStatusActive(a) ? 1 : 0;
+      const bActive = isStatusActive(b) ? 1 : 0;
+      if (bActive !== aActive) return bActive - aActive;
+      return 0;
+    });
+  }, [campaignsList, adAccountsList, activeCampaignFilterIds, statusFilter, accountFilter]);
 
   // Campanhas no escopo de exibição de conjuntos e anúncios:
   // 1. Se há filtro ativo de campanhas fixado: exibe os conjuntos dessas campanhas (ou se o usuário marcou alguma especificamente dentro do filtro, foca nela)
@@ -1600,6 +1682,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   // Derivação de conjuntos vindos diretamente do Gerenciador de Anúncios da Meta
   // Se houver filtro ativo de campanhas, filtra apenas os conjuntos dessas campanhas mesmo desmarcando checkboxes
   const adsetsList = React.useMemo(() => {
+    if (!adAccountsList || adAccountsList.length === 0) {
+      return [];
+    }
+
     const parentCampaigns = (effectiveCampaignScopeIds.size > 0)
       ? campaignsList.filter(c => effectiveCampaignScopeIds.has(String(c.id)) || (c.campaignId && effectiveCampaignScopeIds.has(String(c.campaignId))))
       : filteredCampaigns;
@@ -1756,11 +1842,15 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       if (bActive !== aActive) return bActive - aActive;
       return 0;
     });
-  }, [filteredCampaigns, campaignsList, effectiveCampaignScopeIds, statusFilter, itemNamesOverride]);
+  }, [filteredCampaigns, campaignsList, effectiveCampaignScopeIds, statusFilter, itemNamesOverride, adAccountsList]);
 
   // Derivação de anúncios reais vindos diretamente do Gerenciador de Anúncios da Meta
   // Se houver conjuntos selecionados filtra por eles; senão se houver escopo ativo de campanhas filtra por elas
   const adsList = React.useMemo(() => {
+    if (!adAccountsList || adAccountsList.length === 0) {
+      return [];
+    }
+
     const selectedAdsetIdStrings = new Set(Array.from(selectedAdsetIds).map(String));
     let parentCampaigns = filteredCampaigns;
     if (effectiveCampaignScopeIds.size > 0) {
@@ -1915,7 +2005,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       if (bActive !== aActive) return bActive - aActive;
       return 0;
     });
-  }, [filteredCampaigns, campaignsList, effectiveCampaignScopeIds, selectedAdsetIds, statusFilter, itemNamesOverride]);
+  }, [filteredCampaigns, campaignsList, effectiveCampaignScopeIds, selectedAdsetIds, statusFilter, itemNamesOverride, adAccountsList]);
 
   // Itens da sub-aba ativa
   const currentItems = subTab === 'Campanhas' ? filteredCampaigns : (subTab === 'Conjuntos' ? adsetsList : adsList);
@@ -2937,9 +3027,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               <div className="w-12 h-12 rounded-2xl bg-[#0D1424] border border-[#1E293B] flex items-center justify-center mx-auto mb-3 text-zinc-500">
                 <ShieldAlert className="w-6 h-6 text-zinc-500" />
               </div>
-              <div className="font-bold text-white text-sm">Nenhuma conta de anúncio encontrada</div>
+              <div className="font-bold text-white text-sm">Nenhuma conta de anúncio ativa</div>
               <p className="text-zinc-400 text-xs mt-1 max-w-sm mx-auto">
-                O perfil do Facebook Ads foi desconectado. Conecte sua conta na aba Integrações para visualizar suas contas.
+                {isDisconnected
+                  ? "O perfil do Facebook Ads foi desconectado. Conecte sua conta na aba Integrações para visualizar suas contas."
+                  : "Nenhuma conta de anúncio está ativa no momento. Acesse a aba Integrações para escolher e ativar a conta de anúncio que deseja acompanhar."}
               </p>
               <button
                 onClick={() => navigate('/integracoes')}
@@ -3063,14 +3155,16 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 <ShieldAlert className="w-6 h-6 text-zinc-500" />
               </div>
               <div className="font-bold text-white text-sm">
-                Nenhum registro encontrado para {subTab.toLowerCase()}
+                {adAccountsList.length === 0 ? "Nenhuma conta de anúncio ativa" : `Nenhum registro encontrado para ${subTab.toLowerCase()}`}
               </div>
               <p className="text-zinc-400 text-xs mt-1 max-w-sm mx-auto">
-                {isDisconnected || campaignsList.length === 0
+                {adAccountsList.length === 0
+                  ? "Nenhuma conta de anúncio ativa em Integrações. Acesse Integrações e ative a chave da conta desejada para sincronizar suas campanhas."
+                  : isDisconnected || campaignsList.length === 0
                   ? "O perfil do Facebook Ads foi desconectado. Todas as campanhas associadas foram desvinculadas. Conecte seu perfil em Integrações para sincronizar."
                   : "Nenhum registro ativo encontrado para os filtros selecionados."}
               </p>
-              {(isDisconnected || campaignsList.length === 0) && (
+              {(adAccountsList.length === 0 || isDisconnected || campaignsList.length === 0) && (
                 <button
                   onClick={() => navigate('/integracoes')}
                   className="mt-4 px-4 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white text-xs font-bold transition-all shadow-md shadow-blue-600/25 inline-flex items-center gap-2 cursor-pointer"
