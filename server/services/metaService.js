@@ -669,8 +669,10 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     }
   }
 
-  // Processa os conjuntos reais vinculando as métricas exatas do período
-  const allAdsets = (adsetsData.data || []).map(adset => {
+  // Processa os conjuntos reais vinculando as métricas exatas do período (filtrando excluídos)
+  const allAdsets = (adsetsData.data || [])
+    .filter(adset => adset && adset.status !== 'DELETED' && adset.effective_status !== 'DELETED' && adset.configured_status !== 'DELETED')
+    .map(adset => {
     const insight = adsetInsightsMap.get(String(adset.id)) || {};
     const rawSpend = Number(insight.spend || 0);
     const clicks = Number(insight.clicks || 0);
@@ -770,8 +772,10 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     };
   });
 
-  // Processa os anúncios vinculando as métricas exatas do período
-  const allAds = (adsData.data || []).map(ad => {
+  // Processa os anúncios vinculando as métricas exatas do período (filtrando excluídos)
+  const allAds = (adsData.data || [])
+    .filter(ad => ad && ad.status !== 'DELETED' && ad.effective_status !== 'DELETED' && ad.configured_status !== 'DELETED')
+    .map(ad => {
     const insight = adInsightsMap.get(String(ad.id)) || {};
     const rawSpend = Number(insight.spend || 0);
     const clicks = Number(insight.clicks || 0);
@@ -856,7 +860,9 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     };
   });
 
-  return (data.data || []).map(c => {
+  return (data.data || [])
+    .filter(c => c && c.status !== 'DELETED' && c.effective_status !== 'DELETED' && c.configured_status !== 'DELETED')
+    .map(c => {
     const insight = campInsightsMap.get(String(c.id)) || {};
     const rawSpend = Number(insight.spend || 0);
     const clicks = Number(insight.clicks || 0);

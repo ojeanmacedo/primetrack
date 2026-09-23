@@ -1356,6 +1356,44 @@ app.get('/api/stats', async (req, res) => {
 const campaignsCache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
 
+// Registro em memória de status alterados recentemente (TTL de 15 minutos) para proteger contra lag de replicação da Meta Graph API
+export const recentStatusOverrides = new Map(); // itemId -> { status: boolean, timestamp: number }
+
+// Registro em memória de itens excluídos recentemente (TTL de 24 horas) para nunca ressuscitar itens excluídos na sincronização
+export const recentDeletedItemIds = new Map(); // itemId -> timestamp
+
+export function recordStatusOverride(id, status) {
+  if (!id) return;
+  recentStatusOverrides.set(String(id), { status: Boolean(status), timestamp: Date.now() });
+}
+
+export function getEffectiveStatusOverride(id) {
+  if (!id) return undefined;
+  const entry = recentStatusOverrides.get(String(id));
+  if (!entry) return undefined;
+  if (Date.now() - entry.timestamp > 15 * 60 * 1000) {
+    recentStatusOverrides.delete(String(id));
+    return undefined;
+  }
+  return entry.status;
+}
+
+export function recordDeletedId(id) {
+  if (!id) return;
+  recentDeletedItemIds.set(String(id), Date.now());
+}
+
+export function isItemDeleted(id) {
+  if (!id) return false;
+  const ts = recentDeletedItemIds.get(String(id));
+  if (!ts) return false;
+  if (Date.now() - ts > 24 * 3600 * 1000) {
+    recentDeletedItemIds.delete(String(id));
+    return false;
+  }
+  return true;
+}
+
 // Deduplicação de alertas de perfil bloqueado: avisa apenas 1 vez por perfil
 const notifiedBlockedProfiles = new Set();
 
@@ -2143,7 +2181,39 @@ app.get('/api/campaigns', async (req, res) => {
   if (cached && (now - cached.timestamp < 30 * 1000) && refresh !== 'true') {
     const filteredCached = (cached.campaigns || []).filter(c => {
       const cActId = String(c.adAccountId || c.accountId || '').replace('act_', '');
-      return userActiveIds.has(cActId);
+      const isDeleted = isItemDeleted(c.id);
+      return userActiveIds.has(cActId) && !isDeleted;
+    }).map(c => {
+      const campOverride = getEffectiveStatusOverride(c.id);
+      const campStatus = campOverride !== undefined ? campOverride : c.status;
+      return {
+        ...c,
+        status: campStatus,
+        rawStatus: campStatus ? 'ACTIVE' : 'PAUSED',
+        effectiveStatus: campStatus ? 'ACTIVE' : 'PAUSED',
+        adsets: (c.adsets || []).filter(a => !isItemDeleted(a.id || a.adsetId)).map(a => {
+          const asOverride = getEffectiveStatusOverride(a.id || a.adsetId);
+          let asStatus = asOverride !== undefined ? asOverride : a.status;
+          if (!campStatus && asOverride === undefined) asStatus = false;
+          return {
+            ...a,
+            status: asStatus,
+            rawStatus: asStatus ? 'ACTIVE' : 'PAUSED',
+            effectiveStatus: asStatus ? 'ACTIVE' : 'PAUSED'
+          };
+        }),
+        ads: (c.ads || []).filter(ad => !isItemDeleted(ad.id || ad.adId)).map(ad => {
+          const adOverride = getEffectiveStatusOverride(ad.id || ad.adId);
+          let adStatus = adOverride !== undefined ? adOverride : ad.status;
+          if (!campStatus && adOverride === undefined) adStatus = false;
+          return {
+            ...ad,
+            status: adStatus,
+            rawStatus: adStatus ? 'ACTIVE' : 'PAUSED',
+            effectiveStatus: adStatus ? 'ACTIVE' : 'PAUSED'
+          };
+        })
+      };
     });
     if (filteredCached.length > 0) {
       return res.json(filteredCached);
@@ -2346,15 +2416,50 @@ app.get('/api/campaigns', async (req, res) => {
     }
   } catch (eSyncSupa) {}
 
-  if (Array.isArray(enrichedCampaigns) && enrichedCampaigns.length > 0) {
+  const sanitizedForClient = (enrichedCampaigns || [])
+    .filter(c => c && c.id && !isItemDeleted(c.id))
+    .map(c => {
+      const campOverride = getEffectiveStatusOverride(c.id);
+      const campStatus = campOverride !== undefined ? campOverride : c.status;
+      return {
+        ...c,
+        status: campStatus,
+        rawStatus: campStatus ? 'ACTIVE' : 'PAUSED',
+        effectiveStatus: campStatus ? 'ACTIVE' : 'PAUSED',
+        adsets: (c.adsets || []).filter(a => a && !isItemDeleted(a.id || a.adsetId)).map(a => {
+          const asOverride = getEffectiveStatusOverride(a.id || a.adsetId);
+          let asStatus = asOverride !== undefined ? asOverride : a.status;
+          if (!campStatus && asOverride === undefined) asStatus = false;
+          return {
+            ...a,
+            status: asStatus,
+            rawStatus: asStatus ? 'ACTIVE' : 'PAUSED',
+            effectiveStatus: asStatus ? 'ACTIVE' : 'PAUSED'
+          };
+        }),
+        ads: (c.ads || []).filter(ad => ad && !isItemDeleted(ad.id || ad.adId)).map(ad => {
+          const adOverride = getEffectiveStatusOverride(ad.id || ad.adId);
+          let adStatus = adOverride !== undefined ? adOverride : ad.status;
+          if (!campStatus && adOverride === undefined) adStatus = false;
+          return {
+            ...ad,
+            status: adStatus,
+            rawStatus: adStatus ? 'ACTIVE' : 'PAUSED',
+            effectiveStatus: adStatus ? 'ACTIVE' : 'PAUSED'
+          };
+        })
+      };
+    });
+
+  if (Array.isArray(sanitizedForClient) && sanitizedForClient.length > 0) {
     campaignsCache.set(cacheKey, {
       timestamp: now,
-      campaigns: enrichedCampaigns
+      campaigns: sanitizedForClient
     });
   }
 
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-  res.json(enrichedCampaigns);
+  res.json(sanitizedForClient);
 });
 
 /**
@@ -3574,25 +3679,70 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
   });
   allCampaigns.forEach(c => {
     if (c && c.id) {
-      const prev = campMap.get(String(c.id)) || {};
+      const cIdStr = String(c.id);
+      if (isItemDeleted(cIdStr)) return;
+
+      const prev = campMap.get(cIdStr) || {};
       let resolvedAdsets = c.adsets;
       if ((!resolvedAdsets || resolvedAdsets.length === 0) && prev.adsets && prev.adsets.length > 0) {
         resolvedAdsets = prev.adsets;
       } else if (Array.isArray(resolvedAdsets) && prev.adsets && prev.adsets.length > 0) {
+        resolvedAdsets = resolvedAdsets
+          .filter(as => as && !isItemDeleted(as.id || as.adsetId))
+          .map(as => {
+            const asIdStr = String(as.id || as.adsetId);
+            const asOverride = getEffectiveStatusOverride(asIdStr);
+            if (asOverride !== undefined) {
+              return {
+                ...as,
+                status: asOverride,
+                rawStatus: asOverride ? 'ACTIVE' : 'PAUSED',
+                effectiveStatus: asOverride ? 'ACTIVE' : 'PAUSED'
+              };
+            }
+            const prevAs = prev.adsets ? prev.adsets.find(p => String(p.id) === asIdStr || String(p.adsetId) === asIdStr) : null;
+            const isAsPaused = as.status === false || as.rawStatus === 'PAUSED' || as.effectiveStatus === 'PAUSED' || as.effectiveStatus === 'ADSET_PAUSED';
+            if (isAsPaused) {
+              return { ...as, status: false, rawStatus: 'PAUSED', effectiveStatus: 'PAUSED' };
+            }
+            // Se o conjunto estava desativado no banco e veio sem confirmação explícita de ativação, preserva desativado
+            if (prevAs && (prevAs.status === false || prevAs.rawStatus === 'PAUSED') && as._fromFallback) {
+              return { ...as, status: false, rawStatus: 'PAUSED', effectiveStatus: 'PAUSED' };
+            }
+            return as;
+          });
+      }
+
+      // Verifica override na campanha
+      let campStatus = c.status;
+      let campRawStatus = c.rawStatus || (campStatus ? 'ACTIVE' : 'PAUSED');
+      let campEffStatus = c.effectiveStatus || campRawStatus;
+      const campOverride = getEffectiveStatusOverride(cIdStr);
+      if (campOverride !== undefined) {
+        campStatus = campOverride;
+        campRawStatus = campStatus ? 'ACTIVE' : 'PAUSED';
+        campEffStatus = campStatus ? 'ACTIVE' : 'PAUSED';
+      }
+
+      // Se a campanha está desligada, garante que os adsets também fiquem desligados se não tiverem override explícito
+      if (!campStatus && Array.isArray(resolvedAdsets)) {
         resolvedAdsets = resolvedAdsets.map(as => {
-          const prevAs = prev.adsets.find(p => String(p.id) === String(as.id) || String(p.adsetId) === String(as.id));
-          const isAsPaused = as.status === false || as.rawStatus === 'PAUSED' || as.effectiveStatus === 'PAUSED' || as.effectiveStatus === 'ADSET_PAUSED';
-          if (isAsPaused) {
-            return { ...as, status: false, rawStatus: 'PAUSED', effectiveStatus: 'PAUSED' };
-          }
-          // Se o conjunto estava desativado no banco e veio sem confirmação explícita de ativação, preserva desativado
-          if (prevAs && (prevAs.status === false || prevAs.rawStatus === 'PAUSED') && as._fromFallback) {
+          const asOverride = getEffectiveStatusOverride(as.id || as.adsetId);
+          if (asOverride === undefined) {
             return { ...as, status: false, rawStatus: 'PAUSED', effectiveStatus: 'PAUSED' };
           }
           return as;
         });
       }
-      campMap.set(String(c.id), { ...prev, ...c, adsets: resolvedAdsets || [] });
+
+      campMap.set(cIdStr, { 
+        ...prev, 
+        ...c, 
+        status: campStatus,
+        rawStatus: campRawStatus,
+        effectiveStatus: campEffStatus,
+        adsets: resolvedAdsets || [] 
+      });
     }
   });
   const mergedCampaigns = Array.from(campMap.values());
@@ -4103,15 +4253,22 @@ app.post('/api/campaigns/status', async (req, res) => {
       });
     }
 
-    // 3. Sucesso na Meta: agora atualiza com segurança no banco local
+    // 3. Sucesso na Meta: agora atualiza com segurança no banco local e grava override imediato
+    recordStatusOverride(strId, boolStatus);
     const campaigns = db.get('campaigns') || [];
+    const targetCamp = campaigns.find(c => String(c.id) === strId);
+    if (targetCamp && !boolStatus) {
+      (targetCamp.adsets || []).forEach(as => recordStatusOverride(as.id || as.adsetId, false));
+      (targetCamp.ads || []).forEach(ad => recordStatusOverride(ad.id || ad.adId, false));
+    }
+
     const updatedCampaigns = campaigns.map(c => {
       const campMatches = String(c.id) === strId;
       let adsetsUpdated = false;
       let adsUpdated = false;
 
       const newAdsets = c.adsets ? c.adsets.map(as => {
-        if (String(as.id) === strId || String(as.adsetId) === strId) {
+        if (String(as.id) === strId || String(as.adsetId) === strId || (campMatches && !boolStatus)) {
           adsetsUpdated = true;
           return {
             ...as,
@@ -4124,7 +4281,7 @@ app.post('/api/campaigns/status', async (req, res) => {
       }) : c.adsets;
 
       const newAds = c.ads ? c.ads.map(ad => {
-        if (String(ad.id) === strId || String(ad.adId) === strId) {
+        if (String(ad.id) === strId || String(ad.adId) === strId || (campMatches && !boolStatus)) {
           adsUpdated = true;
           return {
             ...ad,
@@ -4218,7 +4375,19 @@ app.post('/api/campaigns/status-bulk', async (req, res) => {
       });
     }
 
-    // 2. Atualiza status no banco local
+    // 2. Atualiza status no banco local e grava overrides imediatos
+    ids.forEach(id => {
+      const sId = String(id);
+      recordStatusOverride(sId, boolStatus);
+      if (!boolStatus) {
+        const camp = (db.get('campaigns') || []).find(c => String(c.id) === sId);
+        if (camp) {
+          (camp.adsets || []).forEach(as => recordStatusOverride(as.id || as.adsetId, false));
+          (camp.ads || []).forEach(ad => recordStatusOverride(ad.id || ad.adId, false));
+        }
+      }
+    });
+
     const campaigns = db.get('campaigns') || [];
     const updatedCampaigns = campaigns.map(c => {
       const campMatches = strIds.has(String(c.id));
@@ -4226,7 +4395,7 @@ app.post('/api/campaigns/status-bulk', async (req, res) => {
       let adsUpdated = false;
 
       const newAdsets = c.adsets ? c.adsets.map(as => {
-        if (strIds.has(String(as.id)) || strIds.has(String(as.adsetId))) {
+        if (strIds.has(String(as.id)) || strIds.has(String(as.adsetId)) || (campMatches && !boolStatus)) {
           adsetsUpdated = true;
           return {
             ...as,
@@ -4239,7 +4408,7 @@ app.post('/api/campaigns/status-bulk', async (req, res) => {
       }) : c.adsets;
 
       const newAds = c.ads ? c.ads.map(ad => {
-        if (strIds.has(String(ad.id)) || strIds.has(String(ad.adId))) {
+        if (strIds.has(String(ad.id)) || strIds.has(String(ad.adId)) || (campMatches && !boolStatus)) {
           adsUpdated = true;
           return {
             ...ad,
@@ -4731,10 +4900,117 @@ app.post('/api/campaigns/duplicate', async (req, res) => {
       .filter(r => r.success)
       .reduce((acc, r) => acc + (r.count || (r.copiedCampaigns ? r.copiedCampaigns.length : 1)), 0);
 
+    // Constrói objetos completos das campanhas recém-duplicadas para que apareçam instantaneamente
+    const createdCampaigns = [];
+    const existingCamps = db.get('campaigns') || [];
+
+    for (const resItem of duplicatedResults) {
+      if (!resItem.success && !resItem.copiedCampaigns) continue;
+      const sourceCamp = existingCamps.find(c => String(c.id) === String(resItem.campaignId));
+      const copies = resItem.copiedCampaigns || (resItem.id ? [{ id: resItem.id }] : []);
+
+      for (const copy of copies) {
+        const newId = String(copy.copied_campaign_id || copy.id);
+        if (!newId || newId === 'null') continue;
+
+        const newCampName = sourceCamp?.name ? `${sourceCamp.name} - Cópia` : 'Campanha Duplicada';
+        const targetActId = cleanTargetAcc 
+          ? (cleanTargetAcc.startsWith('act_') ? cleanTargetAcc : `act_${cleanTargetAcc}`) 
+          : (sourceCamp?.adAccountId || 'act_0000');
+        const targetCleanAct = targetActId.replace('act_', '');
+
+        const newCampObj = {
+          ...(sourceCamp || {}),
+          id: newId,
+          campaignId: newId,
+          name: newCampName,
+          status: true,
+          rawStatus: 'ACTIVE',
+          effectiveStatus: 'ACTIVE',
+          adAccountId: targetActId,
+          accountId: targetCleanAct,
+          accountName: sourceCamp?.accountName || 'Conta de Anúncios',
+          spend: '0.00',
+          rawSpendUsd: '0.00',
+          impressions: 0,
+          clicks: 0,
+          cpc: '0.00',
+          cpm: '0.00',
+          ctr: '0.00%',
+          initCheckouts: 0,
+          costPerIc: '0.00',
+          sales: 0,
+          pendingSales: 0,
+          revenue: '0.00',
+          profit: '0.00',
+          roas: '0.00',
+          cpa: '0.00',
+          adsets: (sourceCamp?.adsets || []).map((as, idx) => ({
+            ...as,
+            id: `${newId}_as_${idx + 1}`,
+            adsetId: `${newId}_as_${idx + 1}`,
+            campaignId: newId,
+            name: as.name ? `${as.name} - Cópia` : 'Conjunto Duplicado',
+            status: true,
+            rawStatus: 'ACTIVE',
+            effectiveStatus: 'ACTIVE',
+            spend: '0.00',
+            rawSpendUsd: '0.00',
+            impressions: 0,
+            clicks: 0,
+            cpc: '0.00',
+            cpm: '0.00',
+            ctr: '0.00%',
+            initCheckouts: 0,
+            costPerIc: '0.00',
+            sales: 0,
+            pendingSales: 0,
+            revenue: '0.00',
+            profit: '0.00',
+            roas: '0.00',
+            cpa: '0.00'
+          })),
+          ads: (sourceCamp?.ads || []).map((ad, idx) => ({
+            ...ad,
+            id: `${newId}_ad_${idx + 1}`,
+            adId: `${newId}_ad_${idx + 1}`,
+            campaignId: newId,
+            adsetId: `${newId}_as_1`,
+            name: ad.name ? `${ad.name} - Cópia` : 'Anúncio Duplicado',
+            status: true,
+            rawStatus: 'ACTIVE',
+            effectiveStatus: 'ACTIVE',
+            spend: '0.00',
+            rawSpendUsd: '0.00',
+            impressions: 0,
+            clicks: 0,
+            cpc: '0.00',
+            cpm: '0.00',
+            ctr: '0.00%',
+            initCheckouts: 0,
+            costPerIc: '0.00',
+            sales: 0,
+            pendingSales: 0,
+            revenue: '0.00',
+            profit: '0.00',
+            roas: '0.00',
+            cpa: '0.00'
+          }))
+        };
+
+        createdCampaigns.push(newCampObj);
+      }
+    }
+
+    if (createdCampaigns.length > 0) {
+      db.set('campaigns', [...createdCampaigns, ...existingCamps]);
+    }
+
     res.json({
       success: totalCopiesCreated > 0,
       duplicatedCount: totalCopiesCreated,
       results: duplicatedResults,
+      createdCampaigns,
       message: totalCopiesCreated > 0
         ? `${totalCopiesCreated} campanha(s) duplicada(s) com sucesso na Meta!`
         : `Erro ao duplicar na Meta: ${duplicatedResults[0]?.error || 'Verifique as permissões do perfil'}`
@@ -4781,13 +5057,16 @@ app.post('/api/campaigns/delete-bulk', async (req, res) => {
       deleteResults.push({ id: itemId, deletedOnMeta });
     }
 
+    // Registra IDs excluídos no tracker permanente
+    ids.forEach(id => recordDeletedId(id));
+
     // Remove do banco de dados local
     let currentCampaigns = db.get('campaigns') || [];
     currentCampaigns = currentCampaigns
-      .filter(c => !ids.includes(c.id))
+      .filter(c => !ids.includes(c.id) && !ids.includes(String(c.id)))
       .map(c => {
-        const newAdsets = c.adsets ? c.adsets.filter(as => !ids.includes(as.id) && !ids.includes(as.adsetId)) : [];
-        const newAds = c.ads ? c.ads.filter(ad => !ids.includes(ad.id) && !ids.includes(ad.adId)) : [];
+        const newAdsets = c.adsets ? c.adsets.filter(as => !ids.includes(as.id) && !ids.includes(String(as.id)) && !ids.includes(as.adsetId) && !ids.includes(String(as.adsetId))) : [];
+        const newAds = c.ads ? c.ads.filter(ad => !ids.includes(ad.id) && !ids.includes(String(ad.id)) && !ids.includes(ad.adId) && !ids.includes(String(ad.adId))) : [];
         return { ...c, adsets: newAdsets, ads: newAds };
       });
 

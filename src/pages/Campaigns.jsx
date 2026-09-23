@@ -74,8 +74,78 @@ const COLUMN_DEFS = [
   { id: 'adId', label: 'ID Anúncio', defaultVisible: false }
 ];
 
+export const getStatusOverrides = () => {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem('primetrack_status_overrides');
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    const now = Date.now();
+    const clean = {};
+    for (const [id, entry] of Object.entries(parsed)) {
+      if (entry && (now - entry.timestamp) < 15 * 60 * 1000) {
+        clean[id] = entry;
+      }
+    }
+    return clean;
+  } catch (e) {
+    return {};
+  }
+};
+
+export const setStatusOverride = (id, status) => {
+  if (typeof window === 'undefined' || !id) return;
+  try {
+    const overrides = getStatusOverrides();
+    overrides[String(id)] = { status: Boolean(status), timestamp: Date.now() };
+    localStorage.setItem('primetrack_status_overrides', JSON.stringify(overrides));
+  } catch (e) {}
+};
+
+export const getDeletedIds = () => {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem('primetrack_deleted_ids');
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    const now = Date.now();
+    const clean = new Set();
+    const validMap = {};
+    for (const [id, ts] of Object.entries(parsed)) {
+      if (ts && (now - ts) < 24 * 3600 * 1000) {
+        clean.add(String(id));
+        validMap[id] = ts;
+      }
+    }
+    localStorage.setItem('primetrack_deleted_ids', JSON.stringify(validMap));
+    return clean;
+  } catch (e) {
+    return new Set();
+  }
+};
+
+export const addDeletedIds = (ids) => {
+  if (typeof window === 'undefined' || !Array.isArray(ids)) return;
+  try {
+    const raw = localStorage.getItem('primetrack_deleted_ids');
+    const map = raw ? JSON.parse(raw) : {};
+    const now = Date.now();
+    ids.forEach(id => {
+      if (id) map[String(id)] = now;
+    });
+    localStorage.setItem('primetrack_deleted_ids', JSON.stringify(map));
+  } catch (e) {}
+};
+
 export const isStatusActive = (item) => {
   if (!item) return false;
+  const itemId = String(item.id || item.adsetId || item.adId || '');
+  if (itemId && typeof window !== 'undefined') {
+    const overrides = getStatusOverrides();
+    if (overrides[itemId] !== undefined) {
+      return overrides[itemId].status === true;
+    }
+  }
   // Se explicitamente desligado em qualquer formato (booleano false, string 'false', 'PAUSED', etc)
   if (
     item.status === false ||
@@ -84,7 +154,8 @@ export const isStatusActive = (item) => {
     item.rawStatus === 'PAUSED' ||
     item.effectiveStatus === 'PAUSED' ||
     item.effectiveStatus === 'ADSET_PAUSED' ||
-    item.effectiveStatus === 'AD_PAUSED'
+    item.effectiveStatus === 'AD_PAUSED' ||
+    item.effectiveStatus === 'CAMPAIGN_PAUSED'
   ) {
     return false;
   }
@@ -93,99 +164,111 @@ export const isStatusActive = (item) => {
 
 export const sanitizeCampaignsData = (cData) => {
   if (!Array.isArray(cData)) return [];
-  return cData.map(c => {
-    const spend = Number(c.spend || 0);
-    const clicks = Number(c.clicks || 0);
-    const campNameUpper = (c.name || '').toUpperCase();
-    const explicitCboInName = campNameUpper.includes('CBO') || campNameUpper.includes('BID') || campNameUpper.includes('COST CAP');
-    const hasCampLevelBudget = Boolean(c.daily_budget || c.lifetime_budget || (c.isCbo === true) || (c.budgetType === 'Diário' && !c.isAbo));
-    const hasBidCapStrategy = c.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || c.bidStrategy === 'COST_CAP' || (c.bidCap && Number(c.bidCap) > 0);
-    
-    // Regra definitiva CBO vs ABO:
-    // Uma campanha é CBO se:
-    // 1. Tiver CBO/BID/COST CAP no nome
-    // 2. Estiver configurada como CBO (c.isCbo === true)
-    // 3. Tiver estratégia BID CAP / COST CAP ou valor de bidCap
-    // 4. Tiver orçamento em nível de campanha
-    // Caso contrário (e somente se não for CBO), é ABO.
-    const isCbo = Boolean(explicitCboInName || c.isCbo === true || hasBidCapStrategy || hasCampLevelBudget);
-    const isAbo = !isCbo;
+  const deletedIds = getDeletedIds();
+  const overrides = getStatusOverrides();
 
-    // Em campanhas ABO, a estratégia é padrão Volume Mais Alto (sem limite de lance)
-    const rawCampBid = isCbo
-      ? ((c.bidCap !== undefined && c.bidCap !== null && Number(c.bidCap) > 0)
-          ? String(c.bidCap)
-          : ((c.adsets || []).find(a => a.bidCap && Number(a.bidCap) > 0)?.bidCap || null))
-      : null;
-    
-    const isCostCap = isCbo && (c.bidStrategy === 'COST_CAP' || campNameUpper.includes('COST CAP'));
-    const isBidCap = isCbo && Boolean(rawCampBid || c.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || campNameUpper.includes('BID'));
+  return cData
+    .filter(c => c && c.id && !deletedIds.has(String(c.id)))
+    .map(c => {
+      const campIdStr = String(c.id);
+      const campOverride = overrides[campIdStr];
+      const campActive = campOverride !== undefined ? campOverride.status : isStatusActive(c);
 
-    let campBidStrategy = 'LOWEST_COST_WITHOUT_CAP';
-    if (rawCampBid || isCostCap || isBidCap) {
-      campBidStrategy = isCostCap ? 'COST_CAP' : 'LOWEST_COST_WITH_BID_CAP';
-    }
+      const spend = Number(c.spend || 0);
+      const clicks = Number(c.clicks || 0);
+      const campNameUpper = (c.name || '').toUpperCase();
+      const explicitCboInName = campNameUpper.includes('CBO') || campNameUpper.includes('BID') || campNameUpper.includes('COST CAP');
+      const hasCampLevelBudget = Boolean(c.daily_budget || c.lifetime_budget || (c.isCbo === true) || (c.budgetType === 'Diário' && !c.isAbo));
+      const hasBidCapStrategy = c.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || c.bidStrategy === 'COST_CAP' || (c.bidCap && Number(c.bidCap) > 0);
+      
+      const isCbo = Boolean(explicitCboInName || c.isCbo === true || hasBidCapStrategy || hasCampLevelBudget);
+      const isAbo = !isCbo;
 
-    const cleanAdsets = (c.adsets || []).map(a => {
-      const asNameUpper = (a.name || '').toUpperCase();
-      // Em campanhas ABO, os conjuntos são estritamente Volume Mais Alto (sem limite de lance)
-      const rawAdsetBid = isCbo
-        ? ((a.bidCap !== undefined && a.bidCap !== null && Number(a.bidCap) > 0) ? String(a.bidCap) : rawCampBid)
+      const rawCampBid = isCbo
+        ? ((c.bidCap !== undefined && c.bidCap !== null && Number(c.bidCap) > 0)
+            ? String(c.bidCap)
+            : ((c.adsets || []).find(a => a.bidCap && Number(a.bidCap) > 0)?.bidCap || null))
         : null;
       
-      const asIsCost = isCbo && (a.bidStrategy === 'COST_CAP' || asNameUpper.includes('COST CAP') || isCostCap);
-      const asIsBid = isCbo && Boolean(rawAdsetBid || a.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || asNameUpper.includes('BID') || isBidCap);
+      const isCostCap = isCbo && (c.bidStrategy === 'COST_CAP' || campNameUpper.includes('COST CAP'));
+      const isBidCap = isCbo && Boolean(rawCampBid || c.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || campNameUpper.includes('BID'));
 
-      let asBidStrategy = 'LOWEST_COST_WITHOUT_CAP';
-      if (rawAdsetBid || asIsCost || asIsBid) {
-        asBidStrategy = asIsCost ? 'COST_CAP' : 'LOWEST_COST_WITH_BID_CAP';
+      let campBidStrategy = 'LOWEST_COST_WITHOUT_CAP';
+      if (rawCampBid || isCostCap || isBidCap) {
+        campBidStrategy = isCostCap ? 'COST_CAP' : 'LOWEST_COST_WITH_BID_CAP';
       }
 
-      const active = isStatusActive(a);
+      const cleanAdsets = (c.adsets || [])
+        .filter(a => a && (a.id || a.adsetId) && !deletedIds.has(String(a.id || a.adsetId)))
+        .map(a => {
+          const asIdStr = String(a.id || a.adsetId);
+          const asOverride = overrides[asIdStr];
+          let active = asOverride !== undefined ? asOverride.status : isStatusActive(a);
+          if (!campActive && asOverride === undefined) {
+            active = false;
+          }
 
-      return {
-        ...a,
-        status: active,
-        rawStatus: active ? 'ACTIVE' : 'PAUSED',
-        effectiveStatus: active ? 'ACTIVE' : 'PAUSED',
+          const asNameUpper = (a.name || '').toUpperCase();
+          const rawAdsetBid = isCbo
+            ? ((a.bidCap !== undefined && a.bidCap !== null && Number(a.bidCap) > 0) ? String(a.bidCap) : rawCampBid)
+            : null;
+          
+          const asIsCost = isCbo && (a.bidStrategy === 'COST_CAP' || asNameUpper.includes('COST CAP') || isCostCap);
+          const asIsBid = isCbo && Boolean(rawAdsetBid || a.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || asNameUpper.includes('BID') || isBidCap);
+
+          let asBidStrategy = 'LOWEST_COST_WITHOUT_CAP';
+          if (rawAdsetBid || asIsCost || asIsBid) {
+            asBidStrategy = asIsCost ? 'COST_CAP' : 'LOWEST_COST_WITH_BID_CAP';
+          }
+
+          return {
+            ...a,
+            status: active,
+            rawStatus: active ? 'ACTIVE' : 'PAUSED',
+            effectiveStatus: active ? 'ACTIVE' : 'PAUSED',
+            isAbo,
+            isCbo,
+            budget: isCbo ? (c.budget || a.budget || '127.58') : (a.budget || '10.00'),
+            budgetType: isCbo ? (c.budgetType || 'Diário') : (a.budgetType || 'Diário'),
+            bidCap: rawAdsetBid,
+            bidStrategy: asBidStrategy
+          };
+        });
+
+      const cleanAds = (c.ads || [])
+        .filter(ad => ad && (ad.id || ad.adId) && !deletedIds.has(String(ad.id || ad.adId)))
+        .map(ad => {
+          const adIdStr = String(ad.id || ad.adId);
+          const adOverride = overrides[adIdStr];
+          let adActive = adOverride !== undefined ? adOverride.status : isStatusActive(ad);
+          if (!campActive && adOverride === undefined) {
+            adActive = false;
+          }
+          return {
+            ...ad,
+            status: adActive,
+            rawStatus: adActive ? 'ACTIVE' : 'PAUSED',
+            effectiveStatus: adActive ? 'ACTIVE' : 'PAUSED'
+          };
+        });
+
+      let updatedC = {
+        ...c,
+        status: campActive,
+        rawStatus: campActive ? 'ACTIVE' : 'PAUSED',
+        effectiveStatus: campActive ? 'ACTIVE' : 'PAUSED',
         isAbo,
         isCbo,
-        budget: isCbo ? (c.budget || a.budget || '127.58') : (a.budget || '10.00'),
-        budgetType: isCbo ? (c.budgetType || 'Diário') : (a.budgetType || 'Diário'),
-        bidCap: rawAdsetBid,
-        bidStrategy: asBidStrategy
+        budget: c.budget || '127.58',
+        budgetType: isAbo ? 'Nível de Conjunto' : (c.budgetType || 'Diário'),
+        bidCap: rawCampBid,
+        bidStrategy: campBidStrategy,
+        adsets: cleanAdsets,
+        ads: cleanAds
       };
+
+      return updatedC;
     });
-
-    const cleanAds = (c.ads || []).map(ad => {
-      const adActive = isStatusActive(ad);
-      return {
-        ...ad,
-        status: adActive,
-        rawStatus: adActive ? 'ACTIVE' : 'PAUSED',
-        effectiveStatus: adActive ? 'ACTIVE' : 'PAUSED'
-      };
-    });
-
-    const campActive = isStatusActive(c);
-
-    let updatedC = {
-      ...c,
-      status: campActive,
-      rawStatus: campActive ? 'ACTIVE' : 'PAUSED',
-      effectiveStatus: campActive ? 'ACTIVE' : 'PAUSED',
-      isAbo,
-      isCbo,
-      budget: c.budget || '127.58',
-      budgetType: isAbo ? 'Nível de Conjunto' : (c.budgetType || 'Diário'),
-      bidCap: rawCampBid,
-      bidStrategy: campBidStrategy,
-      adsets: cleanAdsets,
-      ads: cleanAds
-    };
-
-    return updatedC;
-  });
 };
 
 export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) {
@@ -934,6 +1017,18 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
     setTogglingItems(prev => new Set(prev).add(String(targetId)));
 
+    const isTargetCamp = campaignsList.some(c => String(c.id) === String(targetId));
+
+    // 1. Grava override persistente imediatamente para manter a chave no status correto mesmo após F5
+    setStatusOverride(targetId, nextStatus);
+    if (isTargetCamp && !nextStatus) {
+      const camp = campaignsList.find(c => String(c.id) === String(targetId));
+      if (camp) {
+        (camp.adsets || []).forEach(as => setStatusOverride(as.id || as.adsetId, false));
+        (camp.ads || []).forEach(ad => setStatusOverride(ad.id || ad.adId, false));
+      }
+    }
+
     // Função utilitária para aplicar status local na lista
     const applyStatusUpdate = (list, newStatus) => {
       return list.map(c => {
@@ -942,7 +1037,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         let adsUpdated = false;
 
         const newAdsets = c.adsets ? c.adsets.map(as => {
-          if (String(as.id) === String(targetId) || String(as.adsetId) === String(targetId)) {
+          if (String(as.id) === String(targetId) || String(as.adsetId) === String(targetId) || (isCamp && !newStatus)) {
             adsetsUpdated = true;
             return {
               ...as,
@@ -955,7 +1050,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         }) : c.adsets;
 
         const newAds = c.ads ? c.ads.map(ad => {
-          if (String(ad.id) === String(targetId) || String(ad.adId) === String(targetId)) {
+          if (String(ad.id) === String(targetId) || String(ad.adId) === String(targetId) || (isCamp && !newStatus)) {
             adsUpdated = true;
             return {
               ...ad,
@@ -984,7 +1079,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       });
     };
 
-    // 1. Atualização otimista imediata na interface
+    // 2. Atualização otimista imediata na interface e no cache local
     const optimisticList = applyStatusUpdate(campaignsList, nextStatus);
     setCampaignsList(optimisticList);
     try {
@@ -993,7 +1088,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       }
     } catch (e) {}
 
-    // 2. Dispara sincronização com a API do Meta Ads enviando o status correto (nextStatus)
+    // 3. Dispara sincronização com a API do Meta Ads enviando o status correto (nextStatus)
     try {
       const activeUser = user || getCurrentUser();
       const res = await fetch('/api/campaigns/status', {
@@ -1016,6 +1111,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         setSaveSuccessMsg(nextStatus ? '🟢 Ativada com sucesso no Gerenciador Meta!' : '⚪ Desativada com sucesso no Gerenciador Meta!');
       } else {
         // ROLLBACK: Meta recusou ou deu erro -> Reverte o status imediatamente para o original
+        setStatusOverride(targetId, currentStatus);
         const rolledBackList = applyStatusUpdate(campaignsList, currentStatus);
         setCampaignsList(rolledBackList);
         try {
@@ -1030,6 +1126,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     } catch (e) {
       console.warn('Erro ao sincronizar status com a Meta:', e);
       // ROLLBACK no erro de rede
+      setStatusOverride(targetId, currentStatus);
       const rolledBackList = applyStatusUpdate(campaignsList, currentStatus);
       setCampaignsList(rolledBackList);
       try {
@@ -1255,14 +1352,26 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     const statusText = enable ? 'ACTIVE' : 'PAUSED';
     const previousList = campaignsList;
 
-    // 1. Atualiza imediatamente e com precisão na tabela
+    // 1. Grava overrides persistentes imediatamente
+    ids.forEach(id => {
+      setStatusOverride(id, enable);
+      if (!enable) {
+        const camp = campaignsList.find(c => String(c.id) === String(id));
+        if (camp) {
+          (camp.adsets || []).forEach(as => setStatusOverride(as.id || as.adsetId, false));
+          (camp.ads || []).forEach(ad => setStatusOverride(ad.id || ad.adId, false));
+        }
+      }
+    });
+
+    // 2. Atualiza imediatamente e com precisão na tabela e no cache
     const updated = campaignsList.map(c => {
       const campMatches = strIds.has(String(c.id));
       let adsetsUpdated = false;
       let adsUpdated = false;
 
       const newAdsets = c.adsets ? c.adsets.map(as => {
-        if (strIds.has(String(as.id)) || strIds.has(String(as.adsetId))) {
+        if (strIds.has(String(as.id)) || strIds.has(String(as.adsetId)) || (campMatches && !enable)) {
           adsetsUpdated = true;
           return {
             ...as,
@@ -1275,7 +1384,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       }) : c.adsets;
 
       const newAds = c.ads ? c.ads.map(ad => {
-        if (strIds.has(String(ad.id)) || strIds.has(String(ad.adId))) {
+        if (strIds.has(String(ad.id)) || strIds.has(String(ad.adId)) || (campMatches && !enable)) {
           adsUpdated = true;
           return {
             ...ad,
@@ -1358,7 +1467,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setShowDeleteConfirmModal(true);
   };
 
-  // Execução da exclusão confirmada no modal
+  // Execução da exclusão confirmada no modal com reação IMEDIATA (sem delay)
   const handleExecuteBulkDelete = async () => {
     const ids = Array.from(activeSelectedSet);
     if (ids.length === 0) return;
@@ -1367,15 +1476,26 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setBulkProcessing(true);
     setSaveSuccessMsg(`Excluindo ${ids.length} ${subTab.toLowerCase()}...`);
 
-    // Atualização otimista imediata na tabela
-    setCampaignsList(prev => prev
-      .filter(c => !ids.includes(c.id))
-      .map(c => {
-        const newAdsets = c.adsets ? c.adsets.filter(as => !ids.includes(as.id) && !ids.includes(as.adsetId)) : [];
-        const newAds = c.ads ? c.ads.filter(ad => !ids.includes(ad.id) && !ids.includes(ad.adId)) : [];
-        return { ...c, adsets: newAdsets, ads: newAds };
-      })
-    );
+    // 1. Marca imediatamente no registro persistente de IDs excluídos
+    addDeletedIds(ids);
+
+    // 2. Atualização imediata em memória e no cache local
+    setCampaignsList(prev => {
+      const filtered = prev
+        .filter(c => !ids.includes(String(c.id)) && !ids.includes(c.id))
+        .map(c => {
+          const newAdsets = c.adsets ? c.adsets.filter(as => !ids.includes(String(as.id)) && !ids.includes(String(as.adsetId))) : [];
+          const newAds = c.ads ? c.ads.filter(ad => !ids.includes(String(ad.id)) && !ids.includes(String(ad.adId))) : [];
+          return { ...c, adsets: newAdsets, ads: newAds };
+        });
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(filtered));
+      }
+      return filtered;
+    });
+
+    setActiveSelectedSet(new Set());
+    setLastSelectedId(null);
 
     try {
       const res = await fetch('/api/campaigns/delete-bulk', {
@@ -1387,8 +1507,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
       if (data.success) {
         setSaveSuccessMsg(`🗑️ ${data.deletedCount || ids.length} ${subTab.toLowerCase()} excluída(s) com sucesso!`);
-        setActiveSelectedSet(new Set());
-        setLastSelectedId(null);
+        // Recarrega em background sem bloquear
         loadData();
       } else {
         setSaveSuccessMsg(`⚠️ Erro ao excluir: ${data.error || 'Falha na exclusão'}`);
@@ -1397,7 +1516,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       setSaveSuccessMsg(`⚠️ Erro ao excluir: ${err.message}`);
     } finally {
       setBulkProcessing(false);
-      setTimeout(() => setSaveSuccessMsg(null), 6000);
+      setTimeout(() => setSaveSuccessMsg(null), 5000);
     }
   };
 
@@ -1568,8 +1687,20 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         setShowDuplicateModal(false);
         setActiveSelectedSet(new Set());
         setLastSelectedId(null);
-        // Força sincronização imediata com a Meta para listar a campanha recém-criada
-        await handleSyncNow();
+
+        // Se o backend retornou as campanhas criadas, insere-as imediatamente no topo da lista com reação ZERO DELAY
+        if (Array.isArray(data.createdCampaigns) && data.createdCampaigns.length > 0) {
+          setCampaignsList(prev => {
+            const merged = [...data.createdCampaigns, ...prev];
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(merged));
+            }
+            return merged;
+          });
+        }
+
+        // Executa sync em background sem travar a interface
+        loadData();
       } else {
         const errMsg = data.error || data.message || 'Falha na Meta Ads ao clonar campanhas';
         setSaveSuccessMsg(`⚠️ Erro ao duplicar: ${errMsg}`);
@@ -1739,8 +1870,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
     const activeAccIds = new Set(adAccountsList.map(a => String(a.id).replace('act_', '')));
     const activeAccNames = new Set(adAccountsList.map(a => (a.name || '').toLowerCase().trim()));
+    const deletedIds = getDeletedIds();
 
     return campaignsList.filter(c => {
+      const cIdStr = String(c.id);
+      if (deletedIds.has(cIdStr)) return false;
+
       // Garante que a campanha pertence a uma das contas ATIVAS em Integrações
       const cAdId = String(c.adAccountId || c.accountId || '').replace('act_', '');
       const cAccName = (c.accountName || '').toLowerCase().trim();
@@ -1749,7 +1884,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         return false;
       }
 
-      const cIdStr = String(c.id);
       if (activeCampaignFilterIds.size > 0 && !activeCampaignFilterIds.has(cIdStr)) {
         return false;
       }
@@ -1949,7 +2083,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       }];
     });
 
+    const deletedIds = getDeletedIds();
     return allAdsets.filter(as => {
+      if (deletedIds.has(String(as.id || as.adsetId))) return false;
       if (statusFilter === 'Ativo' && !isStatusActive(as)) return false;
       if (statusFilter === 'Desativadas' && isStatusActive(as)) return false;
       return true;
@@ -2112,7 +2248,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       result = result.filter(ad => selectedAdsetIdStrings.has(String(ad.adsetId || ad.id)));
     }
 
+    const deletedIds = getDeletedIds();
     return result.filter(ad => {
+      if (deletedIds.has(String(ad.id || ad.adId))) return false;
       if (statusFilter === 'Ativo' && !isStatusActive(ad)) return false;
       if (statusFilter === 'Desativadas' && isStatusActive(ad)) return false;
       return true;
