@@ -2517,15 +2517,22 @@ app.get('/api/campaigns', async (req, res) => {
       };
     });
 
-  if (Array.isArray(sanitizedForClient) && sanitizedForClient.length > 0) {
+  const stableSortedForClient = Array.isArray(sanitizedForClient) ? [...sanitizedForClient].sort((a, b) => {
+    const aActive = (a.status === true || a.status === 'ACTIVE' || a.rawStatus === 'ACTIVE') ? 1 : 0;
+    const bActive = (b.status === true || b.status === 'ACTIVE' || b.rawStatus === 'ACTIVE') ? 1 : 0;
+    if (bActive !== aActive) return bActive - aActive;
+    return String(b.id || '').localeCompare(String(a.id || ''), undefined, { numeric: true });
+  }) : [];
+
+  if (stableSortedForClient.length > 0) {
     campaignsCache.set(cacheKey, {
       timestamp: now,
-      campaigns: sanitizedForClient
+      campaigns: stableSortedForClient
     });
   }
 
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-  res.json(sanitizedForClient);
+  res.json(stableSortedForClient);
 });
 
 /**
@@ -3985,12 +3992,19 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
   });
   db.set('ad_accounts', updatedAccounts);
 
+  const stableMergedCampaigns = Array.isArray(mergedCampaigns) ? [...mergedCampaigns].sort((a, b) => {
+    const aActive = (a.status === true || a.status === 'ACTIVE' || a.rawStatus === 'ACTIVE') ? 1 : 0;
+    const bActive = (b.status === true || b.status === 'ACTIVE' || b.rawStatus === 'ACTIVE') ? 1 : 0;
+    if (bActive !== aActive) return bActive - aActive;
+    return String(b.id || '').localeCompare(String(a.id || ''), undefined, { numeric: true });
+  }) : [];
+
   return {
     success: true,
     rateLimited: hasErrors,
-    syncedCampaigns: mergedCampaigns.length,
+    syncedCampaigns: stableMergedCampaigns.length,
     syncedAds: allAds.length,
-    campaigns: mergedCampaigns,
+    campaigns: stableMergedCampaigns,
     timestamp: new Date().toISOString()
   };
 }

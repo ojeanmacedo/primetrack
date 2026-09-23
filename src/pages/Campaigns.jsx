@@ -316,6 +316,52 @@ export const sanitizeCampaignsData = (cData) => {
     });
 };
 
+export const sortItemsDeterministically = (list) => {
+  if (!Array.isArray(list)) return [];
+  return [...list].sort((a, b) => {
+    const aActive = isStatusActive(a) ? 1 : 0;
+    const bActive = isStatusActive(b) ? 1 : 0;
+    if (bActive !== aActive) return bActive - aActive;
+    return String(b.id || b.adsetId || b.adId || '').localeCompare(String(a.id || a.adsetId || a.adId || ''), undefined, { numeric: true });
+  });
+};
+
+export const mergeCampaignsPreservingOrder = (prevList, incomingList) => {
+  if (!Array.isArray(prevList) || prevList.length === 0) {
+    return sortItemsDeterministically(incomingList);
+  }
+  if (!Array.isArray(incomingList) || incomingList.length === 0) {
+    return [];
+  }
+
+  const incomingMap = new Map();
+  incomingList.forEach(c => {
+    if (c && c.id) incomingMap.set(String(c.id), c);
+  });
+
+  // Atualiza os itens existentes preservando a ordem exata em que já estavam na tela
+  const preservedExisting = [];
+  prevList.forEach(prevC => {
+    const cIdStr = String(prevC.id);
+    if (incomingMap.has(cIdStr)) {
+      const fresh = incomingMap.get(cIdStr);
+      incomingMap.delete(cIdStr);
+      const mergedAdsets = (fresh.adsets && fresh.adsets.length > 0) ? fresh.adsets : prevC.adsets;
+      const mergedAds = (fresh.ads && fresh.ads.length > 0) ? fresh.ads : prevC.ads;
+      preservedExisting.push({
+        ...prevC,
+        ...fresh,
+        adsets: mergedAdsets,
+        ads: mergedAds
+      });
+    }
+  });
+
+  // Novas campanhas surgidas (ex: recém criadas ou duplicadas) entram no topo de forma determinística
+  const newItems = sortItemsDeterministically(Array.from(incomingMap.values()));
+  return [...newItems, ...preservedExisting];
+};
+
 export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) {
   const navigate = useNavigate();
   const user = getCurrentUser();
@@ -858,13 +904,16 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           const cAccName = (c.accountName || '').toLowerCase().trim();
           return (cAdId && activeIds.has(cAdId)) || (cAccName && activeNames.has(cAccName));
         });
-        setCampaignsList(onlyActive);
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(onlyActive));
-          if (customPreset === 'Hoje' || (!customPreset && periodFilterRef.current === 'Hoje')) {
-            localStorage.setItem('primetrack_cached_campaigns_date', getBrazilTodayYMD());
+        setCampaignsList(prev => {
+          const merged = mergeCampaignsPreservingOrder(prev, onlyActive);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(merged));
+            if (customPreset === 'Hoje' || (!customPreset && periodFilterRef.current === 'Hoje')) {
+              localStorage.setItem('primetrack_cached_campaigns_date', getBrazilTodayYMD());
+            }
           }
-        }
+          return merged;
+        });
       } else if (Array.isArray(cData) && cData.length === 0) {
         setCampaignsList([]);
         if (typeof window !== 'undefined') {
@@ -998,13 +1047,16 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         });
 
         if (onlyActive.length > 0) {
-          setCampaignsList(onlyActive);
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(onlyActive));
-            if (selectedPreset === 'Hoje') {
-              localStorage.setItem('primetrack_cached_campaigns_date', getBrazilTodayYMD());
+          setCampaignsList(prev => {
+            const merged = mergeCampaignsPreservingOrder(prev, onlyActive);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(merged));
+              if (selectedPreset === 'Hoje') {
+                localStorage.setItem('primetrack_cached_campaigns_date', getBrazilTodayYMD());
+              }
             }
-          }
+            return merged;
+          });
         } else {
           setCampaignsList([]);
           if (typeof window !== 'undefined') {
@@ -1971,7 +2023,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       const aActive = isStatusActive(a) ? 1 : 0;
       const bActive = isStatusActive(b) ? 1 : 0;
       if (bActive !== aActive) return bActive - aActive;
-      return 0;
+      return String(b.id || '').localeCompare(String(a.id || ''), undefined, { numeric: true });
     });
   }, [campaignsList, adAccountsList, activeCampaignFilterIds, statusFilter, accountFilter]);
 
@@ -2158,7 +2210,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       const aActive = isStatusActive(a) ? 1 : 0;
       const bActive = isStatusActive(b) ? 1 : 0;
       if (bActive !== aActive) return bActive - aActive;
-      return 0;
+      return String(b.id || b.adsetId || '').localeCompare(String(a.id || a.adsetId || ''), undefined, { numeric: true });
     });
   }, [filteredCampaigns, campaignsList, effectiveCampaignScopeIds, statusFilter, itemNamesOverride, adAccountsList]);
 
@@ -2323,7 +2375,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       const aActive = isStatusActive(a) ? 1 : 0;
       const bActive = isStatusActive(b) ? 1 : 0;
       if (bActive !== aActive) return bActive - aActive;
-      return 0;
+      return String(b.id || b.adId || '').localeCompare(String(a.id || a.adId || ''), undefined, { numeric: true });
     });
   }, [filteredCampaigns, campaignsList, effectiveCampaignScopeIds, selectedAdsetIds, statusFilter, itemNamesOverride, adAccountsList]);
 
@@ -2446,12 +2498,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   const sortedItems = React.useMemo(() => {
     if (!sortKey || !sortDirection) {
-      // Prioridade padrão: itens ativos sempre no topo
+      // Prioridade padrão: itens ativos sempre no topo com desempate determinístico imutável
       return [...currentItems].sort((a, b) => {
         const aActive = isStatusActive(a) ? 1 : 0;
         const bActive = isStatusActive(b) ? 1 : 0;
         if (bActive !== aActive) return bActive - aActive;
-        return 0;
+        return String(b.id || b.adsetId || b.adId || '').localeCompare(String(a.id || a.adsetId || a.adId || ''), undefined, { numeric: true });
       });
     }
 
@@ -2461,16 +2513,20 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
       if (typeof valA === 'string' && typeof valB === 'string') {
         const cmp = valA.localeCompare(valB, 'pt-BR', { numeric: true, sensitivity: 'base' });
-        return sortDirection === 'asc' ? cmp : -cmp;
+        if (cmp !== 0) return sortDirection === 'asc' ? cmp : -cmp;
+      } else {
+        const numA = Number(valA);
+        const numB = Number(valB);
+        const cleanNumA = isNaN(numA) ? 0 : numA;
+        const cleanNumB = isNaN(numB) ? 0 : numB;
+
+        if (cleanNumA !== cleanNumB) {
+          return sortDirection === 'asc' ? cleanNumA - cleanNumB : cleanNumB - cleanNumA;
+        }
       }
 
-      const numA = Number(valA);
-      const numB = Number(valB);
-      const cleanNumA = isNaN(numA) ? 0 : numA;
-      const cleanNumB = isNaN(numB) ? 0 : numB;
-
-      if (cleanNumA === cleanNumB) return 0;
-      return sortDirection === 'asc' ? cleanNumA - cleanNumB : cleanNumB - cleanNumA;
+      // Desempate 100% estável: se os valores forem iguais, nunca inverte ou oscila a posição
+      return String(b.id || b.adsetId || b.adId || '').localeCompare(String(a.id || a.adsetId || a.adId || ''), undefined, { numeric: true });
     });
   }, [currentItems, sortKey, sortDirection]);
 
