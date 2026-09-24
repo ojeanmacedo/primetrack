@@ -999,12 +999,20 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       }
     }
 
+    const isPaused = !c.status || 
+                     c.status === 'PAUSED' || 
+                     c.effective_status === 'PAUSED' || 
+                     c.effective_status === 'CAMPAIGN_PAUSED' ||
+                     c.status === 'ARCHIVED' ||
+                     c.effective_status === 'ARCHIVED';
+    const isCampActive = !isPaused && (c.status === 'ACTIVE' || c.effective_status === 'ACTIVE');
+
     return {
       id: c.id,
       name: c.name,
-      status: c.status === 'ACTIVE' || c.effective_status === 'ACTIVE',
-      rawStatus: c.status,
-      effectiveStatus: c.effective_status || c.status,
+      status: isCampActive,
+      rawStatus: isPaused ? 'PAUSED' : (c.status || 'ACTIVE'),
+      effectiveStatus: isPaused ? 'PAUSED' : (c.effective_status || 'ACTIVE'),
       objective: c.objective,
       isCbo,
       isAbo,

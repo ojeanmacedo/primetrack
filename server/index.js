@@ -1379,7 +1379,7 @@ export function getEffectiveStatusOverride(id) {
   if (!id) return undefined;
   const entry = recentStatusOverrides.get(String(id));
   if (!entry) return undefined;
-  if (Date.now() - entry.timestamp > 15 * 60 * 1000) {
+  if (Date.now() - entry.timestamp > 60 * 1000) {
     recentStatusOverrides.delete(String(id));
     return undefined;
   }
@@ -3904,6 +3904,13 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
             }
             return as;
           });
+      }
+
+      // Se veio da Meta ao vivo e não de fallback de banco, limpa override antigo
+      if (!c._fromFallback) {
+        recentStatusOverrides.delete(cIdStr);
+        (c.adsets || []).forEach(as => recentStatusOverrides.delete(String(as.id || as.adsetId)));
+        (c.ads || []).forEach(ad => recentStatusOverrides.delete(String(ad.id || ad.adId)));
       }
 
       // Verifica override na campanha

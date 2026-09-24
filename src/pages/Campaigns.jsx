@@ -83,7 +83,7 @@ export const getStatusOverrides = () => {
     const now = Date.now();
     const clean = {};
     for (const [id, entry] of Object.entries(parsed)) {
-      if (entry && (now - entry.timestamp) < 15 * 60 * 1000) {
+      if (entry && (now - entry.timestamp) < 60 * 1000) {
         clean[id] = entry;
       }
     }
@@ -348,8 +348,7 @@ export const mergeCampaignsPreservingOrder = (prevList, incomingList) => {
     if (c && c.id) incomingMap.set(String(c.id), c);
   });
 
-  // Atualiza os itens existentes preservando a ordem exata em que já estavam na tela
-  const preservedExisting = [];
+  const updatedExisting = [];
   prevList.forEach(prevC => {
     const cIdStr = String(prevC.id);
     if (incomingMap.has(cIdStr)) {
@@ -357,7 +356,7 @@ export const mergeCampaignsPreservingOrder = (prevList, incomingList) => {
       incomingMap.delete(cIdStr);
       const mergedAdsets = (fresh.adsets && fresh.adsets.length > 0) ? fresh.adsets : prevC.adsets;
       const mergedAds = (fresh.ads && fresh.ads.length > 0) ? fresh.ads : prevC.ads;
-      preservedExisting.push({
+      updatedExisting.push({
         ...prevC,
         ...fresh,
         adsets: mergedAdsets,
@@ -366,9 +365,8 @@ export const mergeCampaignsPreservingOrder = (prevList, incomingList) => {
     }
   });
 
-  // Novas campanhas surgidas (ex: recém criadas ou duplicadas) entram no topo de forma determinística
-  const newItems = sortItemsDeterministically(Array.from(incomingMap.values()));
-  return [...newItems, ...preservedExisting];
+  const newItems = Array.from(incomingMap.values());
+  return sortItemsDeterministically([...newItems, ...updatedExisting]);
 };
 
 export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) {
@@ -765,7 +763,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     });
   };
 
-  const loadData = async (customPreset = periodFilterRef.current, customRangeObj = customRangeRef.current, isBackground = false) => {
+  const loadData = async (customPreset = periodFilterRef.current, customRangeObj = customRangeRef.current, isBackground = false, forceRefresh = false) => {
     const reqId = ++latestRequestIdRef.current;
     const saved = typeof window !== 'undefined' 
       ? (localStorage.getItem(userAccKey) || localStorage.getItem('primetrack_ad_accounts')) 
@@ -831,11 +829,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     const userHeaders = user?.id ? { 'x-user-id': user.id, ...activeHeader } : { ...activeHeader };
     const userParam = user?.id ? `&userId=${encodeURIComponent(user.id)}` : '';
     const userParamFirst = user?.id ? `?userId=${encodeURIComponent(user.id)}` : '';
+    const refreshParam = (forceRefresh || !isBackground) ? '&refresh=true' : '';
 
     try {
       const [statusRes, crRes] = await Promise.all([
         fetch('/api/meta/status' + userParamFirst, { headers: userHeaders }),
-        fetch(`/api/campaigns?${query}${userParam}${activeAccountsParam}`, { headers: userHeaders })
+        fetch(`/api/campaigns?${query}${userParam}${activeAccountsParam}${refreshParam}`, { headers: userHeaders })
       ]);
 
       const data = await statusRes.json().catch(() => ({}));
@@ -906,8 +905,38 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       if (reqId !== latestRequestIdRef.current) {
         return;
       }
-      
+
       if (Array.isArray(cData) && cData.length > 0) {
+        // Limpa overrides locais das entidades recebidas da Meta para refletir o status real atualizado
+        try {
+          const overrides = getStatusOverrides();
+          let overridesChanged = false;
+          cData.forEach(c => {
+            const cId = String(c.id);
+            if (overrides[cId]) {
+              delete overrides[cId];
+              overridesChanged = true;
+            }
+            (c.adsets || []).forEach(as => {
+              const asId = String(as.id || as.adsetId);
+              if (overrides[asId]) {
+                delete overrides[asId];
+                overridesChanged = true;
+              }
+            });
+            (c.ads || []).forEach(ad => {
+              const adId = String(ad.id || ad.adId);
+              if (overrides[adId]) {
+                delete overrides[adId];
+                overridesChanged = true;
+              }
+            });
+          });
+          if (overridesChanged && typeof window !== 'undefined') {
+            localStorage.setItem('primetrack_status_overrides', JSON.stringify(overrides));
+          }
+        } catch (e) {}
+
         const activeIds = new Set(currentActiveAccs.map(a => String(a.id).replace('act_', '')));
         const activeNames = new Set(currentActiveAccs.map(a => (a.name || '').toLowerCase().trim()));
         const sanitized = sanitizeCampaignsData(cData);
@@ -987,7 +1016,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        loadData(periodFilterRef.current, customRangeRef.current);
+        loadData(periodFilterRef.current, customRangeRef.current, false, true);
       }
     };
 
@@ -1094,7 +1123,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         }
       }
 
-      await loadData(selectedPreset, customRangeObj, true);
+      await loadData(selectedPreset, customRangeObj, false, true);
       const now = new Date();
       setLastSyncTime(`${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`);
     } catch (e) {
@@ -2634,6 +2663,30 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   // Totais calculados dinamicamente
   const totals = React.useMemo(() => {
+    const budget = currentItems.reduce((acc, item) => {
+      let b = 0;
+      if (subTab === 'Campanhas') {
+        const rawBudget = Number(item.budget || 0);
+        const isItemCbo = Boolean(
+          item.isCbo === true ||
+          (item.budgetType && !item.budgetType.includes('Conjunto') && item.budgetType !== 'Nível de Conjunto' && item.isAbo !== true)
+        );
+        if (isItemCbo && rawBudget > 0) {
+          b = rawBudget;
+        } else if (Array.isArray(item.adsets) && item.adsets.length > 0) {
+          const adsetsSum = item.adsets.reduce((asSum, as) => asSum + Number(as.budget || 0), 0);
+          b = adsetsSum > 0 ? adsetsSum : rawBudget;
+        } else {
+          b = rawBudget;
+        }
+      } else if (subTab === 'Conjuntos') {
+        if (!item.isCbo) {
+          b = Number(item.budget || 0);
+        }
+      }
+      return acc + (isNaN(b) ? 0 : b);
+    }, 0);
+
     const spend = currentItems.reduce((acc, c) => acc + Number(c.spend || 0), 0);
     const spendUsd = currentItems.reduce((acc, c) => acc + (c.rawSpendUsd ? Number(c.rawSpendUsd) : 0), 0);
     const sales = currentItems.reduce((acc, c) => acc + Number(c.sales || 0), 0);
@@ -2654,6 +2707,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
 
     return {
+      budget,
       spend,
       spendUsd,
       sales,
@@ -2673,7 +2727,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       ic,
       costPerIc
     };
-  }, [currentItems]);
+  }, [currentItems, subTab]);
 
   // Colunas ativas visíveis respeitando o filtro de aba
   const activeVisibleColumns = React.useMemo(() => {
@@ -3076,6 +3130,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   const renderFooterCell = (colId, t) => {
     switch (colId) {
+      case 'budget':
+        return (
+          <span className="text-white font-bold font-mono">
+            R$ {t.budget.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
+        );
       case 'spend':
         return (
           <div className="flex flex-col">
