@@ -6060,7 +6060,7 @@ app.get('/api/auth/me', async (req, res) => {
 
     // Jean Macedo é o Dono da PrimeTrack: sempre Scale vitalício e role admin
     if (userId === 'usr_1788826403159' || email === 'jeeanmacedo@gmail.com' || email === 'jeanmacedo@gmail.com') {
-      supabaseAdmin.from('users').update({ plan: 'scale', role: 'admin' }).or('email.eq.jeeanmacedo@gmail.com,id.eq.usr_1788826403159').catch(() => {});
+      supabaseAdmin.from('users').update({ plan: 'scale', role: 'admin' }).or('email.eq.jeeanmacedo@gmail.com,id.eq.usr_1788826403159').then(() => {}).catch(() => {});
       return res.json({
         success: true,
         user: {
@@ -6115,7 +6115,7 @@ if (process.env.VERCEL !== '1') {
   // Inicialização local: reconcilia e sincroniza automaticamente dados do Supabase e Meta na inicialização do localhost
   (async () => {
     try {
-      supabaseAdmin.from('users').update({ plan: 'scale', role: 'admin' }).or('email.eq.jeeanmacedo@gmail.com,email.eq.jeanmacedo@gmail.com,id.eq.usr_1788826403159').catch(() => {});
+      supabaseAdmin.from('users').update({ plan: 'scale', role: 'admin' }).or('email.eq.jeeanmacedo@gmail.com,email.eq.jeanmacedo@gmail.com,id.eq.usr_1788826403159').then(() => {}).catch(() => {});
       ensureWebhookConfigured().catch(() => {});
       const reconciled = await reconcileFacebookData();
       console.log(`[PrimeTrack Local] Reconciliado com sucesso: ${reconciled.connections.length} perfil(is) e ${reconciled.adAccounts.length} conta(s) ativas.`);
