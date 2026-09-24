@@ -2918,18 +2918,18 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         // Caso 3: Conjunto individual em campanha ABO OU Campanha CBO normal na aba Campanhas
         return (
           <div 
-            className="cursor-pointer hover:bg-white/5 px-1 py-0.5 rounded transition-colors group leading-tight" 
+            className="cursor-pointer hover:bg-white/5 px-1.5 py-0.5 rounded transition-colors group leading-tight" 
             onClick={(e) => {
               if (e.shiftKey) return;
               handleOpenEdit(item, 'budget');
             }}
             title={isConjunto ? "Clique para alterar orçamento deste conjunto" : "Clique para alterar orçamento da campanha"}
           >
-            <div className="font-bold text-white font-mono flex items-center gap-1 text-[11.5px] leading-tight">
+            <div className="font-bold text-white font-mono flex items-center gap-1.5 text-xs">
               <span>R$ {Number(item.budget || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               <Edit3 className="w-2.5 h-2.5 text-zinc-500 group-hover:text-[#5C9BFF]" />
             </div>
-            <div className="text-[9.5px] text-zinc-400 flex items-center gap-1 leading-none mt-0.5">
+            <div className="text-[10px] text-zinc-400 flex items-center gap-1 mt-0.5">
               <span>{item.budgetType || 'Diário'}</span>
             </div>
           </div>
@@ -3005,11 +3005,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         const rawUsd = item.rawSpendUsd ? Number(item.rawSpendUsd) : null;
         return (
           <div className="flex flex-col leading-tight">
-            <span className="font-bold text-white font-mono text-[11.5px]">
+            <span className="font-bold text-white font-mono text-xs">
               R$ {Number(item.spend || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
             {rawUsd !== null && rawUsd > 0 && (
-              <span className="text-[9.5px] text-zinc-400 font-mono tracking-tight leading-none mt-0.5" title={`Valor nativo no Meta Ads: $${rawUsd.toFixed(2)} USD`}>
+              <span className="text-[10px] text-zinc-400 font-mono tracking-tight mt-0.5" title={`Valor nativo no Meta Ads: $${rawUsd.toFixed(2)} USD`}>
                 ${rawUsd.toFixed(2)} USD
               </span>
             )}
@@ -3705,10 +3705,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               style={{ WebkitOverflowScrolling: 'touch' }}
             >
               <table className="w-full text-left text-xs font-sans whitespace-nowrap border-collapse">
-                <thead className="bg-[#141C2E] text-zinc-400 font-mono uppercase text-[9.5px] tracking-wider border-b border-[#1E293B] sticky top-0 z-30 shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
+                <thead className="bg-[#141C2E] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#1E293B] sticky top-0 z-30 shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
                   <tr>
                     {/* Checkbox fixo na lateral esquerda apenas em desktop */}
-                    <th className="py-2 pl-3 pr-2 w-[44px] min-w-[44px] max-w-[44px] bg-[#141C2E] md:sticky md:left-0 md:z-40">
+                    <th className="py-2.5 pl-3.5 pr-2.5 w-[46px] min-w-[46px] max-w-[46px] bg-[#141C2E] md:sticky md:left-0 md:z-40">
                       <input 
                         type="checkbox" 
                         className="rounded bg-[#03060D] border-white/10 cursor-pointer accent-[#0066FF]" 
@@ -3721,7 +3721,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     {/* Status fixo na lateral esquerda com ordenação apenas em desktop */}
                     <th 
                       onClick={() => handleToggleSort('status')}
-                      className={`py-2 pl-3 pr-2 w-[84px] min-w-[84px] max-w-[84px] bg-[#141C2E] md:sticky md:left-[44px] md:z-40 cursor-pointer select-none transition-colors group ${
+                      className={`py-2.5 pl-3.5 pr-2.5 w-[88px] min-w-[88px] max-w-[88px] bg-[#141C2E] md:sticky md:left-[46px] md:z-40 cursor-pointer select-none transition-colors group ${
                         sortKey === 'status' ? 'text-[#5C9BFF]' : 'hover:text-white'
                       }`}
                       title={sortKey === 'status' 
@@ -3737,7 +3737,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     {/* Nome (Campanha / Conjunto / Anúncio) fixo na lateral esquerda com ordenação apenas em desktop */}
                     <th 
                       onClick={() => handleToggleSort('name')}
-                      className={`py-2 px-3 bg-[#141C2E] md:sticky md:left-[128px] md:z-40 min-w-[200px] max-w-[300px] cursor-pointer select-none transition-colors group ${
+                      className={`py-2.5 px-3.5 bg-[#141C2E] md:sticky md:left-[134px] md:z-40 min-w-[210px] max-w-[310px] cursor-pointer select-none transition-colors group ${
                         sortKey === 'name' ? 'text-[#5C9BFF]' : 'hover:text-white'
                       }`}
                       title={sortKey === 'name' 
@@ -3762,7 +3762,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                           title={isSorted 
                             ? (sortDirection === 'desc' ? 'Maior para menor (clique para menor para maior)' : 'Menor para maior (clique para restaurar)') 
                             : `Clique para ordenar por ${getColumnHeaderLabel(col.id)}`}
-                          className={`py-2 px-3 select-none cursor-pointer transition-colors group ${
+                          className={`py-2.5 px-3.5 select-none cursor-pointer transition-colors group ${
                             isSorted ? 'text-[#5C9BFF] bg-[#0066FF]/20' : 'hover:text-white hover:bg-white/[0.02]'
                           }`}
                         >
@@ -3800,7 +3800,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                             handleToggleSelectItem(item.id, e);
                           }
                         }}
-                        className={`py-1.5 pl-3 pr-2 w-[44px] min-w-[44px] max-w-[44px] md:sticky md:left-0 md:z-10 transition-colors select-none cursor-pointer ${isRowSelected ? 'bg-[#0066FF]/20' : 'bg-[#141C2E] group-hover:bg-[#182236]'}`}
+                        className={`py-2.5 pl-3.5 pr-2.5 w-[46px] min-w-[46px] max-w-[46px] md:sticky md:left-0 md:z-10 transition-colors select-none cursor-pointer ${isRowSelected ? 'bg-[#0066FF]/20' : 'bg-[#141C2E] group-hover:bg-[#182236]'}`}
                       >
                         <input 
                           type="checkbox" 
@@ -3817,7 +3817,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       {/* Status Toggle fixo na lateral apenas em desktop */}
                       <td 
                         onClick={(e) => e.stopPropagation()}
-                        className={`py-1.5 pl-3 pr-2 w-[84px] min-w-[84px] max-w-[84px] md:sticky md:left-[44px] md:z-10 transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0066FF]/20' : 'bg-[#141C2E] group-hover:bg-[#182236]'}`}
+                        className={`py-2.5 pl-3.5 pr-2.5 w-[88px] min-w-[88px] max-w-[88px] md:sticky md:left-[46px] md:z-10 transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0066FF]/20' : 'bg-[#141C2E] group-hover:bg-[#182236]'}`}
                       >
                         {(() => {
                           const targetKey = String(item.id || item.adsetId || item.adId || item.campaignId);
@@ -3831,15 +3831,15 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                                 e.stopPropagation();
                                 handleToggleStatus(targetKey, item);
                               }}
-                              className={`w-7 h-4 flex items-center rounded-full p-0.5 transition-all cursor-pointer select-none touch-manipulation relative ${
+                              className={`w-8 h-4.5 flex items-center rounded-full p-0.5 transition-all cursor-pointer select-none touch-manipulation relative ${
                                 isToggling ? 'opacity-50 cursor-wait' : ''
                               } ${
                                 active ? 'bg-[#0066FF]' : 'bg-zinc-700'
                               }`}
                               title={active ? 'Clique para pausar no Gerenciador Meta Ads' : 'Clique para ativar no Gerenciador Meta Ads'}
                             >
-                              <div className={`bg-white w-3 h-3 rounded-full shadow-xs transform transition-transform ${
-                                active ? 'translate-x-3' : 'translate-x-0'
+                              <div className={`bg-white w-3.5 h-3.5 rounded-full shadow-xs transform transition-transform ${
+                                active ? 'translate-x-3.5' : 'translate-x-0'
                               }`} />
                             </button>
                           );
@@ -3847,21 +3847,21 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       </td>
 
                       {/* Nome do Item fixo na lateral apenas em desktop */}
-                      <td className={`py-1.5 px-3 font-sans md:sticky md:left-[128px] md:z-10 min-w-[200px] max-w-[300px] transition-colors ${isRowSelected ? 'bg-[#0066FF]/20' : 'bg-[#141C2E] group-hover:bg-[#182236]'}`}>
+                      <td className={`py-2.5 px-3.5 font-sans md:sticky md:left-[134px] md:z-10 min-w-[210px] max-w-[310px] transition-colors ${isRowSelected ? 'bg-[#0066FF]/20' : 'bg-[#141C2E] group-hover:bg-[#182236]'}`}>
                         <div className="truncate">
                           <div 
                             onClick={(e) => {
                               if (e.shiftKey) return;
                               handleOpenEdit(item, 'name');
                             }}
-                            className="font-bold text-white text-[11.5px] leading-snug flex items-center gap-1.5 hover:text-[#5C9BFF] cursor-pointer truncate"
+                            className="font-bold text-white text-xs leading-snug flex items-center gap-1.5 hover:text-[#5C9BFF] cursor-pointer truncate"
                             title="Clique para editar nome"
                           >
                             <span className="truncate">{item.name}</span>
-                            <Edit3 className="w-2.5 h-2.5 text-zinc-500 hover:text-[#5C9BFF] shrink-0" />
+                            <Edit3 className="w-3 h-3 text-zinc-500 hover:text-[#5C9BFF] shrink-0" />
                           </div>
                           <div className="flex items-center gap-1.5 mt-0.5 leading-none">
-                            <span className="text-[9.5px] text-zinc-500 font-mono">
+                            <span className="text-[10px] text-zinc-500 font-mono">
                               {item.accountName || 'CA01'}
                             </span>
                           </div>
@@ -3870,7 +3870,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
                       {/* Células dinâmicas das colunas ativas */}
                       {activeVisibleColumns.map(col => (
-                        <td key={col.id} className="py-1.5 px-3 text-[11.5px]">
+                        <td key={col.id} className="py-2.5 px-3.5 text-xs">
                           {renderCell(col.id, item)}
                         </td>
                       ))}
@@ -3880,11 +3880,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 </tbody>
 
                 {/* Rodapé com totais reais sticky embaixo */}
-                <tfoot className="bg-[#141C2E] font-bold border-t border-[#1E293B] text-[11px] font-mono sticky bottom-0 z-30 shadow-[0_-2px_10px_rgba(0,0,0,0.5)]">
+                <tfoot className="bg-[#141C2E] font-bold border-t border-[#1E293B] text-xs font-mono sticky bottom-0 z-30 shadow-[0_-2px_10px_rgba(0,0,0,0.5)]">
                   <tr>
-                    <td className="py-2 pl-3 pr-2 w-[44px] min-w-[44px] max-w-[44px] bg-[#141C2E] md:sticky md:left-0 md:z-40"></td>
-                    <td className="py-2 pl-3 pr-2 w-[84px] min-w-[84px] max-w-[84px] bg-[#141C2E] md:sticky md:left-[44px] md:z-40"></td>
-                    <td className="py-2 px-3 font-sans text-white uppercase text-[10.5px] bg-[#141C2E] md:sticky md:left-[128px] md:z-40">
+                    <td className="py-2.5 pl-3.5 pr-2.5 w-[46px] min-w-[46px] max-w-[46px] bg-[#141C2E] md:sticky md:left-0 md:z-40"></td>
+                    <td className="py-2.5 pl-3.5 pr-2.5 w-[88px] min-w-[88px] max-w-[88px] bg-[#141C2E] md:sticky md:left-[46px] md:z-40"></td>
+                    <td className="py-2.5 px-3.5 font-sans text-white uppercase text-[11px] bg-[#141C2E] md:sticky md:left-[134px] md:z-40">
                       {currentItems.length} {
                         subTab === 'Campanhas' 
                           ? (currentItems.length === 1 ? 'CAMPANHA' : 'CAMPANHAS')
@@ -3896,7 +3896,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
                     {/* Totais dinâmicos alinhados às colunas ativas */}
                     {activeVisibleColumns.map(col => (
-                      <td key={col.id} className="py-2 px-3 bg-[#141C2E]">
+                      <td key={col.id} className="py-2.5 px-3.5 bg-[#141C2E]">
                         {renderFooterCell(col.id, totals)}
                       </td>
                     ))}
