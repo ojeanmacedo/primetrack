@@ -2918,18 +2918,18 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         // Caso 3: Conjunto individual em campanha ABO OU Campanha CBO normal na aba Campanhas
         return (
           <div 
-            className="cursor-pointer hover:bg-white/5 p-1 rounded-lg transition-colors group" 
+            className="cursor-pointer hover:bg-white/5 px-1 py-0.5 rounded transition-colors group leading-tight" 
             onClick={(e) => {
               if (e.shiftKey) return;
               handleOpenEdit(item, 'budget');
             }}
             title={isConjunto ? "Clique para alterar orçamento deste conjunto" : "Clique para alterar orçamento da campanha"}
           >
-            <div className="font-bold text-white font-mono flex items-center gap-1.5">
+            <div className="font-bold text-white font-mono flex items-center gap-1 text-[11.5px] leading-tight">
               <span>R$ {Number(item.budget || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               <Edit3 className="w-2.5 h-2.5 text-zinc-500 group-hover:text-[#5C9BFF]" />
             </div>
-            <div className="text-[10px] text-zinc-400 flex items-center gap-1.5">
+            <div className="text-[9.5px] text-zinc-400 flex items-center gap-1 leading-none mt-0.5">
               <span>{item.budgetType || 'Diário'}</span>
             </div>
           </div>
@@ -3004,12 +3004,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       case 'spend': {
         const rawUsd = item.rawSpendUsd ? Number(item.rawSpendUsd) : null;
         return (
-          <div className="flex flex-col">
-            <span className="font-bold text-white font-mono">
+          <div className="flex flex-col leading-tight">
+            <span className="font-bold text-white font-mono text-[11.5px]">
               R$ {Number(item.spend || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
             {rawUsd !== null && rawUsd > 0 && (
-              <span className="text-[10.5px] text-zinc-400 font-mono tracking-tight" title={`Valor nativo no Meta Ads: $${rawUsd.toFixed(2)} USD`}>
+              <span className="text-[9.5px] text-zinc-400 font-mono tracking-tight leading-none mt-0.5" title={`Valor nativo no Meta Ads: $${rawUsd.toFixed(2)} USD`}>
                 ${rawUsd.toFixed(2)} USD
               </span>
             )}
@@ -3212,13 +3212,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   };
 
   return (
-    <div className="space-y-5 pb-4">
+    <div className="space-y-2.5 pb-2">
 
       {/* Alerta de Nenhuma Conta Ativa */}
       {isNoAccountActive && (
-        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
-          <div className="flex items-center gap-2.5">
-            <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0" />
+        <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
             <div>
               <span className="font-bold text-white">Nenhuma conta de anúncio ativa.</span>
               <span className="text-zinc-400 ml-1.5">No Plano Free (7 dias), você pode manter 1 conta de anúncio ativa simultaneamente. Ative sua conta em Integrações.</span>
@@ -3226,7 +3226,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           </div>
           <button
             onClick={() => navigate('/integracoes')}
-            className="px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-bold transition-colors cursor-pointer shrink-0 self-start sm:self-auto"
+            className="px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-bold transition-colors cursor-pointer shrink-0 self-start sm:self-auto text-xs"
           >
             Ativar Conta em Integrações
           </button>
@@ -3234,9 +3234,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       )}
       
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2.5">
-          <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+        <div className="flex items-center gap-2">
+          <h1 className="text-lg sm:text-xl font-bold text-white tracking-tight">
             Campanhas
           </h1>
         </div>
@@ -3248,7 +3248,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           <button
             key={tab}
             onClick={() => setSubTab(tab)}
-            className={`pb-3 transition-colors relative cursor-pointer shrink-0 ${
+            className={`pb-1.5 transition-colors relative cursor-pointer shrink-0 ${
               subTab === tab
                 ? 'text-[#5C9BFF] font-bold'
                 : 'text-zinc-400 hover:text-white'
@@ -3278,11 +3278,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       </div>
 
       {/* Filter Controls Bar matching LowTrack */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 text-xs">
+        <div className="flex flex-wrap items-center gap-1.5">
           
           {/* Status Dropdown */}
-          <div className="flex items-center gap-1.5 bg-[#141C2E] border border-[#1E293B] px-3 py-1.5 rounded-xl text-zinc-300">
+          <div className="flex items-center gap-1.5 bg-[#141C2E] border border-[#1E293B] px-2.5 py-1 rounded-lg text-zinc-300">
             <span className="text-zinc-500 font-mono text-[10px] uppercase">Status:</span>
             <select
               value={statusFilter}
@@ -3296,16 +3296,16 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           </div>
 
           {/* Period Filter (Scrollable em telas pequenas) */}
-          <div className="flex items-center gap-1 bg-[#141C2E] border border-[#1E293B] rounded-xl p-1 text-xs overflow-x-auto max-w-full scrollbar-none">
-            <span className="text-zinc-500 font-mono text-[10px] uppercase px-1 sm:px-2 shrink-0">Período:</span>
+          <div className="flex items-center gap-0.5 bg-[#141C2E] border border-[#1E293B] rounded-lg p-0.5 text-xs overflow-x-auto max-w-full scrollbar-none">
+            <span className="text-zinc-500 font-mono text-[10px] uppercase px-1 sm:px-1.5 shrink-0">Período:</span>
             {['Hoje', 'Ontem', '7 dias', '15 dias', '30 dias', 'Este mês', 'Mês passado', 'Máximo'].map(p => (
               <button
                 key={p}
                 type="button"
                 onClick={() => handlePeriodChange(p, null)}
-                className={`px-2 sm:px-2.5 py-1 rounded-lg font-medium transition-colors cursor-pointer shrink-0 ${
+                className={`px-1.5 sm:px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer shrink-0 ${
                   periodFilter === p && !customRange
-                    ? 'bg-[#0066FF] text-white font-bold shadow-sm'
+                    ? 'bg-[#0066FF] text-white font-bold shadow-xs'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -3325,7 +3325,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           </div>
 
           {/* Account Dropdown */}
-          <div className="flex items-center gap-1.5 bg-[#141C2E] border border-[#1E293B] px-3 py-1.5 rounded-xl text-zinc-300">
+          <div className="flex items-center gap-1.5 bg-[#141C2E] border border-[#1E293B] px-2.5 py-1 rounded-lg text-zinc-300">
             <span className="text-zinc-500 font-mono text-[10px] uppercase">Conta:</span>
             <select
               value={accountFilter}
@@ -3350,7 +3350,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         </div>
 
         {/* Action Toolbar */}
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-start sm:justify-end relative">
+        <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto justify-start sm:justify-end relative">
           
           {/* Menu Dropdown de Ações em Massa / Bulk Actions */}
           <div className="relative">
@@ -3358,7 +3358,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               type="button"
               onClick={() => setBulkMenuOpen(prev => !prev)}
               disabled={bulkProcessing}
-              className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 cursor-pointer transition-all ${
+              className={`px-2.5 py-1 rounded-lg border flex items-center gap-1.5 cursor-pointer transition-all ${
                 activeSelectedSet.size > 0 
                   ? 'bg-[#0066FF]/20 border-[#0066FF] text-[#5C9BFF] font-bold shadow-lg shadow-blue-500/20 animate-pulse' 
                   : 'bg-[#141C2E] border-[#1E293B] text-zinc-300 hover:text-white'
@@ -3516,7 +3516,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
           <button 
             onClick={handleOpenColumnsModal}
-            className="px-3 py-1.5 rounded-xl bg-[#141C2E] border border-[#1E293B] text-zinc-300 hover:text-white flex items-center gap-1.5 cursor-pointer hover:border-[#0066FF] transition-all"
+            className="px-2.5 py-1 rounded-lg bg-[#141C2E] border border-[#1E293B] text-zinc-300 hover:text-white flex items-center gap-1.5 cursor-pointer hover:border-[#0066FF] transition-all text-xs"
           >
             <SlidersHorizontal className="w-3.5 h-3.5 text-[#5C9BFF]" />
             <span>Colunas</span>
@@ -3524,7 +3524,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
           <button 
             onClick={handleSyncNow}
-            className="px-3 py-1.5 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold flex items-center gap-1.5 cursor-pointer shadow-md shadow-blue-600/25 transition-all"
+            className="px-2.5 py-1 rounded-lg bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold flex items-center gap-1.5 cursor-pointer shadow-md shadow-blue-600/25 transition-all text-xs"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
             <span>Atualizar</span>
@@ -3557,22 +3557,22 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs font-sans whitespace-nowrap">
-                <thead className="bg-[#141C2E] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#1E293B]">
+                <thead className="bg-[#141C2E] text-zinc-400 font-mono uppercase text-[9.5px] tracking-wider border-b border-[#1E293B]">
                   <tr>
-                    <th className="py-3 px-4">STATUS</th>
-                    <th className="py-3 px-4">CONTA DE ANÚNCIO</th>
-                    <th className="py-3 px-4">ID DA CONTA</th>
-                    <th className="py-3 px-4">PORTFÓLIO (BM)</th>
-                    <th className="py-3 px-4">TOTAL GASTO</th>
-                    <th className="py-3 px-4">SALDO / LIMITE</th>
-                    <th className="py-3 px-4">MOEDA</th>
-                    <th className="py-3 px-4">SYNC</th>
+                    <th className="py-2 px-3">STATUS</th>
+                    <th className="py-2 px-3">CONTA DE ANÚNCIO</th>
+                    <th className="py-2 px-3">ID DA CONTA</th>
+                    <th className="py-2 px-3">PORTFÓLIO (BM)</th>
+                    <th className="py-2 px-3">TOTAL GASTO</th>
+                    <th className="py-2 px-3">SALDO / LIMITE</th>
+                    <th className="py-2 px-3">MOEDA</th>
+                    <th className="py-2 px-3">SYNC</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#1E293B]/60 font-mono">
+                <tbody className="divide-y divide-[#1E293B]/60 font-mono text-[11.5px]">
                   {adAccountsList.map((acc, idx) => (
                     <tr key={acc.id || idx} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="py-3.5 px-4">
+                      <td className="py-2 px-3">
                         <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
                           acc.status === 'ACTIVE' || acc.status === 'Ativa'
                             ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
@@ -3582,25 +3582,25 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                           <span>{acc.status === 'ACTIVE' || acc.status === 'Ativa' ? 'Ativa' : 'Bloqueada'}</span>
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 font-sans font-bold text-white">
+                      <td className="py-2 px-3 font-sans font-bold text-white">
                         {acc.name}
                       </td>
-                      <td className="py-3.5 px-4 text-zinc-400 font-mono text-[11px]">
+                      <td className="py-2 px-3 text-zinc-400 font-mono text-[11px]">
                         {acc.id}
                       </td>
-                      <td className="py-3.5 px-4 text-zinc-300 font-sans">
+                      <td className="py-2 px-3 text-zinc-300 font-sans">
                         {acc.bm || acc.businessName || 'BM Principal'}
                       </td>
-                      <td className="py-3.5 px-4 text-white font-bold">
+                      <td className="py-2 px-3 text-white font-bold">
                         R$ {acc.amountSpent || '0,00'}
                       </td>
-                      <td className="py-3.5 px-4 text-emerald-400 font-bold font-mono">
+                      <td className="py-2 px-3 text-emerald-400 font-bold font-mono">
                         R$ {acc.balance || '0,00'}
                       </td>
-                      <td className="py-3.5 px-4 text-zinc-400">
+                      <td className="py-2 px-3 text-zinc-400">
                         BRL
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-2 px-3">
                         <span className="text-emerald-400 font-bold flex items-center gap-1 text-[11px]">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           <span>Ativo</span>
@@ -3701,14 +3701,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             </div>
           ) : (
             <div 
-              className="w-full overflow-x-auto overflow-y-auto max-h-[555px] scrollbar-thin scrollbar-thumb-[#0066FF]/40 scrollbar-track-[#141C2E] touch-pan-x touch-pan-y overscroll-x-contain"
+              className="w-full overflow-x-auto overflow-y-auto max-h-[calc(100vh-210px)] min-h-[480px] scrollbar-thin scrollbar-thumb-[#0066FF]/40 scrollbar-track-[#141C2E] touch-pan-x touch-pan-y overscroll-x-contain"
               style={{ WebkitOverflowScrolling: 'touch' }}
             >
               <table className="w-full text-left text-xs font-sans whitespace-nowrap border-collapse">
-                <thead className="bg-[#141C2E] text-zinc-400 font-mono uppercase text-[10px] tracking-wider border-b border-[#1E293B] sticky top-0 z-30 shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
+                <thead className="bg-[#141C2E] text-zinc-400 font-mono uppercase text-[9.5px] tracking-wider border-b border-[#1E293B] sticky top-0 z-30 shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
                   <tr>
                     {/* Checkbox fixo na lateral esquerda apenas em desktop */}
-                    <th className="py-3 pl-4 pr-3 w-[48px] min-w-[48px] max-w-[48px] bg-[#141C2E] md:sticky md:left-0 md:z-40">
+                    <th className="py-2 pl-3 pr-2 w-[44px] min-w-[44px] max-w-[44px] bg-[#141C2E] md:sticky md:left-0 md:z-40">
                       <input 
                         type="checkbox" 
                         className="rounded bg-[#03060D] border-white/10 cursor-pointer accent-[#0066FF]" 
@@ -3721,7 +3721,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     {/* Status fixo na lateral esquerda com ordenação apenas em desktop */}
                     <th 
                       onClick={() => handleToggleSort('status')}
-                      className={`py-3 pl-4 pr-3 w-[94px] min-w-[94px] max-w-[94px] bg-[#141C2E] md:sticky md:left-[48px] md:z-40 cursor-pointer select-none transition-colors group ${
+                      className={`py-2 pl-3 pr-2 w-[84px] min-w-[84px] max-w-[84px] bg-[#141C2E] md:sticky md:left-[44px] md:z-40 cursor-pointer select-none transition-colors group ${
                         sortKey === 'status' ? 'text-[#5C9BFF]' : 'hover:text-white'
                       }`}
                       title={sortKey === 'status' 
@@ -3737,7 +3737,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     {/* Nome (Campanha / Conjunto / Anúncio) fixo na lateral esquerda com ordenação apenas em desktop */}
                     <th 
                       onClick={() => handleToggleSort('name')}
-                      className={`py-3 px-4 bg-[#141C2E] md:sticky md:left-[142px] md:z-40 min-w-[220px] max-w-[320px] cursor-pointer select-none transition-colors group ${
+                      className={`py-2 px-3 bg-[#141C2E] md:sticky md:left-[128px] md:z-40 min-w-[200px] max-w-[300px] cursor-pointer select-none transition-colors group ${
                         sortKey === 'name' ? 'text-[#5C9BFF]' : 'hover:text-white'
                       }`}
                       title={sortKey === 'name' 
@@ -3762,7 +3762,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                           title={isSorted 
                             ? (sortDirection === 'desc' ? 'Maior para menor (clique para menor para maior)' : 'Menor para maior (clique para restaurar)') 
                             : `Clique para ordenar por ${getColumnHeaderLabel(col.id)}`}
-                          className={`py-3 px-4 select-none cursor-pointer transition-colors group ${
+                          className={`py-2 px-3 select-none cursor-pointer transition-colors group ${
                             isSorted ? 'text-[#5C9BFF] bg-[#0066FF]/20' : 'hover:text-white hover:bg-white/[0.02]'
                           }`}
                         >
@@ -3800,7 +3800,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                             handleToggleSelectItem(item.id, e);
                           }
                         }}
-                        className={`py-4 pl-4 pr-3 w-[48px] min-w-[48px] max-w-[48px] md:sticky md:left-0 md:z-10 transition-colors select-none cursor-pointer ${isRowSelected ? 'bg-[#0066FF]/20' : 'bg-[#141C2E] group-hover:bg-[#182236]'}`}
+                        className={`py-1.5 pl-3 pr-2 w-[44px] min-w-[44px] max-w-[44px] md:sticky md:left-0 md:z-10 transition-colors select-none cursor-pointer ${isRowSelected ? 'bg-[#0066FF]/20' : 'bg-[#141C2E] group-hover:bg-[#182236]'}`}
                       >
                         <input 
                           type="checkbox" 
@@ -3817,7 +3817,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       {/* Status Toggle fixo na lateral apenas em desktop */}
                       <td 
                         onClick={(e) => e.stopPropagation()}
-                        className={`py-4 pl-4 pr-3 w-[94px] min-w-[94px] max-w-[94px] md:sticky md:left-[48px] md:z-10 transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0066FF]/20' : 'bg-[#141C2E] group-hover:bg-[#182236]'}`}
+                        className={`py-1.5 pl-3 pr-2 w-[84px] min-w-[84px] max-w-[84px] md:sticky md:left-[44px] md:z-10 transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0066FF]/20' : 'bg-[#141C2E] group-hover:bg-[#182236]'}`}
                       >
                         {(() => {
                           const targetKey = String(item.id || item.adsetId || item.adId || item.campaignId);
@@ -3831,15 +3831,15 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                                 e.stopPropagation();
                                 handleToggleStatus(targetKey, item);
                               }}
-                              className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-all cursor-pointer select-none touch-manipulation relative ${
+                              className={`w-7 h-4 flex items-center rounded-full p-0.5 transition-all cursor-pointer select-none touch-manipulation relative ${
                                 isToggling ? 'opacity-50 cursor-wait' : ''
                               } ${
                                 active ? 'bg-[#0066FF]' : 'bg-zinc-700'
                               }`}
                               title={active ? 'Clique para pausar no Gerenciador Meta Ads' : 'Clique para ativar no Gerenciador Meta Ads'}
                             >
-                              <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                                active ? 'translate-x-4' : 'translate-x-0'
+                              <div className={`bg-white w-3 h-3 rounded-full shadow-xs transform transition-transform ${
+                                active ? 'translate-x-3' : 'translate-x-0'
                               }`} />
                             </button>
                           );
@@ -3847,21 +3847,21 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       </td>
 
                       {/* Nome do Item fixo na lateral apenas em desktop */}
-                      <td className={`py-4 px-4 font-sans md:sticky md:left-[142px] md:z-10 min-w-[220px] max-w-[320px] transition-colors ${isRowSelected ? 'bg-[#0066FF]/20' : 'bg-[#141C2E] group-hover:bg-[#182236]'}`}>
+                      <td className={`py-1.5 px-3 font-sans md:sticky md:left-[128px] md:z-10 min-w-[200px] max-w-[300px] transition-colors ${isRowSelected ? 'bg-[#0066FF]/20' : 'bg-[#141C2E] group-hover:bg-[#182236]'}`}>
                         <div className="truncate">
                           <div 
                             onClick={(e) => {
                               if (e.shiftKey) return;
                               handleOpenEdit(item, 'name');
                             }}
-                            className="font-bold text-white text-xs sm:text-sm flex items-center gap-2 hover:text-[#5C9BFF] cursor-pointer truncate"
+                            className="font-bold text-white text-[11.5px] leading-snug flex items-center gap-1.5 hover:text-[#5C9BFF] cursor-pointer truncate"
                             title="Clique para editar nome"
                           >
                             <span className="truncate">{item.name}</span>
-                            <Edit3 className="w-3 h-3 text-zinc-500 hover:text-[#5C9BFF] shrink-0" />
+                            <Edit3 className="w-2.5 h-2.5 text-zinc-500 hover:text-[#5C9BFF] shrink-0" />
                           </div>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[10px] text-zinc-500 font-mono">
+                          <div className="flex items-center gap-1.5 mt-0.5 leading-none">
+                            <span className="text-[9.5px] text-zinc-500 font-mono">
                               {item.accountName || 'CA01'}
                             </span>
                           </div>
@@ -3870,7 +3870,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
                       {/* Células dinâmicas das colunas ativas */}
                       {activeVisibleColumns.map(col => (
-                        <td key={col.id} className="py-4 px-4">
+                        <td key={col.id} className="py-1.5 px-3 text-[11.5px]">
                           {renderCell(col.id, item)}
                         </td>
                       ))}
@@ -3880,11 +3880,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 </tbody>
 
                 {/* Rodapé com totais reais sticky embaixo */}
-                <tfoot className="bg-[#141C2E] font-bold border-t border-[#1E293B] text-xs font-mono sticky bottom-0 z-30 shadow-[0_-2px_10px_rgba(0,0,0,0.5)]">
+                <tfoot className="bg-[#141C2E] font-bold border-t border-[#1E293B] text-[11px] font-mono sticky bottom-0 z-30 shadow-[0_-2px_10px_rgba(0,0,0,0.5)]">
                   <tr>
-                    <td className="py-3.5 pl-4 pr-3 w-[48px] min-w-[48px] max-w-[48px] bg-[#141C2E] md:sticky md:left-0 md:z-40"></td>
-                    <td className="py-3.5 pl-4 pr-3 w-[94px] min-w-[94px] max-w-[94px] bg-[#141C2E] md:sticky md:left-[48px] md:z-40"></td>
-                    <td className="py-3.5 px-4 font-sans text-white uppercase text-[11px] bg-[#141C2E] md:sticky md:left-[142px] md:z-40">
+                    <td className="py-2 pl-3 pr-2 w-[44px] min-w-[44px] max-w-[44px] bg-[#141C2E] md:sticky md:left-0 md:z-40"></td>
+                    <td className="py-2 pl-3 pr-2 w-[84px] min-w-[84px] max-w-[84px] bg-[#141C2E] md:sticky md:left-[44px] md:z-40"></td>
+                    <td className="py-2 px-3 font-sans text-white uppercase text-[10.5px] bg-[#141C2E] md:sticky md:left-[128px] md:z-40">
                       {currentItems.length} {
                         subTab === 'Campanhas' 
                           ? (currentItems.length === 1 ? 'CAMPANHA' : 'CAMPANHAS')
@@ -3896,7 +3896,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
                     {/* Totais dinâmicos alinhados às colunas ativas */}
                     {activeVisibleColumns.map(col => (
-                      <td key={col.id} className="py-3.5 px-4 bg-[#141C2E]">
+                      <td key={col.id} className="py-2 px-3 bg-[#141C2E]">
                         {renderFooterCell(col.id, totals)}
                       </td>
                     ))}
