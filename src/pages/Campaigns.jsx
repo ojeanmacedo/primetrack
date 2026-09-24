@@ -102,6 +102,15 @@ export const setStatusOverride = (id, status) => {
   } catch (e) {}
 };
 
+export const removeStatusOverride = (id) => {
+  if (typeof window === 'undefined' || !id) return;
+  try {
+    const overrides = getStatusOverrides();
+    delete overrides[String(id)];
+    localStorage.setItem('primetrack_status_overrides', JSON.stringify(overrides));
+  } catch (e) {}
+};
+
 export const getDetailOverrides = () => {
   if (typeof window === 'undefined') return {};
   try {
@@ -1095,8 +1104,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   };
 
   const handleToggleStatus = async (itemId, directItem = null) => {
-    const rawTargetId = String(itemId);
-    if (togglingItems.has(rawTargetId)) return;
+    const rawTargetId = String(itemId || '');
+    if (!rawTargetId || togglingItems.has(rawTargetId)) return;
 
     let targetItem = directItem || null;
     let parentCamp = null;
@@ -1130,31 +1139,42 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     const nextStatus = !currentStatus;
     const statusText = (status) => status ? 'ACTIVE' : 'PAUSED';
     const targetId = targetItem?.id || targetItem?.adsetId || targetItem?.adId || rawTargetId;
+    const targetKey = String(targetId);
     const targetAccountId = targetItem?.accountId || targetItem?.adAccountId || parentCamp?.accountId || parentCamp?.adAccountId || (accountFilter !== 'Todas' ? accountFilter : null);
 
-    setTogglingItems(prev => new Set(prev).add(String(targetId)));
+    setTogglingItems(prev => {
+      const next = new Set(prev);
+      next.add(rawTargetId);
+      next.add(targetKey);
+      return next;
+    });
 
-    const isTargetCamp = campaignsList.some(c => String(c.id) === String(targetId));
+    const isTargetCamp = campaignsList.some(c => String(c.id) === targetKey);
 
     // 1. Grava override persistente imediatamente para manter a chave no status correto mesmo após F5
     setStatusOverride(targetId, nextStatus);
-    if (isTargetCamp && !nextStatus) {
-      const camp = campaignsList.find(c => String(c.id) === String(targetId));
+    if (isTargetCamp) {
+      const camp = campaignsList.find(c => String(c.id) === targetKey);
       if (camp) {
-        (camp.adsets || []).forEach(as => setStatusOverride(as.id || as.adsetId, false));
-        (camp.ads || []).forEach(ad => setStatusOverride(ad.id || ad.adId, false));
+        if (!nextStatus) {
+          (camp.adsets || []).forEach(as => setStatusOverride(as.id || as.adsetId, false));
+          (camp.ads || []).forEach(ad => setStatusOverride(ad.id || ad.adId, false));
+        } else {
+          (camp.adsets || []).forEach(as => removeStatusOverride(as.id || as.adsetId));
+          (camp.ads || []).forEach(ad => removeStatusOverride(ad.id || ad.adId));
+        }
       }
     }
 
-    // Função utilitária para aplicar status local na lista
+    // Função utilitária para aplicar status local na lista preservando rigorosamente a ordem existente
     const applyStatusUpdate = (list, newStatus) => {
       return list.map(c => {
-        const isCamp = String(c.id) === String(targetId);
+        const isCamp = String(c.id) === targetKey;
         let adsetsUpdated = false;
         let adsUpdated = false;
 
         const newAdsets = c.adsets ? c.adsets.map(as => {
-          if (String(as.id) === String(targetId) || String(as.adsetId) === String(targetId) || (isCamp && !newStatus)) {
+          if (String(as.id) === targetKey || String(as.adsetId) === targetKey || (isCamp && !newStatus)) {
             adsetsUpdated = true;
             return {
               ...as,
@@ -1167,7 +1187,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         }) : c.adsets;
 
         const newAds = c.ads ? c.ads.map(ad => {
-          if (String(ad.id) === String(targetId) || String(ad.adId) === String(targetId) || (isCamp && !newStatus)) {
+          if (String(ad.id) === targetKey || String(ad.adId) === targetKey || (isCamp && !newStatus)) {
             adsUpdated = true;
             return {
               ...ad,
@@ -1197,13 +1217,15 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     };
 
     // 2. Atualização otimista imediata na interface e no cache local
-    const optimisticList = applyStatusUpdate(campaignsList, nextStatus);
-    setCampaignsList(optimisticList);
-    try {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(optimisticList));
-      }
-    } catch (e) {}
+    setCampaignsList(prev => {
+      const optimisticList = applyStatusUpdate(prev, nextStatus);
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(optimisticList));
+        }
+      } catch (e) {}
+      return optimisticList;
+    });
 
     // 3. Dispara sincronização com a API do Meta Ads enviando o status correto (nextStatus)
     try {
@@ -1229,13 +1251,15 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       } else {
         // ROLLBACK: Meta recusou ou deu erro -> Reverte o status imediatamente para o original
         setStatusOverride(targetId, currentStatus);
-        const rolledBackList = applyStatusUpdate(campaignsList, currentStatus);
-        setCampaignsList(rolledBackList);
-        try {
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(rolledBackList));
-          }
-        } catch (e) {}
+        setCampaignsList(prev => {
+          const rolledBackList = applyStatusUpdate(prev, currentStatus);
+          try {
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(rolledBackList));
+            }
+          } catch (e) {}
+          return rolledBackList;
+        });
         const errText = data?.metaError || data?.error || 'Erro ao sincronizar status com a Meta.';
         setSaveSuccessMsg(`⚠️ ${errText}`);
       }
@@ -1244,19 +1268,22 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       console.warn('Erro ao sincronizar status com a Meta:', e);
       // ROLLBACK no erro de rede
       setStatusOverride(targetId, currentStatus);
-      const rolledBackList = applyStatusUpdate(campaignsList, currentStatus);
-      setCampaignsList(rolledBackList);
-      try {
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(rolledBackList));
-        }
-      } catch (err) {}
+      setCampaignsList(prev => {
+        const rolledBackList = applyStatusUpdate(prev, currentStatus);
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(rolledBackList));
+          }
+        } catch (err) {}
+        return rolledBackList;
+      });
       setSaveSuccessMsg(`⚠️ Erro de conexão ao tentar atualizar status no Meta Ads: ${e.message}`);
       setTimeout(() => setSaveSuccessMsg(null), 5000);
     } finally {
       setTogglingItems(prev => {
         const next = new Set(prev);
-        next.delete(String(targetId));
+        next.delete(rawTargetId);
+        next.delete(targetKey);
         return next;
       });
     }
@@ -2083,11 +2110,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         return (c.accountName && c.accountName === accountFilter) || (cAdId && cAdId === accountFilter);
       }
       return true;
-    }).sort((a, b) => {
-      const aActive = isStatusActive(a) ? 1 : 0;
-      const bActive = isStatusActive(b) ? 1 : 0;
-      if (bActive !== aActive) return bActive - aActive;
-      return String(b.id || '').localeCompare(String(a.id || ''), undefined, { numeric: true });
     });
   }, [campaignsList, adAccountsList, activeCampaignFilterIds, statusFilter, accountFilter]);
 
@@ -2270,11 +2292,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       if (statusFilter === 'Ativo' && !isStatusActive(as)) return false;
       if (statusFilter === 'Desativadas' && isStatusActive(as)) return false;
       return true;
-    }).sort((a, b) => {
-      const aActive = isStatusActive(a) ? 1 : 0;
-      const bActive = isStatusActive(b) ? 1 : 0;
-      if (bActive !== aActive) return bActive - aActive;
-      return String(b.id || b.adsetId || '').localeCompare(String(a.id || a.adsetId || ''), undefined, { numeric: true });
     });
   }, [filteredCampaigns, campaignsList, effectiveCampaignScopeIds, statusFilter, itemNamesOverride, adAccountsList]);
 
@@ -2435,11 +2452,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       if (statusFilter === 'Ativo' && !isStatusActive(ad)) return false;
       if (statusFilter === 'Desativadas' && isStatusActive(ad)) return false;
       return true;
-    }).sort((a, b) => {
-      const aActive = isStatusActive(a) ? 1 : 0;
-      const bActive = isStatusActive(b) ? 1 : 0;
-      if (bActive !== aActive) return bActive - aActive;
-      return String(b.id || b.adId || '').localeCompare(String(a.id || a.adId || ''), undefined, { numeric: true });
     });
   }, [filteredCampaigns, campaignsList, effectiveCampaignScopeIds, selectedAdsetIds, statusFilter, itemNamesOverride, adAccountsList]);
 
@@ -2562,13 +2574,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   const sortedItems = React.useMemo(() => {
     if (!sortKey || !sortDirection) {
-      // Prioridade padrão: itens ativos sempre no topo com desempate determinístico imutável
-      return [...currentItems].sort((a, b) => {
-        const aActive = isStatusActive(a) ? 1 : 0;
-        const bActive = isStatusActive(b) ? 1 : 0;
-        if (bActive !== aActive) return bActive - aActive;
-        return String(b.id || b.adsetId || b.adId || '').localeCompare(String(a.id || a.adsetId || a.adId || ''), undefined, { numeric: true });
-      });
+      // Mantém a ordem estável dos itens para evitar que pulem de linha ao clicar na chavinha de status
+      return currentItems;
     }
 
     return [...currentItems].sort((a, b) => {
@@ -3714,7 +3721,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                     const isRowSelected = activeSelectedSet.has(item.id) || activeSelectedSet.has(String(item.id));
                     return (
                     <tr 
-                      key={item.id || idx} 
+                      key={item.id ? `item-${item.id}` : `idx-${idx}`} 
                       onClick={(e) => {
                         if (e.shiftKey) {
                           if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) {
@@ -3748,24 +3755,31 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       </td>
 
                       {/* Status Toggle fixo na lateral apenas em desktop */}
-                      <td className={`py-4 pl-4 pr-3 w-[94px] min-w-[94px] max-w-[94px] md:sticky md:left-[48px] md:z-10 transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0066FF]/20' : 'bg-[#141C2E] group-hover:bg-[#182236]'}`}>
+                      <td 
+                        onClick={(e) => e.stopPropagation()}
+                        className={`py-4 pl-4 pr-3 w-[94px] min-w-[94px] max-w-[94px] md:sticky md:left-[48px] md:z-10 transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0066FF]/20' : 'bg-[#141C2E] group-hover:bg-[#182236]'}`}
+                      >
                         {(() => {
                           const targetKey = String(item.id || item.adsetId || item.adId || item.campaignId);
                           const isToggling = togglingItems.has(targetKey);
+                          const active = isStatusActive(item);
                           return (
                             <button
                               type="button"
                               disabled={isToggling}
-                              onClick={() => handleToggleStatus(item.id || item.adsetId || item.adId || item.campaignId, item)}
-                              className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-all cursor-pointer ${
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleStatus(targetKey, item);
+                              }}
+                              className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-all cursor-pointer select-none touch-manipulation relative ${
                                 isToggling ? 'opacity-50 cursor-wait' : ''
                               } ${
-                                isStatusActive(item) ? 'bg-[#0066FF]' : 'bg-zinc-700'
+                                active ? 'bg-[#0066FF]' : 'bg-zinc-700'
                               }`}
-                              title={isStatusActive(item) ? 'Clique para pausar no Gerenciador Meta Ads' : 'Clique para ativar no Gerenciador Meta Ads'}
+                              title={active ? 'Clique para pausar no Gerenciador Meta Ads' : 'Clique para ativar no Gerenciador Meta Ads'}
                             >
                               <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                                isStatusActive(item) ? 'translate-x-4' : 'translate-x-0'
+                                active ? 'translate-x-4' : 'translate-x-0'
                               }`} />
                             </button>
                           );
