@@ -46,10 +46,13 @@ export function getCurrentUser() {
       return null;
     }
     const emailLower = user.email.toLowerCase();
-    if ((emailLower === 'jeeanmacedo@gmail.com' || emailLower === 'jeanmacedo@gmail.com') && user.plan !== 'scale') {
-      user.plan = 'scale';
-      user.role = 'admin';
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+    if (emailLower === 'jeeanmacedo@gmail.com' || emailLower === 'jeanmacedo@gmail.com') {
+      if (user.plan !== 'scale' || user.role !== 'admin') {
+        user.plan = 'scale';
+        user.role = 'admin';
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+        localStorage.setItem(`primetrack_usr_${emailLower}`, JSON.stringify(user));
+      }
     }
     return user;
   } catch (e) {
@@ -64,6 +67,11 @@ export function setCurrentUser(user) {
       clearUserLocalCaches();
       localStorage.removeItem(STORAGE_KEY);
     } else {
+      const emailLower = (user.email || '').toLowerCase().trim();
+      if (emailLower === 'jeeanmacedo@gmail.com' || emailLower === 'jeanmacedo@gmail.com') {
+        user.plan = 'scale';
+        user.role = 'admin';
+      }
       const prevUserRaw = localStorage.getItem(STORAGE_KEY);
       if (prevUserRaw) {
         try {
@@ -449,15 +457,21 @@ export function getTrialStatus(user) {
   }
 
   // Conta Digital JM / Admin / Planos pagos: NUNCA expiram, não exibem banner de renovação urgente
-  const isPaidOrAdmin = current.email === 'digitaljmsolucoes@gmail.com' || 
-                        current.email === 'jeeanmacedo@gmail.com' || 
+  const emailLower = (current.email || '').toLowerCase().trim();
+  const isOwner = emailLower === 'jeeanmacedo@gmail.com' || emailLower === 'jeanmacedo@gmail.com';
+  const isPaidOrAdmin = isOwner ||
+                        emailLower === 'digitaljmsolucoes@gmail.com' || 
                         current.plan === 'pro' || 
                         current.plan === 'basic' || 
                         current.plan === 'scale' || 
                         current.role === 'admin';
 
   if (isPaidOrAdmin) {
-    const planName = current.plan ? current.plan.toUpperCase() : 'SCALE';
+    if (isOwner) {
+      current.plan = 'scale';
+      current.role = 'admin';
+    }
+    const planName = isOwner ? 'SCALE (Dono & Vitalício)' : (current.plan ? current.plan.toUpperCase() : 'PRO');
     return {
       showExpiredBanner: false,
       isExpired: false,
@@ -466,8 +480,8 @@ export function getTrialStatus(user) {
       isGracePeriod: false,
       isFrozen: false,
       daysLeft: null,
-      dayLabel: 'Ativo',
-      planLabel: `Plano ${planName}`,
+      dayLabel: isOwner ? 'Vitalício (Dono)' : 'Ativo',
+      planLabel: isOwner ? 'Plano Scale (Dono & Vitalício)' : `Plano ${planName}`,
       limits: getPlanLimits(current)
     };
   }

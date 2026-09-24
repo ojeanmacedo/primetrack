@@ -5939,6 +5939,23 @@ app.get('/api/auth/me', async (req, res) => {
     const userId = req.headers['x-user-id'] || req.query.userId;
     const email = (req.query.email || '').trim().toLowerCase();
 
+    // Jean Macedo é o Dono da PrimeTrack: sempre Scale vitalício e role admin
+    if (userId === 'usr_1788826403159' || email === 'jeeanmacedo@gmail.com' || email === 'jeanmacedo@gmail.com') {
+      supabaseAdmin.from('users').update({ plan: 'scale', role: 'admin' }).or('email.eq.jeeanmacedo@gmail.com,id.eq.usr_1788826403159').catch(() => {});
+      return res.json({
+        success: true,
+        user: {
+          id: 'usr_1788826403159',
+          name: 'Jean Macedo',
+          email: 'jeeanmacedo@gmail.com',
+          role: 'admin',
+          plan: 'scale',
+          avatarLetter: 'J',
+          hasSetPassword: true
+        }
+      });
+    }
+
     let query = supabaseAdmin.from('users').select('*');
     if (userId) {
       query = query.eq('id', userId);
@@ -5953,14 +5970,17 @@ app.get('/api/auth/me', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Usuário não encontrado' });
     }
 
+    const userEmailClean = (userRecord.email || '').toLowerCase().trim();
+    const isOwner = userEmailClean === 'jeeanmacedo@gmail.com' || userEmailClean === 'jeanmacedo@gmail.com' || userRecord.id === 'usr_1788826403159';
+
     return res.json({
       success: true,
       user: {
         id: userRecord.id,
         name: userRecord.name,
         email: userRecord.email,
-        role: userRecord.role || 'client',
-        plan: userRecord.plan || 'trial',
+        role: isOwner ? 'admin' : (userRecord.role || 'client'),
+        plan: isOwner ? 'scale' : (userRecord.plan || 'trial'),
         avatarLetter: (userRecord.name || userRecord.email).charAt(0).toUpperCase(),
         createdAt: userRecord.created_at,
         trialStartedAt: userRecord.trial_started_at || userRecord.created_at,
@@ -5976,6 +5996,7 @@ if (process.env.VERCEL !== '1') {
   // Inicialização local: reconcilia e sincroniza automaticamente dados do Supabase e Meta na inicialização do localhost
   (async () => {
     try {
+      supabaseAdmin.from('users').update({ plan: 'scale', role: 'admin' }).or('email.eq.jeeanmacedo@gmail.com,email.eq.jeanmacedo@gmail.com,id.eq.usr_1788826403159').catch(() => {});
       ensureWebhookConfigured().catch(() => {});
       const reconciled = await reconcileFacebookData();
       console.log(`[PrimeTrack Local] Reconciliado com sucesso: ${reconciled.connections.length} perfil(is) e ${reconciled.adAccounts.length} conta(s) ativas.`);

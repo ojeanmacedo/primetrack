@@ -136,6 +136,23 @@ export async function createCheckout({ plan, userId, userEmail, userName, baseUr
   const returnUrl = `${originUrl}/planos`;
   const completionUrl = `${originUrl}/planos?payment=success&plan=${normPlan}`;
 
+  const cleanEmail = (userEmail || '').toLowerCase().trim();
+  const isOwner = cleanEmail === 'jeeanmacedo@gmail.com' || cleanEmail === 'jeanmacedo@gmail.com' || userId === 'usr_1788826403159';
+
+  if (isOwner) {
+    console.log(`[AbacatePay] Dono da PrimeTrack (${cleanEmail || userId}) isento de cobrança. Retornando Scale vitalício.`);
+    try {
+      await supabaseAdmin.from('users').update({ plan: 'scale', role: 'admin' }).or('email.eq.jeeanmacedo@gmail.com,id.eq.usr_1788826403159');
+    } catch (e) {}
+    return {
+      success: true,
+      checkoutId: 'owner_bypass',
+      url: completionUrl,
+      amount: 0,
+      plan: 'scale'
+    };
+  }
+
   // 1. Tenta gerar checkout com PIX e CARTÃO DE CRÉDITO (com parcelamento até 12x)
   const payloadWithCard = {
     items: [
@@ -213,6 +230,12 @@ export async function handleWebhookEvent(eventPayload) {
     const userEmail = (metadata.userEmail || data.customer?.email || '').toLowerCase().trim();
     const newPlan = (metadata.plan || 'pro').toLowerCase();
 
+    // Se for o Dono da PrimeTrack, nunca altera para outro plano inferior a scale
+    if (userEmail === 'jeeanmacedo@gmail.com' || userEmail === 'jeanmacedo@gmail.com' || userId === 'usr_1788826403159') {
+      console.log(`[AbacatePay Webhook] Evento ignorado para o Dono da PrimeTrack (${userEmail || userId}). Plano Scale vitalício preservado.`);
+      return { success: true, processed: true, user: userEmail || userId, plan: 'scale' };
+    }
+
     console.log(`[AbacatePay Webhook] Pagamento confirmado! Usuário: ${userEmail || userId}, Novo Plano: ${newPlan}`);
 
     // 1. Atualiza no Supabase caso tenhamos userId ou email
@@ -245,8 +268,30 @@ export async function handleWebhookEvent(eventPayload) {
  * Processa a assinatura recorrente mensal via Cartão de Crédito (1x à vista / mês)
  */
 export async function subscribeWithCard({ plan, userId, userEmail, userName, cardData }) {
-  const normPlan = String(plan || 'basic').toLowerCase().trim();
-  const planInfo = PLANS_CONFIG[normPlan] || PLANS_CONFIG.basic;
+  const normPlan = String(plan || 'scale').toLowerCase().trim();
+  const planInfo = PLANS_CONFIG[normPlan] || PLANS_CONFIG.scale || PLANS_CONFIG.basic;
+
+  const cleanEmail = (userEmail || '').toLowerCase().trim();
+  const isOwner = cleanEmail === 'jeeanmacedo@gmail.com' || cleanEmail === 'jeanmacedo@gmail.com' || userId === 'usr_1788826403159';
+
+  // Se for o Dono da PrimeTrack, NUNCA cobrar! Retorna Scale vitalício gratuito imediatamente
+  if (isOwner) {
+    console.log(`[Subscription Card] Cobrança bloqueada para o Dono da PrimeTrack (${cleanEmail || userId}). Plano Scale vitalício ativo.`);
+    try {
+      await supabaseAdmin.from('users').update({ plan: 'scale', role: 'admin' }).or('email.eq.jeeanmacedo@gmail.com,id.eq.usr_1788826403159');
+    } catch (e) {}
+
+    return {
+      success: true,
+      plan: 'scale',
+      planName: 'Scale',
+      amount: 0,
+      formattedPrice: 'R$ 0,00',
+      nextBilling: 'Vitalício (Dono)',
+      installments: 1,
+      message: 'Você é o Dono da PrimeTrack! O Plano Scale vitalício está ativo e você nunca será cobrado.'
+    };
+  }
 
   // 1. Validação dos dados do cartão
   if (!cardData || !cardData.number || !cardData.expiry || !cardData.cvv) {

@@ -39,11 +39,20 @@ export default function Account() {
   const [twoFactorSuccess, setTwoFactorSuccess] = useState(false);
 
   useEffect(() => {
-    const u = getCurrentUser();
-    if (u) {
-      setCurrentUserState(u);
-      setName(u.name || '');
-    }
+    const syncUser = () => {
+      const u = getCurrentUser();
+      if (u) {
+        if (u.email && (u.email.toLowerCase() === 'jeeanmacedo@gmail.com' || u.email.toLowerCase() === 'jeanmacedo@gmail.com')) {
+          u.plan = 'scale';
+          u.role = 'admin';
+        }
+        setCurrentUserState(u);
+        setName(u.name || '');
+      }
+    };
+    syncUser();
+    window.addEventListener('primetrack_profile_sync', syncUser);
+    return () => window.removeEventListener('primetrack_profile_sync', syncUser);
   }, []);
 
   // Alteração do Nome de Exibição
@@ -182,8 +191,52 @@ export default function Account() {
   };
 
   // Determinação do Plano
-  const planLabel = (currentUser?.plan || 'pro').toUpperCase();
-  const isPro = planLabel === 'PRO' || planLabel === 'SCALE' || planLabel === 'BUSINESS';
+  const userEmail = (currentUser?.email || '').toLowerCase().trim();
+  const isOwner = userEmail === 'jeeanmacedo@gmail.com' || userEmail === 'jeanmacedo@gmail.com';
+  const effectivePlan = isOwner ? 'scale' : (currentUser?.plan || 'trial').toLowerCase();
+
+  const getPlanInfo = () => {
+    if (isOwner) {
+      return {
+        name: 'Scale',
+        badge: 'Ativo (Dono & Vitalício)',
+        badgeClass: 'bg-purple-500/15 border border-purple-500/30 text-purple-300',
+        description: 'Acesso irrestrito e vitalício como Dono da PrimeTrack. Contas, pixels, webhooks, dashboards e automações ilimitadas sem nenhuma cobrança.'
+      };
+    }
+    if (effectivePlan === 'scale') {
+      return {
+        name: 'Scale',
+        badge: 'Ativo',
+        badgeClass: 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400',
+        description: 'Acesso ilimitado a todas as métricas, pixels, dashboards, webhooks e 15 regras automáticas'
+      };
+    }
+    if (effectivePlan === 'pro') {
+      return {
+        name: 'Pro',
+        badge: 'Ativo',
+        badgeClass: 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400',
+        description: 'Até 5 contas de anúncios, 5 pixels, 5 dashboards, 5 webhooks e 7 regras automáticas'
+      };
+    }
+    if (effectivePlan === 'basic') {
+      return {
+        name: 'Basic',
+        badge: 'Ativo',
+        badgeClass: 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400',
+        description: 'Até 2 contas de anúncios, 2 pixels, 1 dashboard, 1 webhook e 2 regras automáticas'
+      };
+    }
+    return {
+      name: 'Free',
+      badge: 'Plano Free',
+      badgeClass: 'bg-blue-500/10 border border-blue-500/20 text-blue-400',
+      description: '1 conta de anúncio ativa, 1 pixel e 1 webhook de vendas'
+    };
+  };
+
+  const planInfo = getPlanInfo();
 
   return (
     <div className="space-y-6 pb-16">
@@ -265,15 +318,13 @@ export default function Account() {
                       </div>
                       <div>
                         <div className="text-xs font-bold text-white flex items-center gap-2">
-                          <span>Plano {isPro ? 'Pro' : 'Free'}</span>
-                          <span className={`text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded ${
-                            isPro ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-blue-500/10 border border-blue-500/20 text-blue-400'
-                          }`}>
-                            {isPro ? 'Ativo' : 'Plano Free'}
+                          <span>Plano {planInfo.name}</span>
+                          <span className={`text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded ${planInfo.badgeClass}`}>
+                            {planInfo.badge}
                           </span>
                         </div>
                         <p className="text-[11px] text-zinc-400">
-                          {isPro ? 'Acesso ilimitado a todas as métricas, pixels e integrações' : '1 conta de anúncio ativa, 1 pixel e 1 webhook de vendas'}
+                          {planInfo.description}
                         </p>
                       </div>
                     </div>
