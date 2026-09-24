@@ -1,7 +1,7 @@
 import { supabaseAdmin } from '../supabase.js';
 
 const ABACATEPAY_API_BASE = 'https://api.abacatepay.com/v2';
-const ABACATEPAY_API_KEY = process.env.ABACATEPAY_API_KEY || 'abc_dev_juZxUN4huhzfLDAwnXKABQbU';
+const ABACATEPAY_API_KEY = process.env.ABACATEPAY_API_KEY || 'abc_prod_LLzPzXjnKgfz43CZjB4P5tHq';
 
 export const PLANS_CONFIG = {
   basic: {
@@ -78,11 +78,11 @@ export async function getOrProvisionProducts() {
     return productsMap;
   } catch (err) {
     console.error('[AbacatePay] Erro ao provisionar produtos:', err.message);
-    // Fallback para os IDs provisionados no setup
+    // Fallback para os IDs provisionados no setup de produção
     return {
-      basic: 'prod_2dsnKEUPk1bhFyLM16kQF4Y4',
-      pro: 'prod_RxZ3nsu4yAR5wu4Kb2rzpwQY',
-      scale: 'prod_DNXAnbctjH0xRwJExYQKQ2kE'
+      basic: 'prod_KrgaBmWkZhdz4UyrUG4kxUm6',
+      pro: 'prod_KPULp3HCem2L41R4erK3JZFz',
+      scale: 'prod_z1ua6DUQA6PajdMSkQcLKqpZ'
     };
   }
 }
@@ -153,7 +153,7 @@ export async function createCheckout({ plan, userId, userEmail, userName, baseUr
     };
   }
 
-  // 1. Tenta gerar checkout com PIX e CARTÃO DE CRÉDITO (com parcelamento até 12x)
+  // 1. Gera checkout EXCLUSIVO para CARTÃO DE CRÉDITO À VISTA (1x apenas para assinatura mensal)
   const payloadWithCard = {
     items: [
       {
@@ -161,9 +161,9 @@ export async function createCheckout({ plan, userId, userEmail, userName, baseUr
         quantity: 1
       }
     ],
-    methods: ['PIX', 'CARD'],
+    methods: ['CARD'],
     card: {
-      maxInstallments: 12
+      maxInstallments: 1
     },
     externalId: `${userId || 'guest'}_${normPlan}_${Date.now()}`,
     metadata: {
@@ -176,7 +176,7 @@ export async function createCheckout({ plan, userId, userEmail, userName, baseUr
     completionUrl
   };
 
-  let res = await fetch(`${ABACATEPAY_API_BASE}/checkouts/create`, {
+  const res = await fetch(`${ABACATEPAY_API_BASE}/checkouts/create`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${ABACATEPAY_API_KEY}`,
@@ -185,27 +185,17 @@ export async function createCheckout({ plan, userId, userEmail, userName, baseUr
     body: JSON.stringify(payloadWithCard)
   });
 
-  let data = await res.json();
+  const data = await res.json();
 
-  // 2. Se a loja na AbacatePay ainda não teve o método Cartão liberado pela plataforma (ex: sandbox/verificação pendente), faz fallback para PIX
-  if (!data?.success && data?.error && typeof data.error === 'string' && data.error.includes('CARD is not available')) {
-    console.warn('[AbacatePay] Cartão de crédito ainda pendente de liberação para esta loja. Gerando checkout com PIX...');
-    const payloadPix = { ...payloadWithCard, methods: ['PIX'] };
-    delete payloadPix.card;
-
-    res = await fetch(`${ABACATEPAY_API_BASE}/checkouts/create`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${ABACATEPAY_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payloadPix)
-    });
-    data = await res.json();
+  if (!data?.success) {
+    if (data?.error && typeof data.error === 'string' && data.error.includes('CARD is not available')) {
+      throw new Error('O método Cartão de Crédito ainda não foi liberado para sua loja na AbacatePay. Por favor, acesse seu painel na AbacatePay (Configurações / Sua Loja) e solicite a ativação de Cartão ou conclua o cadastro.');
+    }
+    throw new Error(data?.error || 'Erro ao gerar checkout com cartão na AbacatePay');
   }
 
-  if (!data?.success || !data?.data?.url) {
-    throw new Error(data?.error || 'Erro ao gerar checkout na AbacatePay');
+  if (!data?.data?.url) {
+    throw new Error('URL de checkout não retornada pela AbacatePay');
   }
 
   return {
@@ -224,7 +214,8 @@ export async function handleWebhookEvent(eventPayload) {
   const event = eventPayload?.event;
   const data = eventPayload?.data;
 
-  if (event === 'checkout.completed' && data) {
+  const isSuccessfulEvent = event === 'checkout.completed' || event === 'subscription.completed' || event === 'billing.paid';
+  if (isSuccessfulEvent && data) {
     const metadata = data.metadata || {};
     const userId = metadata.userId;
     const userEmail = (metadata.userEmail || data.customer?.email || '').toLowerCase().trim();
