@@ -196,14 +196,6 @@ export default function Account() {
   const effectivePlan = isOwner ? 'scale' : (currentUser?.plan || 'trial').toLowerCase();
 
   const getPlanInfo = () => {
-    if (isOwner) {
-      return {
-        name: 'Scale',
-        badge: 'Ativo (Dono & Vitalício)',
-        badgeClass: 'bg-purple-500/15 border border-purple-500/30 text-purple-300',
-        description: 'Acesso irrestrito e vitalício como Dono da PrimeTrack. Contas, pixels, webhooks, dashboards e automações ilimitadas sem nenhuma cobrança.'
-      };
-    }
     if (effectivePlan === 'scale') {
       return {
         name: 'Scale',

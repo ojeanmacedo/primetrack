@@ -405,12 +405,7 @@ export default function Plans() {
       )}
 
       {/* Warning / Notification Banner dinâmico por ciclo de vida */}
-      {isOwner ? (
-        <div className="w-full bg-[#141C2E] border border-purple-500/30 text-purple-300 px-4 py-3 rounded-2xl text-xs sm:text-sm font-medium text-center shadow-md flex items-center justify-center gap-2">
-          <Sparkles className="w-4 h-4 text-purple-400 shrink-0" />
-          <span>Conta de Dono da PrimeTrack: Você possui acesso vitalício e irrestrito ao <strong>Plano Scale</strong>. Nenhuma cobrança é realizada.</span>
-        </div>
-      ) : trialStatus.isFrozen ? (
+      {trialStatus.isFrozen ? (
         <div className="w-full bg-rose-950/40 border border-rose-500/30 text-rose-300 px-4 py-3 rounded-2xl text-xs sm:text-sm font-medium text-center shadow-md flex items-center justify-center gap-2">
           <Snowflake className="w-4 h-4 text-rose-400 shrink-0" />
           <span>Sua conta está <strong>congelada</strong> por expiração do período de teste e tolerância. Escolha um dos planos abaixo para desbloquear seu acesso imediatamente.</span>
@@ -491,7 +486,7 @@ export default function Plans() {
                       : 'bg-[#0066FF] hover:bg-[#0052CC] text-white shadow-blue-600/25'
                   }`}
                 >
-                  <span>{isCurrentPlan ? (isOwner ? 'Plano Ativo (Dono & Vitalício)' : 'Plano Atual (Renovar)') : `Assinar ${plan.name}`}</span>
+                  <span>{isCurrentPlan ? 'Plano Atual (Renovar)' : `Assinar ${plan.name}`}</span>
                   <span>→</span>
                 </button>
 
@@ -711,14 +706,14 @@ export default function Plans() {
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-zinc-500">Valor a pagar</span>
                       <span className="font-extrabold text-zinc-900 text-sm">
-                        {isOwner ? 'R$ 0,00 (Isento - Dono)' : selectedPlanModal.formattedPrice}
+                        {selectedPlanModal.formattedPrice}
                       </span>
                     </div>
 
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-zinc-500">Data da próxima cobrança</span>
                       <span className="font-semibold text-zinc-700">
-                        {isOwner ? 'Nunca (Vitalício)' : getNextBillingDate()}
+                        {getNextBillingDate()}
                       </span>
                     </div>
                   </div>
@@ -729,9 +724,7 @@ export default function Plans() {
                     disabled={isSubmitting}
                     className="w-full mt-4 py-3.5 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-sm shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
-                    {isOwner ? (
-                      <span>Confirmar ativação vitalícia (Dono)</span>
-                    ) : isSubmitting ? (
+                    {isSubmitting ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
                         <span>Processando assinatura...</span>

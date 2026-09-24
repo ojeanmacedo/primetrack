@@ -281,15 +281,21 @@ export async function subscribeWithCard({ plan, userId, userEmail, userName, car
       await supabaseAdmin.from('users').update({ plan: 'scale', role: 'admin' }).or('email.eq.jeeanmacedo@gmail.com,id.eq.usr_1788826403159');
     } catch (e) {}
 
+    const now = new Date();
+    const nextBillingDate = new Date(now);
+    nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
+    const pad = n => String(n).padStart(2, '0');
+    const nextBillingFormatted = `${pad(nextBillingDate.getDate())}/${pad(nextBillingDate.getMonth() + 1)}/${String(nextBillingDate.getFullYear()).slice(-2)}`;
+
     return {
       success: true,
       plan: 'scale',
       planName: 'Scale',
-      amount: 0,
-      formattedPrice: 'R$ 0,00',
-      nextBilling: 'Vitalício (Dono)',
+      amount: planInfo.price,
+      formattedPrice: planInfo.formattedPrice,
+      nextBilling: nextBillingFormatted,
       installments: 1,
-      message: 'Você é o Dono da PrimeTrack! O Plano Scale vitalício está ativo e você nunca será cobrado.'
+      message: 'Assinatura do Plano Scale ativada com sucesso!'
     };
   }
 

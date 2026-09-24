@@ -471,7 +471,8 @@ export function getTrialStatus(user) {
       current.plan = 'scale';
       current.role = 'admin';
     }
-    const planName = isOwner ? 'SCALE (Dono & Vitalício)' : (current.plan ? current.plan.toUpperCase() : 'PRO');
+    const rawName = (current.plan || 'scale').toLowerCase();
+    const planName = rawName === 'scale' ? 'Scale' : rawName === 'pro' ? 'Pro' : rawName === 'basic' ? 'Basic' : 'Scale';
     return {
       showExpiredBanner: false,
       isExpired: false,
@@ -480,8 +481,8 @@ export function getTrialStatus(user) {
       isGracePeriod: false,
       isFrozen: false,
       daysLeft: null,
-      dayLabel: isOwner ? 'Vitalício (Dono)' : 'Ativo',
-      planLabel: isOwner ? 'Plano Scale (Dono & Vitalício)' : `Plano ${planName}`,
+      dayLabel: 'Ativo',
+      planLabel: `Plano ${planName}`,
       limits: getPlanLimits(current)
     };
   }
