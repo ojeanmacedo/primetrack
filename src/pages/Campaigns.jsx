@@ -3212,7 +3212,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   };
 
   return (
-    <div className="space-y-2.5 pb-2">
+    <div className="space-y-2.5 pb-6">
 
       {/* Alerta de Nenhuma Conta Ativa */}
       {isNoAccountActive && (
@@ -3661,7 +3661,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
       {/* ── VIEWS 1, 2, 3: SUB-ABAS CAMPANHAS, CONJUNTOS, ANÚNCIOS (TABELA COM SCROLL INTERNO E CABEÇALHO/RODAPÉ FIXOS) ── */}
       {subTab !== 'Contas' && (
-        <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl overflow-hidden shadow-md flex flex-col">
+        <div className="bg-[#141C2E] border border-[#1E293B] rounded-xl overflow-hidden shadow-md flex flex-col mb-6">
           {isLoadingData && currentItems.length === 0 ? (
             <div className="p-16 text-center">
               <div className="w-12 h-12 rounded-2xl bg-[#0066FF]/10 border border-[#0066FF]/30 flex items-center justify-center mx-auto mb-3 text-[#5C9BFF]">
@@ -3701,7 +3701,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             </div>
           ) : (
             <div 
-              className="w-full overflow-x-auto overflow-y-auto max-h-[calc(100vh-210px)] min-h-[480px] scrollbar-thin scrollbar-thumb-[#0066FF]/40 scrollbar-track-[#141C2E] touch-pan-x touch-pan-y overscroll-x-contain"
+              className="w-full overflow-x-auto overflow-y-auto max-h-[calc(100vh-265px)] min-h-[420px] scrollbar-thin scrollbar-thumb-[#0066FF]/40 scrollbar-track-[#141C2E] touch-pan-x touch-pan-y overscroll-x-contain"
               style={{ WebkitOverflowScrolling: 'touch' }}
             >
               <table className="w-full text-left text-xs font-sans whitespace-nowrap border-collapse">
