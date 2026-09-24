@@ -24,6 +24,7 @@ import {
 } from './services/metaService.js';
 import { supabaseAdmin } from './supabase.js';
 import { createCheckout, handleWebhookEvent, ensureWebhookConfigured, subscribeWithCard } from './services/abacatepayService.js';
+import * as OTPAuth from 'otpauth';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -5407,22 +5408,38 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Por favor, preencha o e-mail e a senha.' });
     }
 
+    const checkTwoFactorRequired = async (targetUser) => {
+      let config = db.get(`2fa_${cleanEmail}`);
+      if (!config) {
+        try {
+          const { data } = await supabaseAdmin.from('pixels').select('domain').eq('id', `2fa_${cleanEmail}`).maybeSingle();
+          if (data && data.domain) config = JSON.parse(data.domain);
+        } catch (e) {}
+      }
+      if (config?.enabled && config?.secret) {
+        return res.json({
+          success: true,
+          twoFactorRequired: true,
+          email: cleanEmail,
+          user: targetUser
+        });
+      }
+      return res.json({ success: true, user: targetUser });
+    };
+
     // Conta administradora principal Jean Macedo
     if (cleanEmail === 'jeeanmacedo@gmail.com' || cleanEmail === 'jeanmacedo@gmail.com') {
       if (inputPass !== 'jean031522') {
         return res.status(401).json({ success: false, error: 'Senha incorreta para a conta administradora.' });
       }
-      return res.json({
-        success: true,
-        user: {
-          id: 'usr_1788826403159',
-          name: 'Jean Macedo',
-          email: 'jeeanmacedo@gmail.com',
-          role: 'admin',
-          plan: 'scale',
-          avatarLetter: 'J',
-          hasSetPassword: true
-        }
+      return checkTwoFactorRequired({
+        id: 'usr_1788826403159',
+        name: 'Jean Macedo',
+        email: 'jeeanmacedo@gmail.com',
+        role: 'admin',
+        plan: 'scale',
+        avatarLetter: 'J',
+        hasSetPassword: true
       });
     }
 
@@ -5431,17 +5448,14 @@ app.post('/api/auth/login', async (req, res) => {
       if (inputPass !== 'jean031522') {
         return res.status(401).json({ success: false, error: 'Senha incorreta para a conta administradora.' });
       }
-      return res.json({
-        success: true,
-        user: {
-          id: 'usr_admin_digitaljm',
-          name: 'Digital JM Soluções',
-          email: 'digitaljmsolucoes@gmail.com',
-          role: 'admin',
-          plan: 'pro',
-          avatarLetter: 'D',
-          hasSetPassword: true
-        }
+      return checkTwoFactorRequired({
+        id: 'usr_admin_digitaljm',
+        name: 'Digital JM Soluções',
+        email: 'digitaljmsolucoes@gmail.com',
+        role: 'admin',
+        plan: 'pro',
+        avatarLetter: 'D',
+        hasSetPassword: true
       });
     }
 
@@ -5450,17 +5464,14 @@ app.post('/api/auth/login', async (req, res) => {
       if (inputPass !== 'PrimeTrack2026!') {
         return res.status(401).json({ success: false, error: 'Senha incorreta para a conta de teste.' });
       }
-      return res.json({
-        success: true,
-        user: {
-          id: 'usr_meta_reviewer',
-          name: 'Meta Reviewer',
-          email: 'teste@primetrack.top',
-          role: 'admin',
-          plan: 'pro',
-          avatarLetter: 'M',
-          hasSetPassword: true
-        }
+      return checkTwoFactorRequired({
+        id: 'usr_meta_reviewer',
+        name: 'Meta Reviewer',
+        email: 'teste@primetrack.top',
+        role: 'admin',
+        plan: 'pro',
+        avatarLetter: 'M',
+        hasSetPassword: true
       });
     }
 
@@ -5496,23 +5507,124 @@ app.post('/api/auth/login', async (req, res) => {
       });
     }
 
-    return res.json({
-      success: true,
-      user: {
-        id: userRecord.id,
-        name: userRecord.name,
-        email: userRecord.email,
-        role: userRecord.role || 'client',
-        plan: userRecord.plan || 'trial',
-        avatarLetter: (userRecord.name || cleanEmail).charAt(0).toUpperCase(),
-        createdAt: userRecord.created_at,
-        trialStartedAt: userRecord.trial_started_at || userRecord.created_at,
-        hasSetPassword: true
-      }
+    return checkTwoFactorRequired({
+      id: userRecord.id,
+      name: userRecord.name,
+      email: userRecord.email,
+      role: userRecord.role || 'client',
+      plan: userRecord.plan || 'trial',
+      avatarLetter: (userRecord.name || cleanEmail).charAt(0).toUpperCase(),
+      createdAt: userRecord.created_at,
+      trialStartedAt: userRecord.trial_started_at || userRecord.created_at,
+      hasSetPassword: true
     });
   } catch (err) {
     console.error('Erro na rota de login:', err);
     res.status(500).json({ success: false, error: 'Erro interno ao autenticar. Tente novamente.' });
+  }
+});
+
+// AUTENTICAÇÃO DE DOIS FATORES (2FA) - PRIMETRACK
+app.post('/api/auth/2fa/save', async (req, res) => {
+  try {
+    const { email, enabled, secret } = req.body;
+    const cleanEmail = (email || '').trim().toLowerCase();
+    if (!cleanEmail) {
+      return res.status(400).json({ success: false, error: 'E-mail obrigatório' });
+    }
+
+    const config = {
+      email: cleanEmail,
+      enabled: Boolean(enabled),
+      secret: enabled ? String(secret || '').trim() : null,
+      updatedAt: new Date().toISOString()
+    };
+
+    db.set(`2fa_${cleanEmail}`, config);
+
+    try {
+      await supabaseAdmin.from('pixels').upsert({
+        id: `2fa_${cleanEmail}`,
+        name: 'TwoFactorAuth',
+        domain: JSON.stringify(config),
+        status: enabled ? 'active' : 'inactive'
+      });
+    } catch (e) {
+      console.warn('[2FA] Aviso ao salvar no Supabase:', e.message);
+    }
+
+    return res.json({ success: true, enabled: config.enabled });
+  } catch (err) {
+    console.error('Erro em /api/auth/2fa/save:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/auth/2fa/status', async (req, res) => {
+  try {
+    const email = (req.query.email || '').trim().toLowerCase();
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'E-mail obrigatório' });
+    }
+
+    let config = db.get(`2fa_${email}`);
+    if (!config) {
+      try {
+        const { data } = await supabaseAdmin.from('pixels').select('domain').eq('id', `2fa_${email}`).maybeSingle();
+        if (data && data.domain) config = JSON.parse(data.domain);
+      } catch (e) {}
+    }
+
+    return res.json({
+      success: true,
+      enabled: Boolean(config?.enabled),
+      hasSecret: Boolean(config?.secret)
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/auth/2fa/verify-login', async (req, res) => {
+  try {
+    const { email, token } = req.body;
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanToken = String(token || '').replace(/\D/g, '').trim();
+
+    if (!cleanEmail || !cleanToken || cleanToken.length !== 6) {
+      return res.status(400).json({ success: false, error: 'Por favor, informe o código de 6 dígitos.' });
+    }
+
+    let config = db.get(`2fa_${cleanEmail}`);
+    if (!config) {
+      try {
+        const { data } = await supabaseAdmin.from('pixels').select('domain').eq('id', `2fa_${cleanEmail}`).maybeSingle();
+        if (data && data.domain) config = JSON.parse(data.domain);
+      } catch (e) {}
+    }
+
+    if (!config?.enabled || !config?.secret) {
+      return res.status(400).json({ success: false, error: 'Autenticação de 2 fatores não configurada nesta conta.' });
+    }
+
+    const secret = OTPAuth.Secret.fromBase32(config.secret.trim());
+    const totp = new OTPAuth.TOTP({
+      issuer: 'PrimeTrack',
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
+      secret
+    });
+
+    const delta = totp.validate({ token: cleanToken, window: 1 });
+    if (delta === null) {
+      return res.status(401).json({ success: false, error: 'Código de 6 dígitos inválido ou expirado. Verifique no seu aplicativo autenticador.' });
+    }
+
+    return res.json({ success: true, message: 'Autenticação em duas etapas confirmada com sucesso!' });
+  } catch (err) {
+    console.error('Erro em /api/auth/2fa/verify-login:', err);
+    res.status(500).json({ success: false, error: 'Erro interno ao validar 2FA.' });
   }
 });
 

@@ -1,5 +1,6 @@
 // Gerenciamento de Sessão e Usuários PrimeTrack conectado ao Supabase
 import { supabase } from '../lib/supabase';
+import { getTwoFactorConfig } from './twoFactor';
 
 export const DEFAULT_ADMIN = {
   id: 'usr_1788826403159',
@@ -121,6 +122,14 @@ export async function loginUser(email, password) {
     });
     const data = await res.json();
     if (res.ok && data.success && data.user) {
+      if (data.twoFactorRequired) {
+        return {
+          success: true,
+          twoFactorRequired: true,
+          email: cleanEmail,
+          user: data.user
+        };
+      }
       setCurrentUser(data.user);
       localStorage.setItem(`primetrack_usr_${cleanEmail}`, JSON.stringify(data.user));
       return { success: true, user: data.user };
@@ -138,6 +147,16 @@ export async function loginUser(email, password) {
               body: JSON.stringify({ email: cleanEmail, password: inputPass })
             }).catch(() => {});
 
+            const twoFactorCfg = getTwoFactorConfig(cleanEmail);
+            if (twoFactorCfg?.enabled && twoFactorCfg?.secret) {
+              return {
+                success: true,
+                twoFactorRequired: true,
+                email: cleanEmail,
+                user: localUser
+              };
+            }
+
             setCurrentUser(localUser);
             return { success: true, user: localUser };
           }
@@ -148,6 +167,21 @@ export async function loginUser(email, password) {
   } catch (apiErr) {
     console.warn('Backend auth endpoint indisponível, usando fallback:', apiErr.message);
   }
+
+  const resolveLoginSuccess = (targetUser) => {
+    const twoFactorCfg = getTwoFactorConfig(cleanEmail);
+    if (twoFactorCfg?.enabled && twoFactorCfg?.secret) {
+      return {
+        success: true,
+        twoFactorRequired: true,
+        email: cleanEmail,
+        user: targetUser
+      };
+    }
+    setCurrentUser(targetUser);
+    localStorage.setItem(`primetrack_usr_${cleanEmail}`, JSON.stringify(targetUser));
+    return { success: true, user: targetUser };
+  };
 
   // 2. Fallback: Conta administradora principal Jean Macedo / Digital JM Soluções e Conta de Teste do Analista Meta
   if (cleanEmail === 'jeeanmacedo@gmail.com' || cleanEmail === 'jeanmacedo@gmail.com') {
@@ -164,8 +198,7 @@ export async function loginUser(email, password) {
       createdAt: '2026-09-08T00:13:23.159Z',
       hasSetPassword: true
     };
-    setCurrentUser(adminUser);
-    return { success: true, user: adminUser };
+    return resolveLoginSuccess(adminUser);
   }
 
   if (cleanEmail === 'digitaljmsolucoes@gmail.com') {
@@ -182,8 +215,7 @@ export async function loginUser(email, password) {
       createdAt: '2026-01-01T00:00:00.000Z',
       hasSetPassword: true
     };
-    setCurrentUser(adminUser);
-    return { success: true, user: adminUser };
+    return resolveLoginSuccess(adminUser);
   }
 
   // Conta de Teste dedicada para Revisão de App da Meta (App Review)
@@ -201,8 +233,7 @@ export async function loginUser(email, password) {
       createdAt: '2026-09-14T00:00:00.000Z',
       hasSetPassword: true
     };
-    setCurrentUser(testReviewUser);
-    return { success: true, user: testReviewUser };
+    return resolveLoginSuccess(testReviewUser);
   }
 
   // 3. Fallback: Busca o usuário no Supabase direto
@@ -268,9 +299,21 @@ export async function loginUser(email, password) {
     hasSetPassword: true
   };
 
-  setCurrentUser(authenticatedUser);
-  localStorage.setItem(`primetrack_usr_${cleanEmail}`, JSON.stringify(authenticatedUser));
-  return { success: true, user: authenticatedUser };
+  return resolveLoginSuccess(authenticatedUser);
+}
+
+/**
+ * Conclui o login após validação do código 2FA
+ */
+export function completeTwoFactorLogin(user) {
+  if (!user) return { success: false, error: 'Usuário inválido.' };
+  setCurrentUser(user);
+  if (user.email) {
+    const cleanEmail = user.email.trim().toLowerCase();
+    localStorage.setItem(`primetrack_usr_${cleanEmail}`, JSON.stringify(user));
+  }
+  window.dispatchEvent(new CustomEvent('primetrack_profile_sync', { detail: user }));
+  return { success: true, user };
 }
 
 /**

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sun, AlertCircle, X, ShieldCheck, ArrowRight, Lock, Mail, User, ExternalLink, Settings, CheckCircle2 } from 'lucide-react';
-import { loginUser, loginWithGoogle, getCurrentUser } from '../utils/auth';
+import { loginUser, loginWithGoogle, getCurrentUser, completeTwoFactorLogin } from '../utils/auth';
+import { verifyTwoFactorCode, getTwoFactorConfig } from '../utils/twoFactor';
 import { supabase } from '../lib/supabase';
 
 export default function LoginPage() {
@@ -16,6 +17,12 @@ export default function LoginPage() {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [directEmail, setDirectEmail] = useState('jeeanmacedo@gmail.com');
   const [directName, setDirectName] = useState('Jean Macedo');
+
+  // 2FA Challenge States
+  const [pending2FA, setPending2FA] = useState(null);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [twoFactorLoading, setTwoFactorLoading] = useState(false);
+  const [twoFactorError, setTwoFactorError] = useState('');
 
   // Se já houver usuário logado no localStorage, redireciona direto pro Dashboard
   useEffect(() => {
@@ -95,7 +102,71 @@ export default function LoginPage() {
       return;
     }
 
+    if (result.twoFactorRequired) {
+      setPending2FA({
+        user: result.user,
+        email: result.email || email
+      });
+      setTwoFactorCode('');
+      setTwoFactorError('');
+      return;
+    }
+
     navigate('/dashboard');
+  };
+
+  const handleVerifyTwoFactor = async (e) => {
+    e?.preventDefault();
+    const cleanCode = twoFactorCode.replace(/\D/g, '').trim();
+    if (cleanCode.length !== 6) {
+      setTwoFactorError('Informe o código de 6 dígitos gerado no seu aplicativo.');
+      return;
+    }
+
+    setTwoFactorLoading(true);
+    setTwoFactorError('');
+
+    try {
+      // 1. Tenta validar no backend central
+      let validated = false;
+      try {
+        const res = await fetch('/api/auth/2fa/verify-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: pending2FA.email, token: cleanCode })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          validated = true;
+        } else if (data?.error) {
+          setTwoFactorError(data.error);
+          setTwoFactorLoading(false);
+          return;
+        }
+      } catch (e) {
+        console.warn('Backend 2FA offline, tentando validação local:', e.message);
+      }
+
+      // 2. Fallback de validação local se o backend não validou
+      if (!validated) {
+        const config = getTwoFactorConfig(pending2FA.email);
+        if (config?.secret && verifyTwoFactorCode(config.secret, cleanCode)) {
+          validated = true;
+        }
+      }
+
+      if (validated) {
+        completeTwoFactorLogin(pending2FA.user);
+        navigate('/dashboard');
+        return;
+      }
+
+      setTwoFactorError('Código de 6 dígitos inválido ou expirado. Verifique no app autenticador.');
+    } catch (err) {
+      setTwoFactorError('Erro ao validar código. Tente novamente.');
+    } finally {
+      setTwoFactorLoading(false);
+    }
   };
 
   // Dispara a autorização oficial do Google OAuth
@@ -197,104 +268,175 @@ export default function LoginPage() {
           Rastreamento inteligente para low ticket
         </p>
 
-        {/* Error Message Box */}
-        {errorMessage && (
-          <div className="w-full mb-4 p-3.5 rounded-xl bg-red-500/15 border border-red-500/30 text-red-300 text-xs flex items-start gap-2.5 animate-in fade-in duration-200 shadow-md">
-            <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-            <div className="leading-relaxed">
-              <span className="font-semibold block mb-0.5">Atenção</span>
-              <span>{errorMessage}</span>
+        {/* Se estiver no fluxo de 2FA (Segunda Etapa) */}
+        {pending2FA ? (
+          <div className="w-full flex flex-col items-center animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-[#0066FF] mb-3 shadow-lg shadow-blue-500/10">
+              <ShieldCheck className="w-6 h-6" />
             </div>
+
+            <h2 className="text-base font-bold text-white tracking-tight mb-1 text-center">
+              Autenticação em duas etapas
+            </h2>
+
+            <p className="text-xs text-zinc-400 text-center mb-3 leading-relaxed">
+              Abra seu aplicativo autenticador e digite o código de 6 dígitos gerado para o <strong className="text-white font-semibold">PrimeTrack</strong>.
+            </p>
+
+            <div className="px-3 py-1 rounded-full bg-[#13233E] border border-[#1E293B] text-zinc-300 text-[11px] font-mono mb-4 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              <span>{pending2FA.email}</span>
+            </div>
+
+            {twoFactorError && (
+              <div className="w-full mb-4 p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-red-300 text-xs flex items-start gap-2 shadow-md">
+                <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                <span>{twoFactorError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleVerifyTwoFactor} className="w-full space-y-4">
+              <div>
+                <label className="block text-[10px] font-mono text-zinc-400 uppercase tracking-wider mb-1.5 text-center">
+                  Código de 6 dígitos
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  autoFocus
+                  value={twoFactorCode}
+                  onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="000 000"
+                  className="w-full text-center text-xl tracking-[0.35em] font-mono font-bold py-3 px-4 rounded-xl bg-[#E8EDF5] text-[#0A1426] placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#0066FF] shadow-inner"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={twoFactorLoading || twoFactorCode.replace(/\D/g, '').length !== 6}
+                className="w-full py-2.5 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs tracking-wide transition-all shadow-md shadow-blue-500/20 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {twoFactorLoading ? 'Validando...' : 'Verificar e Entrar'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setPending2FA(null);
+                  setTwoFactorCode('');
+                  setTwoFactorError('');
+                }}
+                className="w-full text-center text-xs text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer pt-1"
+              >
+                ← Voltar ao login com senha
+              </button>
+            </form>
           </div>
+        ) : (
+          <>
+            {/* Error Message Box */}
+            {errorMessage && (
+              <div className="w-full mb-4 p-3.5 rounded-xl bg-red-500/15 border border-red-500/30 text-red-300 text-xs flex items-start gap-2.5 animate-in fade-in duration-200 shadow-md">
+                <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                <div className="leading-relaxed">
+                  <span className="font-semibold block mb-0.5">Atenção</span>
+                  <span>{errorMessage}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Google Login Button (First-time registration) */}
+            <button
+              type="button"
+              disabled={googleLoading}
+              onClick={handleGoogleLogin}
+              className="w-full py-2.5 px-4 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-semibold text-xs flex items-center justify-center gap-3 transition-all shadow-md hover:shadow-brand/20 cursor-pointer active:scale-[0.98] disabled:opacity-70"
+            >
+              {/* Google Icon */}
+              <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center shrink-0 shadow-sm p-0.5">
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
+                  <path
+                    fill="#EA4335"
+                    d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"
+                  />
+                  <path
+                    fill="#4285F4"
+                    d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.6 14.8c-.3-.8-.4-1.8-.4-2.8s.2-2 .4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16c1.8 3.7 5.6 7 10.1 7z"
+                  />
+                </svg>
+              </div>
+              <span className="tracking-wide">
+                {googleLoading ? 'Conectando à sua conta Google...' : 'Entrar com Google'}
+              </span>
+            </button>
+
+            <p className="text-[10px] text-zinc-500 text-center mt-2">
+              Novo na PrimeTrack? O primeiro cadastro é feito com sua conta Google.
+            </p>
+
+            {/* Divider */}
+            <div className="w-full flex items-center gap-3 my-5">
+              <div className="flex-1 h-[1px] bg-[#172640]" />
+              <span className="text-[11px] text-[#556987] font-mono lowercase">ou com e-mail e senha</span>
+              <div className="flex-1 h-[1px] bg-[#172640]" />
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="w-full space-y-3">
+              <div>
+                <label className="block text-[10px] font-mono text-zinc-400 uppercase tracking-wider mb-1">
+                  E-mail
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seu@email.com"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#E8EDF5] text-[#0A1426] placeholder-zinc-500 font-medium text-xs focus:outline-none focus:ring-2 focus:ring-brand shadow-inner"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-mono text-zinc-400 uppercase tracking-wider mb-1">
+                  Senha
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Sua senha cadastrada no app"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#E8EDF5] text-[#0A1426] placeholder-zinc-500 font-medium text-xs focus:outline-none focus:ring-2 focus:ring-brand shadow-inner"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-2.5 rounded-xl bg-[#1A6DFF] hover:bg-[#1557CC] text-white font-bold text-xs tracking-wide transition-colors shadow-md mt-2 cursor-pointer disabled:opacity-50"
+              >
+                {isLoading ? 'Verificando...' : 'Entrar com E-mail'}
+              </button>
+            </form>
+
+            {/* Terms agreement */}
+            <p className="text-[10px] text-[#556987] text-center mt-5">
+              Ao entrar, você concorda com os Termos de Uso e Privacidade.
+            </p>
+          </>
         )}
-
-        {/* Google Login Button (First-time registration) */}
-        <button
-          type="button"
-          disabled={googleLoading}
-          onClick={handleGoogleLogin}
-          className="w-full py-2.5 px-4 rounded-xl bg-[#2B66E3] hover:bg-[#2558C7] text-white font-semibold text-xs flex items-center justify-center gap-3 transition-all shadow-md hover:shadow-brand/20 cursor-pointer active:scale-[0.98] disabled:opacity-70"
-        >
-          {/* Google Icon */}
-          <div className="w-5 h-5 bg-white rounded-full flex items-center justify-center shrink-0 shadow-sm p-0.5">
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
-              <path
-                fill="#EA4335"
-                d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"
-              />
-              <path
-                fill="#4285F4"
-                d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.6 14.8c-.3-.8-.4-1.8-.4-2.8s.2-2 .4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16c1.8 3.7 5.6 7 10.1 7z"
-              />
-            </svg>
-          </div>
-          <span className="tracking-wide">
-            {googleLoading ? 'Conectando à sua conta Google...' : 'Entrar com Google'}
-          </span>
-        </button>
-
-        <p className="text-[10px] text-zinc-500 text-center mt-2">
-          Novo na PrimeTrack? O primeiro cadastro é feito com sua conta Google.
-        </p>
-
-        {/* Divider */}
-        <div className="w-full flex items-center gap-3 my-5">
-          <div className="flex-1 h-[1px] bg-[#172640]" />
-          <span className="text-[11px] text-[#556987] font-mono lowercase">ou com e-mail e senha</span>
-          <div className="flex-1 h-[1px] bg-[#172640]" />
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="w-full space-y-3">
-          <div>
-            <label className="block text-[10px] font-mono text-zinc-400 uppercase tracking-wider mb-1">
-              E-mail
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="seu@email.com"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-[#E8EDF5] text-[#0A1426] placeholder-zinc-500 font-medium text-xs focus:outline-none focus:ring-2 focus:ring-brand shadow-inner"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-mono text-zinc-400 uppercase tracking-wider mb-1">
-              Senha
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Sua senha cadastrada no app"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-[#E8EDF5] text-[#0A1426] placeholder-zinc-500 font-medium text-xs focus:outline-none focus:ring-2 focus:ring-brand shadow-inner"
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-2.5 rounded-xl bg-[#1A6DFF] hover:bg-[#1557CC] text-white font-bold text-xs tracking-wide transition-colors shadow-md mt-2 cursor-pointer disabled:opacity-50"
-          >
-            {isLoading ? 'Verificando...' : 'Entrar com E-mail'}
-          </button>
-        </form>
-
-        {/* Terms agreement */}
-        <p className="text-[10px] text-[#556987] text-center mt-5">
-          Ao entrar, você concorda com os Termos de Uso e Privacidade.
-        </p>
 
         {/* Bottom Theme & Icons Toolbar */}
         <div className="w-full flex items-center justify-between mt-8 pt-5 border-t border-[#13233E]/70 text-[#7B8BA6]">
