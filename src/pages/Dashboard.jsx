@@ -166,16 +166,8 @@ export const getCachedPeriodData = (userId, periodName, range) => {
     const saved = localStorage.getItem(key);
     if (!saved) return null;
     const parsed = JSON.parse(saved);
-    if (parsed) {
-      const norm = (periodName || 'Hoje').toLowerCase();
-      // Para 'Hoje', dados mudam dinamicamente ao longo do dia com novos gastos do Meta Ads:
-      // se o cache tiver mais de 2 minutos, busca dados frescos do servidor
-      if ((norm === 'hoje' || norm === 'today') && parsed.timestamp && (Date.now() - parsed.timestamp > 2 * 60 * 1000)) {
-        return null;
-      }
-      if (Array.isArray(parsed.campaigns) && Array.isArray(parsed.orders)) {
-        return parsed;
-      }
+    if (parsed && Array.isArray(parsed.campaigns)) {
+      return parsed;
     }
   } catch (e) {}
   return null;
@@ -494,8 +486,31 @@ export default function Dashboard() {
     return [];
   });
 
-  const [isPeriodLoading, setIsPeriodLoading] = useState(true);
-  const [campaigns, setCampaigns] = useState([]);
+  const [campaigns, setCampaigns] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const u = getCurrentUser();
+        const cached = getCachedPeriodData(u?.id, 'Hoje', null);
+        if (cached && Array.isArray(cached.campaigns) && cached.campaigns.length > 0) {
+          return cached.campaigns;
+        }
+      } catch (e) {}
+    }
+    return [];
+  });
+
+  const [isPeriodLoading, setIsPeriodLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const u = getCurrentUser();
+        const cached = getCachedPeriodData(u?.id, 'Hoje', null);
+        if (cached && Array.isArray(cached.campaigns)) {
+          return false;
+        }
+      } catch (e) {}
+    }
+    return true;
+  });
   const [ordersList, setOrdersList] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -583,9 +598,25 @@ export default function Dashboard() {
       } catch (e) {}
     }
 
-    // Ativa o estado atômico de loading com skeleton limpo: NUNCA exibe números antigos ou intermediários
-    setIsPeriodLoading(true);
-    setSyncing(true);
+    // OTIMIZAÇÃO: Checa se já temos dados salvos para este período para renderização imediata (< 10ms)
+    const cached = getCachedPeriodData(user?.id, newPeriod, newRange);
+    if (cached) {
+      if (Array.isArray(cached.campaigns)) {
+        setCampaigns(cached.campaigns);
+      }
+      if (Array.isArray(cached.orders) && cached.orders.length > 0) {
+        setOrdersList(cached.orders);
+      }
+      if (cached.pixelStats) {
+        setPixelStats(cached.pixelStats);
+      }
+      // Transição instantânea sem skeleton
+      setIsPeriodLoading(false);
+      setSyncing(true);
+    } else {
+      setIsPeriodLoading(true);
+      setSyncing(true);
+    }
 
     // Busca os dados exatos do novo período diretamente no servidor
     loadDashboardData(newPeriod, newRange);
@@ -617,24 +648,31 @@ export default function Dashboard() {
         ? fetch('/api/meta/status' + userParamFirst, { headers: userHeaders }).then(r => r.json()).catch(() => ({}))
         : Promise.resolve(null);
 
+      // Se os pedidos já estão carregados na memória do cliente, não trava esperando /api/orders na troca de período
+      const ordersPromise = (ordersList.length === 0)
+        ? fetch('/api/orders' + userParamFirst, { headers: userHeaders })
+        : Promise.resolve(null);
+
       const [rData, crRes, ordRes, pixRes] = await Promise.all([
         statusPromise,
         fetch(`/api/campaigns?${query}${userParam}${activeAccountsParam}`, { headers: userHeaders }),
-        fetch('/api/orders' + userParamFirst, { headers: userHeaders }),
+        ordersPromise,
         fetch(`/api/pixel/stats?${query}${userParam}`, { headers: userHeaders }).catch(() => null)
       ]);
 
       let resolvedOrders = ordersList;
-      try {
-        const oData = await ordRes.json();
-        if (Array.isArray(oData) && oData.length > 0) {
-          resolvedOrders = oData;
-          setOrdersList(oData);
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('primetrack_cached_orders', JSON.stringify(oData));
+      if (ordRes) {
+        try {
+          const oData = await ordRes.json();
+          if (Array.isArray(oData) && oData.length > 0) {
+            resolvedOrders = oData;
+            setOrdersList(oData);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('primetrack_cached_orders', JSON.stringify(oData));
+            }
           }
-        }
-      } catch (oErr) {}
+        } catch (oErr) {}
+      }
 
       let resolvedPixelStats = pixelStats;
       if (pixRes) {

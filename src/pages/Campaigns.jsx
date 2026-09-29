@@ -470,6 +470,27 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const periodFilterRef = React.useRef(periodFilter);
   const customRangeRef = React.useRef(customRange);
   const latestRequestIdRef = React.useRef(0);
+  const periodCacheRef = React.useRef(new Map());
+
+  const getCachedCampData = (preset, range) => {
+    const pKey = getCampPeriodKey(user?.id, preset, range);
+    if (periodCacheRef.current.has(pKey)) {
+      return periodCacheRef.current.get(pKey);
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem(pKey);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            periodCacheRef.current.set(pKey, parsed);
+            return parsed;
+          }
+        }
+      } catch (e) {}
+    }
+    return null;
+  };
 
   useEffect(() => {
     // Remove qualquer filtro de período ou status salvo anteriormente no navegador
@@ -493,27 +514,17 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     periodFilterRef.current = newPeriod;
     customRangeRef.current = newRange;
 
-    // Zera métricas do período temporariamente mantendo a estrutura da tabela e ativa loading limpo
-    setCampaignsList(prev => prev.map(c => ({
-      ...c,
-      spend: '0.00',
-      rawSpendUsd: c.rawSpendUsd !== null ? '0.00' : null,
-      impressions: 0,
-      clicks: 0,
-      cpc: '0.00',
-      cpm: '0.00',
-      ctr: '0.00%',
-      sales: 0,
-      pendingSales: 0,
-      revenue: '0.00',
-      profit: '0.00',
-      roas: '0.00',
-      cpa: '0.00'
-    })));
-    setIsLoadingData(true);
-
-    // Busca rápida no servidor dos dados exatos do período
-    loadData(newPeriod, newRange, false, false);
+    // Checa cache local em memória/localStorage para exibição instantânea (< 5ms)
+    const cached = getCachedCampData(newPeriod, newRange);
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      setCampaignsList(cached);
+      setSyncing(true);
+      // Revalida em segundo plano sem travar a interface nem zerar a tabela
+      loadData(newPeriod, newRange, true, false);
+    } else {
+      setIsLoadingData(true);
+      loadData(newPeriod, newRange, false, false);
+    }
   };
 
   const [accountFilter, setAccountFilter] = useState('Todas');
@@ -1033,6 +1044,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           const merged = mergeCampaignsPreservingOrder(prev, onlyActive);
           if (typeof window !== 'undefined') {
             const pKey = getCampPeriodKey(userId, customPreset, customRangeObj);
+            periodCacheRef.current.set(pKey, merged);
             localStorage.setItem(pKey, JSON.stringify(merged));
             const isToday = customPreset === 'Hoje' || (!customPreset && periodFilterRef.current === 'Hoje');
             if (isToday) {

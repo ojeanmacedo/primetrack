@@ -2528,6 +2528,60 @@ async function syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiv
   }
 }
 
+/**
+ * Pré-aquecimento em segundo plano dos presets mais acessados ('today', 'yesterday', 'last_7d')
+ * Permite que a troca de datas no Dashboard e em Campanhas seja instantânea (< 5ms)
+ */
+async function prewarmCommonPresets(targetUserId = null) {
+  try {
+    let connections = db.get('facebook_connections') || [];
+    if (connections.length === 0) {
+      const { data: supaConn } = await supabaseAdmin.from('facebook_connections').select('*');
+      if (supaConn && supaConn.length > 0) connections = supaConn;
+    }
+    if (!connections || connections.length === 0) return;
+
+    const userActiveMap = new Map();
+    connections.forEach(c => {
+      const uId = c.userId || c.user_id || 'usr_1788826403159';
+      if (targetUserId && uId !== targetUserId) return;
+      if (!userActiveMap.has(uId)) userActiveMap.set(uId, new Set());
+      if (c.email) {
+        try {
+          const meta = JSON.parse(c.email);
+          if (Array.isArray(meta?.activeAccounts)) {
+            meta.activeAccounts.forEach(id => userActiveMap.get(uId).add(String(id).replace('act_', '')));
+          }
+        } catch (e) {}
+      }
+    });
+
+    const todayBrazil = toBrazilYMD(new Date());
+    const presetsToWarm = ['today', 'yesterday', 'last_7d'];
+
+    for (const [uId, userActiveIds] of userActiveMap.entries()) {
+      if (userActiveIds.size === 0) continue;
+      for (const preset of presetsToWarm) {
+        const resolvedRange = resolveDateRange(preset);
+        const timeRange = (resolvedRange.since && resolvedRange.until) ? resolvedRange : null;
+        const cacheKey = getCampaignsCacheKey(uId, preset, resolvedRange);
+        await syncAndEnrichCampaigns({
+          datePreset: preset,
+          timeRange,
+          userId: uId,
+          userActiveIds,
+          cacheKey,
+          resolvedRange,
+          todayBrazil
+        }).catch(e => console.warn(`[Prewarm ${preset}]:`, e.message));
+      }
+    }
+    console.log('[Cache Prewarm] Presets comuns (Hoje, Ontem, 7d) aquecidos no cache de memória.');
+  } catch (err) {
+    console.warn('[Prewarm Error]:', err.message);
+  }
+}
+
 app.get('/api/campaigns', async (req, res) => {
   const userId = req.headers['x-user-id'] || req.query.userId || null;
   let connections = [];
@@ -2650,13 +2704,23 @@ app.get('/api/campaigns', async (req, res) => {
   const isToday = datePreset === 'today' || (resolvedRange.since === todayBrazil && resolvedRange.until === todayBrazil);
   const isCachedTodayInvalid = isToday && cached?.date && cached.date !== todayBrazil;
 
-  // Retorna cache APENAS se estiver 100% fresco e válido
-  if (cached && !isCachedTodayInvalid && refresh !== 'true') {
+  // Retorna cache imediatamente se disponível
+  if (cached && !isCachedTodayInvalid && refresh !== 'true' && Array.isArray(cached.campaigns)) {
     const age = now - cached.timestamp;
     const filteredCached = formatCampaignsForUser(cached.campaigns, userActiveIds);
 
-    if (filteredCached.length > 0 && age < freshTtlMs) {
+    if (age < freshTtlMs) {
       res.set('Cache-Control', 'private, max-age=30');
+      res.set('X-Cache', 'HIT');
+      return res.json(filteredCached);
+    }
+
+    // Stale-While-Revalidate: Entrega instantânea (< 5ms) do cache enquanto revalida em segundo plano
+    if (age < maxStaleWindowMs) {
+      syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiveIds, cacheKey, resolvedRange, todayBrazil })
+        .catch(e => console.warn('[Background SWR Sync]:', e.message));
+      res.set('Cache-Control', 'private, max-age=10');
+      res.set('X-Cache', 'STALE');
       return res.json(filteredCached);
     }
   }
@@ -2948,26 +3012,22 @@ app.get('/api/pixel/stats', async (req, res) => {
     }
   }
 
-  let events = [];
-  try {
-    const { data: supaEvents } = await supabaseAdmin
-      .from('events')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(2000);
-    if (Array.isArray(supaEvents) && supaEvents.length > 0) {
-      events = supaEvents.map(e => ({
-        id: e.id,
-        eventName: e.event_name,
-        timestamp: e.created_at
-      }));
-    }
-  } catch (supaErr) {
-    console.warn('Erro ao buscar eventos no Supabase:', supaErr.message);
-  }
-
+  let events = db.get('events') || [];
   if (events.length === 0) {
-    events = db.get('events') || [];
+    try {
+      const { data: supaEvents } = await supabaseAdmin
+        .from('events')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(2000);
+      if (Array.isArray(supaEvents) && supaEvents.length > 0) {
+        events = supaEvents.map(e => ({
+          id: e.id,
+          eventName: e.event_name,
+          timestamp: e.created_at
+        }));
+      }
+    } catch (supaErr) {}
   }
 
   const sessions = db.get('sessions') || [];
@@ -6348,6 +6408,11 @@ if (process.env.VERCEL !== '1') {
     console.log(`[PrimeTrack Server] Rodando na porta ${PORT}`);
     console.log(`[Pixel Script] Disponível em http://localhost:${PORT}/pixel.js`);
     console.log(`[Webhooks] Escutando em http://localhost:${PORT}/api/webhooks/:gateway`);
+
+    // Pré-aquece o cache de datas comuns após 2 segundos do boot para respostas instantâneas
+    setTimeout(() => {
+      prewarmCommonPresets().catch(err => console.warn('[Prewarm Boot Error]:', err.message));
+    }, 2000);
   });
 
   // Sincronização automática em segundo plano a cada 5 minutos das contas ativas e monitoramento de bloqueio
@@ -6387,6 +6452,7 @@ if (process.env.VERCEL !== '1') {
 
         console.log('[Auto-Sync Meta] Atualizando métricas e gastos reais das campanhas em segundo plano...');
         await executeMetaSync({ datePreset: 'today' });
+        prewarmCommonPresets().catch(() => {});
       }
     } catch (autoErr) {
       console.warn('[Auto-Sync Meta Aviso]:', autoErr.message);
