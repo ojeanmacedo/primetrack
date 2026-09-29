@@ -22,8 +22,18 @@ import {
   duplicateMetaCampaign,
   getUsdToBrlRate,
   invalidateAccountStructureCache
-} from './services/metaService.js';
+import { createClient } from '@supabase/supabase-js';
 import { supabaseAdmin } from './supabase.js';
+
+const MONSTERPAY_SUPABASE_URL = 'https://wahkbxkiwdjtlnvvxxrh.supabase.co';
+const MONSTERPAY_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndhaGtieGtpd2RqdGxudnZ4eHJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzNDAxODgsImV4cCI6MjA4NjkxNjE4OH0.S97irN5_gTfDBId_-OggmBa1fwYLrV6eCaVRRbVSIR8';
+let monsterpayClient = null;
+function getMonsterPayClient() {
+  if (!monsterpayClient) {
+    monsterpayClient = createClient(MONSTERPAY_SUPABASE_URL, MONSTERPAY_SUPABASE_ANON_KEY);
+  }
+  return monsterpayClient;
+}
 import { createCheckout, handleWebhookEvent, ensureWebhookConfigured, subscribeWithCard } from './services/abacatepayService.js';
 import * as OTPAuth from 'otpauth';
 
@@ -1574,6 +1584,90 @@ async function getAllOrders(forceFresh = false, userId = null) {
     }
   } catch (e) {
     console.warn('Erro ao buscar pedidos no Supabase:', e.message);
+  }
+
+  // Sincronização direta com a base de vendas da MonsterPay para o usuário dono (jeeanmacedo@gmail.com)
+  if (orders.length === 0 && isOwnerUserId(userId)) {
+    try {
+      const mpClient = getMonsterPayClient();
+      const { data: mpSales } = await mpClient
+        .from('sales')
+        .select('*')
+        .eq('user_id', 'f64f0317-b2f7-438b-b07a-6a6507238189')
+        .order('created_at', { ascending: false })
+        .limit(300);
+
+      if (Array.isArray(mpSales) && mpSales.length > 0) {
+        orders = mpSales.map(s => {
+          const gross = Number(s.amount || 0);
+          const pFee = Number(s.percent_fee || 0);
+          const fFee = Number(s.fixed_fee || 0);
+          const net = Number((gross - (gross * (pFee / 100)) - fFee).toFixed(2));
+
+          let status = 'waiting_payment';
+          if (s.status === 'paid' || s.status === 'approved') status = 'approved';
+          else if (s.status === 'expired' || s.status === 'cancelled') status = 'cancelled';
+          else if (s.status === 'refunded') status = 'refunded';
+          else status = 'waiting_payment';
+
+          let campName = s.utm_campaign || 'Orgânico';
+          let campId = null;
+          if (campName && campName.includes('|')) {
+            const parts = campName.split('|');
+            campName = parts[0].trim();
+            campId = parts[1].trim();
+          }
+
+          let adName = s.utm_content || '';
+          let adId = null;
+          if (adName && adName.includes('|')) {
+            const parts = adName.split('|');
+            adName = parts[0].trim();
+            adId = parts[1].trim();
+          }
+
+          return {
+            id: s.id,
+            userId: 'usr_1788826403159',
+            orderCode: s.payment_id || s.id,
+            gateway: 'MonsterPay',
+            productName: s.product_name || 'Vivendo De Internet',
+            status,
+            paymentMethod: 'pix',
+            amount: net,
+            commission: net,
+            grossAmount: gross,
+            customer: {
+              name: s.customer_name || 'Cliente MonsterPay',
+              email: s.customer_email || '',
+              phone: s.customer_phone || '',
+              document: s.customer_cpf || '',
+              city: '',
+              state: ''
+            },
+            attribution: sanitizeAttribution({
+              campaign: campName,
+              campaignId: campId,
+              adset: s.utm_medium || '',
+              ad: adName,
+              adId: adId,
+              source: s.utm_source || 'Facebook',
+              accountId: '806160179256359',
+              accountName: 'CA01 BM7'
+            }),
+            emqScore: 9.7,
+            capiSent: s.capi_purchase_sent || false,
+            createdAt: s.created_at
+          };
+        });
+
+        try {
+          db.set('orders', orders);
+        } catch (eDb) {}
+      }
+    } catch (eMp) {
+      console.warn('Erro ao sincronizar vendas da MonsterPay:', eMp.message);
+    }
   }
 
   // Fallback para orders locais com isolamento estrito por usuário
