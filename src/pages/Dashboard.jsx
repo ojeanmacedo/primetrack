@@ -169,12 +169,13 @@ export const getCachedPeriodData = (userId, periodName, range) => {
     if (parsed) {
       const norm = (periodName || 'Hoje').toLowerCase();
       // Para 'Hoje', dados mudam dinamicamente ao longo do dia com novos gastos do Meta Ads:
-      // se o cache tiver mais de 3 minutos, busca dados frescos do servidor
-      if ((norm === 'hoje' || norm === 'today') && parsed.timestamp && (Date.now() - parsed.timestamp > 3 * 60 * 1000)) {
+      // se o cache tiver mais de 2 minutos, busca dados frescos do servidor
+      if ((norm === 'hoje' || norm === 'today') && parsed.timestamp && (Date.now() - parsed.timestamp > 2 * 60 * 1000)) {
         return null;
       }
-      if (Array.isArray(parsed)) return { campaigns: parsed };
-      if (Array.isArray(parsed.campaigns)) return parsed;
+      if (Array.isArray(parsed.campaigns) && Array.isArray(parsed.orders)) {
+        return parsed;
+      }
     }
   } catch (e) {}
   return null;
@@ -507,6 +508,20 @@ export default function Dashboard() {
     return [];
   });
 
+  const [isPeriodLoading, setIsPeriodLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedPeriod = localStorage.getItem('primetrack_dashboard_period') || 'Hoje';
+      const savedRangeStr = localStorage.getItem('primetrack_dashboard_custom_range');
+      let savedRange = null;
+      try { savedRange = JSON.parse(savedRangeStr); } catch (e) {}
+      const cached = getCachedPeriodData(user?.id, savedPeriod, savedRange);
+      if (cached && Array.isArray(cached.campaigns) && Array.isArray(cached.orders)) {
+        return false;
+      }
+    }
+    return true;
+  });
+
   const [campaigns, setCampaigns] = useState(() => {
     if (typeof window !== 'undefined') {
       const savedPeriod = localStorage.getItem('primetrack_dashboard_period') || 'Hoje';
@@ -515,77 +530,8 @@ export default function Dashboard() {
       try { savedRange = JSON.parse(savedRangeStr); } catch (e) {}
 
       const periodCached = getCachedPeriodData(user?.id, savedPeriod, savedRange);
-      if (periodCached && Array.isArray(periodCached.campaigns) && periodCached.campaigns.length > 0) {
+      if (periodCached && Array.isArray(periodCached.campaigns) && Array.isArray(periodCached.orders)) {
         return periodCached.campaigns;
-      }
-
-      const cached = localStorage.getItem('primetrack_cached_campaigns');
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            const savedDate = localStorage.getItem('primetrack_cached_campaigns_date');
-            const todayYMD = toBrazilYMD(new Date());
-            const isToday = savedPeriod === 'Hoje' || !savedPeriod;
-            if (!isToday || !savedDate || savedDate !== todayYMD) {
-              return parsed.map(c => ({
-                ...c,
-                spend: '0.00',
-                rawSpendUsd: c.rawSpendUsd !== null ? '0.00' : null,
-                impressions: 0,
-                clicks: 0,
-                cpc: '0.00',
-                cpm: '0.00',
-                ctr: '0.00%',
-                initCheckouts: 0,
-                costPerIc: '0.00',
-                sales: 0,
-                pendingSales: 0,
-                revenue: '0.00',
-                profit: '0.00',
-                roas: '0.00',
-                cpa: '0.00',
-                adsets: (c.adsets || []).map(as => ({
-                  ...as,
-                  spend: '0.00',
-                  rawSpendUsd: as.rawSpendUsd !== null ? '0.00' : null,
-                  impressions: 0,
-                  clicks: 0,
-                  cpc: '0.00',
-                  cpm: '0.00',
-                  ctr: '0.00%',
-                  initCheckouts: 0,
-                  costPerIc: '0.00',
-                  sales: 0,
-                  pendingSales: 0,
-                  revenue: '0.00',
-                  profit: '0.00',
-                  roas: '0.00',
-                  cpa: '0.00'
-                })),
-                ads: (c.ads || []).map(ad => ({
-                  ...ad,
-                  spend: '0.00',
-                  rawSpendUsd: ad.rawSpendUsd !== null ? '0.00' : null,
-                  impressions: 0,
-                  clicks: 0,
-                  cpc: '0.00',
-                  cpm: '0.00',
-                  ctr: '0.00%',
-                  initCheckouts: 0,
-                  costPerIc: '0.00',
-                  sales: 0,
-                  pendingSales: 0,
-                  revenue: '0.00',
-                  profit: '0.00',
-                  roas: '0.00',
-                  cpa: '0.00'
-                }))
-              }));
-            }
-            return parsed;
-          }
-        } catch (e) {}
       }
     }
     return [];
@@ -593,13 +539,15 @@ export default function Dashboard() {
 
   const [ordersList, setOrdersList] = useState(() => {
     if (typeof window !== 'undefined') {
-      try {
-        const cached = localStorage.getItem('primetrack_cached_orders');
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed)) return parsed;
-        }
-      } catch (e) {}
+      const savedPeriod = localStorage.getItem('primetrack_dashboard_period') || 'Hoje';
+      const savedRangeStr = localStorage.getItem('primetrack_dashboard_custom_range');
+      let savedRange = null;
+      try { savedRange = JSON.parse(savedRangeStr); } catch (e) {}
+
+      const periodCached = getCachedPeriodData(user?.id, savedPeriod, savedRange);
+      if (periodCached && Array.isArray(periodCached.orders)) {
+        return periodCached.orders;
+      }
     }
     return [];
   });
@@ -680,70 +628,19 @@ export default function Dashboard() {
       }
     }
 
-    // 1. Resposta instantânea (0ms) da tela se houver cache local desse período
+    // 1. Resposta instantânea (0ms) da tela se houver cache local sincronizado (campanhas E vendas)
     const cachedData = getCachedPeriodData(user?.id, newPeriod, newRange);
-    if (cachedData && Array.isArray(cachedData.campaigns)) {
+    if (cachedData && Array.isArray(cachedData.campaigns) && Array.isArray(cachedData.orders)) {
       setCampaigns(cachedData.campaigns);
+      setOrdersList(cachedData.orders);
       if (cachedData.pixelStats) {
         setPixelStats(cachedData.pixelStats);
       }
+      setIsPeriodLoading(false);
     } else {
-      // Se não há cache para esta data específica, zera as métricas temporariamente
-      // para não mostrar gastos ou vendas erradas de outros períodos enquanto busca (~300ms)
-      setCampaigns(prev => prev.map(c => ({
-        ...c,
-        spend: '0.00',
-        rawSpendUsd: c.rawSpendUsd !== null ? '0.00' : null,
-        impressions: 0,
-        clicks: 0,
-        cpc: '0.00',
-        cpm: '0.00',
-        ctr: '0.00%',
-        initCheckouts: 0,
-        costPerIc: '0.00',
-        sales: 0,
-        pendingSales: 0,
-        revenue: '0.00',
-        profit: '0.00',
-        roas: '0.00',
-        cpa: '0.00',
-        adsets: (c.adsets || []).map(as => ({
-          ...as,
-          spend: '0.00',
-          rawSpendUsd: as.rawSpendUsd !== null ? '0.00' : null,
-          impressions: 0,
-          clicks: 0,
-          cpc: '0.00',
-          cpm: '0.00',
-          ctr: '0.00%',
-          initCheckouts: 0,
-          costPerIc: '0.00',
-          sales: 0,
-          pendingSales: 0,
-          revenue: '0.00',
-          profit: '0.00',
-          roas: '0.00',
-          cpa: '0.00'
-        })),
-        ads: (c.ads || []).map(ad => ({
-          ...ad,
-          spend: '0.00',
-          rawSpendUsd: ad.rawSpendUsd !== null ? '0.00' : null,
-          impressions: 0,
-          clicks: 0,
-          cpc: '0.00',
-          cpm: '0.00',
-          ctr: '0.00%',
-          initCheckouts: 0,
-          costPerIc: '0.00',
-          sales: 0,
-          pendingSales: 0,
-          revenue: '0.00',
-          profit: '0.00',
-          roas: '0.00',
-          cpa: '0.00'
-        }))
-      })));
+      // Se não há cache completo para esta data específica, ativa o estado atômico de loading.
+      // Desta forma NUNCA exibe números intermediários falsos ou cruzados (ex: vendas de ontem com gasto zerado).
+      setIsPeriodLoading(true);
       setSyncing(true);
     }
 
@@ -760,7 +657,14 @@ export default function Dashboard() {
       query = `datePreset=${preset}`;
     }
 
-    const userHeaders = user?.id ? { 'x-user-id': user.id } : {};
+    const activeAccountsParam = adAccountsList.length > 0 
+      ? `&activeAccounts=${encodeURIComponent(adAccountsList.map(a => a.id).join(','))}` 
+      : '';
+    const activeHeaders = adAccountsList.length > 0
+      ? { 'x-active-accounts': adAccountsList.map(a => a.id).join(',') }
+      : {};
+
+    const userHeaders = user?.id ? { 'x-user-id': user.id, ...activeHeaders } : { ...activeHeaders };
     const userParam = user?.id ? `&userId=${encodeURIComponent(user.id)}` : '';
     const userParamFirst = user?.id ? `?userId=${encodeURIComponent(user.id)}` : '';
 
@@ -772,22 +676,17 @@ export default function Dashboard() {
 
       const [rData, crRes, ordRes, pixRes] = await Promise.all([
         statusPromise,
-        fetch(`/api/campaigns?${query}${userParam}`, { headers: userHeaders }),
+        fetch(`/api/campaigns?${query}${userParam}${activeAccountsParam}`, { headers: userHeaders }),
         fetch('/api/orders' + userParamFirst, { headers: userHeaders }),
         fetch(`/api/pixel/stats?${query}${userParam}`, { headers: userHeaders }).catch(() => null)
       ]);
 
+      let resolvedOrders = ordersList;
       try {
         const oData = await ordRes.json();
         if (Array.isArray(oData)) {
+          resolvedOrders = oData;
           setOrdersList(oData);
-          if (typeof window !== 'undefined') {
-            if (oData.length > 0) {
-              localStorage.setItem('primetrack_cached_orders', JSON.stringify(oData));
-            } else {
-              localStorage.removeItem('primetrack_cached_orders');
-            }
-          }
         }
       } catch (oErr) {}
 
@@ -857,25 +756,16 @@ export default function Dashboard() {
         setCampaigns(cData);
         setCachedPeriodData(user?.id, customPeriod, rangeObj, {
           campaigns: cData,
+          orders: resolvedOrders,
           pixelStats: resolvedPixelStats
         });
-        if (typeof window !== 'undefined') {
-          const isTodayPeriod = customPeriod === 'Hoje' || (!customPeriod && period === 'Hoje');
-          if (isTodayPeriod) {
-            if (cData.length > 0) {
-              localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(cData));
-              localStorage.setItem('primetrack_cached_campaigns_date', toBrazilYMD(new Date()));
-            } else {
-              localStorage.removeItem('primetrack_cached_campaigns');
-            }
-          }
-        }
       }
 
       setMinsAgo(0);
     } catch (err) {
       console.warn('Erro ao carregar dados do Dashboard:', err);
     } finally {
+      setIsPeriodLoading(false);
       setSyncing(false);
     }
   };
@@ -890,64 +780,67 @@ export default function Dashboard() {
       query = `datePreset=${preset}&refresh=true`;
     }
 
-    const userHeaders = user?.id ? { 'x-user-id': user.id } : {};
+    const activeAccountsParam = adAccountsList.length > 0 
+      ? `&activeAccounts=${encodeURIComponent(adAccountsList.map(a => a.id).join(','))}` 
+      : '';
+    const activeHeaders = adAccountsList.length > 0
+      ? { 'x-active-accounts': adAccountsList.map(a => a.id).join(',') }
+      : {};
+
+    const userHeaders = user?.id ? { 'x-user-id': user.id, ...activeHeaders } : { ...activeHeaders };
     const userParam = user?.id ? `&userId=${encodeURIComponent(user.id)}` : '';
     const userParamOrdersRefresh = user?.id ? `?userId=${encodeURIComponent(user.id)}&refresh=true` : '?refresh=true';
 
     try {
       const [cr, ord, pix] = await Promise.all([
-        fetch(`/api/campaigns?${query}${userParam}`, { headers: userHeaders }),
+        fetch(`/api/campaigns?${query}${userParam}${activeAccountsParam}`, { headers: userHeaders }),
         fetch('/api/orders' + userParamOrdersRefresh, { headers: userHeaders }),
         fetch(`/api/pixel/stats?${query}${userParam}`, { headers: userHeaders }).catch(() => null)
       ]);
       const [cData, oData] = await Promise.all([cr.json().catch(() => null), ord.json().catch(() => null)]);
-      if (Array.isArray(cData)) {
-        setCampaigns(cData);
-        setCachedPeriodData(user?.id, period, customRange, {
-          campaigns: cData,
-          pixelStats: pixelStats
-        });
-        if (typeof window !== 'undefined') {
-          if (period === 'Hoje') {
-            if (cData.length > 0) {
-              localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(cData));
-              localStorage.setItem('primetrack_cached_campaigns_date', toBrazilYMD(new Date()));
-            } else {
-              localStorage.removeItem('primetrack_cached_campaigns');
-            }
-          }
-        }
-      }
+
+      let finalOrders = ordersList;
       if (Array.isArray(oData)) {
+        finalOrders = oData;
         setOrdersList(oData);
-        if (typeof window !== 'undefined') {
-          if (oData.length > 0) {
-            localStorage.setItem('primetrack_cached_orders', JSON.stringify(oData));
-          } else {
-            localStorage.removeItem('primetrack_cached_orders');
-          }
-        }
       }
+
+      let finalPix = pixelStats;
       if (pix) {
         try {
           const pData = await pix.json();
           if (pData && typeof pData.pageViews === 'number') {
+            finalPix = pData;
             setPixelStats(pData);
-            if (typeof window !== 'undefined') {
-              localStorage.setItem('primetrack_cached_pixel_stats', JSON.stringify(pData));
-            }
           }
         } catch (pErr) {}
+      }
+
+      if (Array.isArray(cData)) {
+        setCampaigns(cData);
+        setCachedPeriodData(user?.id, period, customRange, {
+          campaigns: cData,
+          orders: finalOrders,
+          pixelStats: finalPix
+        });
       }
       setMinsAgo(0);
     } catch (err) {
       console.error('Erro ao sincronizar:', err);
     } finally {
+      setIsPeriodLoading(false);
       setSyncing(false);
     }
   };
 
   useEffect(() => {
+    // Purga de caches legados desincronizados
+    try {
+      localStorage.removeItem('primetrack_cached_campaigns');
+      localStorage.removeItem('primetrack_cached_campaigns_date');
+      localStorage.removeItem('primetrack_cached_orders');
+    } catch (e) {}
+
     let lastKnownDate = toBrazilYMD(new Date());
     loadDashboardData(periodRef.current, customRangeRef.current);
 
@@ -1487,12 +1380,21 @@ export default function Dashboard() {
         </div>
 
         <div>
-          <div className={`text-lg sm:text-xl font-bold tracking-tight font-sans ${card.valueColor}`}>
-            {showValues ? card.value : '••••••••'}
-          </div>
-          <div className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 truncate font-sans">
-            {card.subtitle}
-          </div>
+          {isPeriodLoading ? (
+            <div className="py-1">
+              <div className="h-6 sm:h-7 w-28 bg-white/10 rounded animate-pulse my-0.5" />
+              <div className="h-3 w-16 bg-white/5 rounded animate-pulse mt-1.5" />
+            </div>
+          ) : (
+            <>
+              <div className={`text-lg sm:text-xl font-bold tracking-tight font-sans ${card.valueColor}`}>
+                {showValues ? card.value : '••••••••'}
+              </div>
+              <div className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 truncate font-sans">
+                {card.subtitle}
+              </div>
+            </>
+          )}
         </div>
       </div>
     );
@@ -1510,6 +1412,35 @@ export default function Dashboard() {
         ? 'border-blue-500/50 ring-1 ring-blue-500/30 hover:border-blue-400 cursor-grab active:cursor-grabbing'
         : 'border-[#1E293B]'
     } rounded-xl p-3 sm:p-3.5 flex flex-col shadow-md h-full w-full select-none relative transition-colors overflow-hidden`;
+
+    if (isPeriodLoading) {
+      if (cardKey === 'funnel') {
+        return (
+          <div className={baseContainerClass}>
+            <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-1">
+              <div className="h-4 w-44 bg-white/10 rounded animate-pulse" />
+              <div className="h-3 w-4 bg-white/5 rounded animate-pulse" />
+            </div>
+            <div className="flex-1 flex items-center justify-center py-4">
+              <div className="h-16 w-full bg-white/5 rounded-lg animate-pulse" />
+            </div>
+          </div>
+        );
+      }
+      return (
+        <div className={baseContainerClass}>
+          <div className="flex items-center justify-between text-xs text-zinc-400 font-medium mb-2 shrink-0">
+            <div className="h-4 w-28 bg-white/10 rounded animate-pulse" />
+            <div className="h-3 w-4 bg-white/5 rounded animate-pulse" />
+          </div>
+          <div className="flex-1 flex flex-col justify-center space-y-2.5 py-1">
+            <div className="h-3.5 w-full bg-white/5 rounded animate-pulse" />
+            <div className="h-3.5 w-4/5 bg-white/5 rounded animate-pulse" />
+            <div className="h-3.5 w-3/5 bg-white/5 rounded animate-pulse" />
+          </div>
+        </div>
+      );
+    }
 
     if (cardKey === 'products') {
       return (
@@ -1898,15 +1829,34 @@ export default function Dashboard() {
     return null;
   };
 
-  const renderHourlySalesSection = () => (
-    <div className={`bg-[#141C2E] border ${
-      isEditingLayout ? 'border-blue-500/50 ring-1 ring-blue-500/30 hover:border-blue-400 cursor-grab active:cursor-grabbing' : 'border-[#1E293B]'
-    } rounded-xl p-3.5 sm:p-4 shadow-md h-full w-full flex flex-col justify-between select-none relative transition-colors`}>
-      {/* Header do Card */}
-      <div className="flex items-center justify-between mb-2 sm:mb-2.5">
-        <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight">
-          Vendas por Horário
-        </h3>
+  const renderHourlySalesSection = () => {
+    if (isPeriodLoading) {
+      return (
+        <div className={`bg-[#141C2E] border ${
+          isEditingLayout ? 'border-blue-500/50 ring-1 ring-blue-500/30 hover:border-blue-400 cursor-grab active:cursor-grabbing' : 'border-[#1E293B]'
+        } rounded-xl p-3.5 sm:p-4 shadow-md h-full w-full flex flex-col justify-between select-none relative transition-colors`}>
+          <div className="flex items-center justify-between mb-2 sm:mb-2.5">
+            <div className="h-4 w-36 bg-white/10 rounded animate-pulse" />
+            <div className="h-3 w-4 bg-white/5 rounded animate-pulse" />
+          </div>
+          <div className="h-28 flex items-end justify-between gap-1.5 px-1 pb-2">
+            {Array.from({ length: 16 }).map((_, i) => (
+              <div key={i} className="flex-1 bg-white/5 rounded-t animate-pulse" style={{ height: `${20 + (i % 5) * 12}px` }} />
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className={`bg-[#141C2E] border ${
+        isEditingLayout ? 'border-blue-500/50 ring-1 ring-blue-500/30 hover:border-blue-400 cursor-grab active:cursor-grabbing' : 'border-[#1E293B]'
+      } rounded-xl p-3.5 sm:p-4 shadow-md h-full w-full flex flex-col justify-between select-none relative transition-colors`}>
+        {/* Header do Card */}
+        <div className="flex items-center justify-between mb-2 sm:mb-2.5">
+          <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight">
+            Vendas por Horário
+          </h3>
         <div className="flex items-center gap-1.5">
           {isEditingLayout ? (
             <GripVertical className="w-4 h-4 text-blue-400" title="Bloco de Vendas por Horário" />
@@ -1992,6 +1942,7 @@ export default function Dashboard() {
       </div>
     </div>
   );
+};
 
   return (
     <div className="space-y-3 pb-12 font-sans select-none">

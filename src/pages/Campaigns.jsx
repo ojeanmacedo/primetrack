@@ -477,6 +477,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       localStorage.removeItem('primetrack_campaigns_period_filter');
       localStorage.removeItem('primetrack_campaigns_custom_range');
       localStorage.removeItem('primetrack_status_filter');
+      localStorage.removeItem('primetrack_cached_campaigns');
+      localStorage.removeItem('primetrack_cached_campaigns_date');
     }
   }, []);
 
@@ -675,7 +677,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       }
 
       const periodKeyHoje = getCampPeriodKey(userId, 'Hoje', null);
-      const saved = localStorage.getItem(periodKeyHoje) || localStorage.getItem(userCampKey) || localStorage.getItem('primetrack_cached_campaigns');
+      const saved = localStorage.getItem(periodKeyHoje) || localStorage.getItem(userCampKey);
       if (saved) {
         try {
           const parsed = JSON.parse(saved);

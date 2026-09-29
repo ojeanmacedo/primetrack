@@ -34,16 +34,28 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Utilitários de fuso horário de São Paulo (UTC-3)
-export function toBrazilYMD(dateInput) {
+export function toBrazilYMD(dateInput = new Date()) {
   if (!dateInput) return null;
+  if (typeof dateInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateInput.trim())) {
+    return dateInput.trim();
+  }
   const d = new Date(dateInput);
   if (isNaN(d.getTime())) return null;
-  // America/Sao_Paulo (UTC-3)
-  const spDate = new Date(d.getTime() - (3 * 3600 * 1000));
-  const y = spDate.getUTCFullYear();
-  const m = String(spDate.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(spDate.getUTCDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(d);
+  } catch (e) {
+    // Fallback America/Sao_Paulo (UTC-3)
+    const spDate = new Date(d.getTime() - (3 * 3600 * 1000));
+    const y = spDate.getUTCFullYear();
+    const m = String(spDate.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(spDate.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
 }
 
 export const OWNER_USER_IDS = ['usr_1788826403159', 'usr_admin_digitaljm'];
@@ -59,14 +71,11 @@ export function resolveDateRange(datePreset = 'today', since = null, until = nul
   if (since && until) {
     return { since, until, isMaximum: false };
   }
-  const now = new Date();
-  const spNow = new Date(now.getTime() - (3 * 3600 * 1000));
-  const formatYMD = (d) => {
-    const y = d.getUTCFullYear();
-    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(d.getUTCDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  };
+  const today = toBrazilYMD(new Date());
+  if (!today) {
+    return { since: null, until: null, isMaximum: true };
+  }
+  const [y, m, d] = today.split('-').map(Number);
 
   const normalized = (datePreset || 'today').toLowerCase()
     .replace('últimos ', '')
@@ -74,28 +83,29 @@ export function resolveDateRange(datePreset = 'today', since = null, until = nul
     .trim();
 
   if (normalized === 'today' || normalized === 'hoje') {
-    const t = formatYMD(spNow);
-    return { since: t, until: t, isMaximum: false };
+    return { since: today, until: today, isMaximum: false };
   } else if (normalized === 'yesterday' || normalized === 'ontem') {
-    const yest = formatYMD(new Date(spNow.getTime() - 86400000));
+    const yestDate = new Date(Date.UTC(y, m - 1, d - 1));
+    const yest = yestDate.toISOString().slice(0, 10);
     return { since: yest, until: yest, isMaximum: false };
   } else if (normalized === 'last_7d' || normalized === '7d' || normalized === '7 dias') {
-    const d7 = formatYMD(new Date(spNow.getTime() - 6 * 86400000));
-    return { since: d7, until: formatYMD(spNow), isMaximum: false };
+    const d7Date = new Date(Date.UTC(y, m - 1, d - 6));
+    const d7 = d7Date.toISOString().slice(0, 10);
+    return { since: d7, until: today, isMaximum: false };
   } else if (normalized === 'last_14d' || normalized === 'last_15d' || normalized === '14d' || normalized === '15d' || normalized === '14 dias' || normalized === '15 dias') {
-    const d15 = formatYMD(new Date(spNow.getTime() - 14 * 86400000));
-    return { since: d15, until: formatYMD(spNow), isMaximum: false };
+    const d15Date = new Date(Date.UTC(y, m - 1, d - 14));
+    const d15 = d15Date.toISOString().slice(0, 10);
+    return { since: d15, until: today, isMaximum: false };
   } else if (normalized === 'last_30d' || normalized === '30d' || normalized === '30 dias') {
-    const d30 = formatYMD(new Date(spNow.getTime() - 29 * 86400000));
-    return { since: d30, until: formatYMD(spNow), isMaximum: false };
+    const d30Date = new Date(Date.UTC(y, m - 1, d - 29));
+    const d30 = d30Date.toISOString().slice(0, 10);
+    return { since: d30, until: today, isMaximum: false };
   } else if (normalized === 'this_month' || normalized === 'este mês' || normalized === 'este mes') {
-    const mStart = `${spNow.getUTCFullYear()}-${String(spNow.getUTCMonth() + 1).padStart(2, '0')}-01`;
-    return { since: mStart, until: formatYMD(spNow), isMaximum: false };
+    const mStart = `${today.slice(0, 7)}-01`;
+    return { since: mStart, until: today, isMaximum: false };
   } else if (normalized === 'last_month' || normalized === 'mês passado' || normalized === 'mes passado') {
-    const y = spNow.getUTCFullYear();
-    const m = spNow.getUTCMonth();
-    const prevMonthDate = new Date(Date.UTC(y, m - 1, 1));
-    const lastDayPrevMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    const prevMonthDate = new Date(Date.UTC(y, m - 2, 1));
+    const lastDayPrevMonth = new Date(Date.UTC(y, m - 1, 0)).getUTCDate();
     const prevYear = prevMonthDate.getUTCFullYear();
     const prevMonthStr = String(prevMonthDate.getUTCMonth() + 1).padStart(2, '0');
     const s = `${prevYear}-${prevMonthStr}-01`;
@@ -104,8 +114,7 @@ export function resolveDateRange(datePreset = 'today', since = null, until = nul
   } else if (normalized === 'maximum' || normalized === 'máximo' || normalized === 'maximo') {
     return { since: null, until: null, isMaximum: true };
   }
-  const t = formatYMD(spNow);
-  return { since: t, until: t, isMaximum: false };
+  return { since: today, until: today, isMaximum: false };
 }
 
 export function getCampaignsCacheKey(userId, datePreset, resolvedRange) {
