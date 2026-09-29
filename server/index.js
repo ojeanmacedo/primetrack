@@ -22,6 +22,7 @@ import {
   duplicateMetaCampaign,
   getUsdToBrlRate,
   invalidateAccountStructureCache
+} from './services/metaService.js';
 import { createClient } from '@supabase/supabase-js';
 import { supabaseAdmin } from './supabase.js';
 
@@ -1626,6 +1627,14 @@ async function getAllOrders(forceFresh = false, userId = null) {
             adId = parts[1].trim();
           }
 
+          let adsetName = s.utm_medium || '';
+          let adsetId = null;
+          if (adsetName && adsetName.includes('|')) {
+            const parts = adsetName.split('|');
+            adsetName = parts[0].trim();
+            adsetId = parts[1].trim();
+          }
+
           return {
             id: s.id,
             userId: 'usr_1788826403159',
@@ -1648,7 +1657,8 @@ async function getAllOrders(forceFresh = false, userId = null) {
             attribution: sanitizeAttribution({
               campaign: campName,
               campaignId: campId,
-              adset: s.utm_medium || '',
+              adset: adsetName,
+              adsetId: adsetId,
               ad: adName,
               adId: adId,
               source: s.utm_source || 'Facebook',
@@ -3379,7 +3389,24 @@ export async function reconcileFacebookData(force = false, userId = null) {
       connectedAt: c.connected_at || c.connectedAt
     };
   });
-  db.set('facebook_connections', [...otherConns, ...updatedUserConns]);
+  const allConnsCombined = [...otherConns, ...updatedUserConns];
+  const uniqueConnsMap = new Map();
+  allConnsCombined.forEach(c => {
+    const rawId = String(c.id || '');
+    const cleanProfileId = c.profileId || (rawId.includes('___') ? rawId.split('___')[0] : rawId);
+    const effectiveUser = c.userId || c.user_id || userId || 'usr_1788826403159';
+    const key = `${cleanProfileId}___${effectiveUser}`;
+    if (!uniqueConnsMap.has(key)) {
+      uniqueConnsMap.set(key, {
+        ...c,
+        id: key,
+        profileId: cleanProfileId,
+        userId: effectiveUser,
+        user_id: effectiveUser
+      });
+    }
+  });
+  db.set('facebook_connections', Array.from(uniqueConnsMap.values()));
 
   // 3. Mapeia contas ativas de forma isolada por usuário/conexão
   // Garante que mesmo com o mesmo perfil do FB conectado em usuários distintos, cada usuário mantém suas contas ativas separadas
@@ -3485,7 +3512,22 @@ export async function reconcileFacebookData(force = false, userId = null) {
     } else {
       updatedLocalAccs = validAccounts;
     }
-    db.set('ad_accounts', updatedLocalAccs);
+    const uniqueAccsMap = new Map();
+    (updatedLocalAccs || []).forEach(a => {
+      const cleanId = String(a.accountId || a.id || '').replace('act_', '').split('___')[0];
+      const targetUser = a.user_id || a.userId || userId || 'usr_1788826403159';
+      const key = `${cleanId}___${targetUser}`;
+      if (!uniqueAccsMap.has(key) || a.syncActive) {
+        uniqueAccsMap.set(key, {
+          ...a,
+          id: `act_${cleanId}`,
+          accountId: cleanId,
+          userId: targetUser,
+          user_id: targetUser
+        });
+      }
+    });
+    db.set('ad_accounts', Array.from(uniqueAccsMap.values()));
   } else if (connections.length > 0) {
     // Se a busca ao vivo na Meta falhou (ex: rate limit ou erro de rede temporário),
     // recupera as contas existentes já salvas no Supabase e no banco local para não apagar a visualização do usuário
