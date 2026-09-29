@@ -378,6 +378,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const userCampKey = userId ? `primetrack_cached_campaigns_${userId}` : 'primetrack_cached_campaigns';
   const userCampDateKey = userId ? `primetrack_cached_campaigns_date_${userId}` : 'primetrack_cached_campaigns_date';
   const userDisconKey = userId ? `primetrack_meta_disconnected_${userId}` : 'primetrack_meta_disconnected';
+
+  const getCampPeriodKey = (uId, preset, range) => {
+    const p = preset === 'Personalizado' && range?.since ? `${range.since}_${range.until}` : (preset || 'Hoje');
+    return `primetrack_camp_cache_${uId || 'default'}_${p}`;
+  };
   const [subTab, setSubTabState] = useState(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -441,7 +446,30 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setCustomRange(newRange);
     periodFilterRef.current = newPeriod;
     customRangeRef.current = newRange;
-    loadData(newPeriod, newRange);
+
+    // 1. Resposta instantânea (0ms) da tela se houver dados em cache desse período
+    let cached = null;
+    if (typeof window !== 'undefined') {
+      try {
+        const pKey = getCampPeriodKey(userId, newPeriod, newRange);
+        const saved = localStorage.getItem(pKey);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            cached = sanitizeCampaignsData(parsed);
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (cached) {
+      setCampaignsList(cached);
+    } else {
+      setIsLoadingData(true);
+    }
+
+    // 2. Busca rápida no servidor (utilizando cache inteligente SWR sem forçar refresh)
+    loadData(newPeriod, newRange, false, false);
   };
 
   const [accountFilter, setAccountFilter] = useState('Todas');
@@ -584,7 +612,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         return [];
       }
 
-      const saved = localStorage.getItem(userCampKey) || localStorage.getItem('primetrack_cached_campaigns');
+      const periodKeyHoje = getCampPeriodKey(userId, 'Hoje', null);
+      const saved = localStorage.getItem(periodKeyHoje) || localStorage.getItem(userCampKey) || localStorage.getItem('primetrack_cached_campaigns');
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
@@ -820,24 +849,32 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       setIsLoadingData(true);
     }
 
-    const activeAccountsParam = currentActiveAccs.length > 0 
-      ? `&activeAccounts=${encodeURIComponent(currentActiveAccs.map(a => a.id).join(','))}` 
+    const targetAccountsToFilter = (accountFilter && accountFilter !== 'Todas')
+      ? currentActiveAccs.filter(a => a.name === accountFilter || a.id === accountFilter)
+      : currentActiveAccs;
+
+    const activeAccountsParam = targetAccountsToFilter.length > 0 
+      ? `&activeAccounts=${encodeURIComponent(targetAccountsToFilter.map(a => a.id).join(','))}` 
       : '';
-    const activeHeader = currentActiveAccs.length > 0
-      ? { 'x-active-accounts': currentActiveAccs.map(a => a.id).join(',') }
+    const activeHeader = targetAccountsToFilter.length > 0
+      ? { 'x-active-accounts': targetAccountsToFilter.map(a => a.id).join(',') }
       : {};
     const userHeaders = user?.id ? { 'x-user-id': user.id, ...activeHeader } : { ...activeHeader };
     const userParam = user?.id ? `&userId=${encodeURIComponent(user.id)}` : '';
     const userParamFirst = user?.id ? `?userId=${encodeURIComponent(user.id)}` : '';
-    const refreshParam = (forceRefresh || !isBackground) ? '&refresh=true' : '';
+    const refreshParam = forceRefresh ? '&refresh=true' : '';
 
     try {
-      const [statusRes, crRes] = await Promise.all([
-        fetch('/api/meta/status' + userParamFirst, { headers: userHeaders }),
+      const statusPromise = (currentActiveAccs.length === 0 || forceRefresh)
+        ? fetch('/api/meta/status' + userParamFirst, { headers: userHeaders }).then(r => r.json()).catch(() => ({}))
+        : Promise.resolve(null);
+
+      const [statusData, crRes] = await Promise.all([
+        statusPromise,
         fetch(`/api/campaigns?${query}${userParam}${activeAccountsParam}${refreshParam}`, { headers: userHeaders })
       ]);
 
-      const data = await statusRes.json().catch(() => ({}));
+      const data = statusData || {};
 
       if (data && data.connections && data.connections.length > 0) {
         if (typeof window !== 'undefined') {
@@ -951,6 +988,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         setCampaignsList(prev => {
           const merged = mergeCampaignsPreservingOrder(prev, onlyActive);
           if (typeof window !== 'undefined') {
+            const pKey = getCampPeriodKey(userId, customPreset, customRangeObj);
+            localStorage.setItem(pKey, JSON.stringify(merged));
             localStorage.setItem(userCampKey, JSON.stringify(merged));
             localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(merged));
             if (customPreset === 'Hoje' || (!customPreset && periodFilterRef.current === 'Hoje')) {
@@ -1016,7 +1055,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        loadData(periodFilterRef.current, customRangeRef.current, false, true);
+        loadData(periodFilterRef.current, customRangeRef.current, true, false);
       }
     };
 
@@ -1055,81 +1094,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setSyncing(true);
     try {
       const selectedPreset = typeof preset === 'string' ? preset : periodFilterRef.current;
-      const periodMap = {
-        'Hoje': 'today',
-        'Ontem': 'yesterday',
-        'Últimos 7 dias': 'last_7d',
-        '7 dias': 'last_7d',
-        'Últimos 14 dias': 'last_15d',
-        '14 dias': 'last_15d',
-        'Últimos 15 dias': 'last_15d',
-        '15 dias': 'last_15d',
-        'Últimos 30 dias': 'last_30d',
-        '30 dias': 'last_30d',
-        'Este mês': 'this_month',
-        'Mês passado': 'last_month',
-        'mes passado': 'last_month',
-        'Máximo': 'maximum',
-        'maximo': 'maximum',
-        'Personalizado': 'maximum'
-      };
-      const datePreset = periodMap[selectedPreset] || selectedPreset || 'today';
-      
-      const syncPayload = {};
-
-      if (accountFilter && accountFilter !== 'Todas') {
-        const targetAcc = activeAccs.find(a => a.name === accountFilter || a.id === accountFilter);
-        if (targetAcc) {
-          syncPayload.accountId = targetAcc.id;
-        }
-      }
-
-      if (selectedPreset === 'Personalizado' && customRangeObj?.since) {
-        syncPayload.since = customRangeObj.since;
-        syncPayload.until = customRangeObj.until || customRangeObj.since;
-      } else {
-        syncPayload.datePreset = datePreset;
-      }
-
-      syncPayload.userId = user?.id;
-      const syncRes = await fetch('/api/meta/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-user-id': user?.id || '' },
-        body: JSON.stringify(syncPayload)
-      });
-      const syncData = await syncRes.json();
-      if (syncData && Array.isArray(syncData.campaigns)) {
-        const activeIds = new Set(activeAccs.map(a => String(a.id).replace('act_', '')));
-        const activeNames = new Set(activeAccs.map(a => (a.name || '').toLowerCase().trim()));
-        const onlyActive = syncData.campaigns.filter(c => {
-          const cAdId = String(c.adAccountId || c.accountId || '').replace('act_', '');
-          const cAccName = (c.accountName || '').toLowerCase().trim();
-          return (cAdId && activeIds.has(cAdId)) || (cAccName && activeNames.has(cAccName));
-        });
-
-        if (onlyActive.length > 0) {
-          setCampaignsList(prev => {
-            const merged = mergeCampaignsPreservingOrder(prev, onlyActive);
-            if (typeof window !== 'undefined') {
-              localStorage.setItem(userCampKey, JSON.stringify(merged));
-              localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(merged));
-              if (selectedPreset === 'Hoje') {
-                localStorage.setItem(userCampDateKey, getBrazilTodayYMD());
-                localStorage.setItem('primetrack_cached_campaigns_date', getBrazilTodayYMD());
-              }
-            }
-            return merged;
-          });
-        }
-      }
-
       await loadData(selectedPreset, customRangeObj, false, true);
       const now = new Date();
       setLastSyncTime(`${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`);
     } catch (e) {
       console.error(e);
+    } finally {
+      setSyncing(false);
     }
-    setSyncing(false);
   };
 
   const handleToggleStatus = async (itemId, directItem = null) => {

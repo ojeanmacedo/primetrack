@@ -93,6 +93,34 @@ function FunnelConnector({ dropPct }) {
   );
 }
 
+export const getPeriodStorageKey = (userId, periodName, range) => {
+  const p = periodName === 'Personalizado' && range?.since ? `${range.since}_${range.until}` : (periodName || 'Hoje');
+  return `primetrack_dash_camp_${userId || 'default'}_${p}`;
+};
+
+export const getCachedPeriodData = (userId, periodName, range) => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const key = getPeriodStorageKey(userId, periodName, range);
+    const saved = localStorage.getItem(key);
+    if (!saved) return null;
+    const parsed = JSON.parse(saved);
+    if (parsed) {
+      if (Array.isArray(parsed)) return { campaigns: parsed };
+      if (Array.isArray(parsed.campaigns)) return parsed;
+    }
+  } catch (e) {}
+  return null;
+};
+
+export const setCachedPeriodData = (userId, periodName, range, data) => {
+  if (typeof window === 'undefined' || !data) return;
+  try {
+    const key = getPeriodStorageKey(userId, periodName, range);
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (e) {}
+};
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const user = getCurrentUser();
@@ -411,6 +439,16 @@ export default function Dashboard() {
 
   const [campaigns, setCampaigns] = useState(() => {
     if (typeof window !== 'undefined') {
+      const savedPeriod = localStorage.getItem('primetrack_dashboard_period') || 'Hoje';
+      const savedRangeStr = localStorage.getItem('primetrack_dashboard_custom_range');
+      let savedRange = null;
+      try { savedRange = JSON.parse(savedRangeStr); } catch (e) {}
+
+      const periodCached = getCachedPeriodData(user?.id, savedPeriod, savedRange);
+      if (periodCached && Array.isArray(periodCached.campaigns) && periodCached.campaigns.length > 0) {
+        return periodCached.campaigns;
+      }
+
       const cached = localStorage.getItem('primetrack_cached_campaigns');
       if (cached) {
         try {
@@ -539,9 +577,13 @@ export default function Dashboard() {
     'Hoje': 'today',
     'Ontem': 'yesterday',
     '7 dias': 'last_7d',
+    'Últimos 7 dias': 'last_7d',
     '14 dias': 'last_15d',
+    'Últimos 14 dias': 'last_15d',
     '15 dias': 'last_15d',
+    'Últimos 15 dias': 'last_15d',
     '30 dias': 'last_30d',
+    'Últimos 30 dias': 'last_30d',
     'Este mês': 'this_month',
     'Mês passado': 'last_month',
     'mes passado': 'last_month',
@@ -551,6 +593,36 @@ export default function Dashboard() {
   };
 
   const isFirstMount = useRef(true);
+
+  const handleSelectPeriod = (newPeriod, newRange = null) => {
+    setPeriod(newPeriod);
+    periodRef.current = newPeriod;
+    setCustomRange(newRange);
+    customRangeRef.current = newRange;
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('primetrack_dashboard_period', newPeriod);
+      if (newRange) {
+        localStorage.setItem('primetrack_dashboard_custom_range', JSON.stringify(newRange));
+      } else {
+        localStorage.removeItem('primetrack_dashboard_custom_range');
+      }
+    }
+
+    // 1. Resposta instantânea (0ms) da tela se houver cache local desse período
+    const cachedData = getCachedPeriodData(user?.id, newPeriod, newRange);
+    if (cachedData && Array.isArray(cachedData.campaigns)) {
+      setCampaigns(cachedData.campaigns);
+      if (cachedData.pixelStats) {
+        setPixelStats(cachedData.pixelStats);
+      }
+    } else {
+      setSyncing(true);
+    }
+
+    // 2. Busca rápida no servidor em background (com SWR)
+    loadDashboardData(newPeriod, newRange);
+  };
 
   const loadDashboardData = async (customPeriod = period, rangeObj = customRange) => {
     let query = '';
@@ -566,8 +638,13 @@ export default function Dashboard() {
     const userParamFirst = user?.id ? `?userId=${encodeURIComponent(user.id)}` : '';
 
     try {
-      const [rRes, crRes, ordRes, pixRes] = await Promise.all([
-        fetch('/api/meta/status' + userParamFirst, { headers: userHeaders }),
+      // Se já temos as contas carregadas, não trava esperando /api/meta/status a cada troca de data
+      const statusPromise = (adAccountsList.length === 0)
+        ? fetch('/api/meta/status' + userParamFirst, { headers: userHeaders }).then(r => r.json()).catch(() => ({}))
+        : Promise.resolve(null);
+
+      const [rData, crRes, ordRes, pixRes] = await Promise.all([
+        statusPromise,
         fetch(`/api/campaigns?${query}${userParam}`, { headers: userHeaders }),
         fetch('/api/orders' + userParamFirst, { headers: userHeaders }),
         fetch(`/api/pixel/stats?${query}${userParam}`, { headers: userHeaders }).catch(() => null)
@@ -587,10 +664,12 @@ export default function Dashboard() {
         }
       } catch (oErr) {}
 
+      let resolvedPixelStats = pixelStats;
       if (pixRes) {
         try {
           const pData = await pixRes.json();
           if (pData && typeof pData.pageViews === 'number') {
+            resolvedPixelStats = pData;
             setPixelStats(pData);
             if (typeof window !== 'undefined') {
               localStorage.setItem('primetrack_cached_pixel_stats', JSON.stringify(pData));
@@ -599,54 +678,60 @@ export default function Dashboard() {
         } catch (pErr) {}
       }
 
-      const data = await rRes.json().catch(() => ({}));
-      if (data && data.connections && data.connections.length > 0) {
-        localStorage.removeItem('primetrack_meta_disconnected');
-      } else if (data && Array.isArray(data.connections) && data.connections.length === 0) {
-        setAdAccountsList([]);
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('primetrack_ad_accounts');
-        }
-      }
-
-      if (data && Array.isArray(data.adAccounts) && data.adAccounts.length > 0) {
-        const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
-        let localSyncMap = {};
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved);
-            if (Array.isArray(parsed)) {
-              parsed.forEach(p => {
-                if (p.id) localSyncMap[p.id] = p.sync;
-              });
-            }
-          } catch (e) {}
+      if (rData) {
+        const data = rData;
+        if (data && data.connections && data.connections.length > 0) {
+          localStorage.removeItem('primetrack_meta_disconnected');
+        } else if (data && Array.isArray(data.connections) && data.connections.length === 0) {
+          setAdAccountsList([]);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('primetrack_ad_accounts');
+          }
         }
 
-        const allMappedAccs = data.adAccounts.map(a => {
-          const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
-          const isSync = localSyncMap[accId] !== undefined
-            ? localSyncMap[accId] === true
-            : (a.syncActive === true);
-          return {
-            ...a,
-            id: accId,
-            sync: isSync
-          };
-        });
+        if (data && Array.isArray(data.adAccounts) && data.adAccounts.length > 0) {
+          const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
+          let localSyncMap = {};
+          if (saved) {
+            try {
+              const parsed = JSON.parse(saved);
+              if (Array.isArray(parsed)) {
+                parsed.forEach(p => {
+                  if (p.id) localSyncMap[p.id] = p.sync;
+                });
+              }
+            } catch (e) {}
+          }
 
-        const activeSynced = allMappedAccs.filter(a => a.sync);
-        setAdAccountsList(activeSynced.length > 0 ? activeSynced : allMappedAccs);
-      } else if (data && Array.isArray(data.adAccounts) && data.adAccounts.length === 0) {
-        setAdAccountsList([]);
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('primetrack_ad_accounts');
+          const allMappedAccs = data.adAccounts.map(a => {
+            const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
+            const isSync = localSyncMap[accId] !== undefined
+              ? localSyncMap[accId] === true
+              : (a.syncActive === true);
+            return {
+              ...a,
+              id: accId,
+              sync: isSync
+            };
+          });
+
+          const activeSynced = allMappedAccs.filter(a => a.sync);
+          setAdAccountsList(activeSynced.length > 0 ? activeSynced : allMappedAccs);
+        } else if (data && Array.isArray(data.adAccounts) && data.adAccounts.length === 0) {
+          setAdAccountsList([]);
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('primetrack_ad_accounts');
+          }
         }
       }
 
       const cData = await crRes.json().catch(() => null);
       if (Array.isArray(cData)) {
         setCampaigns(cData);
+        setCachedPeriodData(user?.id, customPeriod, rangeObj, {
+          campaigns: cData,
+          pixelStats: resolvedPixelStats
+        });
         if (typeof window !== 'undefined') {
           if (cData.length > 0) {
             localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(cData));
@@ -662,6 +747,8 @@ export default function Dashboard() {
       setMinsAgo(0);
     } catch (err) {
       console.warn('Erro ao carregar dados do Dashboard:', err);
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -677,17 +764,21 @@ export default function Dashboard() {
 
     const userHeaders = user?.id ? { 'x-user-id': user.id } : {};
     const userParam = user?.id ? `&userId=${encodeURIComponent(user.id)}` : '';
-    const userParamFirst = user?.id ? `?userId=${encodeURIComponent(user.id)}` : '';
+    const userParamOrdersRefresh = user?.id ? `?userId=${encodeURIComponent(user.id)}&refresh=true` : '?refresh=true';
 
     try {
       const [cr, ord, pix] = await Promise.all([
         fetch(`/api/campaigns?${query}${userParam}`, { headers: userHeaders }),
-        fetch('/api/orders' + userParamFirst, { headers: userHeaders }),
+        fetch('/api/orders' + userParamOrdersRefresh, { headers: userHeaders }),
         fetch(`/api/pixel/stats?${query}${userParam}`, { headers: userHeaders }).catch(() => null)
       ]);
       const [cData, oData] = await Promise.all([cr.json().catch(() => null), ord.json().catch(() => null)]);
       if (Array.isArray(cData)) {
         setCampaigns(cData);
+        setCachedPeriodData(user?.id, period, customRange, {
+          campaigns: cData,
+          pixelStats: pixelStats
+        });
         if (typeof window !== 'undefined') {
           if (cData.length > 0) {
             localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(cData));
@@ -795,10 +886,6 @@ export default function Dashboard() {
   useEffect(() => {
     if (isFirstMount.current) {
       isFirstMount.current = false;
-      return;
-    }
-    if (period !== 'Personalizado') {
-      loadDashboardData(period, null);
     }
   }, [period]);
 
@@ -891,11 +978,11 @@ export default function Dashboard() {
         if (orderYMD !== todayYMD) return false;
       } else if (period === 'Ontem') {
         if (orderYMD !== yesterdayYMD) return false;
-      } else if (period === '7 dias') {
+      } else if (period === '7 dias' || period === 'Últimos 7 dias') {
         if (orderYMD < sevenDaysAgoYMD || orderYMD > todayYMD) return false;
-      } else if (period === '15 dias') {
+      } else if (period === '14 dias' || period === '15 dias' || period === 'Últimos 14 dias' || period === 'Últimos 15 dias') {
         if (orderYMD < fifteenDaysAgoYMD || orderYMD > todayYMD) return false;
-      } else if (period === '30 dias') {
+      } else if (period === '30 dias' || period === 'Últimos 30 dias') {
         if (orderYMD < thirtyDaysAgoYMD || orderYMD > todayYMD) return false;
       } else if (period === 'Este mês') {
         if (!orderYMD.startsWith(currentMonthPrefix)) return false;
@@ -1855,21 +1942,13 @@ export default function Dashboard() {
                 value={period}
                 onChange={(e) => {
                   const val = e.target.value;
-                  setPeriod(val);
-                  periodRef.current = val;
-                  if (typeof window !== 'undefined') {
-                    localStorage.setItem('primetrack_dashboard_period', val);
-                  }
                   if (val === 'Personalizado') {
+                    setPeriod(val);
+                    periodRef.current = val;
                     setIsCalendarOpen(true);
                   } else {
-                    setCustomRange(null);
-                    customRangeRef.current = null;
-                    if (typeof window !== 'undefined') {
-                      localStorage.removeItem('primetrack_dashboard_custom_range');
-                    }
                     setIsCalendarOpen(false);
-                    loadDashboardData(val, null);
+                    handleSelectPeriod(val, null);
                   }
                 }}
                 className="w-full appearance-none bg-[#0F1728] border border-[#1E293B] rounded-lg px-2.5 py-1.5 text-zinc-200 focus:outline-none focus:border-[#0066FF] text-xs cursor-pointer font-medium"
@@ -1898,28 +1977,12 @@ export default function Dashboard() {
               onOpenChange={setIsCalendarOpen}
               hideTriggerButton={true}
               onSelectPeriod={(p) => {
-                setPeriod(p);
-                periodRef.current = p;
-                setCustomRange(null);
-                customRangeRef.current = null;
-                if (typeof window !== 'undefined') {
-                  localStorage.setItem('primetrack_dashboard_period', p);
-                  localStorage.removeItem('primetrack_dashboard_custom_range');
-                }
                 setIsCalendarOpen(false);
-                loadDashboardData(p, null);
+                handleSelectPeriod(p, null);
               }}
               onApplyCustomRange={(range) => {
-                setPeriod('Personalizado');
-                periodRef.current = 'Personalizado';
-                setCustomRange(range);
-                customRangeRef.current = range;
-                if (typeof window !== 'undefined') {
-                  localStorage.setItem('primetrack_dashboard_period', 'Personalizado');
-                  localStorage.setItem('primetrack_dashboard_custom_range', JSON.stringify(range));
-                }
                 setIsCalendarOpen(false);
-                loadDashboardData('Personalizado', range);
+                handleSelectPeriod('Personalizado', range);
               }}
             />
           </div>

@@ -20,7 +20,8 @@ import {
   updateMetaItemDetails,
   deleteMetaItem,
   duplicateMetaCampaign,
-  getUsdToBrlRate
+  getUsdToBrlRate,
+  invalidateAccountStructureCache
 } from './services/metaService.js';
 import { supabaseAdmin } from './supabase.js';
 import { createCheckout, handleWebhookEvent, ensureWebhookConfigured, subscribeWithCard } from './services/abacatepayService.js';
@@ -56,7 +57,7 @@ const recentlyNotifiedOrders = new Map();
 
 export function resolveDateRange(datePreset = 'today', since = null, until = null) {
   if (since && until) {
-    return { since, until };
+    return { since, until, isMaximum: false };
   }
   const now = new Date();
   const spNow = new Date(now.getTime() - (3 * 3600 * 1000));
@@ -67,38 +68,55 @@ export function resolveDateRange(datePreset = 'today', since = null, until = nul
     return `${y}-${m}-${day}`;
   };
 
-  if (datePreset === 'today') {
+  const normalized = (datePreset || 'today').toLowerCase()
+    .replace('últimos ', '')
+    .replace('ultimos ', '')
+    .trim();
+
+  if (normalized === 'today' || normalized === 'hoje') {
     const t = formatYMD(spNow);
-    return { since: t, until: t };
-  } else if (datePreset === 'yesterday') {
+    return { since: t, until: t, isMaximum: false };
+  } else if (normalized === 'yesterday' || normalized === 'ontem') {
     const yest = formatYMD(new Date(spNow.getTime() - 86400000));
-    return { since: yest, until: yest };
-  } else if (datePreset === 'last_7d') {
+    return { since: yest, until: yest, isMaximum: false };
+  } else if (normalized === 'last_7d' || normalized === '7d' || normalized === '7 dias') {
     const d7 = formatYMD(new Date(spNow.getTime() - 6 * 86400000));
-    return { since: d7, until: formatYMD(spNow) };
-  } else if (datePreset === 'last_14d' || datePreset === 'last_15d') {
+    return { since: d7, until: formatYMD(spNow), isMaximum: false };
+  } else if (normalized === 'last_14d' || normalized === 'last_15d' || normalized === '14d' || normalized === '15d' || normalized === '14 dias' || normalized === '15 dias') {
     const d15 = formatYMD(new Date(spNow.getTime() - 14 * 86400000));
     return { since: d15, until: formatYMD(spNow), isMaximum: false };
-  } else if (datePreset === 'last_30d') {
+  } else if (normalized === 'last_30d' || normalized === '30d' || normalized === '30 dias') {
     const d30 = formatYMD(new Date(spNow.getTime() - 29 * 86400000));
     return { since: d30, until: formatYMD(spNow), isMaximum: false };
-  } else if (datePreset === 'this_month') {
+  } else if (normalized === 'this_month' || normalized === 'este mês' || normalized === 'este mes') {
     const mStart = `${spNow.getUTCFullYear()}-${String(spNow.getUTCMonth() + 1).padStart(2, '0')}-01`;
     return { since: mStart, until: formatYMD(spNow), isMaximum: false };
-  } else if (datePreset === 'last_month') {
+  } else if (normalized === 'last_month' || normalized === 'mês passado' || normalized === 'mes passado') {
     const y = spNow.getUTCFullYear();
     const m = spNow.getUTCMonth();
     const prevMonthDate = new Date(Date.UTC(y, m - 1, 1));
     const lastDayPrevMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
     const prevYear = prevMonthDate.getUTCFullYear();
     const prevMonthStr = String(prevMonthDate.getUTCMonth() + 1).padStart(2, '0');
-    const since = `${prevYear}-${prevMonthStr}-01`;
-    const until = `${prevYear}-${prevMonthStr}-${String(lastDayPrevMonth).padStart(2, '0')}`;
-    return { since, until, isMaximum: false };
-  } else if (datePreset === 'maximum' || datePreset === 'maximo') {
+    const s = `${prevYear}-${prevMonthStr}-01`;
+    const u = `${prevYear}-${prevMonthStr}-${String(lastDayPrevMonth).padStart(2, '0')}`;
+    return { since: s, until: u, isMaximum: false };
+  } else if (normalized === 'maximum' || normalized === 'máximo' || normalized === 'maximo') {
     return { since: null, until: null, isMaximum: true };
   }
-  return { since: null, until: null, isMaximum: false };
+  const t = formatYMD(spNow);
+  return { since: t, until: t, isMaximum: false };
+}
+
+export function getCampaignsCacheKey(userId, datePreset, resolvedRange) {
+  const uid = userId || 'all';
+  if (resolvedRange?.isMaximum || datePreset === 'maximum' || datePreset === 'maximo') {
+    return `${uid}_maximum`;
+  }
+  if (resolvedRange?.since && resolvedRange?.until) {
+    return `${uid}_${resolvedRange.since}_${resolvedRange.until}`;
+  }
+  return `${uid}_${datePreset || 'today'}`;
 }
 
 export function getCleanClientIp(req) {
@@ -1359,6 +1377,8 @@ app.get('/api/stats', async (req, res) => {
  */
 // Cache em memória de alta performance para resposta instantânea (< 2ms)
 const campaignsCache = new Map();
+const ongoingCampaignSyncs = new Map();
+let lastAdAccountsDiscoveryTime = 0;
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
 
 // Registro em memória de status alterados recentemente (TTL de 15 minutos) para proteger contra lag de replicação da Meta Graph API
@@ -2109,6 +2129,287 @@ export function enrichCampaignsWithTracking({
   });
 }
 
+export function formatCampaignsForUser(campaignsList, userActiveIds) {
+  if (!Array.isArray(campaignsList)) return [];
+  return campaignsList.filter(c => {
+    const cActId = String(c.adAccountId || c.accountId || '').replace('act_', '');
+    const isDeleted = isItemDeleted(c.id);
+    return userActiveIds.has(cActId) && !isDeleted;
+  }).map(c => {
+    const campOverride = getEffectiveStatusOverride(c.id);
+    const campStatus = campOverride !== undefined ? campOverride : c.status;
+    const cDetail = getEffectiveDetailOverride(c.id);
+    const campBudget = cDetail?.budget !== undefined ? cDetail.budget : c.budget;
+    const campBidCap = cDetail?.bidCap !== undefined ? cDetail.bidCap : c.bidCap;
+    const campBidStrat = cDetail?.bidStrategy !== undefined ? cDetail.bidStrategy : c.bidStrategy;
+    const campName = cDetail?.name || c.name;
+    return {
+      ...c,
+      name: campName,
+      budget: campBudget,
+      bidCap: campBidCap,
+      bidStrategy: campBidStrat,
+      status: campStatus,
+      rawStatus: campStatus ? 'ACTIVE' : 'PAUSED',
+      effectiveStatus: campStatus ? 'ACTIVE' : 'PAUSED',
+      adsets: (c.adsets || []).filter(a => a && !isItemDeleted(a.id || a.adsetId)).map(a => {
+        const asOverride = getEffectiveStatusOverride(a.id || a.adsetId);
+        let asStatus = asOverride !== undefined ? asOverride : a.status;
+        if (!campStatus && asOverride === undefined) asStatus = false;
+        const asDetail = getEffectiveDetailOverride(a.id || a.adsetId);
+        return {
+          ...a,
+          name: asDetail?.name || a.name,
+          budget: asDetail?.budget !== undefined ? asDetail.budget : a.budget,
+          bidCap: asDetail?.bidCap !== undefined ? asDetail.bidCap : a.bidCap,
+          bidStrategy: asDetail?.bidStrategy !== undefined ? asDetail.bidStrategy : a.bidStrategy,
+          status: asStatus,
+          rawStatus: asStatus ? 'ACTIVE' : 'PAUSED',
+          effectiveStatus: asStatus ? 'ACTIVE' : 'PAUSED'
+        };
+      }),
+      ads: (c.ads || []).filter(ad => ad && !isItemDeleted(ad.id || ad.adId)).map(ad => {
+        const adOverride = getEffectiveStatusOverride(ad.id || ad.adId);
+        let adStatus = adOverride !== undefined ? adOverride : ad.status;
+        if (!campStatus && adOverride === undefined) adStatus = false;
+        const adDetail = getEffectiveDetailOverride(ad.id || ad.adId);
+        return {
+          ...ad,
+          name: adDetail?.name || ad.name,
+          status: adStatus,
+          rawStatus: adStatus ? 'ACTIVE' : 'PAUSED',
+          effectiveStatus: adStatus ? 'ACTIVE' : 'PAUSED'
+        };
+      })
+    };
+  });
+}
+
+async function syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiveIds, cacheKey, resolvedRange, todayBrazil }) {
+  if (ongoingCampaignSyncs.has(cacheKey)) {
+    return ongoingCampaignSyncs.get(cacheKey);
+  }
+
+  const syncPromise = (async () => {
+    let syncResult = null;
+    try {
+      syncResult = await executeMetaSync({ 
+        datePreset, 
+        timeRange, 
+        userId, 
+        accountIds: Array.from(userActiveIds) 
+      });
+    } catch (e) {
+      console.warn('[Sync Campaigns Error]:', e.message);
+    }
+
+    if (syncResult && syncResult.noActiveAccounts) {
+      return [];
+    }
+
+    const savedCampaigns = (db.get('campaigns') || []).filter(c => isOwnerUserId(userId) ? (!c.userId || isOwnerUserId(c.userId)) : (c.userId === userId));
+    const cached = campaignsCache.get(cacheKey);
+
+    let allCampaigns = (syncResult && Array.isArray(syncResult.campaigns) && syncResult.campaigns.length > 0)
+      ? syncResult.campaigns
+      : savedCampaigns;
+
+    if ((!allCampaigns || allCampaigns.length === 0) && cached && Array.isArray(cached.campaigns) && cached.campaigns.length > 0) {
+      allCampaigns = cached.campaigns;
+    }
+    if ((!allCampaigns || allCampaigns.length === 0) && savedCampaigns.length > 0) {
+      allCampaigns = savedCampaigns;
+    }
+
+    if (Array.isArray(allCampaigns) && allCampaigns.length > 0) {
+      allCampaigns = allCampaigns.filter(c => {
+        const cActId = String(c.adAccountId || c.accountId || '').replace('act_', '');
+        return userActiveIds.has(cActId);
+      });
+    }
+
+    if (resolvedRange.since === todayBrazil && resolvedRange.until === todayBrazil) {
+      allCampaigns = allCampaigns.map(c => {
+        if (!c.date || c.date !== todayBrazil) {
+          return {
+            ...c,
+            spend: '0.00',
+            rawSpendUsd: '0.00',
+            impressions: 0,
+            clicks: 0,
+            cpc: '0.00',
+            cpm: '0.00',
+            ctr: '0.00%',
+            initCheckouts: 0,
+            costPerIc: '0.00',
+            profit: '0.00',
+            sales: 0,
+            pendingSales: 0,
+            revenue: '0.00',
+            roas: '0.00',
+            cpa: '0.00',
+            date: todayBrazil,
+            adsets: (c.adsets || []).map(as => ({
+              ...as,
+              spend: '0.00',
+              rawSpendUsd: as.rawSpendUsd !== null ? '0.00' : null,
+              impressions: 0,
+              clicks: 0,
+              cpc: '0.00',
+              cpm: '0.00',
+              ctr: '0.00%',
+              initCheckouts: 0,
+              costPerIc: '0.00',
+              sales: 0,
+              pendingSales: 0,
+              revenue: '0.00',
+              profit: '0.00',
+              roas: '0.00',
+              cpa: '0.00'
+            })),
+            ads: (c.ads || []).map(ad => ({
+              ...ad,
+              spend: '0.00',
+              rawSpendUsd: ad.rawSpendUsd !== null ? '0.00' : null,
+              impressions: 0,
+              clicks: 0,
+              cpc: '0.00',
+              cpm: '0.00',
+              ctr: '0.00%',
+              initCheckouts: 0,
+              costPerIc: '0.00',
+              sales: 0,
+              pendingSales: 0,
+              revenue: '0.00',
+              profit: '0.00',
+              roas: '0.00',
+              cpa: '0.00'
+            }))
+          };
+        }
+        return c;
+      });
+    }
+
+    const allOrders = await getAllOrders(false, userId);
+    const approvedOrders = allOrders.filter(o => o.status === 'approved' || o.status === 'paid' || o.status === 'pago');
+    const pendingOrders = allOrders.filter(o => o.status === 'pending' || o.status === 'waiting_payment' || o.status === 'aguardando_pagamento');
+
+    const { since: filterSince, until: filterUntil, isMaximum } = resolvedRange;
+    const filteredOrders = approvedOrders.filter(o => {
+      if (isMaximum) return true;
+      if (filterSince && filterUntil && o.createdAt) {
+        const oDate = toBrazilYMD(o.createdAt);
+        return oDate >= filterSince && oDate <= filterUntil;
+      }
+      return true;
+    });
+
+    const filteredPendingOrders = pendingOrders.filter(o => {
+      if (isMaximum) return true;
+      if (filterSince && filterUntil && o.createdAt) {
+        const oDate = toBrazilYMD(o.createdAt);
+        return oDate >= filterSince && oDate <= filterUntil;
+      }
+      return true;
+    });
+
+    let events = db.get('events') || [];
+    try {
+      const { data: supaEvents } = await supabaseAdmin.from('events').select('*').order('created_at', { ascending: false }).limit(500);
+      if (supaEvents && supaEvents.length > 0) {
+        const dbEventIds = new Set(events.map(e => e.id || e.eventId));
+        supaEvents.forEach(e => {
+          if (!dbEventIds.has(e.id) && !dbEventIds.has(e.event_id)) {
+            events.push({
+              id: e.id,
+              eventName: e.event_name,
+              eventId: e.event_id,
+              sessionId: e.session_id,
+              pixelId: e.pixel_id,
+              timestamp: e.created_at
+            });
+          }
+        });
+      }
+    } catch (errEvents) {}
+
+    const pixelPurchases = events.filter(e => {
+      if (e.eventName !== 'Purchase') return false;
+      if (isMaximum) return true;
+      if (filterSince && filterUntil && e.timestamp) {
+        const eDate = toBrazilYMD(e.timestamp);
+        return eDate >= filterSince && eDate <= filterUntil;
+      }
+      return true;
+    });
+
+    const pixelICs = events.filter(e => {
+      if (e.eventName !== 'InitiateCheckout') return false;
+      if (isMaximum) return true;
+      if (filterSince && filterUntil && e.timestamp) {
+        const eDate = toBrazilYMD(e.timestamp);
+        return eDate >= filterSince && eDate <= filterUntil;
+      }
+      return true;
+    });
+
+    const enrichedCampaigns = enrichCampaignsWithTracking({
+      campaigns: allCampaigns,
+      orders: filteredOrders,
+      pendingOrders: filteredPendingOrders,
+      pixelPurchases,
+      pixelICs
+    });
+
+    // Atualiza métricas no Supabase em background sem bloquear resposta
+    try {
+      for (const ec of enrichedCampaigns) {
+        if (ec && ec.id) {
+          supabaseAdmin.from('campaigns').upsert({
+            id: String(ec.id),
+            user_id: userId || 'usr_1788826403159',
+            account_id: (ec.adAccountId || ec.accountId || ec.account_id || '').replace('act_', '') || null,
+            name: ec.name || 'Campanha',
+            status: Boolean(ec.status),
+            spend: Number(ec.spend) || 0,
+            sales: Number(ec.sales) || 0,
+            revenue: Number(ec.revenue) || 0,
+            profit: Number(ec.profit) || 0,
+            roas: Number(ec.roas) || 0,
+            cpa: Number(ec.cpa) || 0,
+            updated_at: new Date().toISOString()
+          }).then(() => {}).catch(() => {});
+        }
+      }
+    } catch (eSyncSupa) {}
+
+    const stableSortedForClient = Array.isArray(enrichedCampaigns) ? [...enrichedCampaigns].sort((a, b) => {
+      const aActive = (a.status === true || a.status === 'ACTIVE' || a.rawStatus === 'ACTIVE') ? 1 : 0;
+      const bActive = (b.status === true || b.status === 'ACTIVE' || b.rawStatus === 'ACTIVE') ? 1 : 0;
+      if (bActive !== aActive) return bActive - aActive;
+      return String(b.id || '').localeCompare(String(a.id || ''), undefined, { numeric: true });
+    }) : [];
+
+    if (stableSortedForClient.length > 0) {
+      campaignsCache.set(cacheKey, {
+        timestamp: Date.now(),
+        date: todayBrazil,
+        campaigns: stableSortedForClient
+      });
+    }
+
+    return stableSortedForClient;
+  })();
+
+  ongoingCampaignSyncs.set(cacheKey, syncPromise);
+  try {
+    return await syncPromise;
+  } finally {
+    ongoingCampaignSyncs.delete(cacheKey);
+  }
+}
+
 app.get('/api/campaigns', async (req, res) => {
   const userId = req.headers['x-user-id'] || req.query.userId || null;
   let connections = [];
@@ -2186,7 +2487,7 @@ app.get('/api/campaigns', async (req, res) => {
   const clientActiveAccountsHeader = req.headers['x-active-accounts'];
   const resolvedRange = resolveDateRange(datePreset, since, until);
   const timeRange = (resolvedRange.since && resolvedRange.until) ? resolvedRange : (resolvedRange.isMaximum ? { isMaximum: true } : null);
-  const cacheKey = `${userId || 'all'}_${resolvedRange.isMaximum ? 'maximum' : (timeRange ? `${timeRange.since}_${timeRange.until}` : datePreset)}`;
+  const cacheKey = getCampaignsCacheKey(userId, datePreset, resolvedRange);
   const now = Date.now();
   const cached = campaignsCache.get(cacheKey);
 
@@ -2216,328 +2517,74 @@ app.get('/api/campaigns', async (req, res) => {
     return res.json([]);
   }
 
-  // Cache de 30 segundos para navegação ultrarrápida e proteção contra rate limits da Meta
-  if (cached && (now - cached.timestamp < 30 * 1000) && refresh !== 'true') {
-    const filteredCached = (cached.campaigns || []).filter(c => {
-      const cActId = String(c.adAccountId || c.accountId || '').replace('act_', '');
-      const isDeleted = isItemDeleted(c.id);
-      return userActiveIds.has(cActId) && !isDeleted;
-    }).map(c => {
-      const campOverride = getEffectiveStatusOverride(c.id);
-      const campStatus = campOverride !== undefined ? campOverride : c.status;
-      const cDetail = getEffectiveDetailOverride(c.id);
-      const campBudget = cDetail?.budget !== undefined ? cDetail.budget : c.budget;
-      const campBidCap = cDetail?.bidCap !== undefined ? cDetail.bidCap : c.bidCap;
-      const campBidStrat = cDetail?.bidStrategy !== undefined ? cDetail.bidStrategy : c.bidStrategy;
-      const campName = cDetail?.name || c.name;
-      return {
-        ...c,
-        name: campName,
-        budget: campBudget,
-        bidCap: campBidCap,
-        bidStrategy: campBidStrat,
-        status: campStatus,
-        rawStatus: campStatus ? 'ACTIVE' : 'PAUSED',
-        effectiveStatus: campStatus ? 'ACTIVE' : 'PAUSED',
-        adsets: (c.adsets || []).filter(a => !isItemDeleted(a.id || a.adsetId)).map(a => {
-          const asOverride = getEffectiveStatusOverride(a.id || a.adsetId);
-          let asStatus = asOverride !== undefined ? asOverride : a.status;
-          if (!campStatus && asOverride === undefined) asStatus = false;
-          const asDetail = getEffectiveDetailOverride(a.id || a.adsetId);
-          return {
-            ...a,
-            name: asDetail?.name || a.name,
-            budget: asDetail?.budget !== undefined ? asDetail.budget : a.budget,
-            bidCap: asDetail?.bidCap !== undefined ? asDetail.bidCap : a.bidCap,
-            bidStrategy: asDetail?.bidStrategy !== undefined ? asDetail.bidStrategy : a.bidStrategy,
-            status: asStatus,
-            rawStatus: asStatus ? 'ACTIVE' : 'PAUSED',
-            effectiveStatus: asStatus ? 'ACTIVE' : 'PAUSED'
-          };
-        }),
-        ads: (c.ads || []).filter(ad => !isItemDeleted(ad.id || ad.adId)).map(ad => {
-          const adOverride = getEffectiveStatusOverride(ad.id || ad.adId);
-          let adStatus = adOverride !== undefined ? adOverride : ad.status;
-          if (!campStatus && adOverride === undefined) adStatus = false;
-          const adDetail = getEffectiveDetailOverride(ad.id || ad.adId);
-          return {
-            ...ad,
-            name: adDetail?.name || ad.name,
-            status: adStatus,
-            rawStatus: adStatus ? 'ACTIVE' : 'PAUSED',
-            effectiveStatus: adStatus ? 'ACTIVE' : 'PAUSED'
-          };
-        })
-      };
-    });
+  const todayBrazil = toBrazilYMD(new Date());
+  const isPastRange = Boolean(timeRange?.until && timeRange.until < todayBrazil);
+  const isClosedPeriod = datePreset === 'yesterday' || datePreset === 'last_month' || isPastRange;
+  const isMultiDayWindow = ['last_7d', 'last_14d', 'last_15d', 'last_30d', 'this_month', 'maximum'].includes(datePreset);
+
+  // TTLs inteligentes:
+  // - Ontem / Mês passado / períodos passados: 60 minutos (dados históricos não mudam a cada segundo)
+  // - 7 dias / 15 dias / 30 dias / este mês: 10 minutos
+  // - Hoje: 2 minutos (tempo ideal entre atualização e resposta instantânea)
+  const freshTtlMs = isClosedPeriod ? (60 * 60 * 1000) : (isMultiDayWindow ? (10 * 60 * 1000) : (2 * 60 * 1000));
+  const maxStaleWindowMs = 3 * 60 * 60 * 1000; // Até 3 horas para entrega instantânea via Stale-While-Revalidate
+
+  const isToday = datePreset === 'today' || (resolvedRange.since === todayBrazil && resolvedRange.until === todayBrazil);
+  const isCachedTodayInvalid = isToday && cached?.date && cached.date !== todayBrazil;
+
+  // Stale-While-Revalidate: Se há dados em cache válidos e o usuário não forçou refresh manual
+  if (cached && !isCachedTodayInvalid && refresh !== 'true') {
+    const age = now - cached.timestamp;
+    const filteredCached = formatCampaignsForUser(cached.campaigns, userActiveIds);
+
     if (filteredCached.length > 0) {
-      return res.json(filteredCached);
+      if (age < freshTtlMs) {
+        // Cache 100% fresco: resposta imediata (< 2ms)
+        res.set('Cache-Control', 'private, max-age=30');
+        return res.json(filteredCached);
+      } else if (age < maxStaleWindowMs) {
+        // Cache aceitável: entrega instantânea (< 3ms) e revalida em background sem travar a tela
+        res.set('Cache-Control', 'private, max-age=30');
+        res.json(filteredCached);
+
+        syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiveIds, cacheKey, resolvedRange, todayBrazil }).catch(() => {});
+        return;
+      }
     }
   }
 
-  // Busca SEMPRE em tempo real os dados exatos do período na API da Meta
-  let syncResult = null;
+  // Se não há cache ou o usuário clicou em "Sincronizar" (refresh=true)
   try {
-    syncResult = await executeMetaSync({ 
-      datePreset, 
-      timeRange, 
-      userId, 
-      accountIds: Array.from(userActiveIds) 
-    });
-  } catch (e) {
-    console.warn('[Sync Campaigns Error]:', e.message);
-  }
+    const freshCampaigns = await syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiveIds, cacheKey, resolvedRange, todayBrazil });
+    const formatted = formatCampaignsForUser(freshCampaigns, userActiveIds);
 
-  // Se nenhuma conta estiver ativa em Integrações, encerra com lista vazia sem cachear!
-  if (syncResult && syncResult.noActiveAccounts) {
+    // Pre-warming em background para "Ontem" e "7 dias" quando "Hoje" for consultado
+    if (isToday && userId) {
+      setTimeout(() => {
+        const yestRange = resolveDateRange('yesterday');
+        const yestKey = getCampaignsCacheKey(userId, 'yesterday', yestRange);
+        if (!campaignsCache.has(yestKey) && !ongoingCampaignSyncs.has(yestKey)) {
+          syncAndEnrichCampaigns({ datePreset: 'yesterday', timeRange: yestRange, userId, userActiveIds, cacheKey: yestKey, resolvedRange: yestRange, todayBrazil }).catch(() => {});
+        }
+      }, 500);
+      setTimeout(() => {
+        const d7Range = resolveDateRange('last_7d');
+        const d7Key = getCampaignsCacheKey(userId, 'last_7d', d7Range);
+        if (!campaignsCache.has(d7Key) && !ongoingCampaignSyncs.has(d7Key)) {
+          syncAndEnrichCampaigns({ datePreset: 'last_7d', timeRange: d7Range, userId, userActiveIds, cacheKey: d7Key, resolvedRange: d7Range, todayBrazil }).catch(() => {});
+        }
+      }, 1500);
+    }
+
+    res.set('Cache-Control', 'private, max-age=30');
+    return res.json(formatted);
+  } catch (errSync) {
+    console.warn('[Sync Campaigns Handler Error]:', errSync.message);
+    if (cached && Array.isArray(cached.campaigns)) {
+      return res.json(formatCampaignsForUser(cached.campaigns, userActiveIds));
+    }
     return res.json([]);
   }
-
-  let allCampaigns = (syncResult && Array.isArray(syncResult.campaigns) && syncResult.campaigns.length > 0)
-    ? syncResult.campaigns
-    : savedCampaigns;
-
-  // Proteção máxima: se por instabilidade da Meta allCampaigns vier vazio, preserva o cache anterior ou db local
-  if ((!allCampaigns || allCampaigns.length === 0) && cached && Array.isArray(cached.campaigns) && cached.campaigns.length > 0) {
-    allCampaigns = cached.campaigns;
-  }
-  if ((!allCampaigns || allCampaigns.length === 0) && savedCampaigns.length > 0) {
-    allCampaigns = savedCampaigns;
-  }
-
-  // Filtra expressamente para garantir que só exibe campanhas de contas ativas
-  if (Array.isArray(allCampaigns) && allCampaigns.length > 0) {
-    allCampaigns = allCampaigns.filter(c => {
-      const cActId = String(c.adAccountId || c.accountId || '').replace('act_', '');
-      return userActiveIds.has(cActId);
-    });
-  }
-
-  const todayBrazil = toBrazilYMD(new Date());
-  // Se for a consulta de hoje e o dia virou (dados no banco eram de ontem ou sem data), zera gastos para não vazar gasto do dia anterior
-  if (resolvedRange.since === todayBrazil && resolvedRange.until === todayBrazil) {
-    allCampaigns = allCampaigns.map(c => {
-      if (!c.date || c.date !== todayBrazil) {
-        return {
-          ...c,
-          spend: '0.00',
-          rawSpendUsd: '0.00',
-          impressions: 0,
-          clicks: 0,
-          cpc: '0.00',
-          cpm: '0.00',
-          ctr: '0.00%',
-          initCheckouts: 0,
-          costPerIc: '0.00',
-          profit: '0.00',
-          sales: 0,
-          pendingSales: 0,
-          revenue: '0.00',
-          roas: '0.00',
-          cpa: '0.00',
-          date: todayBrazil,
-          adsets: (c.adsets || []).map(as => ({
-            ...as,
-            spend: '0.00',
-            rawSpendUsd: as.rawSpendUsd !== null ? '0.00' : null,
-            impressions: 0,
-            clicks: 0,
-            cpc: '0.00',
-            cpm: '0.00',
-            ctr: '0.00%',
-            initCheckouts: 0,
-            costPerIc: '0.00',
-            sales: 0,
-            pendingSales: 0,
-            revenue: '0.00',
-            profit: '0.00',
-            roas: '0.00',
-            cpa: '0.00'
-          })),
-          ads: (c.ads || []).map(ad => ({
-            ...ad,
-            spend: '0.00',
-            rawSpendUsd: ad.rawSpendUsd !== null ? '0.00' : null,
-            impressions: 0,
-            clicks: 0,
-            cpc: '0.00',
-            cpm: '0.00',
-            ctr: '0.00%',
-            initCheckouts: 0,
-            costPerIc: '0.00',
-            sales: 0,
-            pendingSales: 0,
-            revenue: '0.00',
-            profit: '0.00',
-            roas: '0.00',
-            cpa: '0.00'
-          }))
-        };
-      }
-      return c;
-    });
-  }
-
-  const allOrders = await getAllOrders(false, userId);
-  const approvedOrders = allOrders.filter(o => o.status === 'approved' || o.status === 'paid' || o.status === 'pago');
-  const pendingOrders = allOrders.filter(o => o.status === 'pending' || o.status === 'waiting_payment' || o.status === 'aguardando_pagamento');
-
-  const { since: filterSince, until: filterUntil, isMaximum } = resolvedRange;
-  const filteredOrders = approvedOrders.filter(o => {
-    if (isMaximum) return true;
-    if (filterSince && filterUntil && o.createdAt) {
-      const oDate = toBrazilYMD(o.createdAt);
-      return oDate >= filterSince && oDate <= filterUntil;
-    }
-    return true;
-  });
-
-  const filteredPendingOrders = pendingOrders.filter(o => {
-    if (isMaximum) return true;
-    if (filterSince && filterUntil && o.createdAt) {
-      const oDate = toBrazilYMD(o.createdAt);
-      return oDate >= filterSince && oDate <= filterUntil;
-    }
-    return true;
-  });
-
-  let events = db.get('events') || [];
-  try {
-    const { data: supaEvents } = await supabaseAdmin.from('events').select('*').order('created_at', { ascending: false }).limit(500);
-    if (supaEvents && supaEvents.length > 0) {
-      const dbEventIds = new Set(events.map(e => e.id || e.eventId));
-      supaEvents.forEach(e => {
-        if (!dbEventIds.has(e.id) && !dbEventIds.has(e.event_id)) {
-          events.push({
-            id: e.id,
-            eventName: e.event_name,
-            eventId: e.event_id,
-            sessionId: e.session_id,
-            pixelId: e.pixel_id,
-            timestamp: e.created_at
-          });
-        }
-      });
-    }
-  } catch (errEvents) {}
-
-  const pixelPurchases = events.filter(e => {
-    if (e.eventName !== 'Purchase') return false;
-    if (isMaximum) return true;
-    if (filterSince && filterUntil && e.timestamp) {
-      const eDate = toBrazilYMD(e.timestamp);
-      return eDate >= filterSince && eDate <= filterUntil;
-    }
-    return true;
-  });
-
-  const pixelICs = events.filter(e => {
-    if (e.eventName !== 'InitiateCheckout') return false;
-    if (isMaximum) return true;
-    if (filterSince && filterUntil && e.timestamp) {
-      const eDate = toBrazilYMD(e.timestamp);
-      return eDate >= filterSince && eDate <= filterUntil;
-    }
-    return true;
-  });
-
-  const enrichedCampaigns = enrichCampaignsWithTracking({
-    campaigns: allCampaigns,
-    orders: filteredOrders,
-    pendingOrders: filteredPendingOrders,
-    pixelPurchases,
-    pixelICs
-  });
-
-  // Atualiza métricas enriquecidas na tabela campaigns do Supabase para manter dados 100% íntegros
-  try {
-    for (const ec of enrichedCampaigns) {
-      if (ec && ec.id) {
-        supabaseAdmin.from('campaigns').upsert({
-          id: String(ec.id),
-          user_id: userId || 'usr_1788826403159',
-          account_id: (ec.adAccountId || ec.accountId || ec.account_id || '').replace('act_', '') || null,
-          name: ec.name || 'Campanha',
-          status: Boolean(ec.status),
-          spend: Number(ec.spend) || 0,
-          sales: Number(ec.sales) || 0,
-          revenue: Number(ec.revenue) || 0,
-          profit: Number(ec.profit) || 0,
-          roas: Number(ec.roas) || 0,
-          cpa: Number(ec.cpa) || 0,
-          updated_at: new Date().toISOString()
-        }).then(() => {}).catch(() => {});
-      }
-    }
-  } catch (eSyncSupa) {}
-
-  const sanitizedForClient = (enrichedCampaigns || [])
-    .filter(c => c && c.id && !isItemDeleted(c.id))
-    .map(c => {
-      const campOverride = getEffectiveStatusOverride(c.id);
-      const campStatus = campOverride !== undefined ? campOverride : c.status;
-      const cDetail = getEffectiveDetailOverride(c.id);
-      const campBudget = cDetail?.budget !== undefined ? cDetail.budget : c.budget;
-      const campBidCap = cDetail?.bidCap !== undefined ? cDetail.bidCap : c.bidCap;
-      const campBidStrat = cDetail?.bidStrategy !== undefined ? cDetail.bidStrategy : c.bidStrategy;
-      const campName = cDetail?.name || c.name;
-      return {
-        ...c,
-        name: campName,
-        budget: campBudget,
-        bidCap: campBidCap,
-        bidStrategy: campBidStrat,
-        status: campStatus,
-        rawStatus: campStatus ? 'ACTIVE' : 'PAUSED',
-        effectiveStatus: campStatus ? 'ACTIVE' : 'PAUSED',
-        adsets: (c.adsets || []).filter(a => a && !isItemDeleted(a.id || a.adsetId)).map(a => {
-          const asOverride = getEffectiveStatusOverride(a.id || a.adsetId);
-          let asStatus = asOverride !== undefined ? asOverride : a.status;
-          if (!campStatus && asOverride === undefined) asStatus = false;
-          const asDetail = getEffectiveDetailOverride(a.id || a.adsetId);
-          return {
-            ...a,
-            name: asDetail?.name || a.name,
-            budget: asDetail?.budget !== undefined ? asDetail.budget : a.budget,
-            bidCap: asDetail?.bidCap !== undefined ? asDetail.bidCap : a.bidCap,
-            bidStrategy: asDetail?.bidStrategy !== undefined ? asDetail.bidStrategy : a.bidStrategy,
-            status: asStatus,
-            rawStatus: asStatus ? 'ACTIVE' : 'PAUSED',
-            effectiveStatus: asStatus ? 'ACTIVE' : 'PAUSED'
-          };
-        }),
-        ads: (c.ads || []).filter(ad => ad && !isItemDeleted(ad.id || ad.adId)).map(ad => {
-          const adOverride = getEffectiveStatusOverride(ad.id || ad.adId);
-          let adStatus = adOverride !== undefined ? adOverride : ad.status;
-          if (!campStatus && adOverride === undefined) adStatus = false;
-          const adDetail = getEffectiveDetailOverride(ad.id || ad.adId);
-          return {
-            ...ad,
-            name: adDetail?.name || ad.name,
-            status: adStatus,
-            rawStatus: adStatus ? 'ACTIVE' : 'PAUSED',
-            effectiveStatus: adStatus ? 'ACTIVE' : 'PAUSED'
-          };
-        })
-      };
-    });
-
-  const stableSortedForClient = Array.isArray(sanitizedForClient) ? [...sanitizedForClient].sort((a, b) => {
-    const aActive = (a.status === true || a.status === 'ACTIVE' || a.rawStatus === 'ACTIVE') ? 1 : 0;
-    const bActive = (b.status === true || b.status === 'ACTIVE' || b.rawStatus === 'ACTIVE') ? 1 : 0;
-    if (bActive !== aActive) return bActive - aActive;
-    return String(b.id || '').localeCompare(String(a.id || ''), undefined, { numeric: true });
-  }) : [];
-
-  if (stableSortedForClient.length > 0) {
-    campaignsCache.set(cacheKey, {
-      timestamp: now,
-      campaigns: stableSortedForClient
-    });
-  }
-
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-  res.json(stableSortedForClient);
 });
 
 /**
@@ -2545,8 +2592,9 @@ app.get('/api/campaigns', async (req, res) => {
  */
 app.get('/api/orders', async (req, res) => {
   const userId = req.headers['x-user-id'] || req.query.userId || null;
+  const isForce = req.query.refresh === 'true';
   try {
-    const orders = await getAllOrders(false, userId);
+    const orders = await getAllOrders(isForce, userId);
     res.json(orders);
   } catch (err) {
     if (isOwnerUserId(userId)) {
@@ -3682,39 +3730,59 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
 
   // Mapeia todas as contas para seus respectivos tokens de conexão e descobre contas novas
   const accountTokenMap = new Map(); // cleanId/act_Id -> token
-  await Promise.all(
-    connections.map(async (conn) => {
+  const nowAccountsCheck = Date.now();
+  const shouldDiscoverAccs = allAdAccounts.length === 0 || (nowAccountsCheck - lastAdAccountsDiscoveryTime > 15 * 60 * 1000);
+
+  if (shouldDiscoverAccs) {
+    await Promise.all(
+      connections.map(async (conn) => {
+        const token = conn.accessToken || conn.access_token;
+        if (token) {
+          try {
+            const freshAccs = await fetchAdAccounts(token);
+            if (Array.isArray(freshAccs)) {
+              freshAccs.forEach(acc => {
+                const clean = (acc.accountId || acc.id || '').replace('act_', '');
+                accountTokenMap.set(clean, token);
+                accountTokenMap.set(`act_${clean}`, token);
+
+                // Garante que a conta conste em allAdAccounts
+                if (!allAdAccounts.some(a => (a.accountId || a.id || '').replace('act_', '') === clean)) {
+                  allAdAccounts.push({
+                    id: acc.id || `act_${clean}`,
+                    accountId: clean,
+                    name: acc.name,
+                    businessName: acc.businessName,
+                    currency: acc.currency,
+                    status: acc.status,
+                    amountSpent: String(acc.amountSpent || '0.00'),
+                    balance: String(acc.balance || '0.00'),
+                    syncActive: activeSet.has(clean)
+                  });
+                }
+              });
+            }
+          } catch (e) {}
+        }
+      })
+    );
+    lastAdAccountsDiscoveryTime = nowAccountsCheck;
+    db.set('ad_accounts', allAdAccounts);
+  } else {
+    // Mapeia tokens existentes das conexões para as contas em memória sem requisições extras
+    connections.forEach(conn => {
       const token = conn.accessToken || conn.access_token;
       if (token) {
-        try {
-          const freshAccs = await fetchAdAccounts(token);
-          if (Array.isArray(freshAccs)) {
-            freshAccs.forEach(acc => {
-              const clean = (acc.accountId || acc.id || '').replace('act_', '');
-              accountTokenMap.set(clean, token);
-              accountTokenMap.set(`act_${clean}`, token);
-
-              // Garante que a conta conste em allAdAccounts
-              if (!allAdAccounts.some(a => (a.accountId || a.id || '').replace('act_', '') === clean)) {
-                allAdAccounts.push({
-                  id: acc.id || `act_${clean}`,
-                  accountId: clean,
-                  name: acc.name,
-                  businessName: acc.businessName,
-                  currency: acc.currency,
-                  status: acc.status,
-                  amountSpent: String(acc.amountSpent || '0.00'),
-                  balance: String(acc.balance || '0.00'),
-                  syncActive: activeSet.has(clean)
-                });
-              }
-            });
+        allAdAccounts.forEach(acc => {
+          const clean = (acc.accountId || acc.id || '').replace('act_', '');
+          if (!accountTokenMap.has(clean)) {
+            accountTokenMap.set(clean, token);
+            accountTokenMap.set(`act_${clean}`, token);
           }
-        } catch (e) {}
+        });
       }
-    })
-  );
-  db.set('ad_accounts', allAdAccounts);
+    });
+  }
 
   const fallbackToken = connections[0]?.accessToken || connections[0]?.access_token;
 
@@ -4136,9 +4204,10 @@ app.post('/api/meta/sync', async (req, res) => {
       }
     } catch (eSyncSupa) {}
 
-    const cacheKey = `${userId || 'all'}_${(isMaximum || datePreset === 'maximum') ? 'maximum' : (timeRange ? `${since}_${until}` : datePreset)}`;
+    const cacheKey = getCampaignsCacheKey(userId, datePreset, resolvedRange);
     campaignsCache.set(cacheKey, {
       timestamp: Date.now(),
+      date: todayBrazil,
       campaigns: enrichedCampaigns
     });
 
@@ -4900,6 +4969,9 @@ app.post('/api/campaigns/update', async (req, res) => {
       });
     }
 
+    campaignsCache.clear();
+    invalidateAccountStructureCache(cleanEffectiveAccId);
+
     res.json({
       success: true,
       metaSuccess: true,
@@ -5320,6 +5392,8 @@ app.post('/api/campaigns/duplicate', async (req, res) => {
 
     if (createdCampaigns.length > 0) {
       db.set('campaigns', [...createdCampaigns, ...existingCamps]);
+      campaignsCache.clear();
+      invalidateAccountStructureCache(targetAccountId);
     }
 
     res.json({
@@ -5388,6 +5462,7 @@ app.post('/api/campaigns/delete-bulk', async (req, res) => {
 
     db.set('campaigns', currentCampaigns);
     campaignsCache.clear();
+    invalidateAccountStructureCache();
 
     res.json({
       success: true,
