@@ -22,15 +22,76 @@ import DateRangePicker from '../components/DateRangePicker';
 import { getTaxSettings } from './Taxes';
 
 // Converte qualquer data para YYYY-MM-DD no fuso de São Paulo / Brasília (UTC-3)
-const toBrazilYMD = (dateInput = new Date()) => {
+export const toBrazilYMD = (dateInput = new Date()) => {
   if (!dateInput) return null;
+  if (typeof dateInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateInput.trim())) {
+    return dateInput.trim();
+  }
   const d = new Date(dateInput);
   if (isNaN(d.getTime())) return null;
-  const spDate = new Date(d.getTime() - (3 * 3600 * 1000));
-  const y = spDate.getUTCFullYear();
-  const m = String(spDate.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(spDate.getUTCDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(d);
+  } catch (e) {
+    const spDate = new Date(d.getTime() - (3 * 3600 * 1000));
+    const y = spDate.getUTCFullYear();
+    const m = String(spDate.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(spDate.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+};
+
+export const resolvePresetDateKey = (periodName, range) => {
+  if (periodName === 'Personalizado' && range?.since) {
+    return `${range.since}_${range.until || range.since}`;
+  }
+  const today = toBrazilYMD(new Date());
+  if (!today) return periodName || 'Hoje';
+  const [y, m, d] = today.split('-').map(Number);
+  const norm = (periodName || 'Hoje').toLowerCase().replace('últimos ', '').replace('ultimos ', '').trim();
+
+  if (norm === 'hoje' || norm === 'today') {
+    return `hoje_${today}`;
+  }
+  if (norm === 'ontem' || norm === 'yesterday') {
+    const yestDate = new Date(Date.UTC(y, m - 1, d - 1));
+    const yest = yestDate.toISOString().slice(0, 10);
+    return `ontem_${yest}`;
+  }
+  if (norm === '7 dias' || norm === '7d' || norm === 'last_7d') {
+    const d7Date = new Date(Date.UTC(y, m - 1, d - 6));
+    const d7 = d7Date.toISOString().slice(0, 10);
+    return `7d_${d7}_${today}`;
+  }
+  if (norm === '14 dias' || norm === '15 dias' || norm === '14d' || norm === '15d' || norm === 'last_15d') {
+    const d15Date = new Date(Date.UTC(y, m - 1, d - 14));
+    const d15 = d15Date.toISOString().slice(0, 10);
+    return `15d_${d15}_${today}`;
+  }
+  if (norm === '30 dias' || norm === '30d' || norm === 'last_30d') {
+    const d30Date = new Date(Date.UTC(y, m - 1, d - 29));
+    const d30 = d30Date.toISOString().slice(0, 10);
+    return `30d_${d30}_${today}`;
+  }
+  if (norm === 'este mês' || norm === 'este mes' || norm === 'this_month') {
+    const mStart = `${today.slice(0, 7)}-01`;
+    return `estemes_${mStart}_${today}`;
+  }
+  if (norm === 'mês passado' || norm === 'mes passado' || norm === 'last_month') {
+    const prevMonthDate = new Date(Date.UTC(y, m - 2, 1));
+    const lastDayPrev = new Date(Date.UTC(y, m - 1, 0)).getUTCDate();
+    const prevY = prevMonthDate.getUTCFullYear();
+    const prevM = String(prevMonthDate.getUTCMonth() + 1).padStart(2, '0');
+    return `mespassado_${prevY}-${prevM}-01_${prevY}-${prevM}-${String(lastDayPrev).padStart(2, '0')}`;
+  }
+  if (norm === 'máximo' || norm === 'maximo' || norm === 'maximum') {
+    return `maximo_${today}`;
+  }
+  return `${norm}_${today}`;
 };
 
 function FunnelGauge({ percentage, strokeColor = '#0066FF', isFull = false }) {
@@ -94,7 +155,7 @@ function FunnelConnector({ dropPct }) {
 }
 
 export const getPeriodStorageKey = (userId, periodName, range) => {
-  const p = periodName === 'Personalizado' && range?.since ? `${range.since}_${range.until}` : (periodName || 'Hoje');
+  const p = resolvePresetDateKey(periodName, range);
   return `primetrack_dash_camp_${userId || 'default'}_${p}`;
 };
 
@@ -106,6 +167,12 @@ export const getCachedPeriodData = (userId, periodName, range) => {
     if (!saved) return null;
     const parsed = JSON.parse(saved);
     if (parsed) {
+      const norm = (periodName || 'Hoje').toLowerCase();
+      // Para 'Hoje', dados mudam dinamicamente ao longo do dia com novos gastos do Meta Ads:
+      // se o cache tiver mais de 3 minutos, busca dados frescos do servidor
+      if ((norm === 'hoje' || norm === 'today') && parsed.timestamp && (Date.now() - parsed.timestamp > 3 * 60 * 1000)) {
+        return null;
+      }
       if (Array.isArray(parsed)) return { campaigns: parsed };
       if (Array.isArray(parsed.campaigns)) return parsed;
     }
@@ -117,7 +184,10 @@ export const setCachedPeriodData = (userId, periodName, range, data) => {
   if (typeof window === 'undefined' || !data) return;
   try {
     const key = getPeriodStorageKey(userId, periodName, range);
-    localStorage.setItem(key, JSON.stringify(data));
+    localStorage.setItem(key, JSON.stringify({
+      ...data,
+      timestamp: Date.now()
+    }));
   } catch (e) {}
 };
 
@@ -456,7 +526,8 @@ export default function Dashboard() {
           if (Array.isArray(parsed) && parsed.length > 0) {
             const savedDate = localStorage.getItem('primetrack_cached_campaigns_date');
             const todayYMD = toBrazilYMD(new Date());
-            if (savedDate && savedDate !== todayYMD) {
+            const isToday = savedPeriod === 'Hoje' || !savedPeriod;
+            if (!isToday || !savedDate || savedDate !== todayYMD) {
               return parsed.map(c => ({
                 ...c,
                 spend: '0.00',
@@ -617,6 +688,62 @@ export default function Dashboard() {
         setPixelStats(cachedData.pixelStats);
       }
     } else {
+      // Se não há cache para esta data específica, zera as métricas temporariamente
+      // para não mostrar gastos ou vendas erradas de outros períodos enquanto busca (~300ms)
+      setCampaigns(prev => prev.map(c => ({
+        ...c,
+        spend: '0.00',
+        rawSpendUsd: c.rawSpendUsd !== null ? '0.00' : null,
+        impressions: 0,
+        clicks: 0,
+        cpc: '0.00',
+        cpm: '0.00',
+        ctr: '0.00%',
+        initCheckouts: 0,
+        costPerIc: '0.00',
+        sales: 0,
+        pendingSales: 0,
+        revenue: '0.00',
+        profit: '0.00',
+        roas: '0.00',
+        cpa: '0.00',
+        adsets: (c.adsets || []).map(as => ({
+          ...as,
+          spend: '0.00',
+          rawSpendUsd: as.rawSpendUsd !== null ? '0.00' : null,
+          impressions: 0,
+          clicks: 0,
+          cpc: '0.00',
+          cpm: '0.00',
+          ctr: '0.00%',
+          initCheckouts: 0,
+          costPerIc: '0.00',
+          sales: 0,
+          pendingSales: 0,
+          revenue: '0.00',
+          profit: '0.00',
+          roas: '0.00',
+          cpa: '0.00'
+        })),
+        ads: (c.ads || []).map(ad => ({
+          ...ad,
+          spend: '0.00',
+          rawSpendUsd: ad.rawSpendUsd !== null ? '0.00' : null,
+          impressions: 0,
+          clicks: 0,
+          cpc: '0.00',
+          cpm: '0.00',
+          ctr: '0.00%',
+          initCheckouts: 0,
+          costPerIc: '0.00',
+          sales: 0,
+          pendingSales: 0,
+          revenue: '0.00',
+          profit: '0.00',
+          roas: '0.00',
+          cpa: '0.00'
+        }))
+      })));
       setSyncing(true);
     }
 
@@ -733,13 +860,14 @@ export default function Dashboard() {
           pixelStats: resolvedPixelStats
         });
         if (typeof window !== 'undefined') {
-          if (cData.length > 0) {
-            localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(cData));
-            if (customPeriod === 'Hoje' || (!customPeriod && period === 'Hoje')) {
+          const isTodayPeriod = customPeriod === 'Hoje' || (!customPeriod && period === 'Hoje');
+          if (isTodayPeriod) {
+            if (cData.length > 0) {
+              localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(cData));
               localStorage.setItem('primetrack_cached_campaigns_date', toBrazilYMD(new Date()));
+            } else {
+              localStorage.removeItem('primetrack_cached_campaigns');
             }
-          } else {
-            localStorage.removeItem('primetrack_cached_campaigns');
           }
         }
       }
@@ -780,13 +908,13 @@ export default function Dashboard() {
           pixelStats: pixelStats
         });
         if (typeof window !== 'undefined') {
-          if (cData.length > 0) {
-            localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(cData));
-            if (period === 'Hoje') {
+          if (period === 'Hoje') {
+            if (cData.length > 0) {
+              localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(cData));
               localStorage.setItem('primetrack_cached_campaigns_date', toBrazilYMD(new Date()));
+            } else {
+              localStorage.removeItem('primetrack_cached_campaigns');
             }
-          } else {
-            localStorage.removeItem('primetrack_cached_campaigns');
           }
         }
       }
@@ -943,30 +1071,26 @@ export default function Dashboard() {
   // Filtra as vendas baseado no período e filtros selecionados
   const filteredOrders = useMemo(() => {
     const todayYMD = toBrazilYMD(new Date());
-    const yesterdayYMD = toBrazilYMD(new Date(Date.now() - 86400000));
-    const sevenDaysAgoYMD = toBrazilYMD(new Date(Date.now() - 6 * 86400000));
-    const fifteenDaysAgoYMD = toBrazilYMD(new Date(Date.now() - 14 * 86400000));
-    const thirtyDaysAgoYMD = toBrazilYMD(new Date(Date.now() - 29 * 86400000));
-    const currentMonthPrefix = todayYMD ? todayYMD.slice(0, 7) : '';
+    if (!todayYMD) return [];
+    const [y, m, d] = todayYMD.split('-').map(Number);
+    const yesterdayYMD = new Date(Date.UTC(y, m - 1, d - 1)).toISOString().slice(0, 10);
+    const sevenDaysAgoYMD = new Date(Date.UTC(y, m - 1, d - 6)).toISOString().slice(0, 10);
+    const fifteenDaysAgoYMD = new Date(Date.UTC(y, m - 1, d - 14)).toISOString().slice(0, 10);
+    const thirtyDaysAgoYMD = new Date(Date.UTC(y, m - 1, d - 29)).toISOString().slice(0, 10);
+    const currentMonthPrefix = todayYMD.slice(0, 7);
 
-    let prevMonthSince = '';
-    let prevMonthUntil = '';
-    if (todayYMD) {
-      const [yearStr, monthStr] = todayYMD.split('-');
-      const y = parseInt(yearStr, 10);
-      const m = parseInt(monthStr, 10) - 1;
-      const prevMonthDate = new Date(Date.UTC(y, m - 1, 1));
-      const lastDayPrevMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
-      const prevYear = prevMonthDate.getUTCFullYear();
-      const prevMonthStr = String(prevMonthDate.getUTCMonth() + 1).padStart(2, '0');
-      const prevMonthPrefix = `${prevYear}-${prevMonthStr}`;
-      prevMonthSince = `${prevMonthPrefix}-01`;
-      prevMonthUntil = `${prevMonthPrefix}-${String(lastDayPrevMonth).padStart(2, '0')}`;
-    }
+    const prevMonthDate = new Date(Date.UTC(y, m - 2, 1));
+    const lastDayPrevMonth = new Date(Date.UTC(y, m - 1, 0)).getUTCDate();
+    const prevYear = prevMonthDate.getUTCFullYear();
+    const prevMonthStr = String(prevMonthDate.getUTCMonth() + 1).padStart(2, '0');
+    const prevMonthPrefix = `${prevYear}-${prevMonthStr}`;
+    const prevMonthSince = `${prevMonthPrefix}-01`;
+    const prevMonthUntil = `${prevMonthPrefix}-${String(lastDayPrevMonth).padStart(2, '0')}`;
 
     return deduplicatedOrders.filter(o => {
-      if (!o.createdAt) return true;
-      const orderYMD = toBrazilYMD(o.createdAt);
+      const rawDate = o.createdAt || o.created_at || o.date;
+      if (!rawDate) return false;
+      const orderYMD = toBrazilYMD(rawDate);
       if (!orderYMD) return false;
 
       // Filtro de data estrito pelo calendário civil (dia vira exatamente às 00:00)

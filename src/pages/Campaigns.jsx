@@ -379,8 +379,52 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const userCampDateKey = userId ? `primetrack_cached_campaigns_date_${userId}` : 'primetrack_cached_campaigns_date';
   const userDisconKey = userId ? `primetrack_meta_disconnected_${userId}` : 'primetrack_meta_disconnected';
 
+  const resolveCampPeriodDateKey = (preset, range) => {
+    if (preset === 'Personalizado' && range?.since) {
+      return `${range.since}_${range.until || range.since}`;
+    }
+    const today = getBrazilTodayYMD();
+    if (!today) return preset || 'Hoje';
+    const [y, m, d] = today.split('-').map(Number);
+    const norm = (preset || 'Hoje').toLowerCase().replace('últimos ', '').replace('ultimos ', '').trim();
+
+    if (norm === 'hoje' || norm === 'today') {
+      return `hoje_${today}`;
+    }
+    if (norm === 'ontem' || norm === 'yesterday') {
+      const yestDate = new Date(Date.UTC(y, m - 1, d - 1));
+      return `ontem_${yestDate.toISOString().slice(0, 10)}`;
+    }
+    if (norm === '7 dias' || norm === '7d' || norm === 'last_7d') {
+      const d7 = new Date(Date.UTC(y, m - 1, d - 6)).toISOString().slice(0, 10);
+      return `7d_${d7}_${today}`;
+    }
+    if (norm === '14 dias' || norm === '15 dias' || norm === '14d' || norm === '15d' || norm === 'last_15d') {
+      const d15 = new Date(Date.UTC(y, m - 1, d - 14)).toISOString().slice(0, 10);
+      return `15d_${d15}_${today}`;
+    }
+    if (norm === '30 dias' || norm === '30d' || norm === 'last_30d') {
+      const d30 = new Date(Date.UTC(y, m - 1, d - 29)).toISOString().slice(0, 10);
+      return `30d_${d30}_${today}`;
+    }
+    if (norm === 'este mês' || norm === 'este mes' || norm === 'this_month') {
+      return `estemes_${today.slice(0, 7)}-01_${today}`;
+    }
+    if (norm === 'mês passado' || norm === 'mes passado' || norm === 'last_month') {
+      const prevMonthDate = new Date(Date.UTC(y, m - 2, 1));
+      const lastDayPrev = new Date(Date.UTC(y, m - 1, 0)).getUTCDate();
+      const prevY = prevMonthDate.getUTCFullYear();
+      const prevM = String(prevMonthDate.getUTCMonth() + 1).padStart(2, '0');
+      return `mespassado_${prevY}-${prevM}-01_${prevY}-${prevM}-${String(lastDayPrev).padStart(2, '0')}`;
+    }
+    if (norm === 'máximo' || norm === 'maximo' || norm === 'maximum') {
+      return `maximo_${today}`;
+    }
+    return `${norm}_${today}`;
+  };
+
   const getCampPeriodKey = (uId, preset, range) => {
-    const p = preset === 'Personalizado' && range?.since ? `${range.since}_${range.until}` : (preset || 'Hoje');
+    const p = resolveCampPeriodDateKey(preset, range);
     return `primetrack_camp_cache_${uId || 'default'}_${p}`;
   };
   const [subTab, setSubTabState] = useState(() => {
@@ -465,6 +509,24 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     if (cached) {
       setCampaignsList(cached);
     } else {
+      // Se não há cache para esta data específica, zera temporariamente as métricas
+      // enquanto busca da API em ~300ms, preservando a estrutura
+      setCampaignsList(prev => prev.map(c => ({
+        ...c,
+        spend: '0.00',
+        rawSpendUsd: c.rawSpendUsd !== null ? '0.00' : null,
+        impressions: 0,
+        clicks: 0,
+        cpc: '0.00',
+        cpm: '0.00',
+        ctr: '0.00%',
+        sales: 0,
+        pendingSales: 0,
+        revenue: '0.00',
+        profit: '0.00',
+        roas: '0.00',
+        cpa: '0.00'
+      })));
       setIsLoadingData(true);
     }
 
@@ -622,7 +684,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             const savedPeriod = 'Hoje';
             const savedDate = localStorage.getItem(userCampDateKey) || localStorage.getItem('primetrack_cached_campaigns_date');
             const todayYMD = getBrazilTodayYMD();
-            if (savedPeriod === 'Hoje' && savedDate && savedDate !== todayYMD) {
+            if (savedPeriod === 'Hoje' && (!savedDate || savedDate !== todayYMD)) {
               // O dia virou! Preserva estrutura das campanhas para não sumirem, mas zera métricas de ontem
               return sanitized.map(c => ({
                 ...c,
@@ -990,9 +1052,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           if (typeof window !== 'undefined') {
             const pKey = getCampPeriodKey(userId, customPreset, customRangeObj);
             localStorage.setItem(pKey, JSON.stringify(merged));
-            localStorage.setItem(userCampKey, JSON.stringify(merged));
-            localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(merged));
-            if (customPreset === 'Hoje' || (!customPreset && periodFilterRef.current === 'Hoje')) {
+            const isToday = customPreset === 'Hoje' || (!customPreset && periodFilterRef.current === 'Hoje');
+            if (isToday) {
+              localStorage.setItem(userCampKey, JSON.stringify(merged));
+              localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(merged));
               localStorage.setItem(userCampDateKey, getBrazilTodayYMD());
               localStorage.setItem('primetrack_cached_campaigns_date', getBrazilTodayYMD());
             }
