@@ -197,23 +197,9 @@ export default function Dashboard() {
   const user = getCurrentUser();
   const trialStatus = getTrialStatus(user);
 
-  const [period, setPeriod] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('primetrack_dashboard_period');
-      if (saved === '14 dias') return '15 dias';
-      if (saved) return saved;
-    }
-    return 'Hoje';
-  });
-  const [customRange, setCustomRange] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('primetrack_dashboard_custom_range');
-      if (saved) {
-        try { return JSON.parse(saved); } catch (e) {}
-      }
-    }
-    return null;
-  });
+  // Sempre inicia no filtro 'Hoje' ao entrar ou retornar à página do Dashboard
+  const [period, setPeriod] = useState('Hoje');
+  const [customRange, setCustomRange] = useState(null);
 
   const periodRef = useRef(period);
   const customRangeRef = useRef(customRange);
@@ -591,12 +577,10 @@ export default function Dashboard() {
     customRangeRef.current = newRange;
 
     if (typeof window !== 'undefined') {
-      localStorage.setItem('primetrack_dashboard_period', newPeriod);
-      if (newRange) {
-        localStorage.setItem('primetrack_dashboard_custom_range', JSON.stringify(newRange));
-      } else {
+      try {
+        localStorage.removeItem('primetrack_dashboard_period');
         localStorage.removeItem('primetrack_dashboard_custom_range');
-      }
+      } catch (e) {}
     }
 
     // Ativa o estado atômico de loading com skeleton limpo: NUNCA exibe números antigos ou intermediários
@@ -799,11 +783,15 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    // Purga de caches legados desincronizados de campanhas
-    try {
-      localStorage.removeItem('primetrack_cached_campaigns');
-      localStorage.removeItem('primetrack_cached_campaigns_date');
-    } catch (e) {}
+    // Purga de caches legados desincronizados e garante que o período sempre resete
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('primetrack_cached_campaigns');
+        localStorage.removeItem('primetrack_cached_campaigns_date');
+        localStorage.removeItem('primetrack_dashboard_period');
+        localStorage.removeItem('primetrack_dashboard_custom_range');
+      } catch (e) {}
+    }
 
     let lastKnownDate = toBrazilYMD(new Date());
     loadDashboardData(periodRef.current, customRangeRef.current);
@@ -832,6 +820,12 @@ export default function Dashboard() {
       clearInterval(midnightCheckInterval);
       clearInterval(minsInterval);
       window.removeEventListener('primetrack_profile_sync', handleProfileSync);
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem('primetrack_dashboard_period');
+          localStorage.removeItem('primetrack_dashboard_custom_range');
+        } catch (e) {}
+      }
     };
   }, []);
 
