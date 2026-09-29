@@ -508,49 +508,9 @@ export default function Dashboard() {
     return [];
   });
 
-  const [isPeriodLoading, setIsPeriodLoading] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const savedPeriod = localStorage.getItem('primetrack_dashboard_period') || 'Hoje';
-      const savedRangeStr = localStorage.getItem('primetrack_dashboard_custom_range');
-      let savedRange = null;
-      try { savedRange = JSON.parse(savedRangeStr); } catch (e) {}
-      const cached = getCachedPeriodData(user?.id, savedPeriod, savedRange);
-      if (cached && Array.isArray(cached.campaigns) && Array.isArray(cached.orders)) {
-        return false;
-      }
-    }
-    return true;
-  });
-
-  const [campaigns, setCampaigns] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const savedPeriod = localStorage.getItem('primetrack_dashboard_period') || 'Hoje';
-      const savedRangeStr = localStorage.getItem('primetrack_dashboard_custom_range');
-      let savedRange = null;
-      try { savedRange = JSON.parse(savedRangeStr); } catch (e) {}
-
-      const periodCached = getCachedPeriodData(user?.id, savedPeriod, savedRange);
-      if (periodCached && Array.isArray(periodCached.campaigns) && Array.isArray(periodCached.orders)) {
-        return periodCached.campaigns;
-      }
-    }
-    return [];
-  });
-
-  const [ordersList, setOrdersList] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const savedPeriod = localStorage.getItem('primetrack_dashboard_period') || 'Hoje';
-      const savedRangeStr = localStorage.getItem('primetrack_dashboard_custom_range');
-      let savedRange = null;
-      try { savedRange = JSON.parse(savedRangeStr); } catch (e) {}
-
-      const periodCached = getCachedPeriodData(user?.id, savedPeriod, savedRange);
-      if (periodCached && Array.isArray(periodCached.orders)) {
-        return periodCached.orders;
-      }
-    }
-    return [];
-  });
+  const [isPeriodLoading, setIsPeriodLoading] = useState(true);
+  const [campaigns, setCampaigns] = useState([]);
+  const [ordersList, setOrdersList] = useState([]);
 
   const [pixelStats, setPixelStats] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -628,23 +588,11 @@ export default function Dashboard() {
       }
     }
 
-    // 1. Resposta instantânea (0ms) da tela se houver cache local sincronizado (campanhas E vendas)
-    const cachedData = getCachedPeriodData(user?.id, newPeriod, newRange);
-    if (cachedData && Array.isArray(cachedData.campaigns) && Array.isArray(cachedData.orders)) {
-      setCampaigns(cachedData.campaigns);
-      setOrdersList(cachedData.orders);
-      if (cachedData.pixelStats) {
-        setPixelStats(cachedData.pixelStats);
-      }
-      setIsPeriodLoading(false);
-    } else {
-      // Se não há cache completo para esta data específica, ativa o estado atômico de loading.
-      // Desta forma NUNCA exibe números intermediários falsos ou cruzados (ex: vendas de ontem com gasto zerado).
-      setIsPeriodLoading(true);
-      setSyncing(true);
-    }
+    // Ativa o estado atômico de loading com skeleton limpo: NUNCA exibe números antigos ou intermediários
+    setIsPeriodLoading(true);
+    setSyncing(true);
 
-    // 2. Busca rápida no servidor em background (com SWR)
+    // Busca os dados exatos do novo período diretamente no servidor
     loadDashboardData(newPeriod, newRange);
   };
 
@@ -848,7 +796,7 @@ export default function Dashboard() {
       loadDashboardData(periodRef.current, customRangeRef.current);
     };
 
-    const ordersPollInterval = setInterval(() => {
+    const midnightCheckInterval = setInterval(() => {
       // Detecção de virada do dia (00:00 / 00:01)
       const currentToday = toBrazilYMD(new Date());
       if (currentToday !== lastKnownDate) {
@@ -857,40 +805,7 @@ export default function Dashboard() {
           loadDashboardData('Hoje');
         }
       }
-
-      const userHeaders = user?.id ? { 'x-user-id': user.id } : {};
-      const userParam = user?.id ? `&userId=${encodeURIComponent(user.id)}` : '';
-      const userParamFirst = user?.id ? `?userId=${encodeURIComponent(user.id)}` : '';
-
-      fetch('/api/orders' + userParamFirst, { headers: userHeaders })
-        .then(res => res.json())
-        .then(oData => {
-          if (Array.isArray(oData)) {
-            setOrdersList(oData);
-            try {
-              if (oData.length > 0) {
-                localStorage.setItem('primetrack_cached_orders', JSON.stringify(oData));
-              } else {
-                localStorage.removeItem('primetrack_cached_orders');
-              }
-            } catch (e) {}
-          }
-        })
-        .catch(() => {});
-
-      const currentPreset = periodToPreset[periodRef.current] || 'today';
-      fetch(`/api/pixel/stats?datePreset=${currentPreset}${userParam}`, { headers: userHeaders })
-        .then(res => res.json())
-        .then(pData => {
-          if (pData && typeof pData.pageViews === 'number') {
-            setPixelStats(pData);
-            try {
-              localStorage.setItem('primetrack_cached_pixel_stats', JSON.stringify(pData));
-            } catch (e) {}
-          }
-        })
-        .catch(() => {});
-    }, 10000);
+    }, 60000);
 
     const minsInterval = setInterval(() => {
       setMinsAgo(m => m + 1);
@@ -898,7 +813,7 @@ export default function Dashboard() {
 
     window.addEventListener('primetrack_profile_sync', handleProfileSync);
     return () => {
-      clearInterval(ordersPollInterval);
+      clearInterval(midnightCheckInterval);
       clearInterval(minsInterval);
       window.removeEventListener('primetrack_profile_sync', handleProfileSync);
     };

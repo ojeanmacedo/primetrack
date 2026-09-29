@@ -493,46 +493,26 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     periodFilterRef.current = newPeriod;
     customRangeRef.current = newRange;
 
-    // 1. Resposta instantânea (0ms) da tela se houver dados em cache desse período
-    let cached = null;
-    if (typeof window !== 'undefined') {
-      try {
-        const pKey = getCampPeriodKey(userId, newPeriod, newRange);
-        const saved = localStorage.getItem(pKey);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) {
-            cached = sanitizeCampaignsData(parsed);
-          }
-        }
-      } catch (e) {}
-    }
+    // Zera métricas do período temporariamente mantendo a estrutura da tabela e ativa loading limpo
+    setCampaignsList(prev => prev.map(c => ({
+      ...c,
+      spend: '0.00',
+      rawSpendUsd: c.rawSpendUsd !== null ? '0.00' : null,
+      impressions: 0,
+      clicks: 0,
+      cpc: '0.00',
+      cpm: '0.00',
+      ctr: '0.00%',
+      sales: 0,
+      pendingSales: 0,
+      revenue: '0.00',
+      profit: '0.00',
+      roas: '0.00',
+      cpa: '0.00'
+    })));
+    setIsLoadingData(true);
 
-    if (cached) {
-      setCampaignsList(cached);
-    } else {
-      // Se não há cache para esta data específica, zera temporariamente as métricas
-      // enquanto busca da API em ~300ms, preservando a estrutura
-      setCampaignsList(prev => prev.map(c => ({
-        ...c,
-        spend: '0.00',
-        rawSpendUsd: c.rawSpendUsd !== null ? '0.00' : null,
-        impressions: 0,
-        clicks: 0,
-        cpc: '0.00',
-        cpm: '0.00',
-        ctr: '0.00%',
-        sales: 0,
-        pendingSales: 0,
-        revenue: '0.00',
-        profit: '0.00',
-        roas: '0.00',
-        cpa: '0.00'
-      })));
-      setIsLoadingData(true);
-    }
-
-    // 2. Busca rápida no servidor (utilizando cache inteligente SWR sem forçar refresh)
+    // Busca rápida no servidor dos dados exatos do período
     loadData(newPeriod, newRange, false, false);
   };
 

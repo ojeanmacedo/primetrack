@@ -2237,13 +2237,32 @@ async function syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiv
       });
     }
 
-    if (resolvedRange.since === todayBrazil && resolvedRange.until === todayBrazil) {
-      allCampaigns = allCampaigns.map(c => {
-        if (!c.date || c.date !== todayBrazil) {
-          return {
-            ...c,
+    const targetPeriodDate = resolvedRange.isMaximum ? 'Máximo' : (resolvedRange.since || todayBrazil);
+    allCampaigns = allCampaigns.map(c => {
+      const cDate = c.date || (resolvedRange.since === todayBrazil ? todayBrazil : null);
+      if (!cDate || (cDate !== targetPeriodDate && cDate !== 'Hoje' && cDate !== resolvedRange.since)) {
+        return {
+          ...c,
+          spend: '0.00',
+          rawSpendUsd: c.rawSpendUsd !== null ? '0.00' : null,
+          impressions: 0,
+          clicks: 0,
+          cpc: '0.00',
+          cpm: '0.00',
+          ctr: '0.00%',
+          initCheckouts: 0,
+          costPerIc: '0.00',
+          profit: '0.00',
+          sales: 0,
+          pendingSales: 0,
+          revenue: '0.00',
+          roas: '0.00',
+          cpa: '0.00',
+          date: targetPeriodDate,
+          adsets: (c.adsets || []).map(as => ({
+            ...as,
             spend: '0.00',
-            rawSpendUsd: '0.00',
+            rawSpendUsd: as.rawSpendUsd !== null ? '0.00' : null,
             impressions: 0,
             clicks: 0,
             cpc: '0.00',
@@ -2251,54 +2270,35 @@ async function syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiv
             ctr: '0.00%',
             initCheckouts: 0,
             costPerIc: '0.00',
-            profit: '0.00',
             sales: 0,
             pendingSales: 0,
             revenue: '0.00',
+            profit: '0.00',
             roas: '0.00',
-            cpa: '0.00',
-            date: todayBrazil,
-            adsets: (c.adsets || []).map(as => ({
-              ...as,
-              spend: '0.00',
-              rawSpendUsd: as.rawSpendUsd !== null ? '0.00' : null,
-              impressions: 0,
-              clicks: 0,
-              cpc: '0.00',
-              cpm: '0.00',
-              ctr: '0.00%',
-              initCheckouts: 0,
-              costPerIc: '0.00',
-              sales: 0,
-              pendingSales: 0,
-              revenue: '0.00',
-              profit: '0.00',
-              roas: '0.00',
-              cpa: '0.00'
-            })),
-            ads: (c.ads || []).map(ad => ({
-              ...ad,
-              spend: '0.00',
-              rawSpendUsd: ad.rawSpendUsd !== null ? '0.00' : null,
-              impressions: 0,
-              clicks: 0,
-              cpc: '0.00',
-              cpm: '0.00',
-              ctr: '0.00%',
-              initCheckouts: 0,
-              costPerIc: '0.00',
-              sales: 0,
-              pendingSales: 0,
-              revenue: '0.00',
-              profit: '0.00',
-              roas: '0.00',
-              cpa: '0.00'
-            }))
-          };
-        }
-        return c;
-      });
-    }
+            cpa: '0.00'
+          })),
+          ads: (c.ads || []).map(ad => ({
+            ...ad,
+            spend: '0.00',
+            rawSpendUsd: ad.rawSpendUsd !== null ? '0.00' : null,
+            impressions: 0,
+            clicks: 0,
+            cpc: '0.00',
+            cpm: '0.00',
+            ctr: '0.00%',
+            initCheckouts: 0,
+            costPerIc: '0.00',
+            sales: 0,
+            pendingSales: 0,
+            revenue: '0.00',
+            profit: '0.00',
+            roas: '0.00',
+            cpa: '0.00'
+          }))
+        };
+      }
+      return c;
+    });
 
     const allOrders = await getAllOrders(false, userId);
     const approvedOrders = allOrders.filter(o => o.status === 'approved' || o.status === 'paid' || o.status === 'pago');
@@ -2541,49 +2541,22 @@ app.get('/api/campaigns', async (req, res) => {
   const isToday = datePreset === 'today' || (resolvedRange.since === todayBrazil && resolvedRange.until === todayBrazil);
   const isCachedTodayInvalid = isToday && cached?.date && cached.date !== todayBrazil;
 
-  // Stale-While-Revalidate: Se há dados em cache válidos e o usuário não forçou refresh manual
+  // Retorna cache APENAS se estiver 100% fresco e válido
   if (cached && !isCachedTodayInvalid && refresh !== 'true') {
     const age = now - cached.timestamp;
     const filteredCached = formatCampaignsForUser(cached.campaigns, userActiveIds);
 
-    if (filteredCached.length > 0) {
-      if (age < freshTtlMs) {
-        // Cache 100% fresco: resposta imediata (< 2ms)
-        res.set('Cache-Control', 'private, max-age=30');
-        return res.json(filteredCached);
-      } else if (age < maxStaleWindowMs) {
-        // Cache aceitável: entrega instantânea (< 3ms) e revalida em background sem travar a tela
-        res.set('Cache-Control', 'private, max-age=30');
-        res.json(filteredCached);
-
-        syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiveIds, cacheKey, resolvedRange, todayBrazil }).catch(() => {});
-        return;
-      }
+    if (filteredCached.length > 0 && age < freshTtlMs) {
+      res.set('Cache-Control', 'private, max-age=30');
+      return res.json(filteredCached);
     }
   }
 
-  // Se não há cache ou o usuário clicou em "Sincronizar" (refresh=true)
+  // Se não há cache ou o cache expirou (age >= freshTtlMs) ou o usuário forçou refresh=true:
+  // Busca dados frescos em tempo real diretamente da API da Meta e retorna a resposta exata
   try {
     const freshCampaigns = await syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiveIds, cacheKey, resolvedRange, todayBrazil });
     const formatted = formatCampaignsForUser(freshCampaigns, userActiveIds);
-
-    // Pre-warming em background para "Ontem" e "7 dias" quando "Hoje" for consultado
-    if (isToday && userId) {
-      setTimeout(() => {
-        const yestRange = resolveDateRange('yesterday');
-        const yestKey = getCampaignsCacheKey(userId, 'yesterday', yestRange);
-        if (!campaignsCache.has(yestKey) && !ongoingCampaignSyncs.has(yestKey)) {
-          syncAndEnrichCampaigns({ datePreset: 'yesterday', timeRange: yestRange, userId, userActiveIds, cacheKey: yestKey, resolvedRange: yestRange, todayBrazil }).catch(() => {});
-        }
-      }, 500);
-      setTimeout(() => {
-        const d7Range = resolveDateRange('last_7d');
-        const d7Key = getCampaignsCacheKey(userId, 'last_7d', d7Range);
-        if (!campaignsCache.has(d7Key) && !ongoingCampaignSyncs.has(d7Key)) {
-          syncAndEnrichCampaigns({ datePreset: 'last_7d', timeRange: d7Range, userId, userActiveIds, cacheKey: d7Key, resolvedRange: d7Range, todayBrazil }).catch(() => {});
-        }
-      }, 1500);
-    }
 
     res.set('Cache-Control', 'private, max-age=30');
     return res.json(formatted);
@@ -3880,18 +3853,51 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
 
   const todayBrazil = toBrazilYMD(new Date());
   const isTodaySync = (!timeRange && datePreset === 'today') || (timeRange && timeRange.since === todayBrazil && timeRange.until === todayBrazil);
+  const targetPeriodDate = (timeRange && timeRange.since) 
+    ? timeRange.since 
+    : (datePreset === 'maximum' ? 'Máximo' : (isTodaySync ? todayBrazil : (datePreset || 'Hoje')));
 
-  // Preserva 100% das campanhas existentes no banco e apenas atualiza/insere novas
+  // Mapa de campanhas retornadas da Meta para este período específico
+  const freshCampaignMap = new Map();
+  allCampaigns.forEach(c => {
+    if (c && c.id) freshCampaignMap.set(String(c.id), c);
+  });
+
+  // Preserva estrutura de campanhas existentes no banco, mas NUNCA herda métricas de outro período
   const existingCamps = db.get('campaigns') || [];
   const campMap = new Map();
+
   existingCamps.forEach(c => {
     if (c && c.id) {
-      if (isTodaySync && (!c.date || c.date !== todayBrazil)) {
-        campMap.set(String(c.id), {
-          ...c,
-          date: todayBrazil,
+      const cIdStr = String(c.id);
+      if (isItemDeleted(cIdStr)) return;
+
+      // Se a campanha foi retornada pela Meta neste período, será mesclada abaixo com seus dados frescos
+      if (freshCampaignMap.has(cIdStr)) return;
+
+      // Se não veio na consulta deste período, preserva estrutura (nome, status, orçamento), mas zera 100% das métricas
+      campMap.set(cIdStr, {
+        ...c,
+        date: targetPeriodDate,
+        spend: '0.00',
+        rawSpendUsd: c.rawSpendUsd !== null ? '0.00' : null,
+        impressions: 0,
+        clicks: 0,
+        cpc: '0.00',
+        cpm: '0.00',
+        ctr: '0.00%',
+        initCheckouts: 0,
+        costPerIc: '0.00',
+        profit: '0.00',
+        sales: 0,
+        pendingSales: 0,
+        revenue: '0.00',
+        roas: '0.00',
+        cpa: '0.00',
+        adsets: (c.adsets || []).map(as => ({
+          ...as,
           spend: '0.00',
-          rawSpendUsd: '0.00',
+          rawSpendUsd: as.rawSpendUsd !== null ? '0.00' : null,
           impressions: 0,
           clicks: 0,
           cpc: '0.00',
@@ -3899,60 +3905,41 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
           ctr: '0.00%',
           initCheckouts: 0,
           costPerIc: '0.00',
-          profit: '0.00',
           sales: 0,
           pendingSales: 0,
           revenue: '0.00',
+          profit: '0.00',
           roas: '0.00',
-          cpa: '0.00',
-          adsets: (c.adsets || []).map(as => ({
-            ...as,
-            spend: '0.00',
-            rawSpendUsd: as.rawSpendUsd !== null ? '0.00' : null,
-            impressions: 0,
-            clicks: 0,
-            cpc: '0.00',
-            cpm: '0.00',
-            ctr: '0.00%',
-            initCheckouts: 0,
-            costPerIc: '0.00',
-            sales: 0,
-            pendingSales: 0,
-            revenue: '0.00',
-            profit: '0.00',
-            roas: '0.00',
-            cpa: '0.00'
-          })),
-          ads: (c.ads || []).map(ad => ({
-            ...ad,
-            spend: '0.00',
-            rawSpendUsd: ad.rawSpendUsd !== null ? '0.00' : null,
-            impressions: 0,
-            clicks: 0,
-            cpc: '0.00',
-            cpm: '0.00',
-            ctr: '0.00%',
-            initCheckouts: 0,
-            costPerIc: '0.00',
-            sales: 0,
-            pendingSales: 0,
-            revenue: '0.00',
-            profit: '0.00',
-            roas: '0.00',
-            cpa: '0.00'
-          }))
-        });
-      } else {
-        campMap.set(String(c.id), c);
-      }
+          cpa: '0.00'
+        })),
+        ads: (c.ads || []).map(ad => ({
+          ...ad,
+          spend: '0.00',
+          rawSpendUsd: ad.rawSpendUsd !== null ? '0.00' : null,
+          impressions: 0,
+          clicks: 0,
+          cpc: '0.00',
+          cpm: '0.00',
+          ctr: '0.00%',
+          initCheckouts: 0,
+          costPerIc: '0.00',
+          sales: 0,
+          pendingSales: 0,
+          revenue: '0.00',
+          profit: '0.00',
+          roas: '0.00',
+          cpa: '0.00'
+        }))
+      });
     }
   });
+
   allCampaigns.forEach(c => {
     if (c && c.id) {
       const cIdStr = String(c.id);
       if (isItemDeleted(cIdStr)) return;
 
-      const prev = campMap.get(cIdStr) || {};
+      const prev = existingCamps.find(ec => String(ec.id) === cIdStr) || {};
       let resolvedAdsets = c.adsets;
       if ((!resolvedAdsets || resolvedAdsets.length === 0) && prev.adsets && prev.adsets.length > 0) {
         resolvedAdsets = prev.adsets;
@@ -4022,8 +4009,10 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
       });
     }
   });
+
   const mergedCampaigns = Array.from(campMap.values());
-  if (mergedCampaigns.length > 0) {
+  // CRÍTICO: Somente grava no banco permanente e Supabase se a sincronização for do dia de HOJE
+  if (mergedCampaigns.length > 0 && isTodaySync) {
     db.set('campaigns', mergedCampaigns);
     try {
       for (const mc of mergedCampaigns) {
@@ -4046,44 +4035,47 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
     } catch (e) {}
   }
 
-  // Preserva 100% dos anúncios existentes no banco
+  // Preserva anúncios existentes no banco sem herdar métricas de outros períodos
+  const freshAdsMap = new Map();
+  allAds.forEach(a => {
+    if (a && a.id) freshAdsMap.set(String(a.id), a);
+  });
+
   const existingAds = db.get('meta_ads') || [];
   const adsMap = new Map();
   existingAds.forEach(a => {
     if (a && a.id) {
-      if (isTodaySync && (!a.date || a.date !== todayBrazil)) {
-        adsMap.set(String(a.id), {
-          ...a,
-          date: todayBrazil,
-          spend: '0.00',
-          rawSpendUsd: a.rawSpendUsd !== null ? '0.00' : null,
-          impressions: 0,
-          clicks: 0,
-          cpc: '0.00',
-          cpm: '0.00',
-          ctr: '0.00%',
-          initCheckouts: 0,
-          costPerIc: '0.00',
-          profit: '0.00',
-          sales: 0,
-          pendingSales: 0,
-          revenue: '0.00',
-          roas: '0.00',
-          cpa: '0.00'
-        });
-      } else {
-        adsMap.set(String(a.id), a);
-      }
+      const aIdStr = String(a.id);
+      if (freshAdsMap.has(aIdStr)) return;
+      adsMap.set(aIdStr, {
+        ...a,
+        date: targetPeriodDate,
+        spend: '0.00',
+        rawSpendUsd: a.rawSpendUsd !== null ? '0.00' : null,
+        impressions: 0,
+        clicks: 0,
+        cpc: '0.00',
+        cpm: '0.00',
+        ctr: '0.00%',
+        initCheckouts: 0,
+        costPerIc: '0.00',
+        profit: '0.00',
+        sales: 0,
+        pendingSales: 0,
+        revenue: '0.00',
+        roas: '0.00',
+        cpa: '0.00'
+      });
     }
   });
   allAds.forEach(a => {
     if (a && a.id) {
-      const prev = adsMap.get(String(a.id)) || {};
+      const prev = existingAds.find(ea => String(ea.id) === String(a.id)) || {};
       adsMap.set(String(a.id), { ...prev, ...a });
     }
   });
   const mergedAds = Array.from(adsMap.values());
-  if (mergedAds.length > 0) {
+  if (mergedAds.length > 0 && isTodaySync) {
     db.set('meta_ads', mergedAds);
   }
 
