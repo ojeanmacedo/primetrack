@@ -1355,16 +1355,31 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
+  // Helper para interpretar valor numérico de lance/bid com segurança (trata vírgula e string)
+  const parseBidNum = (val) => {
+    if (val === undefined || val === null || val === '') return 0;
+    if (typeof val === 'number') return isNaN(val) ? 0 : val;
+    const str = String(val).trim();
+    if (!str) return 0;
+    const normalized = str.includes(',') ? str.replace(/\./g, '').replace(',', '.') : str;
+    const num = Number(normalized);
+    return isNaN(num) ? 0 : num;
+  };
+
   // Abre modal direto para edição do valor selecionado
   const handleOpenEdit = (item, field = 'budget') => {
+    if (!item) return;
     const parentCamp = campaignsList.find(c => c.id === item.id || c.id === item.campaignId) || item;
     const isConjunto = subTab === 'Conjuntos' || Boolean(item.adsetId);
     const parentNameUpper = (parentCamp.name || '').toUpperCase();
     const itemNameUpper = (item.name || '').toUpperCase();
 
+    const itemBidNum = parseBidNum(item.bidCap) || (item.bid_amount ? Number(item.bid_amount) / 100 : 0);
+    const parentBidNum = parseBidNum(parentCamp.bidCap) || (parentCamp.bid_amount ? Number(parentCamp.bid_amount) / 100 : 0);
+
     const explicitCbo = parentNameUpper.includes('CBO') || parentNameUpper.includes('BID') || parentNameUpper.includes('COST CAP') || itemNameUpper.includes('CBO');
     const hasCampLevelBudget = Boolean(parentCamp.daily_budget || parentCamp.lifetime_budget || (parentCamp.isCbo === true) || (parentCamp.budgetType === 'Diário' && !parentCamp.isAbo));
-    const hasBidCapStrategy = parentCamp.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || parentCamp.bidStrategy === 'COST_CAP' || (parentCamp.bidCap && Number(parentCamp.bidCap) > 0);
+    const hasBidCapStrategy = parentCamp.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || parentCamp.bidStrategy === 'COST_CAP' || parentBidNum > 0 || itemBidNum > 0;
 
     const isCbo = Boolean(explicitCbo || parentCamp.isCbo === true || hasBidCapStrategy || hasCampLevelBudget);
     const isAbo = !isCbo;
@@ -1377,10 +1392,15 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       return;
     }
 
+    // Bid Cap: se o item tiver bidCap, usa o dele; se for CBO e o item não tiver, herda da campanha
+    const rawBidCapNum = itemBidNum > 0
+      ? itemBidNum
+      : (isCbo && parentBidNum > 0 ? parentBidNum : (parentBidNum > 0 ? parentBidNum : 0));
+
     // Regra do Usuário: "só pode alterar o valor do lance que ja esta na campanha. sem alterar pra costcap ou bidcap. ou criar bidcap ou cost cap, entao em conjuntos de abo tambem remover a canerinha. deixar somente o traço que esta."
     if (field === 'bid') {
       if ((isConjunto && isAbo) || !rawBidCapNum || rawBidCapNum <= 0) {
-        return; // Não permite abrir modal de edição se for ABO ou não tiver limite configurado na Meta
+        return; // Não permite abrir modal de edição se for conjunto ABO ou se não tiver limite configurado na Meta
       }
     }
 
@@ -1392,12 +1412,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     // Para conjuntos em ABO, prioriza o orçamento do próprio conjunto (item.budget)
     // Para CBO, usa o orçamento da campanha
     const rawBudgetNum = Number((isConjunto && isAbo ? item.budget : null) || (isCbo ? parentCamp.budget : item.budget) || item.budget || parentCamp.budget || 127.58);
-    
-    // Bid Cap: se o item tiver bidCap, usa o dele; se for CBO e o item não tiver, herda da campanha
-    const rawBidCapVal = (item.bidCap !== undefined && item.bidCap !== null && Number(item.bidCap) > 0)
-      ? item.bidCap
-      : (isCbo && parentCamp.bidCap && Number(parentCamp.bidCap) > 0 ? parentCamp.bidCap : null);
-    const rawBidCapNum = Number(rawBidCapVal || 0);
 
     const isCostCap = item.bidStrategy === 'COST_CAP' || itemNameUpper.includes('COST CAP') || (isCbo && (parentCamp.bidStrategy === 'COST_CAP' || parentNameUpper.includes('COST CAP')));
     const isBidCap = item.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || itemNameUpper.includes('BID') || (isCbo && (parentCamp.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || parentNameUpper.includes('BID'))) || (rawBidCapNum > 0 && !isCostCap);
@@ -2980,9 +2994,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         const parentNameUpper = (parentCamp.name || '').toUpperCase();
         const itemNameUpper = (item.name || '').toUpperCase();
 
+        const itemBidNum = parseBidNum(item.bidCap) || (item.bid_amount ? Number(item.bid_amount) / 100 : 0);
+        const parentBidNum = parseBidNum(parentCamp.bidCap) || (parentCamp.bid_amount ? Number(parentCamp.bid_amount) / 100 : 0);
+
         const explicitCbo = parentNameUpper.includes('CBO') || parentNameUpper.includes('BID') || parentNameUpper.includes('COST CAP') || itemNameUpper.includes('CBO');
         const hasCampLevelBudget = Boolean(parentCamp.daily_budget || parentCamp.lifetime_budget || (parentCamp.isCbo === true) || (parentCamp.budgetType === 'Diário' && !parentCamp.isAbo));
-        const hasCampBidCapStrategy = parentCamp.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || parentCamp.bidStrategy === 'COST_CAP' || (parentCamp.bidCap && Number(parentCamp.bidCap) > 0);
+        const hasCampBidCapStrategy = parentCamp.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || parentCamp.bidStrategy === 'COST_CAP' || parentBidNum > 0 || itemBidNum > 0;
         const isCbo = Boolean(explicitCbo || parentCamp.isCbo === true || hasCampBidCapStrategy || hasCampLevelBudget);
         const isAbo = !isCbo;
 
@@ -2992,9 +3009,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         }
 
         // Valor do lance configurado na Meta
-        const rawBidVal = (item.bidCap !== undefined && item.bidCap !== null && Number(item.bidCap) > 0 && Number(item.bidCap) < 10000)
-          ? Number(item.bidCap)
-          : (isCbo && parentCamp.bidCap && Number(parentCamp.bidCap) > 0 ? Number(parentCamp.bidCap) : 0);
+        const rawBidVal = (itemBidNum > 0 && itemBidNum < 10000)
+          ? itemBidNum
+          : (isCbo && parentBidNum > 0 && parentBidNum < 10000 ? parentBidNum : (parentBidNum > 0 ? parentBidNum : 0));
 
         const isCostCap = item.bidStrategy === 'COST_CAP' || itemNameUpper.includes('COST CAP') || (isCbo && (parentCamp.bidStrategy === 'COST_CAP' || parentNameUpper.includes('COST CAP')));
         const isBidCap = item.bidStrategy === 'LOWEST_COST_WITH_BID_CAP' || (!isCostCap && (rawBidVal > 0 || itemNameUpper.includes('BID')));
