@@ -1580,7 +1580,7 @@ async function getAllOrders(forceFresh = false, userId = null) {
   if (orders.length === 0) {
     const localOrders = db.get('orders') || [];
     if (isOwnerUserId(userId)) {
-      orders = localOrders.map(o => ({
+      orders = localOrders.filter(o => !o.userId || isOwnerUserId(o.userId)).map(o => ({
         ...o,
         attribution: sanitizeAttribution(o.attribution)
       }));
@@ -1590,7 +1590,7 @@ async function getAllOrders(forceFresh = false, userId = null) {
         attribution: sanitizeAttribution(o.attribution)
       }));
     } else {
-      orders = localOrders.map(o => ({
+      orders = localOrders.filter(o => !o.userId || isOwnerUserId(o.userId)).map(o => ({
         ...o,
         attribution: sanitizeAttribution(o.attribution)
       }));
@@ -2585,7 +2585,10 @@ app.get('/api/orders', async (req, res) => {
     res.json(orders);
   } catch (err) {
     if (isOwnerUserId(userId)) {
-      const orders = db.get('orders') || [];
+      const orders = (db.get('orders') || []).filter(o => !o.userId || isOwnerUserId(o.userId));
+      res.json(orders);
+    } else if (userId) {
+      const orders = (db.get('orders') || []).filter(o => o.userId === userId);
       res.json(orders);
     } else {
       res.json([]);
