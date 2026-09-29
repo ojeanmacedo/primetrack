@@ -1167,7 +1167,8 @@ app.all([
     } else {
       db.append('orders', orderRecord);
     }
-    ordersMemoryCache = { data: null, timestamp: 0 };
+    ordersMemoryCache = {};
+    campaignsCache.clear();
 
     let supaPrevStatus = null;
     try {
