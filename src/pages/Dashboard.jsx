@@ -510,7 +510,18 @@ export default function Dashboard() {
 
   const [isPeriodLoading, setIsPeriodLoading] = useState(true);
   const [campaigns, setCampaigns] = useState([]);
-  const [ordersList, setOrdersList] = useState([]);
+  const [ordersList, setOrdersList] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('primetrack_cached_orders');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch (e) {}
+    }
+    return [];
+  });
 
   const [pixelStats, setPixelStats] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -632,9 +643,12 @@ export default function Dashboard() {
       let resolvedOrders = ordersList;
       try {
         const oData = await ordRes.json();
-        if (Array.isArray(oData)) {
+        if (Array.isArray(oData) && oData.length > 0) {
           resolvedOrders = oData;
           setOrdersList(oData);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('primetrack_cached_orders', JSON.stringify(oData));
+          }
         }
       } catch (oErr) {}
 
@@ -748,9 +762,12 @@ export default function Dashboard() {
       const [cData, oData] = await Promise.all([cr.json().catch(() => null), ord.json().catch(() => null)]);
 
       let finalOrders = ordersList;
-      if (Array.isArray(oData)) {
+      if (Array.isArray(oData) && oData.length > 0) {
         finalOrders = oData;
         setOrdersList(oData);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('primetrack_cached_orders', JSON.stringify(oData));
+        }
       }
 
       let finalPix = pixelStats;
@@ -782,11 +799,10 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    // Purga de caches legados desincronizados
+    // Purga de caches legados desincronizados de campanhas
     try {
       localStorage.removeItem('primetrack_cached_campaigns');
       localStorage.removeItem('primetrack_cached_campaigns_date');
-      localStorage.removeItem('primetrack_cached_orders');
     } catch (e) {}
 
     let lastKnownDate = toBrazilYMD(new Date());

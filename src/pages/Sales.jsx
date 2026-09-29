@@ -57,14 +57,10 @@ export default function Sales() {
     fetch('/api/orders' + userParam, { headers: userHeaders })
       .then(res => res.json())
       .then(data => {
-        if (Array.isArray(data)) {
+        if (Array.isArray(data) && data.length > 0) {
           setLiveOrders(data);
           try {
-            if (data.length > 0) {
-              localStorage.setItem('primetrack_cached_orders', JSON.stringify(data));
-            } else {
-              localStorage.removeItem('primetrack_cached_orders');
-            }
+            localStorage.setItem('primetrack_cached_orders', JSON.stringify(data));
           } catch (e) {}
         }
       })

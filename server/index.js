@@ -58,7 +58,7 @@ export function toBrazilYMD(dateInput = new Date()) {
   }
 }
 
-export const OWNER_USER_IDS = ['usr_1788826403159', 'usr_admin_digitaljm'];
+export const OWNER_USER_IDS = ['usr_1788826403159', 'usr_admin_digitaljm', 'usr_1790177682943'];
 export function isOwnerUserId(id) {
   if (!id) return true; // fallback to master account
   return OWNER_USER_IDS.includes(id);
@@ -1586,6 +1586,11 @@ async function getAllOrders(forceFresh = false, userId = null) {
       }));
     } else if (userId) {
       orders = localOrders.filter(o => o.userId === userId).map(o => ({
+        ...o,
+        attribution: sanitizeAttribution(o.attribution)
+      }));
+    } else {
+      orders = localOrders.map(o => ({
         ...o,
         attribution: sanitizeAttribution(o.attribution)
       }));
