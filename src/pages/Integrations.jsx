@@ -954,9 +954,10 @@ export default function Integrations() {
   };
 
   const handleDeletePixel = (pxId) => {
-    const updated = trackingPixels.filter(px => px.id !== pxId);
+    const updated = trackingPixels.filter(px => px.id !== pxId && px.pixelId !== pxId);
     setTrackingPixels(updated);
     if (typeof window !== 'undefined') {
+      localStorage.setItem('primetrack_pixels', JSON.stringify(updated));
       localStorage.setItem(getScopedKey('primetrack_pixels'), JSON.stringify(updated));
     }
     fetch('/api/pixels', {

@@ -309,6 +309,14 @@ app.post('/api/pixels', async (req, res) => {
 
     // Persiste no Supabase com isolamento por usuário
     try {
+      // Remove do Supabase pixels que foram excluídos pelo usuário
+      const validIds = validPixels.map(px => px.pixelId || px.internalPixelId || px.id).filter(Boolean);
+      if (validIds.length > 0) {
+        await supabaseAdmin.from('pixels').delete().eq('user_id', targetUserId).not('id', 'in', `(${validIds.join(',')})`);
+      } else {
+        await supabaseAdmin.from('pixels').delete().eq('user_id', targetUserId);
+      }
+
       for (const px of validPixels) {
         const id = px.pixelId || px.internalPixelId || px.id;
         if (!id || id.startsWith('settings_') || px.name === 'UserSettings') continue;
@@ -337,7 +345,7 @@ app.post('/api/pixels', async (req, res) => {
       console.warn('Erro ao sincronizar pixels no Supabase:', err.message);
     }
 
-    return res.json({ success: true, pixels });
+    return res.json({ success: true, pixels: validPixels });
   }
   res.status(400).json({ success: false, error: 'Lista de pixels inválida' });
 });
