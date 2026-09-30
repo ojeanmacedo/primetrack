@@ -2787,9 +2787,6 @@ app.get('/api/campaigns', async (req, res) => {
   const clientActiveAccountsHeader = req.headers['x-active-accounts'];
   const resolvedRange = resolveDateRange(datePreset, since, until);
   const timeRange = (resolvedRange.since && resolvedRange.until) ? resolvedRange : (resolvedRange.isMaximum ? { isMaximum: true } : null);
-  const cacheKey = getCampaignsCacheKey(userId, datePreset, resolvedRange);
-  const now = Date.now();
-  const cached = campaignsCache.get(cacheKey);
 
   let connections = [];
   
@@ -2873,16 +2870,42 @@ app.get('/api/campaigns', async (req, res) => {
   // Extrai IDs das contas ativas do usuário e todas as contas conectadas
   const userActiveIds = new Set();
   const allUserConnectedAccIds = new Set();
-  connections.forEach(c => {
-    if (c.email) {
-      try {
-        const meta = JSON.parse(c.email);
-        if (Array.isArray(meta?.activeAccounts)) {
-          meta.activeAccounts.forEach(id => userActiveIds.add(String(id).replace('act_', '')));
+  const effectiveUser = userId || 'usr_1788826403159';
+
+  // 1. Prioridade máxima: se o cliente enviou explicitamente activeAccounts na query ou header
+  const rawClientAct = clientActiveAccounts || clientActiveAccountsHeader;
+  if (rawClientAct && String(rawClientAct).trim()) {
+    String(rawClientAct).split(',').map(s => s.trim().replace('act_', '')).filter(Boolean).forEach(id => userActiveIds.add(id));
+  }
+
+  // 2. Se o cliente não passou activeAccounts, busca do banco/store do usuário
+  if (userActiveIds.size === 0) {
+    const explicitSaved = db.get(`active_accounts_${effectiveUser}`) || (isOwnerUserId(effectiveUser) ? db.get('active_accounts') : null);
+    if (Array.isArray(explicitSaved) && explicitSaved.length > 0) {
+      explicitSaved.forEach(id => userActiveIds.add(String(id).replace('act_', '')));
+    } else {
+      connections.forEach(c => {
+        if (c.email) {
+          try {
+            const meta = JSON.parse(c.email);
+            if (Array.isArray(meta?.activeAccounts)) {
+              meta.activeAccounts.forEach(id => userActiveIds.add(String(id).replace('act_', '')));
+            }
+          } catch (e) {}
         }
-      } catch (e) {}
+      });
     }
-  });
+
+    // Aplica overrides manuais se existirem
+    const overrides = db.get(`sync_overrides_${effectiveUser}`) || (isOwnerUserId(effectiveUser) ? db.get('sync_overrides') : null);
+    if (overrides && typeof overrides === 'object') {
+      Object.entries(overrides).forEach(([accId, isActive]) => {
+        const clean = String(accId).replace('act_', '');
+        if (isActive) userActiveIds.add(clean);
+        else userActiveIds.delete(clean);
+      });
+    }
+  }
 
   // Carrega todas as contas vinculadas do usuário no store/Supabase
   const allUserAccs = (db.get('ad_accounts') || []).filter(a => isOwnerUserId(userId) ? (!a.userId || isOwnerUserId(a.userId)) : (a.userId === userId));
@@ -2891,11 +2914,11 @@ app.get('/api/campaigns', async (req, res) => {
     if (clean) allUserConnectedAccIds.add(clean);
   });
 
-  // Fallback caso a conexão ainda não tenha gravado o JSON no Supabase
-  const rawClientAct = clientActiveAccounts || clientActiveAccountsHeader;
-  if (userActiveIds.size === 0 && rawClientAct) {
-    String(rawClientAct).split(',').map(s => s.trim().replace('act_', '')).filter(Boolean).forEach(id => userActiveIds.add(id));
-  }
+  const activeAccountsKey = Array.from(userActiveIds).sort().join('_') || 'all';
+  const baseCacheKey = getCampaignsCacheKey(userId, datePreset, resolvedRange);
+  const cacheKey = `${baseCacheKey}_${activeAccountsKey}`;
+  const now = Date.now();
+  const cached = campaignsCache.get(cacheKey);
 
   const todayBrazil = toBrazilYMD(new Date());
   const isPastRange = Boolean(timeRange?.until && timeRange.until < todayBrazil);
@@ -3576,6 +3599,62 @@ app.get('/api/auth/facebook/callback', async (req, res) => {
 
 let reconcileCache = {};
 
+// Mapeia contas ativas de forma isolada por conexão
+export const getActiveSetForConnection = (connObj) => {
+  const set = new Set();
+  if (connObj && connObj.email) {
+    try {
+      const parsedMeta = JSON.parse(connObj.email);
+      if (parsedMeta && Array.isArray(parsedMeta.activeAccounts)) {
+        parsedMeta.activeAccounts.forEach(acc => set.add(String(acc).replace('act_', '')));
+      }
+    } catch (e) {}
+  }
+  return set;
+};
+
+// Mapeia contas ativas de forma isolada por usuário
+export const getActiveSetForUser = (targetUserId, optionalConnections = null) => {
+  const set = new Set();
+  const effectiveUser = targetUserId || 'usr_1788826403159';
+  // 1. Prioridade máxima: lista salva explicitamente pelo usuário
+  const explicitSaved = db.get(`active_accounts_${effectiveUser}`) || (isOwnerUserId(effectiveUser) ? db.get('active_accounts') : null);
+  if (Array.isArray(explicitSaved)) {
+    explicitSaved.forEach(id => set.add(String(id).replace('act_', '')));
+  } else {
+    const conns = (Array.isArray(optionalConnections) && optionalConnections.length > 0)
+      ? optionalConnections
+      : (db.get('facebook_connections') || []);
+    conns.forEach(c => {
+      const cUser = c.user_id || c.userId;
+      const matches = targetUserId && (
+        isOwnerUserId(targetUserId) 
+          ? (isOwnerUserId(cUser) || !cUser)
+          : (cUser === targetUserId)
+      );
+      if (matches || !targetUserId) {
+        const connSet = getActiveSetForConnection(c);
+        connSet.forEach(id => set.add(id));
+      }
+    });
+  }
+
+  // Aplica overrides manuais se existirem
+  const overrides = db.get(`sync_overrides_${effectiveUser}`) || (isOwnerUserId(effectiveUser) ? db.get('sync_overrides') : null);
+  if (overrides && typeof overrides === 'object') {
+    Object.entries(overrides).forEach(([accId, isActive]) => {
+      const clean = String(accId).replace('act_', '');
+      if (isActive) {
+        set.add(clean);
+      } else {
+        set.delete(clean);
+      }
+    });
+  }
+
+  return set;
+};
+
 // C. Função central de reconciliação de dados da Meta (perfis, contas ativas e limpeza de contas órfãs)
 export async function reconcileFacebookData(force = false, userId = null) {
   const cacheKey = userId || 'all';
@@ -3688,58 +3767,7 @@ export async function reconcileFacebookData(force = false, userId = null) {
   });
   db.set('facebook_connections', Array.from(uniqueConnsMap.values()));
 
-  // 3. Mapeia contas ativas de forma isolada por usuário/conexão
-  // Garante que mesmo com o mesmo perfil do FB conectado em usuários distintos, cada usuário mantém suas contas ativas separadas
-  const getActiveSetForConnection = (connObj) => {
-    const set = new Set();
-    if (connObj && connObj.email) {
-      try {
-        const parsedMeta = JSON.parse(connObj.email);
-        if (parsedMeta && Array.isArray(parsedMeta.activeAccounts)) {
-          parsedMeta.activeAccounts.forEach(acc => set.add(String(acc).replace('act_', '')));
-        }
-      } catch (e) {}
-    }
-    return set;
-  };
-
-  const getActiveSetForUser = (targetUserId) => {
-    const set = new Set();
-    const effectiveUser = targetUserId || userId || 'usr_1788826403159';
-    // 1. Prioridade máxima: lista salva explicitamente pelo usuário
-    const explicitSaved = db.get(`active_accounts_${effectiveUser}`) || (isOwnerUserId(effectiveUser) ? db.get('active_accounts') : null);
-    if (Array.isArray(explicitSaved)) {
-      explicitSaved.forEach(id => set.add(String(id).replace('act_', '')));
-    } else {
-      connections.forEach(c => {
-        const cUser = c.user_id || c.userId;
-        const matches = targetUserId && (
-          isOwnerUserId(targetUserId) 
-            ? (isOwnerUserId(cUser) || !cUser)
-            : (cUser === targetUserId)
-        );
-        if (matches || !targetUserId) {
-          const connSet = getActiveSetForConnection(c);
-          connSet.forEach(id => set.add(id));
-        }
-      });
-    }
-
-    // Aplica overrides manuais se existirem
-    const overrides = db.get(`sync_overrides_${effectiveUser}`) || (isOwnerUserId(effectiveUser) ? db.get('sync_overrides') : null);
-    if (overrides && typeof overrides === 'object') {
-      Object.entries(overrides).forEach(([accId, isActive]) => {
-        const clean = String(accId).replace('act_', '');
-        if (isActive) {
-          set.add(clean);
-        } else {
-          set.delete(clean);
-        }
-      });
-    }
-
-    return set;
-  };
+  // 3. Mapeia contas ativas de forma isolada por usuário/conexão via getActiveSetForUser
 
   // 4. Busca em paralelo todas as contas oficiais de cada perfil conectado
   const fetchPromises = connections.map(async (conn) => {

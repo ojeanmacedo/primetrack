@@ -859,11 +859,26 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
+          const userOverridesKey = user?.id ? `primetrack_sync_overrides_${user.id}` : 'primetrack_sync_overrides';
+          let localOverrides = {};
+          if (typeof window !== 'undefined') {
+            try {
+              localOverrides = JSON.parse(localStorage.getItem(userOverridesKey) || localStorage.getItem('primetrack_sync_overrides') || '{}');
+            } catch (e) {}
+          }
+
           parsed.forEach(p => {
             if (p.id) {
               const cleanKey = String(p.id).replace('act_', '');
-              localSyncMap[cleanKey] = p.sync;
-              localSyncMap[`act_${cleanKey}`] = p.sync;
+              let isSync = p.sync;
+              if (localOverrides[cleanKey] !== undefined) {
+                isSync = Boolean(localOverrides[cleanKey]);
+              } else if (localOverrides[`act_${cleanKey}`] !== undefined) {
+                isSync = Boolean(localOverrides[`act_${cleanKey}`]);
+              }
+              localSyncMap[cleanKey] = isSync;
+              localSyncMap[`act_${cleanKey}`] = isSync;
+              p.sync = isSync;
             }
           });
           const activeList = parsed.filter(a => a.sync === true);
