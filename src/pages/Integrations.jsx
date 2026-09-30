@@ -173,12 +173,18 @@ export default function Integrations() {
   const loadTrackingPixels = (dashId, isDef) => {
     if (typeof window === 'undefined') return [];
     const key = isDef || dashId === 'principal' ? 'primetrack_pixels' : `primetrack_pixels_${dashId}`;
+    const userDeletedKey = currentUser?.id ? `primetrack_deleted_pixels_${currentUser.id}` : 'primetrack_deleted_pixels';
+    const deletedIds = JSON.parse(localStorage.getItem(userDeletedKey) || '[]');
     const saved = localStorage.getItem(key);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return parsed.filter(p => p && p.name !== 'UserSettings' && !String(p.id || '').startsWith('settings_'));
+          return parsed.filter(p => {
+            if (!p || p.name === 'UserSettings' || String(p.id || '').startsWith('settings_')) return false;
+            const pxId = p.pixelId || p.internalPixelId || p.id;
+            return !deletedIds.includes(pxId) && !deletedIds.includes(p.id);
+          });
         }
       } catch (e) {}
     }
@@ -954,11 +960,23 @@ export default function Integrations() {
   };
 
   const handleDeletePixel = async (pxId) => {
-    const updated = trackingPixels.filter(px => px.id !== pxId && px.pixelId !== pxId);
+    const targetPx = trackingPixels.find(px => px.id === pxId || px.pixelId === pxId);
+    const idToFilter = targetPx ? (targetPx.pixelId || targetPx.id) : pxId;
+    const updated = trackingPixels.filter(px => px.id !== pxId && px.pixelId !== pxId && px.id !== idToFilter && px.pixelId !== idToFilter);
     setTrackingPixels(updated);
     if (typeof window !== 'undefined') {
       localStorage.setItem('primetrack_pixels', JSON.stringify(updated));
       localStorage.setItem(getScopedKey('primetrack_pixels'), JSON.stringify(updated));
+      
+      const userDeletedKey = currentUser?.id ? `primetrack_deleted_pixels_${currentUser.id}` : 'primetrack_deleted_pixels';
+      const deletedIds = JSON.parse(localStorage.getItem(userDeletedKey) || '[]');
+      if (idToFilter && !deletedIds.includes(idToFilter)) {
+        deletedIds.push(idToFilter);
+      }
+      if (pxId && !deletedIds.includes(pxId)) {
+        deletedIds.push(pxId);
+      }
+      localStorage.setItem(userDeletedKey, JSON.stringify(deletedIds));
     }
     try {
       await fetch('/api/pixels', {
@@ -1207,10 +1225,17 @@ export default function Integrations() {
       .then(res => res.json())
       .then(pixels => {
         if (Array.isArray(pixels)) {
-          const cleanPixels = pixels.filter(p => p && p.name !== 'UserSettings' && !String(p.id || '').startsWith('settings_'));
+          const userDeletedKey = currentUser?.id ? `primetrack_deleted_pixels_${currentUser.id}` : 'primetrack_deleted_pixels';
+          const deletedIds = JSON.parse(localStorage.getItem(userDeletedKey) || '[]');
+          const cleanPixels = pixels.filter(p => {
+            if (!p || p.name === 'UserSettings' || String(p.id || '').startsWith('settings_')) return false;
+            const pxId = p.pixelId || p.internalPixelId || p.id;
+            return !deletedIds.includes(pxId) && !deletedIds.includes(p.id);
+          });
           setTrackingPixels(cleanPixels);
           if (typeof window !== 'undefined') {
             localStorage.setItem('primetrack_pixels', JSON.stringify(cleanPixels));
+            localStorage.setItem(getScopedKey('primetrack_pixels'), JSON.stringify(cleanPixels));
           }
         }
       })
