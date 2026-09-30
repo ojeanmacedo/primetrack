@@ -182,31 +182,23 @@
       "userId": "usr_1788826403159"
     },
     {
-      "id": "pt_px_kaue_todos",
-      "pixelId": "pt_px_kaue_todos",
+      "id": "pt_px_n7jmhi3grhi",
+      "pixelId": "pt_px_n7jmhi3grhi",
       "name": "Pixel Kauê",
       "domains": "*",
-      "metaPixelId": "1672255907589730",
+      "metaPixelId": "4099709903493911",
       "metaPixels": [
         {
-          "id": "mp_kaue_1",
-          "metaPixelId": "1672255907589730",
-          "name": "kaue"
-        },
-        {
-          "id": "mp_kaue_2",
-          "metaPixelId": "2460567341021217",
-          "name": "kaue jeffrey"
-        },
-        {
-          "id": "mp_kaue_3",
-          "metaPixelId": "1093520173034169",
-          "name": "kaue bm7"
-        },
-        {
-          "id": "mp_kaue_4",
+          "id": "sub_px_kaue_bm5",
           "metaPixelId": "4099709903493911",
-          "name": "KAUE BM5"
+          "name": "kaue bm5",
+          "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy"
+        },
+        {
+          "id": "sub_px_kaue_bm7",
+          "metaPixelId": "1093520173034169",
+          "name": "kaue bm7",
+          "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy"
         }
       ],
       "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
