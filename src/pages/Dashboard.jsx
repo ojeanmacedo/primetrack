@@ -718,11 +718,25 @@ export default function Dashboard() {
             } catch (e) {}
           }
 
+          let localOverrides = {};
+          if (typeof window !== 'undefined') {
+            try {
+              localOverrides = JSON.parse(localStorage.getItem('primetrack_sync_overrides') || '{}');
+            } catch (e) {}
+          }
+
           const allMappedAccs = data.adAccounts.map(a => {
             const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
-            const isSync = localSyncMap[accId] !== undefined
-              ? localSyncMap[accId] === true
-              : (a.syncActive === true);
+            let isSync;
+            if (localOverrides[accId] !== undefined) {
+              isSync = Boolean(localOverrides[accId]);
+            } else if (localOverrides[`act_${accId}`] !== undefined) {
+              isSync = Boolean(localOverrides[`act_${accId}`]);
+            } else if (localSyncMap[accId] !== undefined) {
+              isSync = localSyncMap[accId] === true;
+            } else {
+              isSync = a.syncActive === true;
+            }
             return {
               ...a,
               id: accId,

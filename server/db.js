@@ -1,11 +1,13 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'store.json');
+const TMP_DB_FILE = path.join(os.tmpdir(), 'primetrack_store.json');
 
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -446,6 +448,14 @@ class Store {
       return this.cache;
     }
     try {
+      if (fs.existsSync(TMP_DB_FILE)) {
+        const tmpContent = fs.readFileSync(TMP_DB_FILE, 'utf-8');
+        this.cache = JSON.parse(tmpContent);
+        return this.cache;
+      }
+    } catch (e) {}
+
+    try {
       const content = fs.readFileSync(DB_FILE, 'utf-8');
       this.cache = JSON.parse(content);
       return this.cache;
@@ -460,9 +470,13 @@ class Store {
     this.cache = data;
     try {
       fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
+    } catch (err) {
+      // Em ambientes como Vercel Serverless onde o FS é read-only, grava em /tmp
+    }
+    try {
+      fs.writeFileSync(TMP_DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
       return true;
     } catch (err) {
-      // Em ambientes como Vercel Serverless onde o FS é read-only, os dados persistem em this.cache
       return false;
     }
   }

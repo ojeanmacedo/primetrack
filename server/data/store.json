@@ -41949,12 +41949,7 @@
       "avatarUrl": "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=122109599696599930&height=200&width=200&ext=1792779871&hash=AfvBDrzXAP3adBHF9ztSni8w",
       "accessToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
       "accountsCount": 14,
-      "connectedAt": "2026-09-23T18:24:31.752+00:00",
-      "activeAccounts": [
-        "1057550720668761",
-        "2114439812800100",
-        "1113966467825321"
-      ]
+      "connectedAt": "2026-09-23T18:24:31.752+00:00"
     }
   ],
   "ad_accounts": [
@@ -57454,5 +57449,9 @@
     "1057550720668761",
     "2114439812800100",
     "1113966467825321"
-  ]
+  ],
+  "sync_overrides_usr_1788826403159": {
+    "806160179256359": false,
+    "1057550720668761": true
+  }
 }

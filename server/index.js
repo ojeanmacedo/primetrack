@@ -3705,20 +3705,34 @@ export async function reconcileFacebookData(force = false, userId = null) {
     const explicitSaved = db.get(`active_accounts_${effectiveUser}`) || (isOwnerUserId(effectiveUser) ? db.get('active_accounts') : null);
     if (Array.isArray(explicitSaved)) {
       explicitSaved.forEach(id => set.add(String(id).replace('act_', '')));
-      return set;
+    } else {
+      connections.forEach(c => {
+        const cUser = c.user_id || c.userId;
+        const matches = targetUserId && (
+          isOwnerUserId(targetUserId) 
+            ? (isOwnerUserId(cUser) || !cUser)
+            : (cUser === targetUserId)
+        );
+        if (matches || !targetUserId) {
+          const connSet = getActiveSetForConnection(c);
+          connSet.forEach(id => set.add(id));
+        }
+      });
     }
-    connections.forEach(c => {
-      const cUser = c.user_id || c.userId;
-      const matches = targetUserId && (
-        isOwnerUserId(targetUserId) 
-          ? (isOwnerUserId(cUser) || !cUser)
-          : (cUser === targetUserId)
-      );
-      if (matches || !targetUserId) {
-        const connSet = getActiveSetForConnection(c);
-        connSet.forEach(id => set.add(id));
-      }
-    });
+
+    // Aplica overrides manuais se existirem
+    const overrides = db.get(`sync_overrides_${effectiveUser}`) || (isOwnerUserId(effectiveUser) ? db.get('sync_overrides') : null);
+    if (overrides && typeof overrides === 'object') {
+      Object.entries(overrides).forEach(([accId, isActive]) => {
+        const clean = String(accId).replace('act_', '');
+        if (isActive) {
+          set.add(clean);
+        } else {
+          set.delete(clean);
+        }
+      });
+    }
+
     return set;
   };
 
@@ -3851,9 +3865,17 @@ export async function reconcileFacebookData(force = false, userId = null) {
 
     if (existingAccounts.length === 0) {
       const allAccs = db.get('ad_accounts') || [];
-      existingAccounts = userId
+      const userActiveSet = getActiveSetForUser(userId || 'usr_1788826403159');
+      const filtered = userId
         ? allAccs.filter(a => isOwnerUserId(userId) ? (!a.userId || isOwnerUserId(a.userId) || !a.user_id || isOwnerUserId(a.user_id)) : (a.userId === userId || a.user_id === userId))
         : allAccs;
+      existingAccounts = filtered.map(a => {
+        const cleanId = String(a.accountId || a.id || '').replace('act_', '').split('___')[0];
+        return {
+          ...a,
+          syncActive: userActiveSet.has(cleanId)
+        };
+      });
     }
 
     if (existingAccounts.length > 0) {
@@ -3891,10 +3913,21 @@ app.get('/api/meta/status', async (req, res) => {
   try {
     const userId = req.headers['x-user-id'] || req.query.userId || null;
     const reconciled = await reconcileFacebookData(false, userId);
+    const effectiveUser = userId || 'usr_1788826403159';
+    const activeSet = getActiveSetForUser(effectiveUser);
+
+    const accountsWithSync = (reconciled.adAccounts || []).map(acc => {
+      const clean = (acc.accountId || acc.id || '').replace('act_', '');
+      return {
+        ...acc,
+        syncActive: activeSet.has(clean)
+      };
+    });
+
     res.json({
       success: true,
       connections: reconciled.connections,
-      adAccounts: reconciled.adAccounts,
+      adAccounts: accountsWithSync,
       appId: process.env.META_APP_ID || '1650241273321193'
     });
   } catch (err) {
@@ -4721,6 +4754,13 @@ app.post('/api/meta/accounts/sync-status', async (req, res) => {
     db.set(`active_accounts_${effectiveTargetUser}`, explicitActiveIds);
     if (isOwnerUserId(effectiveTargetUser)) {
       db.set('active_accounts', explicitActiveIds);
+    }
+    const { overrides } = req.body || {};
+    if (overrides && typeof overrides === 'object') {
+      db.set(`sync_overrides_${effectiveTargetUser}`, overrides);
+      if (isOwnerUserId(effectiveTargetUser)) {
+        db.set('sync_overrides', overrides);
+      }
     }
 
     // 2. Atualiza o status syncActive de todas as contas em db.get('ad_accounts')

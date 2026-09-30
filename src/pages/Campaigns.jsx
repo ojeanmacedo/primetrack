@@ -956,12 +956,29 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       }
 
       if (data && Array.isArray(data.adAccounts) && data.adAccounts.length > 0) {
+        const userOverridesKey = user?.id ? `primetrack_sync_overrides_${user.id}` : 'primetrack_sync_overrides';
+        let localOverrides = {};
+        if (typeof window !== 'undefined') {
+          try {
+            localOverrides = JSON.parse(localStorage.getItem(userOverridesKey) || localStorage.getItem('primetrack_sync_overrides') || '{}');
+          } catch (e) {}
+        }
+
         const mappedAccs = data.adAccounts
           .map(a => {
             const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
-            const isSyncActive = a.syncActive !== undefined
-              ? (a.syncActive === true)
-              : (localSyncMap[accId] !== undefined ? localSyncMap[accId] === true : false);
+            let isSyncActive;
+            if (localOverrides[accId] !== undefined) {
+              isSyncActive = Boolean(localOverrides[accId]);
+            } else if (localOverrides[`act_${accId}`] !== undefined) {
+              isSyncActive = Boolean(localOverrides[`act_${accId}`]);
+            } else if (localSyncMap[accId] !== undefined) {
+              isSyncActive = Boolean(localSyncMap[accId]);
+            } else if (localSyncMap[`act_${accId}`] !== undefined) {
+              isSyncActive = Boolean(localSyncMap[`act_${accId}`]);
+            } else {
+              isSyncActive = a.syncActive === true;
+            }
 
             return {
               name: a.name || 'Conta',

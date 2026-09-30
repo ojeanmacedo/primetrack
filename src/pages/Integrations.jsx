@@ -215,11 +215,28 @@ export default function Integrations() {
       return [];
     }
     const key = isDef || dashId === 'principal' ? 'primetrack_ad_accounts' : `primetrack_ad_accounts_${dashId}`;
+    const userOverridesKey = currentUser?.id ? `primetrack_sync_overrides_${currentUser.id}` : 'primetrack_sync_overrides';
+    let overrides = {};
+    try {
+      overrides = JSON.parse(localStorage.getItem(userOverridesKey) || localStorage.getItem('primetrack_sync_overrides') || '{}');
+    } catch (e) {}
+
     const saved = localStorage.getItem(userAccKey) || localStorage.getItem(key);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) {
+          return parsed.map(a => {
+            const cleanId = String(a.id || a.accountId || '').replace('act_', '');
+            if (overrides[cleanId] !== undefined) {
+              return { ...a, sync: Boolean(overrides[cleanId]) };
+            }
+            if (overrides[`act_${cleanId}`] !== undefined) {
+              return { ...a, sync: Boolean(overrides[`act_${cleanId}`]) };
+            }
+            return a;
+          });
+        }
       } catch (e) {}
     }
     return [];
@@ -697,19 +714,44 @@ export default function Integrations() {
 
     setAdAccounts(updated);
     const activeIds = updated.filter(a => a.sync).map(a => String(a.id).replace('act_', ''));
+    
+    // Atualiza o mapa de overrides manuais do usuário (tem prioridade máxima e nunca é resetado por F5)
+    const userOverridesKey = currentUser?.id ? `primetrack_sync_overrides_${currentUser.id}` : 'primetrack_sync_overrides';
+    let currentOverrides = {};
     if (typeof window !== 'undefined') {
+      try {
+        currentOverrides = JSON.parse(localStorage.getItem(userOverridesKey) || localStorage.getItem('primetrack_sync_overrides') || '{}');
+      } catch (e) {}
+
+      if (trialStatus.isTrial && nextSync) {
+        adAccounts.forEach(a => {
+          const cid = String(a.id).replace('act_', '');
+          currentOverrides[cid] = (cid === cleanTargetId);
+          currentOverrides[`act_${cid}`] = (cid === cleanTargetId);
+        });
+      } else {
+        currentOverrides[cleanTargetId] = nextSync;
+        currentOverrides[`act_${cleanTargetId}`] = nextSync;
+      }
+
+      localStorage.setItem(userOverridesKey, JSON.stringify(currentOverrides));
+      localStorage.setItem('primetrack_sync_overrides', JSON.stringify(currentOverrides));
       localStorage.setItem('primetrack_ad_accounts', JSON.stringify(updated));
       localStorage.setItem(userAccKey, JSON.stringify(updated));
       localStorage.setItem(getScopedKey('primetrack_ad_accounts'), JSON.stringify(updated));
-      // Mantém os caches de campanhas intactos mesmo se todas as contas forem desativadas
-      // para que o histórico de dias passados continue sempre disponível no Dashboard
     }
 
     // Persiste no backend imediatamente para nunca perder a configuração
     fetch('/api/meta/accounts/sync-status', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
-      body: JSON.stringify({ activeAccounts: activeIds, accountId: cleanTargetId, syncActive: nextSync, userId: currentUser?.id })
+      body: JSON.stringify({
+        activeAccounts: activeIds,
+        accountId: cleanTargetId,
+        syncActive: nextSync,
+        userId: currentUser?.id,
+        overrides: currentOverrides
+      })
     }).catch(err => console.warn('Erro ao salvar status da conta no servidor:', err.message));
 
     // Se ativou conta(s), dispara sincronização com o Meta Ads imediatamente e armazena resultado no cache
@@ -1222,13 +1264,32 @@ export default function Integrations() {
               } catch (e) {}
             }
 
+            const userOverridesKey = currentUser?.id ? `primetrack_sync_overrides_${currentUser.id}` : 'primetrack_sync_overrides';
+            let localOverrides = {};
+            if (typeof window !== 'undefined') {
+              try {
+                localOverrides = JSON.parse(localStorage.getItem(userOverridesKey) || localStorage.getItem('primetrack_sync_overrides') || '{}');
+              } catch (e) {}
+            }
+
             const mappedAccs = data.adAccounts.map(a => {
               const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
               const isAccountActive = a.status === 'ACTIVE' || a.status === 'Ativa' || a.account_status === 1;
-              // Prioridade: status real do backend/Supabase > fallback para localStorage local
-              const isSyncActive = a.syncActive !== undefined
-                ? (a.syncActive === true)
-                : (localSyncMap[accId] !== undefined ? localSyncMap[accId] === true : false);
+              
+              // Prioridade 1: Decisão explícita tomada pelo usuário no navegador
+              let isSyncActive;
+              if (localOverrides[accId] !== undefined) {
+                isSyncActive = Boolean(localOverrides[accId]);
+              } else if (localOverrides[`act_${accId}`] !== undefined) {
+                isSyncActive = Boolean(localOverrides[`act_${accId}`]);
+              } else if (localSyncMap[accId] !== undefined) {
+                isSyncActive = Boolean(localSyncMap[accId]);
+              } else if (localSyncMap[`act_${accId}`] !== undefined) {
+                isSyncActive = Boolean(localSyncMap[`act_${accId}`]);
+              } else {
+                // Prioridade 2: Status do backend se o usuário ainda não tiver tocado na conta
+                isSyncActive = a.syncActive === true;
+              }
 
               const isRealPrepay = a.isPrepay === true || accId === '1218349886840112';
               const realBalance = isRealPrepay ? (a.balance || '4,05') : '0,00';
