@@ -256,54 +256,9 @@ app.get('/api/pixel/config', async (req, res) => {
 
 app.get('/api/pixels', async (req, res) => {
   const userId = req.headers['x-user-id'] || req.query.userId;
-  // 1. Prioriza o banco local store.json (que guarda o estado em tempo real)
+  // Retorna sempre o estado em tempo real do banco local
   const localPixels = (db.get('pixels') || []).filter(p => !p.id?.startsWith('settings_') && !p.id?.startsWith('push_sub_') && !p.id?.startsWith('wh_tok_') && p.name !== 'UserSettings');
-  
-  if (localPixels && localPixels.length >= 0 && (!userId || isOwnerUserId(userId))) {
-    return res.json(localPixels);
-  }
-
-  try {
-    let query = supabaseAdmin.from('pixels').select('*');
-    if (userId) {
-      if (isOwnerUserId(userId)) {
-        query = query.or(`user_id.in.(${OWNER_USER_IDS.join(',')}),user_id.is.null`);
-      } else {
-        query = query.eq('user_id', userId);
-      }
-    }
-    const { data } = await query;
-    if (data && data.length > 0) {
-      const mapped = data
-        .filter(p => !p.id.startsWith('push_sub_') && !p.id.startsWith('wh_tok_') && !p.id.startsWith('settings_') && p.name !== 'UserSettings')
-        .map(p => {
-          let extra = {};
-          try { extra = JSON.parse(p.domain); } catch(e){}
-          return {
-            id: p.id,
-            pixelId: p.id,
-            name: p.name,
-            domains: extra.domain || '*',
-            metaPixelId: extra.metaPixelId || '',
-            metaPixels: extra.metaPixels || [],
-            capiToken: extra.capiToken || '',
-            capiTokenRaw: extra.capiTokenRaw || extra.capiToken || '',
-            icType: extra.icType || 'css',
-            icValue: extra.icValue || '',
-            icRule: extra.icRule || '',
-            status: p.status === 'active' ? 'Ativo' : p.status,
-            createdAt: p.created_at
-          };
-        });
-      return res.json(mapped);
-    }
-    // Se foi fornecido userId e o usuário não possui pixels, NUNCA retorna pixels de demo/outros usuários
-    if (userId && !isOwnerUserId(userId)) {
-      return res.json([]);
-    }
-  } catch (e) {}
-
-  res.json((userId && !isOwnerUserId(userId)) ? [] : localPixels);
+  return res.json(localPixels);
 });
 
 app.post('/api/pixels', async (req, res) => {
