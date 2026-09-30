@@ -805,6 +805,12 @@ export default function Integrations() {
       metaPixelId: newPixelMetaId.trim(), // ID do Pixel do Facebook/Meta (ex: 1056706567239394)
       capiToken: newPixelCapiToken.trim() || 'EAAB••••••••••••',
       capiTokenRaw: newPixelCapiToken.trim(),
+      metaPixels: [{
+        id: `mp_${Date.now()}`,
+        metaPixelId: newPixelMetaId.trim(),
+        capiToken: newPixelCapiToken.trim(),
+        name: newPixelName.trim() || 'Pixel Meta 1'
+      }],
       icType: newPixelIcType,
       icValue: newPixelIcValue.trim(),
       icRule: ruleLabel,
@@ -851,11 +857,16 @@ export default function Integrations() {
     // Lista de múltiplos Pixels Meta (igual UTMify)
     let metaList = [];
     if (Array.isArray(px.metaPixels) && px.metaPixels.length > 0) {
-      metaList = [...px.metaPixels];
+      metaList = px.metaPixels.map((m, i) => ({
+        id: m.id || `mp_${Date.now()}_${i}`,
+        metaPixelId: String(m.metaPixelId || '').trim(),
+        capiToken: m.capiToken || m.capiTokenRaw || '',
+        name: m.name || `Pixel Meta ${i + 1}`
+      })).filter(m => m.metaPixelId);
     } else if (px.metaPixelId) {
       metaList = [{
         id: `mp_${Date.now()}`,
-        metaPixelId: px.metaPixelId,
+        metaPixelId: String(px.metaPixelId).trim(),
         capiToken: px.capiTokenRaw || px.capiToken || '',
         name: px.name || 'Pixel Principal'
       }];
@@ -864,6 +875,7 @@ export default function Integrations() {
     setNewMetaSubPixelId('');
     setNewMetaSubPixelToken('');
     setNewMetaSubPixelName('');
+    setEditSubPixelIndex(null);
     setShowAddSubPixelForm(false);
   };
 
@@ -929,6 +941,18 @@ export default function Integrations() {
       }
     }
 
+    // Filtra apenas subpixels válidos com ID preenchido
+    finalMetaList = finalMetaList.filter(m => m && m.metaPixelId && m.metaPixelId.trim());
+
+    if (finalMetaList.length === 0 && editPixelMetaId.trim()) {
+      finalMetaList.push({
+        id: `mp_${Date.now()}`,
+        metaPixelId: editPixelMetaId.trim(),
+        capiToken: editPixelCapiToken.trim(),
+        name: editPixelName.trim() || 'Pixel Meta 1'
+      });
+    }
+
     const ruleLabel = editPixelIcType === 'css' 
       ? `css ${editPixelIcValue.trim() || '.btn-checkout'}` 
       : editPixelIcType === 'url' 
@@ -943,8 +967,10 @@ export default function Integrations() {
       ? finalMetaList[0].capiToken 
       : editPixelCapiToken.trim();
 
+    const targetPixelId = pixelToEdit.pixelId || pixelToEdit.id;
     const updated = trackingPixels.map(px => {
-      if (px.id === pixelToEdit.id) {
+      const thisId = px.pixelId || px.id;
+      if (px.id === pixelToEdit.id || thisId === targetPixelId || px.pixelId === pixelToEdit.id || px.id === pixelToEdit.pixelId) {
         return {
           ...px,
           name: editPixelName.trim(),
@@ -973,8 +999,14 @@ export default function Integrations() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
       body: JSON.stringify({ pixels: updated, userId: currentUser?.id })
-    }).catch(() => {});
+    }).catch(err => console.warn('Erro ao salvar pixel no backend:', err));
+    
     setPixelToEdit(null);
+    setNewMetaSubPixelId('');
+    setNewMetaSubPixelToken('');
+    setNewMetaSubPixelName('');
+    setEditSubPixelIndex(null);
+    setShowAddSubPixelForm(false);
     setPixelSuccessMsg(`Pixel "${editPixelName.trim()}" atualizado com sucesso!`);
     setTimeout(() => setPixelSuccessMsg(null), 3500);
   };
@@ -1331,13 +1363,107 @@ export default function Integrations() {
             const pxId = p.pixelId || p.internalPixelId || p.id;
             return !deletedIds.includes(pxId) && !deletedIds.includes(p.id);
           });
-          setTrackingPixels(cleanPixels);
+
+          // Carrega pixels que já estão no localStorage do usuário
+          let localPixels = [];
           if (typeof window !== 'undefined') {
-            localStorage.setItem('primetrack_pixels', JSON.stringify(cleanPixels));
-            localStorage.setItem(getScopedKey('primetrack_pixels'), JSON.stringify(cleanPixels));
-            if (currentUser?.id) {
-              localStorage.setItem(`primetrack_pixels_${currentUser.id}`, JSON.stringify(cleanPixels));
+            try {
+              const userPxKey = currentUser?.id ? `primetrack_pixels_${currentUser.id}` : null;
+              const saved = (userPxKey && localStorage.getItem(userPxKey)) || localStorage.getItem('primetrack_pixels');
+              if (saved) localPixels = JSON.parse(saved);
+            } catch (e) {}
+          }
+
+          const localMap = new Map();
+          if (Array.isArray(localPixels)) {
+            localPixels.forEach(lp => {
+              const k = lp.pixelId || lp.id || lp.internalPixelId;
+              if (k) localMap.set(k, lp);
+            });
+          }
+
+          // Mescla os pixels preservando quaisquer subpixels adicionados localmente
+          const mergedPixels = cleanPixels.map(serverPx => {
+            const k = serverPx.pixelId || serverPx.id || serverPx.internalPixelId;
+            const localPx = localMap.get(k);
+            if (!localPx) return serverPx;
+
+            // Une subpixels da Meta sem perder nenhum que foi cadastrado localmente
+            const subPixelsMap = new Map();
+            if (Array.isArray(serverPx.metaPixels)) {
+              serverPx.metaPixels.forEach(m => {
+                if (m && m.metaPixelId) subPixelsMap.set(m.metaPixelId, m);
+              });
+            } else if (serverPx.metaPixelId) {
+              subPixelsMap.set(serverPx.metaPixelId, {
+                id: `mp_${serverPx.metaPixelId}`,
+                metaPixelId: serverPx.metaPixelId,
+                capiToken: serverPx.capiToken || serverPx.capiTokenRaw || '',
+                name: serverPx.name || 'Pixel Meta 1'
+              });
             }
+
+            if (Array.isArray(localPx.metaPixels)) {
+              localPx.metaPixels.forEach(m => {
+                if (m && m.metaPixelId) {
+                  subPixelsMap.set(m.metaPixelId, {
+                    ...(subPixelsMap.get(m.metaPixelId) || {}),
+                    ...m
+                  });
+                }
+              });
+            } else if (localPx.metaPixelId && !subPixelsMap.has(localPx.metaPixelId)) {
+              subPixelsMap.set(localPx.metaPixelId, {
+                id: `mp_${localPx.metaPixelId}`,
+                metaPixelId: localPx.metaPixelId,
+                capiToken: localPx.capiToken || localPx.capiTokenRaw || '',
+                name: localPx.name || 'Pixel Meta 1'
+              });
+            }
+
+            const mergedMetaList = Array.from(subPixelsMap.values());
+            const primaryId = mergedMetaList[0]?.metaPixelId || localPx.metaPixelId || serverPx.metaPixelId;
+            const primaryToken = mergedMetaList[0]?.capiToken || localPx.capiToken || serverPx.capiToken;
+
+            return {
+              ...serverPx,
+              ...localPx,
+              metaPixels: mergedMetaList,
+              metaPixelId: primaryId,
+              capiToken: primaryToken,
+              capiTokenRaw: primaryToken,
+              status: localPx.status || serverPx.status
+            };
+          });
+
+          // Se o usuário criou um pixel novo localmente que ainda não está no servidor
+          if (Array.isArray(localPixels)) {
+            const serverKeys = new Set(cleanPixels.map(p => p.pixelId || p.id || p.internalPixelId));
+            localPixels.forEach(lp => {
+              const k = lp.pixelId || lp.id || lp.internalPixelId;
+              if (k && !serverKeys.has(k) && !deletedIds.includes(k) && !deletedIds.includes(lp.id)) {
+                mergedPixels.push(lp);
+              }
+            });
+          }
+
+          setTrackingPixels(mergedPixels);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('primetrack_pixels', JSON.stringify(mergedPixels));
+            localStorage.setItem(getScopedKey('primetrack_pixels'), JSON.stringify(mergedPixels));
+            if (currentUser?.id) {
+              localStorage.setItem(`primetrack_pixels_${currentUser.id}`, JSON.stringify(mergedPixels));
+            }
+          }
+
+          // Se houve inclusão ou atualização local de subpixels, sincroniza de volta ao servidor
+          const isDifferent = JSON.stringify(mergedPixels) !== JSON.stringify(cleanPixels);
+          if (isDifferent) {
+            fetch('/api/pixels', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
+              body: JSON.stringify({ pixels: mergedPixels, userId: currentUser?.id })
+            }).catch(() => {});
           }
         }
       })

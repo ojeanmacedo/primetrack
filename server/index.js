@@ -423,9 +423,10 @@ app.get('/api/pixel/config', async (req, res) => {
 });
 
 app.get('/api/pixels', async (req, res) => {
-  const userId = req.headers['x-user-id'] || req.query.userId;
+  const userId = req.headers['x-user-id'] || req.query.userId || 'usr_1788826403159';
+  const userPixels = db.get(`pixels_${userId}`) || db.get('pixels') || [];
   // Retorna sempre o estado em tempo real do banco local
-  const localPixels = (db.get('pixels') || []).filter(p => !p.id?.startsWith('settings_') && !p.id?.startsWith('push_sub_') && !p.id?.startsWith('wh_tok_') && p.name !== 'UserSettings');
+  const localPixels = userPixels.filter(p => !p.id?.startsWith('settings_') && !p.id?.startsWith('push_sub_') && !p.id?.startsWith('wh_tok_') && p.name !== 'UserSettings');
   return res.json(localPixels);
 });
 
@@ -435,6 +436,10 @@ app.post('/api/pixels', async (req, res) => {
   if (Array.isArray(pixels)) {
     const validPixels = pixels.filter(p => !p.id?.startsWith('settings_') && !p.id?.startsWith('push_sub_') && !p.id?.startsWith('wh_tok_') && p.name !== 'UserSettings');
     db.set('pixels', validPixels);
+    db.set(`pixels_${targetUserId}`, validPixels);
+    if (isOwnerUserId(targetUserId)) {
+      db.set('pixels', validPixels);
+    }
 
     // Persiste no Supabase com isolamento por usuário
     try {
