@@ -351,6 +351,95 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'online', service: 'PrimeTrack Engine', version: '2.0.0' });
 });
 
+// ==========================================
+// Cloud Storage Persistente Global para Pixels (Multi-Tenant & Vercel Serverless)
+// ==========================================
+async function syncPixelsToCloud(pixels, targetUserId) {
+  if (!Array.isArray(pixels)) return;
+  try {
+    const cloud = getMonsterPayClient();
+    const validPixels = pixels.filter(p => !p.id?.startsWith('settings_') && !p.id?.startsWith('push_sub_') && !p.id?.startsWith('wh_tok_') && p.name !== 'UserSettings');
+    
+    // Lista de IDs válidos atuais para remoção de pixels deletados
+    const validIds = validPixels.map(px => px.pixelId || px.internalPixelId || px.id).filter(Boolean);
+
+    for (const px of validPixels) {
+      const id = px.pixelId || px.internalPixelId || px.id;
+      if (!id) continue;
+      
+      const payload = {
+        id,
+        pixelId: id,
+        name: px.name || 'Pixel',
+        domains: px.domains || '*',
+        metaPixelId: px.metaPixelId || '',
+        metaPixels: px.metaPixels || [],
+        capiToken: px.capiToken || px.capiTokenRaw || '',
+        capiTokenRaw: px.capiTokenRaw || px.capiToken || '',
+        icType: px.icType || 'css',
+        icValue: px.icValue || '',
+        icRule: px.icRule || '',
+        status: px.status || 'Ativo',
+        userId: targetUserId || px.userId || 'usr_1788826403159',
+        updatedAt: new Date().toISOString()
+      };
+
+      // Deleta versão antiga e insere nova com dados atualizados
+      await cloud.from('pix_rate_limits').delete().like('ip_address', `pt_px_cloud:${id}:%`);
+      const record = `pt_px_cloud:${id}:${JSON.stringify(payload)}`;
+      await cloud.from('pix_rate_limits').insert({ ip_address: record });
+    }
+  } catch (err) {
+    console.warn('[CloudPixels] Erro ao sincronizar pixels na nuvem:', err.message);
+  }
+}
+
+async function getPixelFromCloud(pixelId) {
+  if (!pixelId) return null;
+  try {
+    const cloud = getMonsterPayClient();
+    const { data } = await cloud
+      .from('pix_rate_limits')
+      .select('ip_address')
+      .like('ip_address', `pt_px_cloud:${pixelId}:%`)
+      .limit(1);
+
+    if (data && data[0] && data[0].ip_address) {
+      const raw = data[0].ip_address;
+      const jsonStr = raw.substring(raw.indexOf(':', raw.indexOf(':') + 1) + 1);
+      return JSON.parse(jsonStr);
+    }
+  } catch (err) {
+    console.warn('[CloudPixels] Erro ao buscar pixel na nuvem:', err.message);
+  }
+  return null;
+}
+
+async function getAllPixelsFromCloud() {
+  try {
+    const cloud = getMonsterPayClient();
+    const { data } = await cloud
+      .from('pix_rate_limits')
+      .select('ip_address')
+      .like('ip_address', 'pt_px_cloud:%');
+
+    if (Array.isArray(data) && data.length > 0) {
+      return data.map(row => {
+        try {
+          const raw = row.ip_address;
+          const jsonStr = raw.substring(raw.indexOf(':', raw.indexOf(':') + 1) + 1);
+          return JSON.parse(jsonStr);
+        } catch (e) {
+          return null;
+        }
+      }).filter(Boolean);
+    }
+  } catch (err) {
+    console.warn('[CloudPixels] Erro ao buscar todos os pixels na nuvem:', err.message);
+  }
+  return [];
+}
+
 /**
  * Endpoint de resolução automática de configuração do Pixel
  * Permite que o pixel.js descubra o metaPixelId e regras apenas pelo pixelId (igual ao LowTrack/Utmify)
@@ -362,7 +451,20 @@ app.get('/api/pixel/config', async (req, res) => {
 
   let foundPixel = pixels.find(p => p.pixelId === id || p.internalPixelId === id || p.id === id);
 
-  // Se não achou na lista global, busca nas chaves isoladas por usuário
+  // 1. Busca imediata no Cloud Storage Global (Sincronizado em tempo real entre todas as instâncias Serverless)
+  if (id) {
+    try {
+      const cloudPx = await getPixelFromCloud(id);
+      if (cloudPx) {
+        // Se o pixel na nuvem tiver dados ou subpixels mais atualizados, assume a versão da nuvem
+        if (!foundPixel || (Array.isArray(cloudPx.metaPixels) && cloudPx.metaPixels.length >= (foundPixel.metaPixels?.length || 0))) {
+          foundPixel = { ...foundPixel, ...cloudPx };
+        }
+      }
+    } catch (eCloud) {}
+  }
+
+  // 2. Se não achou na lista global, busca nas chaves isoladas por usuário
   if (!foundPixel && id) {
     try {
       const allData = db.data || {};
@@ -379,7 +481,7 @@ app.get('/api/pixel/config', async (req, res) => {
     } catch (e) {}
   }
 
-  // Se não achou na memória, busca no Supabase
+  // 3. Fallback no Supabase secundário
   if (!foundPixel && id) {
     try {
       const { data } = await supabaseAdmin
@@ -447,8 +549,34 @@ app.get('/api/pixel/config', async (req, res) => {
 app.get('/api/pixels', async (req, res) => {
   const userId = req.headers['x-user-id'] || req.query.userId || 'usr_1788826403159';
   const userPixels = db.get(`pixels_${userId}`) || db.get('pixels') || [];
-  // Retorna sempre o estado em tempo real do banco local
-  const localPixels = userPixels.filter(p => !p.id?.startsWith('settings_') && !p.id?.startsWith('push_sub_') && !p.id?.startsWith('wh_tok_') && p.name !== 'UserSettings');
+  let localPixels = userPixels.filter(p => !p.id?.startsWith('settings_') && !p.id?.startsWith('push_sub_') && !p.id?.startsWith('wh_tok_') && p.name !== 'UserSettings');
+
+  // Mescla com pixels salvos na nuvem global
+  try {
+    const cloudPixels = await getAllPixelsFromCloud();
+    if (Array.isArray(cloudPixels) && cloudPixels.length > 0) {
+      const map = new Map();
+      localPixels.forEach(p => map.set(p.pixelId || p.id, p));
+      
+      cloudPixels.forEach(cp => {
+        const k = cp.pixelId || cp.id;
+        if (k) {
+          const existing = map.get(k);
+          if (!existing) {
+            map.set(k, cp);
+          } else {
+            // Mescla preservando a versão mais rica de subpixels
+            const mergedMeta = (Array.isArray(cp.metaPixels) && cp.metaPixels.length > (existing.metaPixels?.length || 0))
+              ? cp.metaPixels
+              : (existing.metaPixels || cp.metaPixels || []);
+            map.set(k, { ...existing, ...cp, metaPixels: mergedMeta });
+          }
+        }
+      });
+      localPixels = Array.from(map.values());
+    }
+  } catch (e) {}
+
   return res.json(localPixels);
 });
 
@@ -463,9 +591,13 @@ app.post('/api/pixels', async (req, res) => {
       db.set('pixels', validPixels);
     }
 
-    // Persiste no Supabase com isolamento por usuário
+    // 1. Sincronização IMEDIATA na Nuvem Global (Garante funcionamento instantâneo em todas as instâncias da Vercel)
+    syncPixelsToCloud(validPixels, targetUserId).catch(err => {
+      console.warn('[CloudPixels] Falha assíncrona ao sincronizar:', err);
+    });
+
+    // 2. Persiste no Supabase com isolamento por usuário
     try {
-      // Remove do Supabase pixels que foram excluídos pelo usuário
       const validIds = validPixels.map(px => px.pixelId || px.internalPixelId || px.id).filter(Boolean);
       if (validIds.length > 0) {
         await supabaseAdmin.from('pixels').delete().eq('user_id', targetUserId).not('id', 'in', `(${validIds.join(',')})`);
@@ -597,7 +729,15 @@ app.post('/api/track/event', async (req, res) => {
     }
 
     // Busca estritamente o pixel PrimeTrack correspondente à requisição
-    const matchedPixel = pixels.find(p => p.pixelId === pixelId || p.id === pixelId || (Array.isArray(p.metaPixels) && p.metaPixels.some(m => m.metaPixelId === pixelId)) || p.metaPixelId === pixelId);
+    let matchedPixel = pixels.find(p => p.pixelId === pixelId || p.id === pixelId || (Array.isArray(p.metaPixels) && p.metaPixels.some(m => m.metaPixelId === pixelId)) || p.metaPixelId === pixelId);
+    
+    // Consulta nuvem global se não achou ou para garantir sub-pixels mais recentes
+    if ((!matchedPixel || !Array.isArray(matchedPixel.metaPixels) || matchedPixel.metaPixels.length === 0) && pixelId) {
+      try {
+        const cloudPx = await getPixelFromCloud(pixelId);
+        if (cloudPx) matchedPixel = cloudPx;
+      } catch (eCloud) {}
+    }
     
     // Obter fallback de token do perfil do Facebook conectado
     const fbConns = db.get('facebook_connections') || [];
@@ -994,6 +1134,22 @@ app.all([
         p.metaPixelId === targetPixelId || 
         (Array.isArray(p.metaPixels) && p.metaPixels.some(m => m.metaPixelId === targetPixelId))
       );
+
+      if (!specificPixel) {
+        try {
+          const cloudPx = await getPixelFromCloud(targetPixelId);
+          if (cloudPx) specificPixel = cloudPx;
+        } catch (eCloud) {}
+      }
+    }
+
+    if (specificPixel && specificPixel.id) {
+      try {
+        const cloudPx = await getPixelFromCloud(specificPixel.id);
+        if (cloudPx && Array.isArray(cloudPx.metaPixels) && cloudPx.metaPixels.length >= (specificPixel.metaPixels?.length || 0)) {
+          specificPixel = { ...specificPixel, ...cloudPx };
+        }
+      } catch (eCloud) {}
     }
 
     // 2) Match por domínio configurado
