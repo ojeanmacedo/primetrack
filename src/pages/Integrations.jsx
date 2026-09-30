@@ -698,10 +698,8 @@ export default function Integrations() {
       localStorage.setItem('primetrack_ad_accounts', JSON.stringify(updated));
       localStorage.setItem(userAccKey, JSON.stringify(updated));
       localStorage.setItem(getScopedKey('primetrack_ad_accounts'), JSON.stringify(updated));
-      if (activeIds.length === 0) {
-        localStorage.removeItem(userCampKey);
-        localStorage.removeItem('primetrack_cached_campaigns');
-      }
+      // Mantém os caches de campanhas intactos mesmo se todas as contas forem desativadas
+      // para que o histórico de dias passados continue sempre disponível no Dashboard
     }
 
     // Persiste no backend imediatamente para nunca perder a configuração

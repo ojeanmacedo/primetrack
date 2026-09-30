@@ -632,11 +632,15 @@ export default function Dashboard() {
       query = `datePreset=${preset}`;
     }
 
-    const activeAccountsParam = adAccountsList.length > 0 
-      ? `&activeAccounts=${encodeURIComponent(adAccountsList.map(a => a.id).join(','))}` 
+    const isToday = customPeriod === 'Hoje';
+
+    // Para período de hoje, se tiver contas ativas filtra; mas para períodos passados (Ontem, 7D, 30D, Mês passado),
+    // NUNCA limita aos IDs ativos no query param, garantindo que o servidor traga o histórico de todas as contas que gastaram!
+    const activeAccountsParam = (isToday && adAccountsList.length > 0)
+      ? `&activeAccounts=${encodeURIComponent(adAccountsList.filter(a => a.sync).map(a => a.id).join(','))}` 
       : '';
-    const activeHeaders = adAccountsList.length > 0
-      ? { 'x-active-accounts': adAccountsList.map(a => a.id).join(',') }
+    const activeHeaders = (isToday && adAccountsList.length > 0)
+      ? { 'x-active-accounts': adAccountsList.filter(a => a.sync).map(a => a.id).join(',') }
       : {};
 
     const userHeaders = user?.id ? { 'x-user-id': user.id, ...activeHeaders } : { ...activeHeaders };
@@ -726,8 +730,8 @@ export default function Dashboard() {
             };
           });
 
-          const activeSynced = allMappedAccs.filter(a => a.sync);
-          setAdAccountsList(activeSynced.length > 0 ? activeSynced : allMappedAccs);
+          // Mantém todas as contas mapeadas para que qualquer conta (mesmo bloqueada ou inativa hoje) possa ser selecionada no filtro
+          setAdAccountsList(allMappedAccs);
         } else if (data && Array.isArray(data.adAccounts) && data.adAccounts.length === 0) {
           setAdAccountsList([]);
           if (typeof window !== 'undefined') {
@@ -765,11 +769,12 @@ export default function Dashboard() {
       query = `datePreset=${preset}&refresh=true`;
     }
 
-    const activeAccountsParam = adAccountsList.length > 0 
-      ? `&activeAccounts=${encodeURIComponent(adAccountsList.map(a => a.id).join(','))}` 
+    const isToday = period === 'Hoje';
+    const activeAccountsParam = (isToday && adAccountsList.length > 0)
+      ? `&activeAccounts=${encodeURIComponent(adAccountsList.filter(a => a.sync).map(a => a.id).join(','))}` 
       : '';
-    const activeHeaders = adAccountsList.length > 0
-      ? { 'x-active-accounts': adAccountsList.map(a => a.id).join(',') }
+    const activeHeaders = (isToday && adAccountsList.length > 0)
+      ? { 'x-active-accounts': adAccountsList.filter(a => a.sync).map(a => a.id).join(',') }
       : {};
 
     const userHeaders = user?.id ? { 'x-user-id': user.id, ...activeHeaders } : { ...activeHeaders };
@@ -900,6 +905,19 @@ export default function Dashboard() {
     return Array.from(set);
   }, [deduplicatedOrders]);
 
+  // Lista única de plataformas para o dropdown de filtro
+  const uniquePlatforms = useMemo(() => {
+    const set = new Set();
+    deduplicatedOrders.forEach(o => {
+      const plat = o.gateway || o.platform;
+      if (plat) set.add(plat);
+    });
+    if (set.size === 0) {
+      set.add('MonsterPay');
+    }
+    return Array.from(set);
+  }, [deduplicatedOrders]);
+
   // Filtra as campanhas baseado na conta selecionada e no dashboard ativo
   const filteredCampaigns = useMemo(() => {
     // Se o dashboard ativo não é o padrão ("Principal"), ele vem zerado a menos que tenha campanhas/contas vinculadas
@@ -920,10 +938,10 @@ export default function Dashboard() {
         if (match) return cAdId === String(match.id);
         return c.accountName === selectedAccount || cAdId === selectedAccount;
       }
-      // Se for Hoje, filtra apenas pelas contas ativas no momento
+      // Se for Hoje, filtra apenas pelas contas ativas no momento OU com gasto/vendas reais hoje
       // Se for período passado (Ontem, 7D, 30D, etc.), preserva todas as campanhas do período com gasto/lucro
       if (isToday && adAccountsList.length > 0) {
-        return adAccountsList.some(acc => cAdId === String(acc.id));
+        return adAccountsList.some(acc => cAdId === String(acc.id)) || Number(c.spend || 0) > 0 || Number(c.sales || 0) > 0;
       }
       return true;
     });
@@ -982,6 +1000,12 @@ export default function Dashboard() {
         const src = (o.attribution?.source || '').toLowerCase();
         if (selectedSource === 'Facebook' && !src.includes('fb') && !src.includes('meta')) return false;
         if (selectedSource === 'Organico' && !src.includes('org')) return false;
+      }
+
+      // Filtro de plataforma
+      if (selectedPlatform !== 'Qualquer') {
+        const plat = (o.gateway || o.platform || '').toLowerCase();
+        if (!plat.includes(selectedPlatform.toLowerCase())) return false;
       }
 
       // Filtro de produto
@@ -1050,7 +1074,7 @@ export default function Dashboard() {
 
       return true;
     });
-  }, [deduplicatedOrders, period, selectedSource, selectedProduct, selectedAccount, adAccountsList, filteredCampaigns, activeDashboard]);
+  }, [deduplicatedOrders, period, selectedSource, selectedPlatform, selectedProduct, selectedAccount, adAccountsList, filteredCampaigns, activeDashboard]);
 
   // Vendas Pendentes reais da MonsterPay
   const pendingOrders = filteredOrders.filter(o => 
@@ -2081,7 +2105,9 @@ export default function Dashboard() {
                 className="w-full appearance-none bg-[#0F1728] border border-[#1E293B] rounded-lg px-2.5 py-1.5 text-zinc-200 focus:outline-none focus:border-[#0066FF] text-xs cursor-pointer font-medium"
               >
                 <option value="Qualquer">Qualquer</option>
-                <option value="MonsterPay">MonsterPay</option>
+                {uniquePlatforms.map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
               </select>
               <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>

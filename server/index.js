@@ -139,6 +139,174 @@ export function getCampaignsCacheKey(userId, datePreset, resolvedRange) {
   return `${uid}_${datePreset || 'today'}`;
 }
 
+/**
+ * Persistência Definitiva de Métricas Históricas Diárias (Daily Campaign Insights)
+ * Garante que gastos e métricas de campanhas nunca sejam perdidos ou zerados,
+ * mesmo se a conta for bloqueada, desativada ou desconectada no futuro.
+ */
+export function getDailyCampaignInsights(userId = null, since = null, until = null, isMaximum = false) {
+  const allInsights = db.get('daily_campaign_insights') || [];
+  const filtered = allInsights.filter(item => {
+    if (!item) return false;
+    if (userId && !isOwnerUserId(userId) && item.userId && item.userId !== userId) return false;
+    if (isOwnerUserId(userId) && item.userId && !isOwnerUserId(item.userId)) return false;
+    if (isMaximum) return true;
+    if (since && until) {
+      return item.date >= since && item.date <= until;
+    }
+    if (since) {
+      return item.date === since;
+    }
+    return true;
+  });
+
+  // Agrupa por campaignId se o período abrange múltiplos dias
+  const groupedMap = new Map();
+  filtered.forEach(item => {
+    const cId = String(item.campaignId || item.id);
+    if (!groupedMap.has(cId)) {
+      groupedMap.set(cId, {
+        ...item,
+        id: cId,
+        campaignId: cId,
+        spend: Number(item.spend || 0),
+        rawSpendUsd: Number(item.rawSpendUsd || 0),
+        impressions: Number(item.impressions || 0),
+        clicks: Number(item.clicks || 0),
+        sales: Number(item.sales || 0),
+        revenue: Number(item.revenue || 0),
+        adsets: Array.isArray(item.adsets) ? JSON.parse(JSON.stringify(item.adsets)) : [],
+        ads: Array.isArray(item.ads) ? JSON.parse(JSON.stringify(item.ads)) : []
+      });
+    } else {
+      const cur = groupedMap.get(cId);
+      cur.spend += Number(item.spend || 0);
+      cur.rawSpendUsd += Number(item.rawSpendUsd || 0);
+      cur.impressions += Number(item.impressions || 0);
+      cur.clicks += Number(item.clicks || 0);
+      cur.sales += Number(item.sales || 0);
+      cur.revenue += Number(item.revenue || 0);
+
+      if (Array.isArray(item.adsets)) {
+        item.adsets.forEach(newAs => {
+          const asId = String(newAs.id || newAs.adsetId);
+          const matchAs = cur.adsets.find(a => String(a.id || a.adsetId) === asId);
+          if (matchAs) {
+            matchAs.spend = (Number(matchAs.spend || 0) + Number(newAs.spend || 0)).toFixed(2);
+            matchAs.impressions = Number(matchAs.impressions || 0) + Number(newAs.impressions || 0);
+            matchAs.clicks = Number(matchAs.clicks || 0) + Number(newAs.clicks || 0);
+          } else {
+            cur.adsets.push(newAs);
+          }
+        });
+      }
+      if (Array.isArray(item.ads)) {
+        item.ads.forEach(newAd => {
+          const adId = String(newAd.id || newAd.adId);
+          const matchAd = cur.ads.find(a => String(a.id || a.adId) === adId);
+          if (matchAd) {
+            matchAd.spend = (Number(matchAd.spend || 0) + Number(newAd.spend || 0)).toFixed(2);
+            matchAd.impressions = Number(matchAd.impressions || 0) + Number(newAd.impressions || 0);
+            matchAd.clicks = Number(matchAd.clicks || 0) + Number(newAd.clicks || 0);
+          } else {
+            cur.ads.push(newAd);
+          }
+        });
+      }
+    }
+  });
+
+  return Array.from(groupedMap.values()).map(c => {
+    const s = Number(c.spend || 0);
+    const r = Number(c.revenue || 0);
+    const cl = Number(c.clicks || 0);
+    const imp = Number(c.impressions || 0);
+    const sal = Number(c.sales || 0);
+    return {
+      ...c,
+      accountId: c.accountId || (c.adAccountId ? String(c.adAccountId).replace('act_', '') : ''),
+      spend: s.toFixed(2),
+      rawSpendUsd: c.rawSpendUsd > 0 ? c.rawSpendUsd.toFixed(2) : null,
+      revenue: r.toFixed(2),
+      profit: (r - s).toFixed(2),
+      roas: s > 0 ? (r / s).toFixed(2) : '0.00',
+      cpa: sal > 0 ? (s / sal).toFixed(2) : '0.00',
+      cpc: cl > 0 ? (s / cl).toFixed(2) : '0.00',
+      cpm: imp > 0 ? ((s / imp) * 1000).toFixed(2) : '0.00',
+      ctr: imp > 0 ? ((cl / imp) * 100).toFixed(2) + '%' : '0.00%'
+    };
+  });
+}
+
+export function saveDailyCampaignInsights(campaignsList, dateStr, userId = null) {
+  if (!Array.isArray(campaignsList) || campaignsList.length === 0 || !dateStr) return;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr.trim())) return;
+
+  const validDate = dateStr.trim();
+  const currentInsights = db.get('daily_campaign_insights') || [];
+  const insightsMap = new Map();
+  currentInsights.forEach(item => {
+    const key = `${item.date}_${item.campaignId || item.id}_${item.userId || 'default'}`;
+    insightsMap.set(key, item);
+  });
+
+  let hasChanges = false;
+  campaignsList.forEach(c => {
+    if (!c || !c.id) return;
+    const cSpend = Number(c.spend || 0);
+    const cImpr = Number(c.impressions || 0);
+    const cClicks = Number(c.clicks || 0);
+    const cSales = Number(c.sales || 0);
+    const cRev = Number(c.revenue || 0);
+
+    // Salva qualquer campanha que teve gasto ou qualquer movimentação naquele dia
+    if (cSpend > 0 || cImpr > 0 || cClicks > 0 || cSales > 0 || cRev > 0) {
+      const campIdStr = String(c.id);
+      const effectiveUser = c.userId || userId || 'usr_1788826403159';
+      const key = `${validDate}_${campIdStr}_${effectiveUser}`;
+      const existing = insightsMap.get(key);
+
+      const existingSpend = Number(existing?.spend || 0);
+      if (!existing || cSpend >= existingSpend || (cSpend > 0 && existingSpend === 0)) {
+        insightsMap.set(key, {
+          id: key,
+          date: validDate,
+          userId: effectiveUser,
+          campaignId: campIdStr,
+          name: c.name || existing?.name || 'Campanha',
+          adAccountId: c.adAccountId || c.accountId || existing?.adAccountId || null,
+          accountName: c.accountName || existing?.accountName || null,
+          spend: cSpend.toFixed(2),
+          rawSpendUsd: c.rawSpendUsd !== undefined ? c.rawSpendUsd : (existing?.rawSpendUsd || null),
+          usdRate: c.usdRate || existing?.usdRate || null,
+          currency: c.currency || existing?.currency || 'BRL',
+          impressions: cImpr || existing?.impressions || 0,
+          clicks: cClicks || existing?.clicks || 0,
+          cpc: c.cpc || existing?.cpc || '0.00',
+          cpm: c.cpm || existing?.cpm || '0.00',
+          ctr: c.ctr || existing?.ctr || '0.00%',
+          sales: cSales || existing?.sales || 0,
+          revenue: c.revenue || existing?.revenue || '0.00',
+          profit: c.profit || existing?.profit || '0.00',
+          roas: c.roas || existing?.roas || '0.00',
+          cpa: c.cpa || existing?.cpa || '0.00',
+          status: c.status !== undefined ? c.status : existing?.status,
+          rawStatus: c.rawStatus || existing?.rawStatus || 'ACTIVE',
+          effectiveStatus: c.effectiveStatus || existing?.effectiveStatus || 'ACTIVE',
+          adsets: Array.isArray(c.adsets) ? c.adsets : (existing?.adsets || []),
+          ads: Array.isArray(c.ads) ? c.ads : (existing?.ads || []),
+          updatedAt: new Date().toISOString()
+        });
+        hasChanges = true;
+      }
+    }
+  });
+
+  if (hasChanges) {
+    db.set('daily_campaign_insights', Array.from(insightsMap.values()));
+  }
+}
+
 export function getCleanClientIp(req) {
   if (!req) return '189.40.122.45';
   const cf = req.headers['cf-connecting-ip'];
@@ -2226,13 +2394,16 @@ export function formatCampaignsForUser(campaignsList, userActiveIds, isToday = f
     const isDeleted = isItemDeleted(c.id);
     if (isDeleted) return false;
 
-    // Se é consulta do dia de hoje (ao vivo), filtra estritamente pelas contas ativas
+    // Se é consulta do dia de hoje (ao vivo):
+    // Retorna contas ativas OU qualquer campanha que teve gasto, vendas ou receita real hoje!
     if (isToday) {
-      return userActiveIds.has(cActId);
+      if (userActiveIds.has(cActId)) return true;
+      const hasTodayActivity = (Number(c.spend) > 0) || (Number(c.revenue) > 0) || (Number(c.sales) > 0);
+      return hasTodayActivity;
     }
 
     // Para períodos históricos (ontem, 7d, personalizado, etc.):
-    // Preserva qualquer campanha que tenha gasto > 0, vendas > 0, ou pertença às contas conectadas do usuário
+    // Preserva QUALQUER campanha que tenha gasto > 0, vendas > 0, impressões > 0 ou pertença às contas conectadas
     if (userActiveIds.has(cActId)) return true;
     if (allUserConnectedAccIds && allUserConnectedAccIds.has(cActId)) return true;
 
@@ -2297,20 +2468,42 @@ async function syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiv
 
   const syncPromise = (async () => {
     let syncResult = null;
+    
+    // Para períodos históricos (ontem, 7d, 30d, etc.), NUNCA limita a sincronização apenas às contas ativas hoje!
+    // Sincroniza todas as contas conectadas do usuário para resgatar os gastos passados reais.
+    const targetAccountIds = (!isToday && allUserConnectedAccIds && allUserConnectedAccIds.size > 0)
+      ? Array.from(allUserConnectedAccIds)
+      : (userActiveIds.size > 0 ? Array.from(userActiveIds) : (allUserConnectedAccIds && allUserConnectedAccIds.size > 0 ? Array.from(allUserConnectedAccIds) : null));
+
     try {
       syncResult = await executeMetaSync({ 
         datePreset, 
         timeRange, 
         userId, 
-        accountIds: Array.from(userActiveIds) 
+        accountIds: targetAccountIds 
       });
     } catch (e) {
       console.warn('[Sync Campaigns Error]:', e.message);
     }
 
-    if (syncResult && syncResult.noActiveAccounts && isToday) {
+    if (syncResult && syncResult.noActiveAccounts && isToday && userActiveIds.size === 0) {
       return [];
     }
+
+    // Se a consulta retornou dados frescos do Meta para uma data específica, salva imediatamente no banco histórico
+    if (syncResult && Array.isArray(syncResult.campaigns) && syncResult.campaigns.length > 0) {
+      const singleDate = (timeRange && timeRange.since === timeRange.until) ? timeRange.since : (datePreset === 'yesterday' ? resolvedRange.since : (isToday ? todayBrazil : null));
+      if (singleDate) {
+        saveDailyCampaignInsights(syncResult.campaigns, singleDate, userId);
+      }
+    }
+
+    // Carrega métricas históricas gravadas no banco para este período específico
+    const savedPeriodInsights = getDailyCampaignInsights(userId, resolvedRange.since, resolvedRange.until, resolvedRange.isMaximum);
+    const savedInsightsMap = new Map();
+    savedPeriodInsights.forEach(item => {
+      savedInsightsMap.set(String(item.campaignId || item.id), item);
+    });
 
     const savedCampaigns = (db.get('campaigns') || []).filter(c => isOwnerUserId(userId) ? (!c.userId || isOwnerUserId(c.userId)) : (c.userId === userId));
     const cached = campaignsCache.get(cacheKey);
@@ -2326,79 +2519,72 @@ async function syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiv
       allCampaigns = savedCampaigns;
     }
 
+    // Garante que todas as campanhas gravadas no histórico diário para este período estejam presentes em allCampaigns
+    savedInsightsMap.forEach((savedMetric, cIdStr) => {
+      if (!allCampaigns.some(c => String(c.id) === cIdStr)) {
+        allCampaigns.push({
+          ...savedMetric,
+          date: resolvedRange.since || todayBrazil
+        });
+      }
+    });
+
     if (Array.isArray(allCampaigns) && allCampaigns.length > 0) {
       allCampaigns = allCampaigns.filter(c => {
         const cActId = String(c.adAccountId || c.accountId || '').replace('act_', '');
         if (isToday) {
-          return userActiveIds.has(cActId);
+          if (userActiveIds.has(cActId)) return true;
+          return (Number(c.spend) > 0) || (Number(c.revenue) > 0) || (Number(c.sales) > 0);
         }
         if (userActiveIds.has(cActId)) return true;
         if (allUserConnectedAccIds && allUserConnectedAccIds.has(cActId)) return true;
-        return (Number(c.spend) > 0) || (Number(c.revenue) > 0) || (Number(c.sales) > 0);
+        return (Number(c.spend) > 0) || (Number(c.revenue) > 0) || (Number(c.sales) > 0) || (Number(c.impressions) > 0);
       });
     }
 
     const targetPeriodDate = resolvedRange.isMaximum ? 'Máximo' : (resolvedRange.since || todayBrazil);
     allCampaigns = allCampaigns.map(c => {
-      const cDate = c.date || (resolvedRange.since === todayBrazil ? todayBrazil : null);
-      if (!cDate || (cDate !== targetPeriodDate && cDate !== 'Hoje' && cDate !== resolvedRange.since)) {
+      const cIdStr = String(c.id);
+      // Se a campanha veio do Meta nesta consulta com dados frescos do período, preserva
+      const freshCamp = syncResult && Array.isArray(syncResult.campaigns) ? syncResult.campaigns.find(fc => String(fc.id) === cIdStr) : null;
+      if (freshCamp) {
+        return freshCamp;
+      }
+      // Se temos o histórico gravado desta campanha neste período no banco, restaura os dados reais do banco
+      if (savedInsightsMap.has(cIdStr)) {
+        const savedMetric = savedInsightsMap.get(cIdStr);
         return {
           ...c,
-          spend: '0.00',
-          rawSpendUsd: c.rawSpendUsd !== null ? '0.00' : null,
-          impressions: 0,
-          clicks: 0,
-          cpc: '0.00',
-          cpm: '0.00',
-          ctr: '0.00%',
-          initCheckouts: 0,
-          costPerIc: '0.00',
-          profit: '0.00',
-          sales: 0,
-          pendingSales: 0,
-          revenue: '0.00',
-          roas: '0.00',
-          cpa: '0.00',
-          date: targetPeriodDate,
-          adsets: (c.adsets || []).map(as => ({
-            ...as,
-            spend: '0.00',
-            rawSpendUsd: as.rawSpendUsd !== null ? '0.00' : null,
-            impressions: 0,
-            clicks: 0,
-            cpc: '0.00',
-            cpm: '0.00',
-            ctr: '0.00%',
-            initCheckouts: 0,
-            costPerIc: '0.00',
-            sales: 0,
-            pendingSales: 0,
-            revenue: '0.00',
-            profit: '0.00',
-            roas: '0.00',
-            cpa: '0.00'
-          })),
-          ads: (c.ads || []).map(ad => ({
-            ...ad,
-            spend: '0.00',
-            rawSpendUsd: ad.rawSpendUsd !== null ? '0.00' : null,
-            impressions: 0,
-            clicks: 0,
-            cpc: '0.00',
-            cpm: '0.00',
-            ctr: '0.00%',
-            initCheckouts: 0,
-            costPerIc: '0.00',
-            sales: 0,
-            pendingSales: 0,
-            revenue: '0.00',
-            profit: '0.00',
-            roas: '0.00',
-            cpa: '0.00'
-          }))
+          ...savedMetric,
+          spend: savedMetric.spend || c.spend,
+          impressions: savedMetric.impressions !== undefined ? savedMetric.impressions : c.impressions,
+          clicks: savedMetric.clicks !== undefined ? savedMetric.clicks : c.clicks,
+          date: targetPeriodDate
         };
       }
-      return c;
+      // Se não veio no Meta e não tem registro no banco para este período específico:
+      // zera apenas as métricas de desempenho deste período (pois a campanha não rodou nesta data)
+      return {
+        ...c,
+        spend: '0.00',
+        rawSpendUsd: c.rawSpendUsd !== null ? '0.00' : null,
+        impressions: 0,
+        clicks: 0,
+        cpc: '0.00',
+        cpm: '0.00',
+        ctr: '0.00%',
+        initCheckouts: 0,
+        costPerIc: '0.00',
+        profit: '0.00',
+        sales: 0,
+        pendingSales: 0,
+        revenue: '0.00',
+        roas: '0.00',
+        cpa: '0.00',
+        date: targetPeriodDate,
+        adsets: (c.adsets || []).map(as => ({ ...as, spend: '0.00', rawSpendUsd: as.rawSpendUsd !== null ? '0.00' : null, impressions: 0, clicks: 0, cpc: '0.00', cpm: '0.00', ctr: '0.00%', initCheckouts: 0, costPerIc: '0.00', sales: 0, pendingSales: 0, revenue: '0.00', profit: '0.00', roas: '0.00', cpa: '0.00' })),
+        ads: (c.ads || []).map(ad => ({ ...ad, spend: '0.00', rawSpendUsd: ad.rawSpendUsd !== null ? '0.00' : null, impressions: 0, clicks: 0, cpc: '0.00', cpm: '0.00', ctr: '0.00%', initCheckouts: 0, costPerIc: '0.00', sales: 0, pendingSales: 0, revenue: '0.00', profit: '0.00', roas: '0.00', cpa: '0.00' }))
+      };
     });
 
     const allOrders = await getAllOrders(false, userId);
@@ -2501,6 +2687,14 @@ async function syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiv
       return String(b.id || '').localeCompare(String(a.id || ''), undefined, { numeric: true });
     }) : [];
 
+    // Grava permanentemente no histórico diário para que o gasto nunca se perca caso a conta seja desativada/bloqueada
+    const singleTargetDate = (resolvedRange.since && resolvedRange.since === resolvedRange.until)
+      ? resolvedRange.since
+      : (datePreset === 'yesterday' ? resolvedRange.since : (isToday ? todayBrazil : null));
+    if (singleTargetDate && stableSortedForClient.length > 0) {
+      saveDailyCampaignInsights(stableSortedForClient, singleTargetDate, userId);
+    }
+
     if (stableSortedForClient.length > 0) {
       campaignsCache.set(cacheKey, {
         timestamp: Date.now(),
@@ -2584,6 +2778,14 @@ async function prewarmCommonPresets(targetUserId = null) {
 
 app.get('/api/campaigns', async (req, res) => {
   const userId = req.headers['x-user-id'] || req.query.userId || null;
+  const { datePreset = 'today', since, until, refresh, activeAccounts: clientActiveAccounts } = req.query;
+  const clientActiveAccountsHeader = req.headers['x-active-accounts'];
+  const resolvedRange = resolveDateRange(datePreset, since, until);
+  const timeRange = (resolvedRange.since && resolvedRange.until) ? resolvedRange : (resolvedRange.isMaximum ? { isMaximum: true } : null);
+  const cacheKey = getCampaignsCacheKey(userId, datePreset, resolvedRange);
+  const now = Date.now();
+  const cached = campaignsCache.get(cacheKey);
+
   let connections = [];
   
   if (userId) {
@@ -2618,8 +2820,12 @@ app.get('/api/campaigns', async (req, res) => {
       connections = allLocal.filter(c => isOwnerUserId(userId) ? (!c.userId || isOwnerUserId(c.userId) || !c.user_id || isOwnerUserId(c.user_id)) : (c.userId === userId || c.user_id === userId));
     }
 
-    // Se o usuário não possui conexão com Facebook, NUNCA retorna campanhas de outros usuários!
+    // Se o usuário não possui conexão ativa com Facebook, verifica se possui histórico salvo no banco para o período!
     if (connections.length === 0) {
+      const savedDaily = getDailyCampaignInsights(userId, resolvedRange.since, resolvedRange.until, resolvedRange.isMaximum);
+      if (savedDaily && savedDaily.length > 0) {
+        return res.json(savedDaily);
+      }
       return res.json([]);
     }
   } else {
@@ -2649,19 +2855,15 @@ app.get('/api/campaigns', async (req, res) => {
     }
 
     if (connections.length === 0) {
+      const savedDaily = getDailyCampaignInsights(null, resolvedRange.since, resolvedRange.until, resolvedRange.isMaximum);
+      if (savedDaily && savedDaily.length > 0) {
+        return res.json(savedDaily);
+      }
       return res.json([]);
     }
   }
 
   const savedCampaigns = (db.get('campaigns') || []).filter(c => isOwnerUserId(userId) ? (!c.userId || isOwnerUserId(c.userId)) : (c.userId === userId));
-
-  const { datePreset = 'today', since, until, refresh, activeAccounts: clientActiveAccounts } = req.query;
-  const clientActiveAccountsHeader = req.headers['x-active-accounts'];
-  const resolvedRange = resolveDateRange(datePreset, since, until);
-  const timeRange = (resolvedRange.since && resolvedRange.until) ? resolvedRange : (resolvedRange.isMaximum ? { isMaximum: true } : null);
-  const cacheKey = getCampaignsCacheKey(userId, datePreset, resolvedRange);
-  const now = Date.now();
-  const cached = campaignsCache.get(cacheKey);
 
   // Extrai IDs das contas ativas do usuário e todas as contas conectadas
   const userActiveIds = new Set();
@@ -2696,10 +2898,12 @@ app.get('/api/campaigns', async (req, res) => {
   const isMultiDayWindow = ['last_7d', 'last_14d', 'last_15d', 'last_30d', 'this_month', 'maximum'].includes(datePreset);
   const isToday = datePreset === 'today' || (resolvedRange.since === todayBrazil && resolvedRange.until === todayBrazil);
 
-  // Se não há nenhuma conta ativa e estamos consultando hoje, retorna []
-  // Mas para períodos históricos, permite carregar o histórico de gastos salvos
+  // Se não há nenhuma conta ativa e estamos consultando hoje, verifica se há gastos hoje
   if (userActiveIds.size === 0 && isToday) {
-    return res.json([]);
+    const todayDaily = getDailyCampaignInsights(userId, todayBrazil, todayBrazil, false);
+    if (!todayDaily || todayDaily.length === 0) {
+      return res.json([]);
+    }
   }
 
   // TTLs inteligentes:
@@ -2744,6 +2948,10 @@ app.get('/api/campaigns', async (req, res) => {
     console.warn('[Sync Campaigns Handler Error]:', errSync.message);
     if (cached && Array.isArray(cached.campaigns)) {
       return res.json(formatCampaignsForUser(cached.campaigns, userActiveIds, isToday, allUserConnectedAccIds));
+    }
+    const fallbackDaily = getDailyCampaignInsights(userId, resolvedRange.since, resolvedRange.until, resolvedRange.isMaximum);
+    if (fallbackDaily && fallbackDaily.length > 0) {
+      return res.json(formatCampaignsForUser(fallbackDaily, userActiveIds, isToday, allUserConnectedAccIds));
     }
     return res.json([]);
   }
@@ -4003,6 +4211,11 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
   } else {
     // Sincroniza apenas contas expressamente ativadas pelo usuário em Integrações
     targetAccounts = allAdAccounts.filter(a => a.syncActive === true);
+    // Para períodos históricos (ontem, 7d, 30d, etc.), se nenhuma conta estiver ativa hoje, sincroniza todas as contas conectadas
+    const isTodaySync = (!timeRange && (datePreset === 'today' || datePreset === 'hoje'));
+    if (targetAccounts.length === 0 && !isTodaySync) {
+      targetAccounts = allAdAccounts;
+    }
   }
 
   // Se nenhuma conta estiver ativa nas integrações, não puxa nada e retorna vazio
