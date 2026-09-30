@@ -2218,12 +2218,26 @@ export function enrichCampaignsWithTracking({
   });
 }
 
-export function formatCampaignsForUser(campaignsList, userActiveIds) {
+// ponytail: formatCampaignsForUser preserva dados históricos (gasto/lucro) de campanhas passadas mesmo se a conta for desativada hoje; teto: se usuário quer zerar histórico, desconectar conexão inteira.
+export function formatCampaignsForUser(campaignsList, userActiveIds, isToday = false, allUserConnectedAccIds = null) {
   if (!Array.isArray(campaignsList)) return [];
   return campaignsList.filter(c => {
     const cActId = String(c.adAccountId || c.accountId || '').replace('act_', '');
     const isDeleted = isItemDeleted(c.id);
-    return userActiveIds.has(cActId) && !isDeleted;
+    if (isDeleted) return false;
+
+    // Se é consulta do dia de hoje (ao vivo), filtra estritamente pelas contas ativas
+    if (isToday) {
+      return userActiveIds.has(cActId);
+    }
+
+    // Para períodos históricos (ontem, 7d, personalizado, etc.):
+    // Preserva qualquer campanha que tenha gasto > 0, vendas > 0, ou pertença às contas conectadas do usuário
+    if (userActiveIds.has(cActId)) return true;
+    if (allUserConnectedAccIds && allUserConnectedAccIds.has(cActId)) return true;
+
+    const hasHistoricalData = (Number(c.spend) > 0) || (Number(c.revenue) > 0) || (Number(c.sales) > 0) || (Number(c.impressions) > 0);
+    return hasHistoricalData;
   }).map(c => {
     const campOverride = getEffectiveStatusOverride(c.id);
     const campStatus = campOverride !== undefined ? campOverride : c.status;
@@ -2274,10 +2288,12 @@ export function formatCampaignsForUser(campaignsList, userActiveIds) {
   });
 }
 
-async function syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiveIds, cacheKey, resolvedRange, todayBrazil }) {
+async function syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiveIds, cacheKey, resolvedRange, todayBrazil, allUserConnectedAccIds = null }) {
   if (ongoingCampaignSyncs.has(cacheKey)) {
     return ongoingCampaignSyncs.get(cacheKey);
   }
+
+  const isToday = datePreset === 'today' || (resolvedRange.since === todayBrazil && resolvedRange.until === todayBrazil);
 
   const syncPromise = (async () => {
     let syncResult = null;
@@ -2292,7 +2308,7 @@ async function syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiv
       console.warn('[Sync Campaigns Error]:', e.message);
     }
 
-    if (syncResult && syncResult.noActiveAccounts) {
+    if (syncResult && syncResult.noActiveAccounts && isToday) {
       return [];
     }
 
@@ -2313,7 +2329,12 @@ async function syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiv
     if (Array.isArray(allCampaigns) && allCampaigns.length > 0) {
       allCampaigns = allCampaigns.filter(c => {
         const cActId = String(c.adAccountId || c.accountId || '').replace('act_', '');
-        return userActiveIds.has(cActId);
+        if (isToday) {
+          return userActiveIds.has(cActId);
+        }
+        if (userActiveIds.has(cActId)) return true;
+        if (allUserConnectedAccIds && allUserConnectedAccIds.has(cActId)) return true;
+        return (Number(c.spend) > 0) || (Number(c.revenue) > 0) || (Number(c.sales) > 0);
       });
     }
 
@@ -2532,6 +2553,13 @@ async function prewarmCommonPresets(targetUserId = null) {
 
     for (const [uId, userActiveIds] of userActiveMap.entries()) {
       if (userActiveIds.size === 0) continue;
+      const allUserConnectedAccIds = new Set();
+      const allUserAccs = (db.get('ad_accounts') || []).filter(a => isOwnerUserId(uId) ? (!a.userId || isOwnerUserId(a.userId)) : (a.userId === uId));
+      allUserAccs.forEach(a => {
+        const clean = (a.accountId || a.id || '').replace('act_', '');
+        if (clean) allUserConnectedAccIds.add(clean);
+      });
+
       for (const preset of presetsToWarm) {
         const resolvedRange = resolveDateRange(preset);
         const timeRange = (resolvedRange.since && resolvedRange.until) ? resolvedRange : null;
@@ -2543,7 +2571,8 @@ async function prewarmCommonPresets(targetUserId = null) {
           userActiveIds,
           cacheKey,
           resolvedRange,
-          todayBrazil
+          todayBrazil,
+          allUserConnectedAccIds
         }).catch(e => console.warn(`[Prewarm ${preset}]:`, e.message));
       }
     }
@@ -2634,9 +2663,9 @@ app.get('/api/campaigns', async (req, res) => {
   const now = Date.now();
   const cached = campaignsCache.get(cacheKey);
 
-  // Extrai IDs das contas ativas do usuário:
-  // A fonte primária de verdade é a configuração oficial salva nas conexões do usuário no Supabase/DB
+  // Extrai IDs das contas ativas do usuário e todas as contas conectadas
   const userActiveIds = new Set();
+  const allUserConnectedAccIds = new Set();
   connections.forEach(c => {
     if (c.email) {
       try {
@@ -2648,22 +2677,30 @@ app.get('/api/campaigns', async (req, res) => {
     }
   });
 
+  // Carrega todas as contas vinculadas do usuário no store/Supabase
+  const allUserAccs = (db.get('ad_accounts') || []).filter(a => isOwnerUserId(userId) ? (!a.userId || isOwnerUserId(a.userId)) : (a.userId === userId));
+  allUserAccs.forEach(a => {
+    const clean = (a.accountId || a.id || '').replace('act_', '');
+    if (clean) allUserConnectedAccIds.add(clean);
+  });
+
   // Fallback caso a conexão ainda não tenha gravado o JSON no Supabase
   const rawClientAct = clientActiveAccounts || clientActiveAccountsHeader;
   if (userActiveIds.size === 0 && rawClientAct) {
     String(rawClientAct).split(',').map(s => s.trim().replace('act_', '')).filter(Boolean).forEach(id => userActiveIds.add(id));
   }
 
-  // Se não há nenhuma conta ativa configurada pelo usuário em Integrações, NUNCA retorna campanhas!
-  // ATENÇÃO: NÃO armazena [] em cache para não travar a resposta quando o usuário ativar uma conta!
-  if (userActiveIds.size === 0) {
-    return res.json([]);
-  }
-
   const todayBrazil = toBrazilYMD(new Date());
   const isPastRange = Boolean(timeRange?.until && timeRange.until < todayBrazil);
   const isClosedPeriod = datePreset === 'yesterday' || datePreset === 'last_month' || isPastRange;
   const isMultiDayWindow = ['last_7d', 'last_14d', 'last_15d', 'last_30d', 'this_month', 'maximum'].includes(datePreset);
+  const isToday = datePreset === 'today' || (resolvedRange.since === todayBrazil && resolvedRange.until === todayBrazil);
+
+  // Se não há nenhuma conta ativa e estamos consultando hoje, retorna []
+  // Mas para períodos históricos, permite carregar o histórico de gastos salvos
+  if (userActiveIds.size === 0 && isToday) {
+    return res.json([]);
+  }
 
   // TTLs inteligentes:
   // - Ontem / Mês passado / períodos passados: 60 minutos (dados históricos não mudam a cada segundo)
@@ -2672,13 +2709,12 @@ app.get('/api/campaigns', async (req, res) => {
   const freshTtlMs = isClosedPeriod ? (60 * 60 * 1000) : (isMultiDayWindow ? (10 * 60 * 1000) : (2 * 60 * 1000));
   const maxStaleWindowMs = 3 * 60 * 60 * 1000; // Até 3 horas para entrega instantânea via Stale-While-Revalidate
 
-  const isToday = datePreset === 'today' || (resolvedRange.since === todayBrazil && resolvedRange.until === todayBrazil);
   const isCachedTodayInvalid = isToday && cached?.date && cached.date !== todayBrazil;
 
   // Retorna cache imediatamente se disponível
   if (cached && !isCachedTodayInvalid && refresh !== 'true' && Array.isArray(cached.campaigns)) {
     const age = now - cached.timestamp;
-    const filteredCached = formatCampaignsForUser(cached.campaigns, userActiveIds);
+    const filteredCached = formatCampaignsForUser(cached.campaigns, userActiveIds, isToday, allUserConnectedAccIds);
 
     if (age < freshTtlMs) {
       res.set('Cache-Control', 'private, max-age=30');
@@ -2688,7 +2724,7 @@ app.get('/api/campaigns', async (req, res) => {
 
     // Stale-While-Revalidate: Entrega instantânea (< 5ms) do cache enquanto revalida em segundo plano
     if (age < maxStaleWindowMs) {
-      syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiveIds, cacheKey, resolvedRange, todayBrazil })
+      syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiveIds, cacheKey, resolvedRange, todayBrazil, allUserConnectedAccIds })
         .catch(e => console.warn('[Background SWR Sync]:', e.message));
       res.set('Cache-Control', 'private, max-age=10');
       res.set('X-Cache', 'STALE');
@@ -2699,15 +2735,15 @@ app.get('/api/campaigns', async (req, res) => {
   // Se não há cache ou o cache expirou (age >= freshTtlMs) ou o usuário forçou refresh=true:
   // Busca dados frescos em tempo real diretamente da API da Meta e retorna a resposta exata
   try {
-    const freshCampaigns = await syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiveIds, cacheKey, resolvedRange, todayBrazil });
-    const formatted = formatCampaignsForUser(freshCampaigns, userActiveIds);
+    const freshCampaigns = await syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiveIds, cacheKey, resolvedRange, todayBrazil, allUserConnectedAccIds });
+    const formatted = formatCampaignsForUser(freshCampaigns, userActiveIds, isToday, allUserConnectedAccIds);
 
     res.set('Cache-Control', 'private, max-age=30');
     return res.json(formatted);
   } catch (errSync) {
     console.warn('[Sync Campaigns Handler Error]:', errSync.message);
     if (cached && Array.isArray(cached.campaigns)) {
-      return res.json(formatCampaignsForUser(cached.campaigns, userActiveIds));
+      return res.json(formatCampaignsForUser(cached.campaigns, userActiveIds, isToday, allUserConnectedAccIds));
     }
     return res.json([]);
   }

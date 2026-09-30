@@ -911,6 +911,8 @@ export default function Dashboard() {
       }
     }
 
+    const isToday = period === 'Hoje';
+
     return campaigns.filter(c => {
       const cAdId = String(c.adAccountId || '').replace('act_', '');
       if (selectedAccount !== 'Todas') {
@@ -918,12 +920,14 @@ export default function Dashboard() {
         if (match) return cAdId === String(match.id);
         return c.accountName === selectedAccount || cAdId === selectedAccount;
       }
-      if (adAccountsList.length > 0) {
+      // Se for Hoje, filtra apenas pelas contas ativas no momento
+      // Se for período passado (Ontem, 7D, 30D, etc.), preserva todas as campanhas do período com gasto/lucro
+      if (isToday && adAccountsList.length > 0) {
         return adAccountsList.some(acc => cAdId === String(acc.id));
       }
       return true;
     });
-  }, [campaigns, selectedAccount, adAccountsList, activeDashboard]);
+  }, [campaigns, selectedAccount, adAccountsList, activeDashboard, period]);
 
   // Filtra as vendas baseado no período e filtros selecionados
   const filteredOrders = useMemo(() => {
