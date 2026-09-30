@@ -55,25 +55,21 @@
       "userId": "usr_1788826403159"
     },
     {
-      "id": "pt_px_mi_todos",
-      "pixelId": "pt_px_mi_todos",
+      "id": "pt_px_5o6pvce35bp",
+      "pixelId": "pt_px_5o6pvce35bp",
       "name": "Pixel MI",
       "domains": "*",
-      "metaPixelId": "1058568486987355",
+      "metaPixelId": "2141846666371577",
       "metaPixels": [
         {
-          "id": "mp_mi_1",
-          "metaPixelId": "1058568486987355",
-          "name": "MI JEFFREY"
-        },
-        {
-          "id": "mp_mi_2",
-          "metaPixelId": "1712345646538691",
-          "name": "MI BM2"
+          "id": "sub_px_mi_bm5",
+          "metaPixelId": "2141846666371577",
+          "name": "mi bm5",
+          "capiToken": "EAAP9DUWO5mIBSij0CTtSUGjU0tnmXtwjoMfPObPo2ZAinPngNz4bxQ3ncnd3QoZBqGSe4bSix9RHQFdu2oG6ZA1k0p0iwO9OUfct2QSrhUqJFlqVMfwndcA2uoVcLT8dKX3bA9rbLvUGycQZA9jRvjIFYSVrkZBZB8hH065ZC28gNY8s9ympdytU1ZB4wfdM4ZBDYmQZDZD"
         }
       ],
-      "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
-      "capiTokenRaw": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "capiToken": "EAAP9DUWO5mIBSij0CTtSUGjU0tnmXtwjoMfPObPo2ZAinPngNz4bxQ3ncnd3QoZBqGSe4bSix9RHQFdu2oG6ZA1k0p0iwO9OUfct2QSrhUqJFlqVMfwndcA2uoVcLT8dKX3bA9rbLvUGycQZA9jRvjIFYSVrkZBZB8hH065ZC28gNY8s9ympdytU1ZB4wfdM4ZBDYmQZDZD",
+      "capiTokenRaw": "EAAP9DUWO5mIBSij0CTtSUGjU0tnmXtwjoMfPObPo2ZAinPngNz4bxQ3ncnd3QoZBqGSe4bSix9RHQFdu2oG6ZA1k0p0iwO9OUfct2QSrhUqJFlqVMfwndcA2uoVcLT8dKX3bA9rbLvUGycQZA9jRvjIFYSVrkZBZB8hH065ZC28gNY8s9ympdytU1ZB4wfdM4ZBDYmQZDZD",
       "icType": "css",
       "icValue": ".btn-checkout",
       "icRule": ".btn-checkout",
@@ -211,8 +207,8 @@
       "userId": "usr_1788826403159"
     },
     {
-      "id": "pt_px_5o6pvce35bp",
-      "pixelId": "pt_px_5o6pvce35bp",
+      "id": "pt_px_estoica_antigo",
+      "pixelId": "pt_px_estoica_antigo",
       "name": "Pixel Estoica",
       "domains": "*",
       "metaPixelId": "1045648284919809",
