@@ -3700,6 +3700,13 @@ export async function reconcileFacebookData(force = false, userId = null) {
 
   const getActiveSetForUser = (targetUserId) => {
     const set = new Set();
+    const effectiveUser = targetUserId || userId || 'usr_1788826403159';
+    // 1. Prioridade máxima: lista salva explicitamente pelo usuário
+    const explicitSaved = db.get(`active_accounts_${effectiveUser}`) || (isOwnerUserId(effectiveUser) ? db.get('active_accounts') : null);
+    if (Array.isArray(explicitSaved)) {
+      explicitSaved.forEach(id => set.add(String(id).replace('act_', '')));
+      return set;
+    }
     connections.forEach(c => {
       const cUser = c.user_id || c.userId;
       const matches = targetUserId && (
@@ -3722,7 +3729,7 @@ export async function reconcileFacebookData(force = false, userId = null) {
     try {
       const accounts = await fetchAdAccounts(token);
       const connUser = conn.user_id || conn.userId || userId || 'usr_1788826403159';
-      const connActiveSet = getActiveSetForConnection(conn);
+      const userActiveSet = getActiveSetForUser(connUser);
 
       return (accounts || []).map(acc => {
         const cleanId = (acc.accountId || acc.id || '').split('___')[0].replace('act_', '');
@@ -3739,7 +3746,7 @@ export async function reconcileFacebookData(force = false, userId = null) {
           status: acc.status || 'Ativa',
           amountSpent: String(acc.amountSpent || '0.00'),
           balance: String(acc.balance || '0.00'),
-          syncActive: connActiveSet.has(cleanId)
+          syncActive: userActiveSet.has(cleanId)
         };
       });
     } catch (err) {
@@ -3792,15 +3799,14 @@ export async function reconcileFacebookData(force = false, userId = null) {
       const cleanId = String(a.accountId || a.id || '').replace('act_', '').split('___')[0];
       const targetUser = a.user_id || a.userId || userId || 'usr_1788826403159';
       const key = `${cleanId}___${targetUser}`;
-      if (!uniqueAccsMap.has(key) || a.syncActive) {
-        uniqueAccsMap.set(key, {
-          ...a,
-          id: `act_${cleanId}`,
-          accountId: cleanId,
-          userId: targetUser,
-          user_id: targetUser
-        });
-      }
+      uniqueAccsMap.set(key, {
+        ...a,
+        id: `act_${cleanId}`,
+        accountId: cleanId,
+        userId: targetUser,
+        user_id: targetUser,
+        syncActive: Boolean(a.syncActive)
+      });
     });
     db.set('ad_accounts', Array.from(uniqueAccsMap.values()));
   } else if (connections.length > 0) {
@@ -4681,13 +4687,15 @@ app.post('/api/meta/accounts/sync-status', async (req, res) => {
       } catch (e) {}
     }
     
+    const effectiveTargetUser = userId || 'usr_1788826403159';
     const isThisUser = (targetUserId) => {
+      if (!targetUserId && isOwnerUserId(effectiveTargetUser)) return true;
       if (!targetUserId) return false;
-      if (userId) {
-        if (isOwnerUserId(userId)) {
+      if (effectiveTargetUser) {
+        if (isOwnerUserId(effectiveTargetUser)) {
           return isOwnerUserId(targetUserId);
         }
-        return targetUserId === userId;
+        return targetUserId === effectiveTargetUser;
       }
       return false;
     };
@@ -4695,36 +4703,41 @@ app.post('/api/meta/accounts/sync-status', async (req, res) => {
     let explicitActiveIds = [];
     if (Array.isArray(activeAccounts)) {
       explicitActiveIds = activeAccounts.map(id => String(id).replace('act_', ''));
-      const activeSet = new Set(explicitActiveIds);
-      adAccounts = adAccounts.map(acc => {
-        const clean = (acc.accountId || acc.id || '').replace('act_', '');
-        const aUser = acc.userId || acc.user_id;
-        if (!userId || isThisUser(aUser)) {
-          return {
-            ...acc,
-            syncActive: activeSet.has(clean)
-          };
-        }
-        return acc;
-      });
     } else if (accountId !== undefined) {
       const cleanTarget = String(accountId).replace('act_', '');
-      adAccounts = adAccounts.map(acc => {
-        const clean = (acc.accountId || acc.id || '').replace('act_', '');
-        const aUser = acc.userId || acc.user_id;
-        if ((!userId || isThisUser(aUser)) && clean === cleanTarget) {
-          return { ...acc, syncActive: !!syncActive };
-        }
-        return acc;
-      });
-      explicitActiveIds = adAccounts
-        .filter(a => (!userId || isThisUser(a.userId || a.user_id)) && a.syncActive)
-        .map(a => (a.accountId || a.id || '').replace('act_', ''));
+      let currentActive = (db.get(`active_accounts_${effectiveTargetUser}`) || db.get('active_accounts') || [])
+        .map(id => String(id).replace('act_', ''));
+      if (syncActive) {
+        if (!currentActive.includes(cleanTarget)) currentActive.push(cleanTarget);
+      } else {
+        currentActive = currentActive.filter(id => id !== cleanTarget);
+      }
+      explicitActiveIds = currentActive;
     }
+
+    const activeSet = new Set(explicitActiveIds);
+
+    // 1. Salva explicitamente a lista oficial de contas ativas no banco para este usuário
+    db.set(`active_accounts_${effectiveTargetUser}`, explicitActiveIds);
+    if (isOwnerUserId(effectiveTargetUser)) {
+      db.set('active_accounts', explicitActiveIds);
+    }
+
+    // 2. Atualiza o status syncActive de todas as contas em db.get('ad_accounts')
+    adAccounts = adAccounts.map(acc => {
+      const clean = (acc.accountId || acc.id || '').replace('act_', '');
+      const aUser = acc.userId || acc.user_id;
+      if (!userId || isThisUser(aUser)) {
+        return {
+          ...acc,
+          syncActive: activeSet.has(clean)
+        };
+      }
+      return acc;
+    });
     db.set('ad_accounts', adAccounts);
 
     // Salva o mapa de contas ativas no Supabase (apenas nos perfis do Facebook deste usuário específico)
-    const effectiveTargetUser = userId || 'usr_1788826403159';
     try {
       let connQuery = supabaseAdmin.from('facebook_connections').select('id');
       if (isOwnerUserId(effectiveTargetUser)) {
@@ -4751,7 +4764,8 @@ app.post('/api/meta/accounts/sync-status', async (req, res) => {
         if (isThisUser(cUser)) {
           return {
             ...c,
-            email: JSON.stringify({ activeAccounts: explicitActiveIds })
+            email: JSON.stringify({ activeAccounts: explicitActiveIds }),
+            activeAccounts: explicitActiveIds
           };
         }
         return c;

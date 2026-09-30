@@ -175,7 +175,8 @@ export default function Integrations() {
     const key = isDef || dashId === 'principal' ? 'primetrack_pixels' : `primetrack_pixels_${dashId}`;
     const userDeletedKey = currentUser?.id ? `primetrack_deleted_pixels_${currentUser.id}` : 'primetrack_deleted_pixels';
     const deletedIds = JSON.parse(localStorage.getItem(userDeletedKey) || '[]');
-    const saved = localStorage.getItem(key);
+    const userPxKey = currentUser?.id && (isDef || dashId === 'principal') ? `primetrack_pixels_${currentUser.id}` : null;
+    const saved = (userPxKey && localStorage.getItem(userPxKey)) || localStorage.getItem(key);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -668,14 +669,16 @@ export default function Integrations() {
   };
 
   const handleToggleSync = (accountId) => {
-    const target = adAccounts.find(a => a.id === accountId);
+    const cleanTargetId = String(accountId).replace('act_', '');
+    const target = adAccounts.find(a => String(a.id).replace('act_', '') === cleanTargetId);
     if (!target) return;
 
+    const nextSync = !target.sync;
     let updated;
     // Se o usuário está desativando a conta
-    if (target.sync) {
-      updated = adAccounts.map(a => a.id === accountId ? { ...a, sync: false } : a);
-      setAccountSwitchToast(`Conta "${target.name}" desativada. Nenhuma conta ativa no momento.`);
+    if (!nextSync) {
+      updated = adAccounts.map(a => String(a.id).replace('act_', '') === cleanTargetId ? { ...a, sync: false } : a);
+      setAccountSwitchToast(`Conta "${target.name}" desativada.`);
     } else {
       // Se está ativando
       if (trialStatus.isTrial) {
@@ -683,17 +686,17 @@ export default function Integrations() {
         // Desativa todas as outras e ativa esta
         updated = adAccounts.map(a => ({
           ...a,
-          sync: a.id === accountId
+          sync: String(a.id).replace('act_', '') === cleanTargetId
         }));
         setAccountSwitchToast(`Conta "${target.name}" ativada com sucesso! (No Plano Free, 1 conta de anúncio ativa)`);
       } else {
-        updated = adAccounts.map(a => a.id === accountId ? { ...a, sync: true } : a);
+        updated = adAccounts.map(a => String(a.id).replace('act_', '') === cleanTargetId ? { ...a, sync: true } : a);
         setAccountSwitchToast(`Conta "${target.name}" ativada com sucesso.`);
       }
     }
 
     setAdAccounts(updated);
-    const activeIds = updated.filter(a => a.sync).map(a => a.id);
+    const activeIds = updated.filter(a => a.sync).map(a => String(a.id).replace('act_', ''));
     if (typeof window !== 'undefined') {
       localStorage.setItem('primetrack_ad_accounts', JSON.stringify(updated));
       localStorage.setItem(userAccKey, JSON.stringify(updated));
@@ -706,7 +709,7 @@ export default function Integrations() {
     fetch('/api/meta/accounts/sync-status', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
-      body: JSON.stringify({ activeAccounts: activeIds, userId: currentUser?.id })
+      body: JSON.stringify({ activeAccounts: activeIds, accountId: cleanTargetId, syncActive: nextSync, userId: currentUser?.id })
     }).catch(err => console.warn('Erro ao salvar status da conta no servidor:', err.message));
 
     // Se ativou conta(s), dispara sincronização com o Meta Ads imediatamente e armazena resultado no cache
@@ -771,7 +774,11 @@ export default function Integrations() {
     const updated = [newPx, ...trackingPixels];
     setTrackingPixels(updated);
     if (typeof window !== 'undefined') {
+      localStorage.setItem('primetrack_pixels', JSON.stringify(updated));
       localStorage.setItem(getScopedKey('primetrack_pixels'), JSON.stringify(updated));
+      if (currentUser?.id) {
+        localStorage.setItem(`primetrack_pixels_${currentUser.id}`, JSON.stringify(updated));
+      }
     }
     fetch('/api/pixels', {
       method: 'POST',
@@ -858,6 +865,28 @@ export default function Integrations() {
     e.preventDefault();
     if (!pixelToEdit || !editPixelName.trim()) return;
 
+    let finalMetaList = [...editMetaPixelsList];
+    // Se o usuário digitou dados no formulário de subpixel mas não clicou no botão "Confirmar", inclui automaticamente
+    if (newMetaSubPixelId && newMetaSubPixelId.trim()) {
+      const pendingSubId = newMetaSubPixelId.trim();
+      const existingIdx = editSubPixelIndex !== null && editSubPixelIndex >= 0 ? editSubPixelIndex : -1;
+      if (existingIdx >= 0 && existingIdx < finalMetaList.length) {
+        finalMetaList[existingIdx] = {
+          ...finalMetaList[existingIdx],
+          metaPixelId: pendingSubId,
+          capiToken: newMetaSubPixelToken.trim(),
+          name: newMetaSubPixelName.trim() || finalMetaList[existingIdx].name || `Pixel Meta ${existingIdx + 1}`
+        };
+      } else if (!finalMetaList.some(m => m.metaPixelId === pendingSubId)) {
+        finalMetaList.push({
+          id: `mp_${Date.now()}`,
+          metaPixelId: pendingSubId,
+          capiToken: newMetaSubPixelToken.trim(),
+          name: newMetaSubPixelName.trim() || `Pixel Meta ${finalMetaList.length + 1}`
+        });
+      }
+    }
+
     const ruleLabel = editPixelIcType === 'css' 
       ? `css ${editPixelIcValue.trim() || '.btn-checkout'}` 
       : editPixelIcType === 'url' 
@@ -865,11 +894,11 @@ export default function Integrations() {
         : `texto contendo "${editPixelIcValue.trim() || 'Comprar'}"`;
 
     // O pixel principal assume o primeiro da lista se houver
-    const primaryMetaId = editMetaPixelsList.length > 0 
-      ? editMetaPixelsList[0].metaPixelId 
+    const primaryMetaId = finalMetaList.length > 0 
+      ? finalMetaList[0].metaPixelId 
       : editPixelMetaId.trim();
-    const primaryToken = editMetaPixelsList.length > 0 
-      ? editMetaPixelsList[0].capiToken 
+    const primaryToken = finalMetaList.length > 0 
+      ? finalMetaList[0].capiToken 
       : editPixelCapiToken.trim();
 
     const updated = trackingPixels.map(px => {
@@ -880,7 +909,7 @@ export default function Integrations() {
           metaPixelId: primaryMetaId,
           capiTokenRaw: primaryToken,
           capiToken: primaryToken,
-          metaPixels: editMetaPixelsList, // Guarda a lista completa de pixels da Meta
+          metaPixels: finalMetaList, // Guarda a lista completa de pixels da Meta
           icType: editPixelIcType,
           icValue: editPixelIcValue.trim(),
           icRule: ruleLabel,
@@ -892,7 +921,11 @@ export default function Integrations() {
 
     setTrackingPixels(updated);
     if (typeof window !== 'undefined') {
+      localStorage.setItem('primetrack_pixels', JSON.stringify(updated));
       localStorage.setItem(getScopedKey('primetrack_pixels'), JSON.stringify(updated));
+      if (currentUser?.id) {
+        localStorage.setItem(`primetrack_pixels_${currentUser.id}`, JSON.stringify(updated));
+      }
     }
     fetch('/api/pixels', {
       method: 'POST',
@@ -948,7 +981,11 @@ export default function Integrations() {
     const updated = trackingPixels.map(px => px.id === pxId ? { ...px, status: px.status === 'Ativo' ? 'Inativo' : 'Ativo' } : px);
     setTrackingPixels(updated);
     if (typeof window !== 'undefined') {
+      localStorage.setItem('primetrack_pixels', JSON.stringify(updated));
       localStorage.setItem(getScopedKey('primetrack_pixels'), JSON.stringify(updated));
+      if (currentUser?.id) {
+        localStorage.setItem(`primetrack_pixels_${currentUser.id}`, JSON.stringify(updated));
+      }
     }
     fetch('/api/pixels', {
       method: 'POST',
@@ -965,6 +1002,9 @@ export default function Integrations() {
     if (typeof window !== 'undefined') {
       localStorage.setItem('primetrack_pixels', JSON.stringify(updated));
       localStorage.setItem(getScopedKey('primetrack_pixels'), JSON.stringify(updated));
+      if (currentUser?.id) {
+        localStorage.setItem(`primetrack_pixels_${currentUser.id}`, JSON.stringify(updated));
+      }
       
       const userDeletedKey = currentUser?.id ? `primetrack_deleted_pixels_${currentUser.id}` : 'primetrack_deleted_pixels';
       const deletedIds = JSON.parse(localStorage.getItem(userDeletedKey) || '[]');
@@ -1234,6 +1274,9 @@ export default function Integrations() {
           if (typeof window !== 'undefined') {
             localStorage.setItem('primetrack_pixels', JSON.stringify(cleanPixels));
             localStorage.setItem(getScopedKey('primetrack_pixels'), JSON.stringify(cleanPixels));
+            if (currentUser?.id) {
+              localStorage.setItem(`primetrack_pixels_${currentUser.id}`, JSON.stringify(cleanPixels));
+            }
           }
         }
       })
@@ -3170,6 +3213,12 @@ export default function Integrations() {
                         placeholder="Ex: 1342429849238924"
                         value={newMetaSubPixelId}
                         onChange={(e) => setNewMetaSubPixelId(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddMetaSubPixel(e);
+                          }
+                        }}
                         className="w-full bg-[#141C2E] border border-[#1E293B] rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-[#0066FF]"
                       />
                     </div>
@@ -3183,6 +3232,12 @@ export default function Integrations() {
                         placeholder="EAAB... (Token da BM do novo pixel)"
                         value={newMetaSubPixelToken}
                         onChange={(e) => setNewMetaSubPixelToken(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddMetaSubPixel(e);
+                          }
+                        }}
                         className="w-full bg-[#141C2E] border border-[#1E293B] rounded-lg px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-[#0066FF]"
                       />
                     </div>
@@ -3196,6 +3251,12 @@ export default function Integrations() {
                         placeholder="Ex: BM 2, Pixel Backup, Conta João"
                         value={newMetaSubPixelName}
                         onChange={(e) => setNewMetaSubPixelName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddMetaSubPixel(e);
+                          }
+                        }}
                         className="w-full bg-[#141C2E] border border-[#1E293B] rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-[#0066FF]"
                       />
                     </div>
