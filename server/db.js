@@ -447,23 +447,45 @@ class Store {
     if (this.cache) {
       return this.cache;
     }
-    try {
-      if (fs.existsSync(TMP_DB_FILE)) {
+
+    let dbStat = null;
+    let tmpStat = null;
+    try { if (fs.existsSync(DB_FILE)) dbStat = fs.statSync(DB_FILE); } catch(e) {}
+    try { if (fs.existsSync(TMP_DB_FILE)) tmpStat = fs.statSync(TMP_DB_FILE); } catch(e) {}
+
+    // Sempre dá preferência ao arquivo com mtime mais recente para nunca carregar dados desatualizados
+    if (tmpStat && dbStat) {
+      if (tmpStat.mtimeMs > dbStat.mtimeMs) {
+        try {
+          const tmpContent = fs.readFileSync(TMP_DB_FILE, 'utf-8');
+          this.cache = JSON.parse(tmpContent);
+          return this.cache;
+        } catch (e) {}
+      } else {
+        try {
+          const content = fs.readFileSync(DB_FILE, 'utf-8');
+          this.cache = JSON.parse(content);
+          return this.cache;
+        } catch (e) {}
+      }
+    } else if (tmpStat) {
+      try {
         const tmpContent = fs.readFileSync(TMP_DB_FILE, 'utf-8');
         this.cache = JSON.parse(tmpContent);
         return this.cache;
+      } catch (e) {}
+    } else if (dbStat) {
+      try {
+        const content = fs.readFileSync(DB_FILE, 'utf-8');
+        this.cache = JSON.parse(content);
+        return this.cache;
+      } catch (err) {
+        console.error("Erro ao ler banco de dados DB_FILE:", err);
       }
-    } catch (e) {}
-
-    try {
-      const content = fs.readFileSync(DB_FILE, 'utf-8');
-      this.cache = JSON.parse(content);
-      return this.cache;
-    } catch (err) {
-      console.error("Erro ao ler banco de dados:", err);
-      this.cache = { ...cleanCustomerData };
-      return this.cache;
     }
+
+    this.cache = { ...cleanCustomerData };
+    return this.cache;
   }
 
   save(data) {

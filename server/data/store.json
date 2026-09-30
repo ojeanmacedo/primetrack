@@ -27,6 +27,18 @@
           "metaPixelId": "2081142662495053",
           "name": "stalkeia bm7",
           "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy"
+        },
+        {
+          "id": "mp_1790752081875",
+          "metaPixelId": "1586445946303925",
+          "name": "julia Macedo",
+          "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy"
+        },
+        {
+          "id": "mp_1790752094205",
+          "metaPixelId": "1396541275925294",
+          "name": "conta pessoal",
+          "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy"
         }
       ],
       "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
@@ -57878,5 +57890,249 @@
     "act_2114439812800100": true,
     "1113966467825321": true,
     "act_1113966467825321": true
-  }
+  },
+  "pixels_usr_1788826403159": [
+    {
+      "id": "pt_px_zpdpoqxrgvi",
+      "pixelId": "pt_px_zpdpoqxrgvi",
+      "name": "Pixel Stalkeia",
+      "domains": "*",
+      "metaPixelId": "1991445178222236",
+      "metaPixels": [
+        {
+          "id": "sub_px_stalkeia_1",
+          "metaPixelId": "1991445178222236",
+          "name": "stalkeia bm5",
+          "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy"
+        },
+        {
+          "id": "sub_px_stalkeia_bm7",
+          "metaPixelId": "2081142662495053",
+          "name": "stalkeia bm7",
+          "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy"
+        },
+        {
+          "id": "mp_1790752081875",
+          "metaPixelId": "1586445946303925",
+          "name": "julia Macedo",
+          "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy"
+        },
+        {
+          "id": "mp_1790752094205",
+          "metaPixelId": "1396541275925294",
+          "name": "conta pessoal",
+          "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy"
+        }
+      ],
+      "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "capiTokenRaw": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "icType": "css",
+      "icValue": ".btn-checkout",
+      "icRule": ".btn-checkout",
+      "status": "Ativo",
+      "createdAt": "2026-09-30T15:00:00.000Z",
+      "userId": "usr_1788826403159"
+    },
+    {
+      "id": "pt_px_live",
+      "pixelId": "pt_px_live",
+      "name": "Pixel Live",
+      "domains": "*",
+      "metaPixelId": "1708234893575213",
+      "metaPixels": [
+        {
+          "id": "mp_live_1",
+          "metaPixelId": "1708234893575213",
+          "name": "live"
+        }
+      ],
+      "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "capiTokenRaw": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "icType": "css",
+      "icValue": ".btn-checkout",
+      "icRule": ".btn-checkout",
+      "status": "Ativo",
+      "createdAt": "2026-09-29T15:00:00.000Z",
+      "userId": "usr_1788826403159"
+    },
+    {
+      "id": "pt_px_5o6pvce35bp",
+      "pixelId": "pt_px_5o6pvce35bp",
+      "name": "Pixel MI",
+      "domains": "*",
+      "metaPixelId": "2141846666371577",
+      "metaPixels": [
+        {
+          "id": "sub_px_mi_bm5",
+          "metaPixelId": "2141846666371577",
+          "name": "mi bm5",
+          "capiToken": "EAAP9DUWO5mIBSij0CTtSUGjU0tnmXtwjoMfPObPo2ZAinPngNz4bxQ3ncnd3QoZBqGSe4bSix9RHQFdu2oG6ZA1k0p0iwO9OUfct2QSrhUqJFlqVMfwndcA2uoVcLT8dKX3bA9rbLvUGycQZA9jRvjIFYSVrkZBZB8hH065ZC28gNY8s9ympdytU1ZB4wfdM4ZBDYmQZDZD"
+        }
+      ],
+      "capiToken": "EAAP9DUWO5mIBSij0CTtSUGjU0tnmXtwjoMfPObPo2ZAinPngNz4bxQ3ncnd3QoZBqGSe4bSix9RHQFdu2oG6ZA1k0p0iwO9OUfct2QSrhUqJFlqVMfwndcA2uoVcLT8dKX3bA9rbLvUGycQZA9jRvjIFYSVrkZBZB8hH065ZC28gNY8s9ympdytU1ZB4wfdM4ZBDYmQZDZD",
+      "capiTokenRaw": "EAAP9DUWO5mIBSij0CTtSUGjU0tnmXtwjoMfPObPo2ZAinPngNz4bxQ3ncnd3QoZBqGSe4bSix9RHQFdu2oG6ZA1k0p0iwO9OUfct2QSrhUqJFlqVMfwndcA2uoVcLT8dKX3bA9rbLvUGycQZA9jRvjIFYSVrkZBZB8hH065ZC28gNY8s9ympdytU1ZB4wfdM4ZBDYmQZDZD",
+      "icType": "css",
+      "icValue": ".btn-checkout",
+      "icRule": ".btn-checkout",
+      "status": "Ativo",
+      "createdAt": "2026-09-28T15:00:00.000Z",
+      "userId": "usr_1788826403159"
+    },
+    {
+      "id": "pt_px_moldes",
+      "pixelId": "pt_px_moldes",
+      "name": "Pixel Moldes",
+      "domains": "*",
+      "metaPixelId": "1050402180946104",
+      "metaPixels": [
+        {
+          "id": "mp_moldes_1",
+          "metaPixelId": "1050402180946104",
+          "name": "moldes"
+        }
+      ],
+      "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "capiTokenRaw": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "icType": "css",
+      "icValue": ".btn-checkout",
+      "icRule": ".btn-checkout",
+      "status": "Ativo",
+      "createdAt": "2026-09-27T15:00:00.000Z",
+      "userId": "usr_1788826403159"
+    },
+    {
+      "id": "pt_px_potes",
+      "pixelId": "pt_px_potes",
+      "name": "Pixel Potes",
+      "domains": "*",
+      "metaPixelId": "1546092043232502",
+      "metaPixels": [
+        {
+          "id": "mp_potes_1",
+          "metaPixelId": "1546092043232502",
+          "name": "potes"
+        }
+      ],
+      "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "capiTokenRaw": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "icType": "css",
+      "icValue": ".btn-checkout",
+      "icRule": ".btn-checkout",
+      "status": "Ativo",
+      "createdAt": "2026-09-26T15:00:00.000Z",
+      "userId": "usr_1788826403159"
+    },
+    {
+      "id": "pt_px_sermon_todos",
+      "pixelId": "pt_px_sermon_todos",
+      "name": "Pixel Sermon",
+      "domains": "*",
+      "metaPixelId": "1443456754305813",
+      "metaPixels": [
+        {
+          "id": "mp_sermon_1",
+          "metaPixelId": "1443456754305813",
+          "name": "sermon bm7"
+        },
+        {
+          "id": "mp_sermon_2",
+          "metaPixelId": "1085682944446549",
+          "name": "sermon bm5"
+        }
+      ],
+      "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "capiTokenRaw": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "icType": "css",
+      "icValue": ".btn-checkout",
+      "icRule": ".btn-checkout",
+      "status": "Ativo",
+      "createdAt": "2026-09-25T15:00:00.000Z",
+      "userId": "usr_1788826403159"
+    },
+    {
+      "id": "pt_px_6lhl7qcgunt",
+      "pixelId": "pt_px_6lhl7qcgunt",
+      "name": "Pixel Jump",
+      "domains": "*",
+      "metaPixelId": "1123257223463672",
+      "metaPixels": [
+        {
+          "id": "sub_px_jump_bm5",
+          "metaPixelId": "1123257223463672",
+          "name": "jump bm5",
+          "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy"
+        },
+        {
+          "id": "sub_px_jump_bm7",
+          "metaPixelId": "1658272665919417",
+          "name": "jump bm7",
+          "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy"
+        }
+      ],
+      "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "capiTokenRaw": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "icType": "css",
+      "icValue": ".btn-checkout",
+      "icRule": ".btn-checkout",
+      "status": "Ativo",
+      "createdAt": "2026-09-24T15:00:00.000Z",
+      "userId": "usr_1788826403159"
+    },
+    {
+      "id": "pt_px_n7jmhi3grhi",
+      "pixelId": "pt_px_n7jmhi3grhi",
+      "name": "Pixel Kauê",
+      "domains": "*",
+      "metaPixelId": "4099709903493911",
+      "metaPixels": [
+        {
+          "id": "sub_px_kaue_bm5",
+          "metaPixelId": "4099709903493911",
+          "name": "kaue bm5",
+          "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy"
+        },
+        {
+          "id": "sub_px_kaue_bm7",
+          "metaPixelId": "1093520173034169",
+          "name": "kaue bm7",
+          "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy"
+        }
+      ],
+      "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "capiTokenRaw": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "icType": "css",
+      "icValue": ".btn-checkout",
+      "icRule": ".btn-checkout",
+      "status": "Ativo",
+      "createdAt": "2026-09-23T15:00:00.000Z",
+      "userId": "usr_1788826403159"
+    },
+    {
+      "id": "pt_px_estoica_antigo",
+      "pixelId": "pt_px_estoica_antigo",
+      "name": "Pixel Estoica",
+      "domains": "*",
+      "metaPixelId": "1045648284919809",
+      "metaPixels": [
+        {
+          "id": "mp_est_1",
+          "metaPixelId": "1045648284919809",
+          "name": "estoica"
+        },
+        {
+          "id": "mp_est_2",
+          "metaPixelId": "1511271891042662",
+          "name": "estoica jef"
+        }
+      ],
+      "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "capiTokenRaw": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "icType": "css",
+      "icValue": ".btn-checkout",
+      "icRule": ".btn-checkout",
+      "status": "Ativo",
+      "createdAt": "2026-09-22T15:00:00.000Z",
+      "userId": "usr_1788826403159"
+    }
+  ]
 }

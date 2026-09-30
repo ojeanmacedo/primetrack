@@ -362,6 +362,23 @@ app.get('/api/pixel/config', async (req, res) => {
 
   let foundPixel = pixels.find(p => p.pixelId === id || p.internalPixelId === id || p.id === id);
 
+  // Se não achou na lista global, busca nas chaves isoladas por usuário
+  if (!foundPixel && id) {
+    try {
+      const allData = db.data || {};
+      for (const k of Object.keys(allData)) {
+        if (k.startsWith('pixels_')) {
+          const uList = db.get(k) || [];
+          const match = uList.find(p => p.pixelId === id || p.internalPixelId === id || p.id === id);
+          if (match) {
+            foundPixel = match;
+            break;
+          }
+        }
+      }
+    } catch (e) {}
+  }
+
   // Se não achou na memória, busca no Supabase
   if (!foundPixel && id) {
     try {
@@ -402,16 +419,21 @@ app.get('/api/pixel/config', async (req, res) => {
 
   const defaultMetaPixel = '1056706567239394';
   const resolvedMetaPixelId = (foundPixel && foundPixel.metaPixelId) 
-    ? foundPixel.metaPixelId 
+    ? String(foundPixel.metaPixelId).trim() 
     : (/^\d{10,25}$/.test(id) ? id : (settings.metaPixelId || defaultMetaPixel));
 
-  // Extrai lista de todos os Meta Pixel IDs configurados
+  // Extrai lista de todos os Meta Pixel IDs configurados (incluindo todos os sub-pixels)
   let metaPixelIds = [];
   if (foundPixel && Array.isArray(foundPixel.metaPixels) && foundPixel.metaPixels.length > 0) {
-    metaPixelIds = foundPixel.metaPixels.map(m => m.metaPixelId).filter(Boolean);
-  } else if (resolvedMetaPixelId) {
-    metaPixelIds = [resolvedMetaPixelId];
+    metaPixelIds = foundPixel.metaPixels
+      .map(m => String(m.metaPixelId || '').trim())
+      .filter(mId => /^\d{10,25}$/.test(mId));
   }
+  
+  if (resolvedMetaPixelId && /^\d{10,25}$/.test(resolvedMetaPixelId) && !metaPixelIds.includes(resolvedMetaPixelId)) {
+    metaPixelIds.unshift(resolvedMetaPixelId);
+  }
+  metaPixelIds = Array.from(new Set(metaPixelIds));
 
   res.json({
     pixelId: id,
