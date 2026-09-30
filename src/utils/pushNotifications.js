@@ -92,3 +92,7 @@ export async function subscribeUserToPush() {
 
   return subscription;
 }
+  }
+
+  return subscription;
+}

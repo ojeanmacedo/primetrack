@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import webPush from 'web-push';
 import { db } from '../db.js';
 import { supabaseAdmin } from '../supabase.js';
@@ -20,6 +21,11 @@ export function getVapidPublicKey() {
 const OWNER_IDS = ['usr_1788826403159', 'usr_admin_digitaljm', 'usr_1790177682943'];
 const isOwner = (id) => !id || OWNER_IDS.includes(id);
 
+function getEndpointHash(endpoint) {
+  if (!endpoint) return 'unknown';
+  return crypto.createHash('md5').update(endpoint).digest('hex');
+}
+
 export async function saveSubscription(subscription, userId = 'usr_1788826403159') {
   if (!subscription || !subscription.endpoint) return;
   const effectiveUserId = userId || 'usr_1788826403159';
@@ -41,7 +47,7 @@ export async function saveSubscription(subscription, userId = 'usr_1788826403159
 
   // 2. Persiste no Supabase para sobreviver entre invocações serverless do Vercel
   try {
-    const endpointHash = Buffer.from(subscription.endpoint).toString('hex').substring(0, 64);
+    const endpointHash = getEndpointHash(subscription.endpoint);
     // Salva na tabela pixels com namespace especial 'push_sub_'
     await supabaseAdmin.from('pixels').upsert({
       id: `push_sub_${endpointHash}`,
@@ -97,7 +103,7 @@ export async function removeSubscription(endpoint) {
   db.set('pushSubscriptions', filtered);
 
   try {
-    const endpointHash = Buffer.from(endpoint).toString('hex').substring(0, 64);
+    const endpointHash = getEndpointHash(endpoint);
     await supabaseAdmin.from('pixels').delete().eq('id', `push_sub_${endpointHash}`);
   } catch (e) {}
 }
@@ -114,7 +120,7 @@ export async function sendSalesNotification({ title, body, icon, tag, data, user
     body: body || 'Nova venda registrada no PrimeTrack',
     icon: icon || 'https://app.primetrack.top/images/primetrack-app-icon.png',
     badge: 'https://app.primetrack.top/images/primetrack-app-icon.png',
-    tag: tag || `sale_${Date.now()}`,
+    tag: tag ? `${tag}_${Date.now()}` : `sale_${Date.now()}`,
     data: data || { url: '/sales' }
   });
 
@@ -123,7 +129,10 @@ export async function sendSalesNotification({ title, body, icon, tag, data, user
 
   for (const sub of subs) {
     try {
-      await webPush.sendNotification(sub, payload);
+      await webPush.sendNotification(sub, payload, {
+        TTL: 60 * 60 * 24,
+        urgency: 'high'
+      });
       sent++;
     } catch (err) {
       console.warn('[WebPush] Falha ao enviar para endpoint:', err.statusCode, err.message);
