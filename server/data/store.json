@@ -153,21 +153,23 @@
       "userId": "usr_1788826403159"
     },
     {
-      "id": "pt_px_n7jmhi3grhi",
-      "pixelId": "pt_px_n7jmhi3grhi",
+      "id": "pt_px_6lhl7qcgunt",
+      "pixelId": "pt_px_6lhl7qcgunt",
       "name": "Pixel Jump",
       "domains": "*",
-      "metaPixelId": "1658272665919417",
+      "metaPixelId": "1123257223463672",
       "metaPixels": [
         {
-          "id": "mp_jump_1",
-          "metaPixelId": "1658272665919417",
-          "name": "jump"
+          "id": "sub_px_jump_bm5",
+          "metaPixelId": "1123257223463672",
+          "name": "jump bm5",
+          "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy"
         },
         {
-          "id": "mp_jump_2",
-          "metaPixelId": "1123257223463672",
-          "name": "jump bm5"
+          "id": "sub_px_jump_bm7",
+          "metaPixelId": "1658272665919417",
+          "name": "jump bm7",
+          "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy"
         }
       ],
       "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
