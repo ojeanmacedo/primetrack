@@ -883,13 +883,15 @@ export default function Integrations() {
     e?.preventDefault();
     if (!newMetaSubPixelId.trim()) return;
 
+    const defaultToken = (editMetaPixelsList[0]?.capiToken || editPixelCapiToken || '').trim();
+
     if (editSubPixelIndex !== null && editSubPixelIndex >= 0 && editSubPixelIndex < editMetaPixelsList.length) {
       // Editando pixel existente
       const updatedList = [...editMetaPixelsList];
       updatedList[editSubPixelIndex] = {
         ...updatedList[editSubPixelIndex],
         metaPixelId: newMetaSubPixelId.trim(),
-        capiToken: newMetaSubPixelToken.trim(),
+        capiToken: newMetaSubPixelToken.trim() || updatedList[editSubPixelIndex].capiToken || defaultToken,
         name: newMetaSubPixelName.trim() || updatedList[editSubPixelIndex].name || `Pixel Meta ${editSubPixelIndex + 1}`
       };
       setEditMetaPixelsList(updatedList);
@@ -898,7 +900,7 @@ export default function Integrations() {
       const newEntry = {
         id: `mp_${Date.now()}`,
         metaPixelId: newMetaSubPixelId.trim(),
-        capiToken: newMetaSubPixelToken.trim(),
+        capiToken: newMetaSubPixelToken.trim() || defaultToken,
         name: newMetaSubPixelName.trim() || `Pixel Meta ${editMetaPixelsList.length + 1}`
       };
       setEditMetaPixelsList([...editMetaPixelsList, newEntry]);
@@ -944,11 +946,27 @@ export default function Integrations() {
     // Filtra apenas subpixels válidos com ID preenchido
     finalMetaList = finalMetaList.filter(m => m && m.metaPixelId && m.metaPixelId.trim());
 
+    // O pixel principal assume o primeiro da lista se houver
+    const primaryMetaId = finalMetaList.length > 0 
+      ? finalMetaList[0].metaPixelId 
+      : editPixelMetaId.trim();
+    const primaryToken = finalMetaList.length > 0 
+      ? (finalMetaList[0].capiToken || editPixelCapiToken.trim()) 
+      : editPixelCapiToken.trim();
+
+    const defaultToken = primaryToken || editPixelCapiToken.trim() || '';
+
+    // Garante que todo subpixel herde o token do pixel se não tiver um exclusivo preenchido
+    finalMetaList = finalMetaList.map(m => ({
+      ...m,
+      capiToken: (m.capiToken && m.capiToken.trim()) || defaultToken
+    }));
+
     if (finalMetaList.length === 0 && editPixelMetaId.trim()) {
       finalMetaList.push({
         id: `mp_${Date.now()}`,
         metaPixelId: editPixelMetaId.trim(),
-        capiToken: editPixelCapiToken.trim(),
+        capiToken: defaultToken,
         name: editPixelName.trim() || 'Pixel Meta 1'
       });
     }
@@ -959,13 +977,6 @@ export default function Integrations() {
         ? `url contendo ${editPixelIcValue.trim() || '/checkout'}` 
         : `texto contendo "${editPixelIcValue.trim() || 'Comprar'}"`;
 
-    // O pixel principal assume o primeiro da lista se houver
-    const primaryMetaId = finalMetaList.length > 0 
-      ? finalMetaList[0].metaPixelId 
-      : editPixelMetaId.trim();
-    const primaryToken = finalMetaList.length > 0 
-      ? finalMetaList[0].capiToken 
-      : editPixelCapiToken.trim();
 
     const targetPixelId = pixelToEdit.pixelId || pixelToEdit.id;
     const updated = trackingPixels.map(px => {
@@ -1967,9 +1978,17 @@ export default function Integrations() {
                         <div>
                           <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1">Tokens CAPI</div>
                           <div className="font-mono text-zinc-300 truncate" title={px.capiTokenRaw || px.capiToken}>
-                            {Array.isArray(px.metaPixels) && px.metaPixels.length > 0 
-                              ? `${px.metaPixels.filter(m => m.capiToken && m.capiToken.startsWith('EAA')).length} Ativo(s)` 
-                              : (px.capiTokenRaw || px.capiToken ? 'Configurado' : 'Não informado')}
+                            {(() => {
+                              const parentTok = (px.capiTokenRaw || px.capiToken || '').trim();
+                              if (Array.isArray(px.metaPixels) && px.metaPixels.length > 0) {
+                                const activeCount = px.metaPixels.filter(m => {
+                                  const tok = (m.capiToken || m.capiTokenRaw || parentTok).trim();
+                                  return tok.length > 10;
+                                }).length;
+                                return `${activeCount} Ativo(s)`;
+                              }
+                              return parentTok.length > 10 ? '1 Ativo(s)' : 'Não informado';
+                            })()}
                           </div>
                         </div>
 
@@ -3337,7 +3356,7 @@ export default function Integrations() {
                           {mp.name && <span className="text-[10px] text-zinc-400 font-sans">({mp.name})</span>}
                         </div>
                         <span className="text-[10px] text-zinc-500 truncate">
-                          {mp.capiToken ? `Token: ${mp.capiToken.slice(0, 8)}...${mp.capiToken.slice(-4)}` : 'Sem Token CAPI'}
+                          {mp.capiToken ? `Token: ${mp.capiToken.slice(0, 8)}...${mp.capiToken.slice(-4)}` : (editPixelCapiToken ? 'Token Principal (Herdado)' : 'Sem Token CAPI')}
                         </span>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
