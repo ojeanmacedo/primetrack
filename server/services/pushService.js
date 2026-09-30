@@ -17,7 +17,7 @@ export function getVapidPublicKey() {
   return VAPID_PUBLIC_KEY;
 }
 
-const OWNER_IDS = ['usr_1788826403159', 'usr_admin_digitaljm'];
+const OWNER_IDS = ['usr_1788826403159', 'usr_admin_digitaljm', 'usr_1790177682943'];
 const isOwner = (id) => !id || OWNER_IDS.includes(id);
 
 export async function saveSubscription(subscription, userId = 'usr_1788826403159') {
@@ -63,7 +63,7 @@ export async function getAllSubscriptions(userId = null) {
     let query = supabaseAdmin.from('pixels').select('*').like('id', 'push_sub_%');
     if (userId) {
       if (isOwner(userId)) {
-        query = query.or('user_id.in.(usr_1788826403159,usr_admin_digitaljm),user_id.is.null');
+        query = query.or('user_id.in.(usr_1788826403159,usr_admin_digitaljm,usr_1790177682943),user_id.is.null');
       } else {
         query = query.eq('user_id', userId);
       }

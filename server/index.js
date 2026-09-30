@@ -1228,18 +1228,18 @@ app.all([
       const isPendingAlready = isPending && (effectivelyPreviousStatus === 'waiting_payment' || effectivelyPreviousStatus === 'pending');
       const isRefundedAlready = isRefunded && (effectivelyPreviousStatus === 'refunded');
 
+      // Deduplicação: se for o mesmo pedido com o mesmo status exato num intervalo menor que 30 segundos, evita spam
       const notifStatusKey = isPaid ? 'approved' : (isPending ? 'pending' : (isRefunded ? 'refunded' : parsed.status));
       const notifDedupeKey = `${parsed.orderCode}_${notifStatusKey}`;
       const now = Date.now();
-      const recentlyNotified = recentlyNotifiedOrders.has(notifDedupeKey) && (now - recentlyNotifiedOrders.get(notifDedupeKey) < 15 * 60 * 1000);
+      const recentlyNotified = recentlyNotifiedOrders.has(notifDedupeKey) && (now - recentlyNotifiedOrders.get(notifDedupeKey) < 30 * 1000);
 
-      // Se já notificou anteriormente com o mesmo status exato, evita renotificar no celular
       const shouldNotify = !isPaidAlready && !isPendingAlready && !isRefundedAlready && !recentlyNotified;
       if (shouldNotify) {
         recentlyNotifiedOrders.set(notifDedupeKey, now);
         if (recentlyNotifiedOrders.size > 1000) {
           for (const [k, ts] of recentlyNotifiedOrders.entries()) {
-            if (now - ts > 15 * 60 * 1000) recentlyNotifiedOrders.delete(k);
+            if (now - ts > 30 * 1000) recentlyNotifiedOrders.delete(k);
           }
         }
       }
@@ -1298,7 +1298,7 @@ app.all([
 
       if (shouldNotify) {
         if (isPaid && allowApproved) {
-          sendSalesNotification({
+          await sendSalesNotification({
             title: `${titlePrefix}Venda Aprovada!`,
             body: buildNotifBody(false),
             icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
@@ -1307,7 +1307,7 @@ app.all([
             userId: orderUserId
           });
         } else if (isPending && allowPending) {
-          sendSalesNotification({
+          await sendSalesNotification({
             title: `${titlePrefix}Venda Pendente!`,
             body: buildNotifBody(false),
             icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
@@ -1316,7 +1316,7 @@ app.all([
             userId: orderUserId
           });
         } else if (isRefunded && allowRefunded) {
-          sendSalesNotification({
+          await sendSalesNotification({
             title: `${titlePrefix}Venda Reembolsada!`,
             body: buildNotifBody(true),
             icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
