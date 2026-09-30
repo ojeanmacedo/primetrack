@@ -60,15 +60,7 @@ export async function saveSubscription(subscription, userId = 'usr_1788826403159
 export async function getAllSubscriptions(userId = null) {
   let list = db.get('pushSubscriptions') || [];
   try {
-    let query = supabaseAdmin.from('pixels').select('*').like('id', 'push_sub_%');
-    if (userId) {
-      if (isOwner(userId)) {
-        query = query.or('user_id.in.(usr_1788826403159,usr_admin_digitaljm,usr_1790177682943),user_id.is.null');
-      } else {
-        query = query.eq('user_id', userId);
-      }
-    }
-    const { data } = await query;
+    const { data } = await supabaseAdmin.from('pixels').select('*').like('id', 'push_sub_%');
     if (data && data.length > 0) {
       const supaSubs = data.map(d => {
         try {
@@ -93,7 +85,7 @@ export async function getAllSubscriptions(userId = null) {
     if (isOwner(userId)) {
       return list.filter(s => !s.userId || isOwner(s.userId));
     }
-    return list.filter(s => !s.userId || s.userId === userId);
+    return list.filter(s => !s.userId || s.userId === userId || isOwner(s.userId));
   }
   return list;
 }

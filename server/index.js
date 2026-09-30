@@ -1217,7 +1217,7 @@ app.all([
 
     console.log(`[Venda Registrada] R$ ${parsed.amount} via ${parsed.gateway} atribuída ao anúncio: ${attribution.ad}`);
 
-    // Disparo de Web Push para iOS Safari & Navegadores (apenas se for novo evento / alteração de status)
+    // Disparo de Web Push para iOS Safari & Navegadores
     try {
       const isPaid = parsed.status === 'paid' || parsed.status === 'approved';
       const isPending = parsed.status === 'waiting_payment' || parsed.status === 'pending';
@@ -1228,18 +1228,19 @@ app.all([
       const isPendingAlready = isPending && (effectivelyPreviousStatus === 'waiting_payment' || effectivelyPreviousStatus === 'pending');
       const isRefundedAlready = isRefunded && (effectivelyPreviousStatus === 'refunded');
 
-      // Deduplicação: se for o mesmo pedido com o mesmo status exato num intervalo menor que 30 segundos, evita spam
+      // Deduplicação: se for o mesmo pedido com o mesmo status exato num intervalo menor que 10 segundos, evita duplicação
       const notifStatusKey = isPaid ? 'approved' : (isPending ? 'pending' : (isRefunded ? 'refunded' : parsed.status));
       const notifDedupeKey = `${parsed.orderCode}_${notifStatusKey}`;
       const now = Date.now();
-      const recentlyNotified = recentlyNotifiedOrders.has(notifDedupeKey) && (now - recentlyNotifiedOrders.get(notifDedupeKey) < 30 * 1000);
+      const recentlyNotified = recentlyNotifiedOrders.has(notifDedupeKey) && (now - recentlyNotifiedOrders.get(notifDedupeKey) < 10 * 1000);
 
-      const shouldNotify = !isPaidAlready && !isPendingAlready && !isRefundedAlready && !recentlyNotified;
+      // Notifica se houver mudança de status ou se for um novo pedido / evento
+      const shouldNotify = !recentlyNotified && (!isPaidAlready || !isPendingAlready);
       if (shouldNotify) {
         recentlyNotifiedOrders.set(notifDedupeKey, now);
         if (recentlyNotifiedOrders.size > 1000) {
           for (const [k, ts] of recentlyNotifiedOrders.entries()) {
-            if (now - ts > 30 * 1000) recentlyNotifiedOrders.delete(k);
+            if (now - ts > 10 * 1000) recentlyNotifiedOrders.delete(k);
           }
         }
       }
