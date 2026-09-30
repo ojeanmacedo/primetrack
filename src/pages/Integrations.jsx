@@ -966,6 +966,8 @@ export default function Integrations() {
         headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
         body: JSON.stringify({ pixels: updated, userId: currentUser?.id })
       });
+      setPixelSuccessMsg('Pixel excluído com sucesso!');
+      setTimeout(() => setPixelSuccessMsg(null), 3000);
     } catch (err) {
       console.warn('Erro ao sincronizar exclusão de pixel:', err);
     }

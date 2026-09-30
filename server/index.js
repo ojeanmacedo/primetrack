@@ -256,6 +256,13 @@ app.get('/api/pixel/config', async (req, res) => {
 
 app.get('/api/pixels', async (req, res) => {
   const userId = req.headers['x-user-id'] || req.query.userId;
+  // 1. Prioriza o banco local store.json (que guarda o estado em tempo real)
+  const localPixels = (db.get('pixels') || []).filter(p => !p.id?.startsWith('settings_') && !p.id?.startsWith('push_sub_') && !p.id?.startsWith('wh_tok_') && p.name !== 'UserSettings');
+  
+  if (localPixels && localPixels.length >= 0 && (!userId || isOwnerUserId(userId))) {
+    return res.json(localPixels);
+  }
+
   try {
     let query = supabaseAdmin.from('pixels').select('*');
     if (userId) {
@@ -296,8 +303,7 @@ app.get('/api/pixels', async (req, res) => {
     }
   } catch (e) {}
 
-  const fallback = (db.get('pixels') || []).filter(p => !p.id?.startsWith('settings_') && !p.id?.startsWith('push_sub_') && !p.id?.startsWith('wh_tok_') && p.name !== 'UserSettings');
-  res.json((userId && !isOwnerUserId(userId)) ? [] : fallback);
+  res.json((userId && !isOwnerUserId(userId)) ? [] : localPixels);
 });
 
 app.post('/api/pixels', async (req, res) => {
