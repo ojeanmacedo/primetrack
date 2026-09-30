@@ -10,16 +10,17 @@
   },
   "pixels": [
     {
-      "id": "pt_px_stalkeia_bm5",
-      "pixelId": "pt_px_stalkeia_bm5",
+      "id": "pt_px_zpdpoqxrgvi",
+      "pixelId": "pt_px_zpdpoqxrgvi",
       "name": "Pixel Stalkeia",
       "domains": "*",
       "metaPixelId": "1991445178222236",
       "metaPixels": [
         {
-          "id": "mp_stalkeia_1",
+          "id": "sub_px_stalkeia_1",
           "metaPixelId": "1991445178222236",
-          "name": "stalkeia bm5"
+          "name": "stalkeia bm5",
+          "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy"
         }
       ],
       "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
