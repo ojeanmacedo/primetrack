@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUser, getTrialStatus } from '../utils/auth';
+import { safeStorageSet } from '../utils/safeStorage';
 import { 
   ChevronDown, 
   ChevronLeft,
@@ -177,10 +178,10 @@ export const setCachedPeriodData = (userId, periodName, range, data) => {
   if (typeof window === 'undefined' || !data) return;
   try {
     const key = getPeriodStorageKey(userId, periodName, range);
-    localStorage.setItem(key, JSON.stringify({
+    safeStorageSet(key, {
       ...data,
       timestamp: Date.now()
-    }));
+    });
   } catch (e) {}
 };
 
@@ -668,7 +669,7 @@ export default function Dashboard() {
             resolvedOrders = oData;
             setOrdersList(oData);
             if (typeof window !== 'undefined') {
-              localStorage.setItem('primetrack_cached_orders', JSON.stringify(oData));
+              safeStorageSet('primetrack_cached_orders', oData);
             }
           }
         } catch (oErr) {}
@@ -682,7 +683,7 @@ export default function Dashboard() {
             resolvedPixelStats = pData;
             setPixelStats(pData);
             if (typeof window !== 'undefined') {
-              localStorage.setItem('primetrack_cached_pixel_stats', JSON.stringify(pData));
+              safeStorageSet('primetrack_cached_pixel_stats', pData);
             }
           }
         } catch (pErr) {}
@@ -788,7 +789,7 @@ export default function Dashboard() {
         finalOrders = oData;
         setOrdersList(oData);
         if (typeof window !== 'undefined') {
-          localStorage.setItem('primetrack_cached_orders', JSON.stringify(oData));
+          safeStorageSet('primetrack_cached_orders', oData);
         }
       }
 

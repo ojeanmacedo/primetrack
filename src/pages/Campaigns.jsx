@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUser, isMasterAdmin } from '../utils/auth';
+import { safeStorageSet } from '../utils/safeStorage';
 import { 
   Plus, 
   ChevronDown, 
@@ -1045,13 +1046,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           if (typeof window !== 'undefined') {
             const pKey = getCampPeriodKey(userId, customPreset, customRangeObj);
             periodCacheRef.current.set(pKey, merged);
-            localStorage.setItem(pKey, JSON.stringify(merged));
+            safeStorageSet(pKey, merged);
             const isToday = customPreset === 'Hoje' || (!customPreset && periodFilterRef.current === 'Hoje');
             if (isToday) {
-              localStorage.setItem(userCampKey, JSON.stringify(merged));
-              localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(merged));
-              localStorage.setItem(userCampDateKey, getBrazilTodayYMD());
-              localStorage.setItem('primetrack_cached_campaigns_date', getBrazilTodayYMD());
+              safeStorageSet(userCampKey, merged);
+              safeStorageSet('primetrack_cached_campaigns', merged);
+              safeStorageSet(userCampDateKey, getBrazilTodayYMD());
+              safeStorageSet('primetrack_cached_campaigns_date', getBrazilTodayYMD());
             }
           }
           return merged;
@@ -1279,7 +1280,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       const optimisticList = applyStatusUpdate(prev, nextStatus);
       try {
         if (typeof window !== 'undefined') {
-          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(optimisticList));
+          safeStorageSet('primetrack_cached_campaigns', optimisticList);
         }
       } catch (e) {}
       return optimisticList;
@@ -1313,7 +1314,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           const rolledBackList = applyStatusUpdate(prev, currentStatus);
           try {
             if (typeof window !== 'undefined') {
-              localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(rolledBackList));
+              safeStorageSet('primetrack_cached_campaigns', rolledBackList);
             }
           } catch (e) {}
           return rolledBackList;
@@ -1330,7 +1331,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         const rolledBackList = applyStatusUpdate(prev, currentStatus);
         try {
           if (typeof window !== 'undefined') {
-            localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(rolledBackList));
+            safeStorageSet('primetrack_cached_campaigns', rolledBackList);
           }
         } catch (err) {}
         return rolledBackList;
@@ -1504,7 +1505,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setCampaignsList(updatedList);
     try {
       if (typeof window !== 'undefined') {
-        localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(updatedList));
+        safeStorageSet('primetrack_cached_campaigns', updatedList);
       }
     } catch (e) {}
 
@@ -1581,7 +1582,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         setCampaignsList(previousList);
         try {
           if (typeof window !== 'undefined') {
-            localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(previousList));
+            safeStorageSet('primetrack_cached_campaigns', previousList);
           }
         } catch (e) {}
         const errMsg = data?.metaError || data?.error || 'Erro ao sincronizar com o Gerenciador Meta';
@@ -1673,7 +1674,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     setCampaignsList(updated);
     try {
       if (typeof window !== 'undefined') {
-        localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(updated));
+        safeStorageSet('primetrack_cached_campaigns', updated);
       }
     } catch (e) {}
 
@@ -1699,7 +1700,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         setCampaignsList(previousList);
         try {
           if (typeof window !== 'undefined') {
-            localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(previousList));
+            safeStorageSet('primetrack_cached_campaigns', previousList);
           }
         } catch (e) {}
         setSaveSuccessMsg(`⚠️ ${data?.error || data?.metaError || 'Falha ao sincronizar em lote com a Meta'}`);
@@ -1708,7 +1709,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       setCampaignsList(previousList);
       try {
         if (typeof window !== 'undefined') {
-          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(previousList));
+          safeStorageSet('primetrack_cached_campaigns', previousList);
         }
       } catch (err) {}
       setSaveSuccessMsg(`⚠️ Erro de conexão com o Meta Ads: ${e.message}`);
@@ -1748,7 +1749,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           return { ...c, adsets: newAdsets, ads: newAds };
         });
       if (typeof window !== 'undefined') {
-        localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(filtered));
+        safeStorageSet('primetrack_cached_campaigns', filtered);
       }
       return filtered;
     });
@@ -1960,7 +1961,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           setCampaignsList(prev => {
             const merged = [...data.createdCampaigns, ...prev];
             if (typeof window !== 'undefined') {
-              localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(merged));
+              safeStorageSet('primetrack_cached_campaigns', merged);
             }
             return merged;
           });

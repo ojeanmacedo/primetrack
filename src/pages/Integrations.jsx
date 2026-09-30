@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { getCurrentUser, isMasterAdmin, setCurrentUser, getTrialStatus } from '../utils/auth';
+import { safeStorageSet } from '../utils/safeStorage';
 import { supabase } from '../lib/supabase';
 import { 
   Plus, 
@@ -714,8 +715,8 @@ export default function Integrations() {
       .then(res => res.json())
       .then(data => {
         if (data && Array.isArray(data.campaigns) && data.campaigns.length > 0) {
-          localStorage.setItem(userCampKey, JSON.stringify(data.campaigns));
-          localStorage.setItem('primetrack_cached_campaigns', JSON.stringify(data.campaigns));
+          safeStorageSet(userCampKey, data.campaigns);
+          safeStorageSet('primetrack_cached_campaigns', data.campaigns);
           window.dispatchEvent(new Event('primetrack_profile_sync'));
         }
       })
