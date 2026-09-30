@@ -953,18 +953,22 @@ export default function Integrations() {
     }).catch(() => {});
   };
 
-  const handleDeletePixel = (pxId) => {
+  const handleDeletePixel = async (pxId) => {
     const updated = trackingPixels.filter(px => px.id !== pxId && px.pixelId !== pxId);
     setTrackingPixels(updated);
     if (typeof window !== 'undefined') {
       localStorage.setItem('primetrack_pixels', JSON.stringify(updated));
       localStorage.setItem(getScopedKey('primetrack_pixels'), JSON.stringify(updated));
     }
-    fetch('/api/pixels', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
-      body: JSON.stringify({ pixels: updated, userId: currentUser?.id })
-    }).catch(() => {});
+    try {
+      await fetch('/api/pixels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
+        body: JSON.stringify({ pixels: updated, userId: currentUser?.id })
+      });
+    } catch (err) {
+      console.warn('Erro ao sincronizar exclusão de pixel:', err);
+    }
     setPixelToDelete(null);
   };
 
