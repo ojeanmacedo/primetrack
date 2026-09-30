@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, Navigate, useLocation, NavLink, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { getCurrentUser, getTrialStatus } from '../utils/auth';
+import { subscribeUserToPush } from '../utils/pushNotifications';
 import { 
   Eye, 
   EyeOff, 
@@ -22,6 +23,22 @@ export default function AppLayout() {
   const [totalFaturado, setTotalFaturado] = useState(0);
   const [showValues, setShowValues] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Auto-registro e renovação forçada de Push ao abrir o App / Tela de Início
+  useEffect(() => {
+    const initPush = async () => {
+      try {
+        if ('Notification' in window && 'serviceWorker' in window && 'PushManager' in window) {
+          if (Notification.permission === 'granted') {
+            await subscribeUserToPush();
+          }
+        }
+      } catch (e) {
+        console.warn('[Push AutoSync] Falha silenciosa:', e);
+      }
+    };
+    initPush();
+  }, [user?.id]);
 
   // Sincroniza usuário quando o perfil é alterado em Minha Conta
   useEffect(() => {
