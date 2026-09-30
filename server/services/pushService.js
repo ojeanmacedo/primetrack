@@ -87,11 +87,15 @@ export async function getAllSubscriptions(userId = null) {
     // fallback se houver erro
   }
 
+  // Se houver userId, busca os inscritos daquele usuário ou todos os donos se for admin
   if (userId) {
-    if (isOwner(userId)) {
-      return list.filter(s => !s.userId || isOwner(s.userId));
-    }
-    return list.filter(s => !s.userId || s.userId === userId || isOwner(s.userId));
+    const matched = list.filter(s => {
+      if (!s.userId) return true; // sem user gravado recebe notificações globais/mestre
+      if (isOwner(userId)) return isOwner(s.userId);
+      return s.userId === userId || isOwner(s.userId);
+    });
+    // Se não encontrou restrito, envia para as inscrições existentes para garantir entrega
+    if (matched.length > 0) return matched;
   }
   return list;
 }

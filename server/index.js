@@ -1228,11 +1228,11 @@ app.all([
       const isPendingAlready = isPending && (effectivelyPreviousStatus === 'waiting_payment' || effectivelyPreviousStatus === 'pending');
       const isRefundedAlready = isRefunded && (effectivelyPreviousStatus === 'refunded');
 
-      // Deduplicação: se for o mesmo pedido com o mesmo status exato num intervalo menor que 10 segundos, evita duplicação
+      // Deduplicação: se for o mesmo pedido com o mesmo status exato num intervalo menor que 3 segundos, evita duplicação
       const notifStatusKey = isPaid ? 'approved' : (isPending ? 'pending' : (isRefunded ? 'refunded' : parsed.status));
       const notifDedupeKey = `${parsed.orderCode}_${notifStatusKey}`;
       const now = Date.now();
-      const recentlyNotified = recentlyNotifiedOrders.has(notifDedupeKey) && (now - recentlyNotifiedOrders.get(notifDedupeKey) < 10 * 1000);
+      const recentlyNotified = recentlyNotifiedOrders.has(notifDedupeKey) && (now - recentlyNotifiedOrders.get(notifDedupeKey) < 3 * 1000);
 
       // Notifica se houver mudança de status ou se for um novo pedido / evento
       const shouldNotify = !recentlyNotified && (!isPaidAlready || !isPendingAlready);
