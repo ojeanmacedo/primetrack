@@ -10,21 +10,16 @@
   },
   "pixels": [
     {
-      "id": "pt_px_5o6pvce35bp",
-      "pixelId": "pt_px_5o6pvce35bp",
-      "name": "Pixel Estoica",
+      "id": "pt_px_stalkeia_bm5",
+      "pixelId": "pt_px_stalkeia_bm5",
+      "name": "Pixel Stalkeia",
       "domains": "*",
-      "metaPixelId": "1045648284919809",
+      "metaPixelId": "1991445178222236",
       "metaPixels": [
         {
-          "id": "mp_est_1",
-          "metaPixelId": "1045648284919809",
-          "name": "estoica"
-        },
-        {
-          "id": "mp_est_2",
-          "metaPixelId": "1511271891042662",
-          "name": "estoica jef"
+          "id": "mp_stalkeia_1",
+          "metaPixelId": "1991445178222236",
+          "name": "stalkeia bm5"
         }
       ],
       "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
@@ -33,7 +28,154 @@
       "icValue": ".btn-checkout",
       "icRule": ".btn-checkout",
       "status": "Ativo",
-      "createdAt": "2026-09-14T00:00:00.000Z",
+      "createdAt": "2026-09-30T15:00:00.000Z",
+      "userId": "usr_1788826403159"
+    },
+    {
+      "id": "pt_px_live",
+      "pixelId": "pt_px_live",
+      "name": "Pixel Live",
+      "domains": "*",
+      "metaPixelId": "1708234893575213",
+      "metaPixels": [
+        {
+          "id": "mp_live_1",
+          "metaPixelId": "1708234893575213",
+          "name": "live"
+        }
+      ],
+      "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "capiTokenRaw": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "icType": "css",
+      "icValue": ".btn-checkout",
+      "icRule": ".btn-checkout",
+      "status": "Ativo",
+      "createdAt": "2026-09-29T15:00:00.000Z",
+      "userId": "usr_1788826403159"
+    },
+    {
+      "id": "pt_px_mi_todos",
+      "pixelId": "pt_px_mi_todos",
+      "name": "Pixel MI",
+      "domains": "*",
+      "metaPixelId": "1058568486987355",
+      "metaPixels": [
+        {
+          "id": "mp_mi_1",
+          "metaPixelId": "1058568486987355",
+          "name": "MI JEFFREY"
+        },
+        {
+          "id": "mp_mi_2",
+          "metaPixelId": "1712345646538691",
+          "name": "MI BM2"
+        }
+      ],
+      "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "capiTokenRaw": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "icType": "css",
+      "icValue": ".btn-checkout",
+      "icRule": ".btn-checkout",
+      "status": "Ativo",
+      "createdAt": "2026-09-28T15:00:00.000Z",
+      "userId": "usr_1788826403159"
+    },
+    {
+      "id": "pt_px_moldes",
+      "pixelId": "pt_px_moldes",
+      "name": "Pixel Moldes",
+      "domains": "*",
+      "metaPixelId": "1050402180946104",
+      "metaPixels": [
+        {
+          "id": "mp_moldes_1",
+          "metaPixelId": "1050402180946104",
+          "name": "moldes"
+        }
+      ],
+      "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "capiTokenRaw": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "icType": "css",
+      "icValue": ".btn-checkout",
+      "icRule": ".btn-checkout",
+      "status": "Ativo",
+      "createdAt": "2026-09-27T15:00:00.000Z",
+      "userId": "usr_1788826403159"
+    },
+    {
+      "id": "pt_px_potes",
+      "pixelId": "pt_px_potes",
+      "name": "Pixel Potes",
+      "domains": "*",
+      "metaPixelId": "1546092043232502",
+      "metaPixels": [
+        {
+          "id": "mp_potes_1",
+          "metaPixelId": "1546092043232502",
+          "name": "potes"
+        }
+      ],
+      "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "capiTokenRaw": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "icType": "css",
+      "icValue": ".btn-checkout",
+      "icRule": ".btn-checkout",
+      "status": "Ativo",
+      "createdAt": "2026-09-26T15:00:00.000Z",
+      "userId": "usr_1788826403159"
+    },
+    {
+      "id": "pt_px_sermon_todos",
+      "pixelId": "pt_px_sermon_todos",
+      "name": "Pixel Sermon",
+      "domains": "*",
+      "metaPixelId": "1443456754305813",
+      "metaPixels": [
+        {
+          "id": "mp_sermon_1",
+          "metaPixelId": "1443456754305813",
+          "name": "sermon bm7"
+        },
+        {
+          "id": "mp_sermon_2",
+          "metaPixelId": "1085682944446549",
+          "name": "sermon bm5"
+        }
+      ],
+      "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "capiTokenRaw": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "icType": "css",
+      "icValue": ".btn-checkout",
+      "icRule": ".btn-checkout",
+      "status": "Ativo",
+      "createdAt": "2026-09-25T15:00:00.000Z",
+      "userId": "usr_1788826403159"
+    },
+    {
+      "id": "pt_px_n7jmhi3grhi",
+      "pixelId": "pt_px_n7jmhi3grhi",
+      "name": "Pixel Jump",
+      "domains": "*",
+      "metaPixelId": "1658272665919417",
+      "metaPixels": [
+        {
+          "id": "mp_jump_1",
+          "metaPixelId": "1658272665919417",
+          "name": "jump"
+        },
+        {
+          "id": "mp_jump_2",
+          "metaPixelId": "1123257223463672",
+          "name": "jump bm5"
+        }
+      ],
+      "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "capiTokenRaw": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
+      "icType": "css",
+      "icValue": ".btn-checkout",
+      "icRule": ".btn-checkout",
+      "status": "Ativo",
+      "createdAt": "2026-09-24T15:00:00.000Z",
       "userId": "usr_1788826403159"
     },
     {
@@ -70,25 +212,25 @@
       "icValue": ".btn-checkout",
       "icRule": ".btn-checkout",
       "status": "Ativo",
-      "createdAt": "2026-09-14T00:00:00.000Z",
+      "createdAt": "2026-09-23T15:00:00.000Z",
       "userId": "usr_1788826403159"
     },
     {
-      "id": "pt_px_n7jmhi3grhi",
-      "pixelId": "pt_px_n7jmhi3grhi",
-      "name": "Pixel Jump",
+      "id": "pt_px_5o6pvce35bp",
+      "pixelId": "pt_px_5o6pvce35bp",
+      "name": "Pixel Estoica",
       "domains": "*",
-      "metaPixelId": "1658272665919417",
+      "metaPixelId": "1045648284919809",
       "metaPixels": [
         {
-          "id": "mp_jump_1",
-          "metaPixelId": "1658272665919417",
-          "name": "jump"
+          "id": "mp_est_1",
+          "metaPixelId": "1045648284919809",
+          "name": "estoica"
         },
         {
-          "id": "mp_jump_2",
-          "metaPixelId": "1123257223463672",
-          "name": "jump bm5"
+          "id": "mp_est_2",
+          "metaPixelId": "1511271891042662",
+          "name": "estoica jef"
         }
       ],
       "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
@@ -97,149 +239,7 @@
       "icValue": ".btn-checkout",
       "icRule": ".btn-checkout",
       "status": "Ativo",
-      "createdAt": "2026-09-14T00:00:00.000Z",
-      "userId": "usr_1788826403159"
-    },
-    {
-      "id": "pt_px_sermon_todos",
-      "pixelId": "pt_px_sermon_todos",
-      "name": "Pixel Sermon",
-      "domains": "*",
-      "metaPixelId": "1443456754305813",
-      "metaPixels": [
-        {
-          "id": "mp_sermon_1",
-          "metaPixelId": "1443456754305813",
-          "name": "sermon bm7"
-        },
-        {
-          "id": "mp_sermon_2",
-          "metaPixelId": "1085682944446549",
-          "name": "sermon bm5"
-        }
-      ],
-      "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
-      "capiTokenRaw": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
-      "icType": "css",
-      "icValue": ".btn-checkout",
-      "icRule": ".btn-checkout",
-      "status": "Ativo",
-      "createdAt": "2026-09-14T00:00:00.000Z",
-      "userId": "usr_1788826403159"
-    },
-    {
-      "id": "pt_px_stalkeia_bm5",
-      "pixelId": "pt_px_stalkeia_bm5",
-      "name": "Pixel Stalkeia",
-      "domains": "*",
-      "metaPixelId": "1991445178222236",
-      "metaPixels": [
-        {
-          "id": "mp_stalkeia_1",
-          "metaPixelId": "1991445178222236",
-          "name": "stalkeia bm5"
-        }
-      ],
-      "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
-      "capiTokenRaw": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
-      "icType": "css",
-      "icValue": ".btn-checkout",
-      "icRule": ".btn-checkout",
-      "status": "Ativo",
-      "createdAt": "2026-09-14T00:00:00.000Z",
-      "userId": "usr_1788826403159"
-    },
-    {
-      "id": "pt_px_potes",
-      "pixelId": "pt_px_potes",
-      "name": "Pixel Potes",
-      "domains": "*",
-      "metaPixelId": "1546092043232502",
-      "metaPixels": [
-        {
-          "id": "mp_potes_1",
-          "metaPixelId": "1546092043232502",
-          "name": "potes"
-        }
-      ],
-      "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
-      "capiTokenRaw": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
-      "icType": "css",
-      "icValue": ".btn-checkout",
-      "icRule": ".btn-checkout",
-      "status": "Ativo",
-      "createdAt": "2026-09-14T00:00:00.000Z",
-      "userId": "usr_1788826403159"
-    },
-    {
-      "id": "pt_px_moldes",
-      "pixelId": "pt_px_moldes",
-      "name": "Pixel Moldes",
-      "domains": "*",
-      "metaPixelId": "1050402180946104",
-      "metaPixels": [
-        {
-          "id": "mp_moldes_1",
-          "metaPixelId": "1050402180946104",
-          "name": "moldes"
-        }
-      ],
-      "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
-      "capiTokenRaw": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
-      "icType": "css",
-      "icValue": ".btn-checkout",
-      "icRule": ".btn-checkout",
-      "status": "Ativo",
-      "createdAt": "2026-09-14T00:00:00.000Z",
-      "userId": "usr_1788826403159"
-    },
-    {
-      "id": "pt_px_mi_todos",
-      "pixelId": "pt_px_mi_todos",
-      "name": "Pixel MI",
-      "domains": "*",
-      "metaPixelId": "1058568486987355",
-      "metaPixels": [
-        {
-          "id": "mp_mi_1",
-          "metaPixelId": "1058568486987355",
-          "name": "MI JEFFREY"
-        },
-        {
-          "id": "mp_mi_2",
-          "metaPixelId": "1712345646538691",
-          "name": "MI BM2"
-        }
-      ],
-      "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
-      "capiTokenRaw": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
-      "icType": "css",
-      "icValue": ".btn-checkout",
-      "icRule": ".btn-checkout",
-      "status": "Ativo",
-      "createdAt": "2026-09-14T00:00:00.000Z",
-      "userId": "usr_1788826403159"
-    },
-    {
-      "id": "pt_px_live",
-      "pixelId": "pt_px_live",
-      "name": "Pixel Live",
-      "domains": "*",
-      "metaPixelId": "1708234893575213",
-      "metaPixels": [
-        {
-          "id": "mp_live_1",
-          "metaPixelId": "1708234893575213",
-          "name": "live"
-        }
-      ],
-      "capiToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
-      "capiTokenRaw": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
-      "icType": "css",
-      "icValue": ".btn-checkout",
-      "icRule": ".btn-checkout",
-      "status": "Ativo",
-      "createdAt": "2026-09-14T00:00:00.000Z",
+      "createdAt": "2026-09-22T15:00:00.000Z",
       "userId": "usr_1788826403159"
     }
   ],
