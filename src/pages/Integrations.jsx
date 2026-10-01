@@ -129,10 +129,22 @@ export default function Integrations() {
   const DEFAULT_MONSTERPAY_TOKEN = {
     id: 'tok_monsterpay',
     name: 'Monsterpay',
-    platform: 'Monsterpay',
+    platform: 'monsterpay',
     type: 'token',
     token: 'pt_9f8c12a47e0345b89a2345bcdef0123456789abcdef01234',
-    webhookUrl: '',
+    webhookUrl: 'https://app.primetrack.top/api/webhooks/monsterpay',
+    status: 'Ativo',
+    lastUsed: 'Hoje',
+    createdAt: '08/09/2026'
+  };
+
+  const DEFAULT_PERFECTPAY_TOKEN = {
+    id: 'tok_perfectpay',
+    name: 'Perfect Pay',
+    platform: 'perfectpay',
+    type: 'webhook_url',
+    token: 'pt_7b3e19f84a2056c71d8492efabc0123456789abcdef04321',
+    webhookUrl: 'https://app.primetrack.top/webhook/pt_7b3e19f84a2056c71d8492efabc0123456789abcdef04321/perfectpay',
     status: 'Ativo',
     lastUsed: 'Hoje',
     createdAt: '08/09/2026'
@@ -159,13 +171,27 @@ export default function Integrations() {
 
   const loadApiTokens = (dashId, isDef) => {
     if (typeof window === 'undefined') return [];
+    const isOwner = currentUser?.email === 'jeeanmacedo@gmail.com' || currentUser?.email === 'jeanmacedo@gmail.com' || currentUser?.id === 'usr_1788826403159';
     const key = isDef || dashId === 'principal' ? 'primetrack_webhook_tokens' : `primetrack_webhook_tokens_${dashId}`;
     const saved = localStorage.getItem(key);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          if (isOwner && (isDef || dashId === 'principal')) {
+            const hasMonster = parsed.some(t => (t.platform || t.name || '').toLowerCase().includes('monster'));
+            const hasPerfect = parsed.some(t => (t.platform || t.name || '').toLowerCase().includes('perfect'));
+            const updated = [...parsed];
+            if (!hasMonster) updated.unshift(DEFAULT_MONSTERPAY_TOKEN);
+            if (!hasPerfect) updated.push(DEFAULT_PERFECTPAY_TOKEN);
+            return updated;
+          }
+          return parsed;
+        }
       } catch (e) {}
+    }
+    if (isOwner && (isDef || dashId === 'principal')) {
+      return [DEFAULT_MONSTERPAY_TOKEN, DEFAULT_PERFECTPAY_TOKEN];
     }
     return [];
   };
@@ -308,6 +334,7 @@ export default function Integrations() {
   const [generatedPlatformWebhookUrl, setGeneratedPlatformWebhookUrl] = useState('');
   const [copiedToken, setCopiedToken] = useState(false);
   const [copiedWebhookUrl, setCopiedWebhookUrl] = useState(false);
+  const [copiedFieldId, setCopiedFieldId] = useState(null);
   const [copiedDocEndpoint, setCopiedDocEndpoint] = useState(false);
 
   const [showNewTokenModal, setShowNewTokenModal] = useState(false);
@@ -661,8 +688,12 @@ export default function Integrations() {
     setConnectPlatformStep(3); // Vai direto para a tela final
   };
 
-  const copyPlatformField = (text, type) => {
+  const copyPlatformField = (text, type, id = null) => {
     navigator.clipboard?.writeText(text);
+    if (id) {
+      setCopiedFieldId(`${id}_${type}`);
+      setTimeout(() => setCopiedFieldId(null), 2000);
+    }
     if (type === 'token') {
       setCopiedToken(true);
       setTimeout(() => setCopiedToken(false), 2000);
@@ -1508,6 +1539,15 @@ export default function Integrations() {
             }
           });
 
+          // Para a conta do dono (jeeanmacedo@gmail.com), garante que Monsterpay e Perfect Pay estejam sempre presentes
+          const isOwner = currentUser?.email === 'jeeanmacedo@gmail.com' || currentUser?.email === 'jeanmacedo@gmail.com' || currentUser?.id === 'usr_1788826403159';
+          if (isOwner && isDefaultDashboard) {
+            const hasMonster = Array.from(mergedMap.values()).some(t => (t.platform || t.name || '').toLowerCase().includes('monster'));
+            const hasPerfect = Array.from(mergedMap.values()).some(t => (t.platform || t.name || '').toLowerCase().includes('perfect'));
+            if (!hasMonster) mergedMap.set('tok_monsterpay', DEFAULT_MONSTERPAY_TOKEN);
+            if (!hasPerfect) mergedMap.set('tok_perfectpay', DEFAULT_PERFECTPAY_TOKEN);
+          }
+
           const combined = Array.from(mergedMap.values());
           setApiTokens(combined);
           if (typeof window !== 'undefined') {
@@ -2346,12 +2386,21 @@ export default function Integrations() {
                                 </span>
                                 <button
                                   type="button"
-                                  onClick={() => copyPlatformField(effectiveWebhookUrl, 'url')}
+                                  onClick={() => copyPlatformField(effectiveWebhookUrl, 'url', tok.id)}
                                   className="px-2 py-0.5 rounded bg-[#0D1424] hover:bg-[#182236] text-[10px] text-[#5C9BFF] hover:text-white transition-colors cursor-pointer border border-[#1E293B] flex items-center gap-1 shrink-0"
                                   title="Copiar URL do Webhook"
                                 >
-                                  <Copy className="w-3 h-3" />
-                                  <span>Copiar URL</span>
+                                  {copiedFieldId === `${tok.id}_url` ? (
+                                    <>
+                                      <Check className="w-3 h-3 text-emerald-400" />
+                                      <span className="text-emerald-400 font-bold">Copiado!</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy className="w-3 h-3" />
+                                      <span>Copiar URL</span>
+                                    </>
+                                  )}
                                 </button>
                               </div>
                             ) : (
@@ -2359,11 +2408,15 @@ export default function Integrations() {
                                 <span>{tok.token ? `${tok.token.slice(0, 7)}••••${tok.token.slice(-6)}` : 'pt_****1775a8'}</span>
                                 <button
                                   type="button"
-                                  onClick={() => copyPlatformField(tok.token, 'token')}
+                                  onClick={() => copyPlatformField(tok.token, 'token', tok.id)}
                                   className="p-0.5 hover:text-white text-zinc-400 transition-colors cursor-pointer"
                                   title="Copiar Token"
                                 >
-                                  <Copy className="w-3 h-3 text-zinc-500 hover:text-white" />
+                                  {copiedFieldId === `${tok.id}_token` ? (
+                                    <Check className="w-3 h-3 text-emerald-400" />
+                                  ) : (
+                                    <Copy className="w-3 h-3 text-zinc-500 hover:text-white" />
+                                  )}
                                 </button>
                               </div>
                             )}
