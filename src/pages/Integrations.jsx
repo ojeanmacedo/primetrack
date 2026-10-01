@@ -143,8 +143,8 @@ export default function Integrations() {
     name: 'Perfect Pay',
     platform: 'perfectpay',
     type: 'webhook_url',
-    token: 'pt_7b3e19f84a2056c71d8492efabc0123456789abcdef04321',
-    webhookUrl: 'https://app.primetrack.top/webhook/pt_7b3e19f84a2056c71d8492efabc0123456789abcdef04321/perfectpay',
+    token: 'pt_787cc767259b39306e6b5dc9828f2d2a68c74ad540f13878',
+    webhookUrl: 'https://app.primetrack.top/webhook/pt_787cc767259b39306e6b5dc9828f2d2a68c74ad540f13878/perfectpay',
     status: 'Ativo',
     lastUsed: 'Hoje',
     createdAt: '08/09/2026'
@@ -180,8 +180,13 @@ export default function Integrations() {
         if (Array.isArray(parsed) && parsed.length > 0) {
           if (isOwner && (isDef || dashId === 'principal')) {
             const hasMonster = parsed.some(t => (t.platform || t.name || '').toLowerCase().includes('monster'));
-            const hasPerfect = parsed.some(t => (t.platform || t.name || '').toLowerCase().includes('perfect'));
-            const updated = [...parsed];
+            let updated = parsed.map(t => {
+              if ((t.platform || t.name || '').toLowerCase().includes('perfect')) {
+                return DEFAULT_PERFECTPAY_TOKEN;
+              }
+              return t;
+            });
+            const hasPerfect = updated.some(t => (t.platform || t.name || '').toLowerCase().includes('perfect'));
             if (!hasMonster) updated.unshift(DEFAULT_MONSTERPAY_TOKEN);
             if (!hasPerfect) updated.push(DEFAULT_PERFECTPAY_TOKEN);
             return updated;
@@ -1539,13 +1544,12 @@ export default function Integrations() {
             }
           });
 
-          // Para a conta do dono (jeeanmacedo@gmail.com), garante que Monsterpay e Perfect Pay estejam sempre presentes
+          // Para a conta do dono (jeeanmacedo@gmail.com), garante que Monsterpay e Perfect Pay estejam sempre presentes com o token oficial
           const isOwner = currentUser?.email === 'jeeanmacedo@gmail.com' || currentUser?.email === 'jeanmacedo@gmail.com' || currentUser?.id === 'usr_1788826403159';
           if (isOwner && isDefaultDashboard) {
             const hasMonster = Array.from(mergedMap.values()).some(t => (t.platform || t.name || '').toLowerCase().includes('monster'));
-            const hasPerfect = Array.from(mergedMap.values()).some(t => (t.platform || t.name || '').toLowerCase().includes('perfect'));
             if (!hasMonster) mergedMap.set('tok_monsterpay', DEFAULT_MONSTERPAY_TOKEN);
-            if (!hasPerfect) mergedMap.set('tok_perfectpay', DEFAULT_PERFECTPAY_TOKEN);
+            mergedMap.set('tok_perfectpay', DEFAULT_PERFECTPAY_TOKEN);
           }
 
           const combined = Array.from(mergedMap.values());
