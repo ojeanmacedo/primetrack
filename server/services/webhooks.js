@@ -673,20 +673,51 @@ function parseClivo(body) {
   else if (rawMethod.includes('boleto') || rawMethod.includes('billet')) paymentMethod = 'boleto';
   else paymentMethod = rawMethod || 'pix';
 
-  // Valor monetário (suporta amount_cents ou amount decimal)
-  let amount = 0;
-  if (data.amount_cents !== undefined && data.amount_cents !== null) {
-    amount = Number(data.amount_cents) / 100;
-  } else if (data.amount !== undefined && data.amount !== null) {
-    amount = Number(data.amount);
-    if (amount > 1000 && !String(data.amount).includes('.')) {
-      amount = amount / 100;
+  // Função auxiliar para parsing de moedas e centavos
+  const parseVal = (v) => {
+    if (v === undefined || v === null || v === '' || isNaN(Number(v))) return null;
+    let n = Number(v);
+    if (n > 1000 && !String(v).includes('.')) {
+      n = n / 100;
     }
-  } else if (body.amount_cents !== undefined) {
-    amount = Number(body.amount_cents) / 100;
-  } else if (body.amount !== undefined) {
-    amount = Number(body.amount);
+    return n;
+  };
+
+  const parseCentsOrVal = (cents, val) => {
+    if (cents !== undefined && cents !== null && !isNaN(Number(cents))) {
+      return Number(cents) / 100;
+    }
+    return parseVal(val);
+  };
+
+  // 1. Extração do valor bruto pago pelo cliente (amount / amount_cents / total)
+  const grossAmount = parseCentsOrVal(
+    data.amount_cents ?? body.amount_cents,
+    data.amount ?? body.amount ?? data.total ?? body.total ?? data.price ?? body.price
+  ) || 97.00;
+
+  // 2. Extração inteligente do valor líquido / comissão direta enviada pela Clivo
+  let realCommission = parseCentsOrVal(
+    data.net_amount_cents ?? data.commission_cents ?? body.net_amount_cents ?? body.commission_cents,
+    data.net_amount ?? data.commission ?? data.commission_value ?? data.liquid_amount ?? body.net_amount ?? body.commission
+  );
+
+  // 3. Extração das taxas da plataforma Clivo (fees / fee / tax / cost)
+  const platformFee = parseCentsOrVal(
+    data.fee_cents ?? data.fees_cents ?? body.fee_cents ?? data.tax_cents ?? data.cost_cents,
+    data.fee ?? data.fees ?? data.fee_amount ?? data.fee_value ?? data.platform_fee ?? data.tax ?? body.fee ?? body.fees
+  );
+
+  // Se a Clivo enviou a taxa discriminada e não enviou o líquido direto, calcula: Bruto - Taxa
+  if (!realCommission && platformFee && platformFee > 0 && grossAmount > platformFee) {
+    realCommission = Number((grossAmount - platformFee).toFixed(2));
   }
+
+  // O amount principal será o valor líquido real (comissão); grossAmount preserva o valor bruto
+  const finalAmount = (realCommission && realCommission > 0) ? realCommission : grossAmount;
+
+  // Moeda da transação (BRL, MXN, COP, USD, etc.)
+  const currency = String(data.currency || body.currency || (rawMethod.includes('spei') ? 'MXN' : (rawMethod.includes('pse') ? 'COP' : 'BRL'))).toUpperCase();
 
   const customerName = customer.name || 
     (customer.first_name ? `${customer.first_name} ${customer.last_name || ''}`.trim() : '') || 
@@ -696,9 +727,11 @@ function parseClivo(body) {
     gateway: 'Clivo',
     orderCode: data.id || data.payment_id || data.external_id || body.id || body.order_id || `clv_${Date.now()}`,
     status,
-    amount: amount || 97.00,
-    grossAmount: amount || 97.00,
-    commission: amount || 97.00,
+    amount: finalAmount,
+    grossAmount,
+    commission: realCommission || finalAmount,
+    fee: platformFee || 0,
+    currency,
     paymentMethod,
     productName: data.product_name || body.product_name || data.description || body.description || 'Produto Clivo',
     customer: {
@@ -709,7 +742,7 @@ function parseClivo(body) {
       city: customer.city || (customer.address && customer.address.city) || '',
       state: customer.state || (customer.address && customer.address.state) || '',
       zip: customer.zip || customer.zipcode || customer.postal_code || (customer.address && customer.address.zip) || '',
-      country: customer.country || (customer.address && customer.address.country) || 'MX'
+      country: customer.country || (customer.address && customer.address.country) || (currency === 'MXN' ? 'MX' : (currency === 'COP' ? 'CO' : 'BR'))
     },
     tracking: extractUniversalTracking(tracking, body),
     raw: body
