@@ -179,17 +179,12 @@ export default function Integrations() {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
           if (isOwner && (isDef || dashId === 'principal')) {
-            const hasMonster = parsed.some(t => (t.platform || t.name || '').toLowerCase().includes('monster'));
-            let updated = parsed.map(t => {
-              if ((t.platform || t.name || '').toLowerCase().includes('perfect')) {
-                return DEFAULT_PERFECTPAY_TOKEN;
-              }
-              return t;
-            });
-            const hasPerfect = updated.some(t => (t.platform || t.name || '').toLowerCase().includes('perfect'));
-            if (!hasMonster) updated.unshift(DEFAULT_MONSTERPAY_TOKEN);
-            if (!hasPerfect) updated.push(DEFAULT_PERFECTPAY_TOKEN);
-            return updated;
+            const monster = parsed.find(t => (t.platform || t.name || '').toLowerCase().includes('monster')) || DEFAULT_MONSTERPAY_TOKEN;
+            const others = parsed.filter(t => 
+              !(t.platform || t.name || '').toLowerCase().includes('monster') && 
+              !(t.platform || t.name || '').toLowerCase().includes('perfect')
+            );
+            return [monster, DEFAULT_PERFECTPAY_TOKEN, ...others];
           }
           return parsed;
         }
@@ -1531,39 +1526,48 @@ export default function Integrations() {
             } catch (e) {}
           }
 
-          // Merge: se o usuário criou tokens localmente, preserva
-          const mergedMap = new Map();
-          tokens.forEach(t => {
-            const k = t.token || t.id;
-            if (k) mergedMap.set(k, t);
-          });
-          localTokens.forEach(t => {
-            const k = t.token || t.id;
-            if (k && !mergedMap.has(k)) {
-              mergedMap.set(k, t);
-            }
-          });
-
-          // Para a conta do dono (jeeanmacedo@gmail.com), garante que Monsterpay e Perfect Pay estejam sempre presentes com o token oficial
+          // Merge inteligente e deduplicação estrita
           const isOwner = currentUser?.email === 'jeeanmacedo@gmail.com' || currentUser?.email === 'jeanmacedo@gmail.com' || currentUser?.id === 'usr_1788826403159';
-          if (isOwner && isDefaultDashboard) {
-            const hasMonster = Array.from(mergedMap.values()).some(t => (t.platform || t.name || '').toLowerCase().includes('monster'));
-            if (!hasMonster) mergedMap.set('tok_monsterpay', DEFAULT_MONSTERPAY_TOKEN);
-            mergedMap.set('tok_perfectpay', DEFAULT_PERFECTPAY_TOKEN);
+          
+          const rawMerged = [...tokens, ...localTokens];
+          const seenKeys = new Set();
+          const cleanTokens = [];
+
+          for (const item of rawMerged) {
+            if (!item) continue;
+            const norm = (item.platform || item.name || '').toLowerCase();
+            
+            // Para o dono na Principal, Monsterpay e Perfect Pay têm entradas únicas garantidas
+            if (isOwner && isDefaultDashboard) {
+              if (norm.includes('monster') || norm.includes('perfect')) {
+                continue;
+              }
+            }
+            
+            const k = item.token || item.id;
+            if (k && !seenKeys.has(k)) {
+              seenKeys.add(k);
+              cleanTokens.push(item);
+            }
           }
 
-          const combined = Array.from(mergedMap.values());
-          setApiTokens(combined);
+          let finalTokens = cleanTokens;
+          if (isOwner && isDefaultDashboard) {
+            const monsterFromApi = tokens.find(t => (t.platform || t.name || '').toLowerCase().includes('monster')) || localTokens.find(t => (t.platform || t.name || '').toLowerCase().includes('monster')) || DEFAULT_MONSTERPAY_TOKEN;
+            finalTokens = [monsterFromApi, DEFAULT_PERFECTPAY_TOKEN, ...cleanTokens];
+          }
+
+          setApiTokens(finalTokens);
           if (typeof window !== 'undefined') {
-            localStorage.setItem('primetrack_webhook_tokens', JSON.stringify(combined));
+            localStorage.setItem('primetrack_webhook_tokens', JSON.stringify(finalTokens));
           }
 
           // Se tiver tokens locais que ainda não estavam no servidor, sincroniza agora
-          if (combined.length > tokens.length) {
+          if (finalTokens.length > tokens.length) {
             fetch('/api/webhook/tokens', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', ...(currentUser?.id ? { 'x-user-id': currentUser.id } : {}) },
-              body: JSON.stringify({ tokens: combined, userId: currentUser?.id })
+              body: JSON.stringify({ tokens: finalTokens, userId: currentUser?.id })
             }).catch(() => {});
           }
         }
