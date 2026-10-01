@@ -481,6 +481,17 @@ export default function Integrations() {
       logo: '/logos/kiwify.png',
       tutorialUrl: 'https://docs.primetrack.top',
       description: 'Integração via Webhook no painel da Kiwify'
+    },
+    {
+      id: 'clivo',
+      name: 'Clivo',
+      slug: 'clivo',
+      badge: 'Webhook',
+      badgeColor: 'blue',
+      type: 'webhook_url',
+      logo: '/logos/clivo.png',
+      tutorialUrl: 'https://docs.primetrack.top',
+      description: 'Integração via Webhook no painel da Clivo'
     }
   ];
 
@@ -490,6 +501,7 @@ export default function Integrations() {
     if (norm.includes('perfect')) return '/logos/perfectpay.png';
     if (norm.includes('hotmart')) return '/logos/hotmart.png';
     if (norm.includes('kiwify')) return '/logos/kiwify.png';
+    if (norm.includes('clivo')) return '/logos/clivo.png';
     return null;
   };
 
@@ -2340,6 +2352,7 @@ export default function Integrations() {
                       const isPerfect = norm.includes('perfect');
                       const isHotmart = norm.includes('hotmart');
                       const isKiwify = norm.includes('kiwify');
+                      const isClivo = norm.includes('clivo');
 
                       const displayName = isMonster 
                         ? 'Monsterpay' 
@@ -2349,6 +2362,8 @@ export default function Integrations() {
                         ? 'Hotmart' 
                         : isKiwify 
                         ? 'Kiwify' 
+                        : isClivo
+                        ? 'Clivo' 
                         : isDoc 
                         ? 'Documentação' 
                         : (tok.name || tok.platform);
@@ -2366,7 +2381,7 @@ export default function Integrations() {
                       // Monsterpay e Documentação NUNCA mostram webhookUrl na tabela, somente o TOKEN
                       const effectiveWebhookUrl = (!isMonster && !isDoc) && (
                         tok.webhookUrl || (
-                          (isPerfect || isHotmart || isKiwify) 
+                          (isPerfect || isHotmart || isKiwify || isClivo) 
                             ? `${baseUrl}/webhook/${tok.token}/${tok.platform || 'webhook'}`
                             : null
                         )

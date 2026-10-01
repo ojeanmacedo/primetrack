@@ -846,12 +846,16 @@ app.all([
   '/webhooks/:token/:gateway',
   '/webhook/monsterpay',
   '/webhook/perfectpay',
+  '/webhook/clivo',
   '/monsterpay',
   '/monsterpay/webhook',
   '/monsterpay/:action',
   '/perfectpay',
   '/perfectpay/webhook',
-  '/perfectpay/:action'
+  '/perfectpay/:action',
+  '/clivo',
+  '/clivo/webhook',
+  '/clivo/:action'
 ], async (req, res, next) => {
   if (req.params.gateway === 'tokens' || req.path === '/api/webhook/tokens' || req.path === '/webhook/tokens') {
     return next();
@@ -862,13 +866,19 @@ app.all([
       const urlLower = (req.originalUrl || req.url || '').toLowerCase();
       if (urlLower.includes('perfect')) gateway = 'perfectpay';
       else if (urlLower.includes('monster')) gateway = 'monsterpay';
+      else if (urlLower.includes('clivo')) gateway = 'clivo';
       else gateway = 'monsterpay';
     }
-    let token = req.params.token || req.query.token || req.headers['x-api-token'] || (req.headers.authorization ? req.headers.authorization.replace('Bearer ', '') : null) || (req.body && req.body.token);
+    let token = req.params.token || req.query.token || req.query.api || req.headers['x-api-token'] || (req.headers.authorization ? req.headers.authorization.replace('Bearer ', '') : null) || (req.body && req.body.token);
     if (!token && gateway === 'perfectpay') {
       const allToks = db.get('webhook_tokens') || [];
       const perfTok = allToks.find(t => (t.platform || '').toLowerCase().includes('perfect'));
       if (perfTok) token = perfTok.token;
+    }
+    if (!token && gateway === 'clivo') {
+      const allToks = db.get('webhook_tokens') || [];
+      const clivoTok = allToks.find(t => (t.platform || '').toLowerCase().includes('clivo'));
+      if (clivoTok) token = clivoTok.token;
     }
     const body = { ...req.query, ...(req.body || {}) };
     const clientIp = getCleanClientIp(req);

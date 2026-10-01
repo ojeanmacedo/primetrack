@@ -84,6 +84,8 @@ export function parseWebhook(gateway, body) {
       return parseBraip(body);
     case 'monsterpay':
       return parseMonsterPay(body);
+    case 'clivo':
+      return parseClivo(body);
     default:
       return parseGeneric(body);
   }
@@ -637,6 +639,77 @@ function parseMonsterPay(body) {
       state: customer.state || (customer.address && customer.address.state) || '',
       zip: customer.zip || customer.zipcode || customer.cep || (customer.address && (customer.address.zipcode || customer.address.zip || customer.address.cep)) || '',
       country: customer.country || (customer.address && customer.address.country) || 'BR'
+    },
+    tracking: extractUniversalTracking(tracking, body),
+    raw: body
+  };
+}
+
+function parseClivo(body) {
+  const data = body.data || body.payment || body;
+  const customer = data.customer || body.customer || data.buyer || body.buyer || {};
+  const tracking = data.metadata || body.metadata || data.tracking || body.tracking || data.tracking_parameters || body.tracking_parameters || {};
+
+  const eventName = String(body.event || body.type || data.status || body.status || '').toLowerCase();
+
+  let status = 'waiting_payment';
+  if (['payment.succeeded', 'succeeded', 'paid', 'approved', 'aprovado', 'pago'].some(s => eventName.includes(s))) {
+    status = 'approved';
+  } else if (['payment.pending', 'pending', 'waiting_payment', 'aguardando'].some(s => eventName.includes(s))) {
+    status = 'waiting_payment';
+  } else if (['payment.refunded', 'refunded', 'chargeback', 'reembolsado', 'estornado'].some(s => eventName.includes(s))) {
+    status = 'refunded';
+  } else if (['payment.failed', 'payment.expired', 'payment.canceled', 'failed', 'expired', 'canceled', 'cancelled', 'cancelado'].some(s => eventName.includes(s))) {
+    status = 'cancelled';
+  }
+
+  // Método de pagamento (SPEI, PIX, PSE, Cartão, Nequi, etc.)
+  const rawMethod = String(data.payment_method || body.payment_method || data.method || '').toLowerCase();
+  let paymentMethod = 'pix';
+  if (rawMethod.includes('pix')) paymentMethod = 'pix';
+  else if (rawMethod.includes('card') || rawMethod.includes('tarjeta') || rawMethod.includes('cartao') || rawMethod.includes('credit')) paymentMethod = 'credit_card';
+  else if (rawMethod.includes('spei')) paymentMethod = 'spei';
+  else if (rawMethod.includes('pse') || rawMethod.includes('nequi')) paymentMethod = 'pse';
+  else if (rawMethod.includes('boleto') || rawMethod.includes('billet')) paymentMethod = 'boleto';
+  else paymentMethod = rawMethod || 'pix';
+
+  // Valor monetário (suporta amount_cents ou amount decimal)
+  let amount = 0;
+  if (data.amount_cents !== undefined && data.amount_cents !== null) {
+    amount = Number(data.amount_cents) / 100;
+  } else if (data.amount !== undefined && data.amount !== null) {
+    amount = Number(data.amount);
+    if (amount > 1000 && !String(data.amount).includes('.')) {
+      amount = amount / 100;
+    }
+  } else if (body.amount_cents !== undefined) {
+    amount = Number(body.amount_cents) / 100;
+  } else if (body.amount !== undefined) {
+    amount = Number(body.amount);
+  }
+
+  const customerName = customer.name || 
+    (customer.first_name ? `${customer.first_name} ${customer.last_name || ''}`.trim() : '') || 
+    customer.full_name || body.name || data.customer_name || 'Cliente Clivo';
+
+  return {
+    gateway: 'Clivo',
+    orderCode: data.id || data.payment_id || data.external_id || body.id || body.order_id || `clv_${Date.now()}`,
+    status,
+    amount: amount || 97.00,
+    grossAmount: amount || 97.00,
+    commission: amount || 97.00,
+    paymentMethod,
+    productName: data.product_name || body.product_name || data.description || body.description || 'Produto Clivo',
+    customer: {
+      name: customerName,
+      email: customer.email || data.email || body.email || '',
+      phone: customer.phone || customer.cellphone || customer.mobile || data.phone || body.phone || '',
+      document: customer.document || customer.dni || customer.curp || customer.rfc || customer.cpf || '',
+      city: customer.city || (customer.address && customer.address.city) || '',
+      state: customer.state || (customer.address && customer.address.state) || '',
+      zip: customer.zip || customer.zipcode || customer.postal_code || (customer.address && customer.address.zip) || '',
+      country: customer.country || (customer.address && customer.address.country) || 'MX'
     },
     tracking: extractUniversalTracking(tracking, body),
     raw: body
