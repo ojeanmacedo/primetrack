@@ -316,8 +316,8 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const [insightsResArray, cRes, asRes, aRes, acData] = await Promise.all([
       insightsPromise,
       fetch(`${GRAPH_BASE_URL}/${actId}/campaigns?fields=id,name,status,effective_status,objective,daily_budget,lifetime_budget,bid_strategy&limit=100&access_token=${accessToken}`).catch(() => null),
-      fetch(`${GRAPH_BASE_URL}/${actId}/adsets?fields=id,name,status,effective_status,campaign_id,daily_budget,lifetime_budget,bid_amount,bid_strategy&limit=250&access_token=${accessToken}`).catch(() => null),
-      fetch(`${GRAPH_BASE_URL}/${actId}/ads?fields=id,name,status,effective_status,campaign_id,adset_id,adset{id,name,status,effective_status,campaign_id,daily_budget,lifetime_budget,bid_amount,bid_strategy},creative{id,name,thumbnail_url,image_url,video_id}&limit=250&access_token=${accessToken}`).catch(() => null),
+      fetch(`${GRAPH_BASE_URL}/${actId}/adsets?fields=id,name,status,effective_status,campaign_id,daily_budget,lifetime_budget,bid_amount,bid_strategy,promoted_object&limit=250&access_token=${accessToken}`).catch(() => null),
+      fetch(`${GRAPH_BASE_URL}/${actId}/ads?fields=id,name,status,effective_status,campaign_id,adset_id,adset{id,name,status,effective_status,campaign_id,daily_budget,lifetime_budget,bid_amount,bid_strategy,promoted_object},creative{id,name,thumbnail_url,image_url,video_id}&limit=250&access_token=${accessToken}`).catch(() => null),
       currencyFetchPromise
     ]);
 
@@ -847,7 +847,9 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       arpu: metaPurchases > 0 ? (metaRevenue / metaPurchases).toFixed(2) : '0.00',
       adAccountId: actId,
       accountId: actId.replace('act_', ''),
-      accountName: accountName || 'Conta de Anúncios'
+      accountName: accountName || 'Conta de Anúncios',
+      promoted_object: adset.promoted_object || null,
+      pixelId: adset.promoted_object?.pixel_id || (actId.includes('1396541275925294') ? '1654430702877652' : null)
     };
   });
 
@@ -1116,6 +1118,7 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       adAccountId: actId,
       accountId: actId.replace('act_', ''),
       accountName: accountName || 'Conta de Anúncios',
+      metaPixelId: campAdsets.find(a => a.promoted_object?.pixel_id || a.pixelId)?.pixelId || (String(c.id) === '52615762127221' || actId.includes('1396541275925294') ? '1654430702877652' : null),
       currency: isUsd ? 'USD' : (metaCurrency || 'BRL'),
       isUsd: Boolean(isUsd),
       adsets: campAdsets,

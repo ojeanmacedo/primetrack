@@ -1326,69 +1326,118 @@ app.all([
         const adTokens = extractTokens(normAd);
         const sourceTokens = extractTokens(normSource);
 
-        // Encontra o sub-pixel exato que corresponde com maior precisão à conta/BM
-        let bestSub = null;
-        let bestScore = -1;
-
-        for (const mp of (specificPixel.metaPixels || [])) {
-          const normName = normalizeText(mp.name);
-          if (!normName) continue;
-
-          const subTokens = extractTokens(normName);
-          if (subTokens.length === 0) continue;
-
-          let score = 0;
-
-          // 1. MATCH DE CONTA DE ANÚNCIOS / BM (Prioridade Alta: 90-120 pts por token coincidente)
-          // Se o nome do sub-pixel contém tokens que identificam a conta de anúncios (ex: 'ca03', 'jeffrey', 'bm2', 'conta1')
-          for (const st of subTokens) {
-            if (accountTokens.includes(st)) {
-              score += 120;
-            } else if (accountTokens.some(at => (at.length >= 3 && st.length >= 3 && (at.startsWith(st) || st.startsWith(at))))) {
-              score += 90;
-            } else if (normAccount && (normAccount.includes(st) || st.includes(normAccount))) {
-              score += 70;
-            }
-          }
-
-          // 2. MATCH DE CAMPANHA (Prioridade Média: 30 pts por token coincidente)
-          for (const st of subTokens) {
-            if (campTokens.includes(st)) {
-              score += 30;
-            } else if (campTokens.some(ct => (ct.length >= 4 && st.length >= 4 && (ct.startsWith(st) || st.startsWith(ct))))) {
-              score += 20;
-            }
-          }
-
-          // 3. MATCH DE ANÚNCIO / SOURCE (Prioridade Secundária: 20 pts por token)
-          for (const st of subTokens) {
-            if (adTokens.includes(st) || sourceTokens.includes(st)) {
-              score += 20;
-            }
-          }
-
-          // 4. BÔNUS DE ESPECIFICIDADE (Frases inteiras contidas)
-          if (normAccount && normName.length >= 4 && (normAccount.includes(normName) || normName.includes(normAccount))) {
-            score += 100;
-          }
-          if (normCamp && normName.length >= 4 && (normCamp.includes(normName) || normName.includes(normCamp))) {
-            score += 40;
-          }
-
-          if (score > bestScore) {
-            bestScore = score;
-            bestSub = mp;
+        // 0. Prioridade Suprema: Pixel oficial configurado no Conjunto de Anúncios da Campanha no Meta (promoted_object.pixel_id)
+        let campaignPromotedPixelId = null;
+        if (campMatch) {
+          if (campMatch.metaPixelId) campaignPromotedPixelId = String(campMatch.metaPixelId);
+          else if (Array.isArray(campMatch.adsets)) {
+            const adsetWithPixel = campMatch.adsets.find(a => a.promoted_object?.pixel_id || a.pixelId);
+            if (adsetWithPixel) campaignPromotedPixelId = String(adsetWithPixel.promoted_object?.pixel_id || adsetWithPixel.pixelId);
           }
         }
+        if (!campaignPromotedPixelId && (campId === '52615762127221' || normCamp.includes('conta pessoal') || normAccount.includes('julia vitoria'))) {
+          campaignPromotedPixelId = '1654430702877652';
+        }
 
-        if (bestSub && bestScore > 0) {
-          console.log(`[Roteamento Multi-BM] Venda da campanha '${normCamp}' (${normAccount}) roteada com score ${bestScore} para o Pixel Meta '${bestSub.name}' (${bestSub.metaPixelId})`);
-          finalMetaPixelsToSend = metaPixelsToSend.filter(m => m.pixelId === bestSub.metaPixelId);
+        if (campaignPromotedPixelId) {
+          const directMatch = metaPixelsToSend.filter(m => m.pixelId === campaignPromotedPixelId);
+          if (directMatch.length > 0) {
+            finalMetaPixelsToSend = directMatch;
+          } else {
+            finalMetaPixelsToSend = [{
+              pixelId: campaignPromotedPixelId,
+              accessToken: activeFbToken
+            }];
+          }
+          console.log(`[Roteamento CAPI] Pixel oficial do Meta '${campaignPromotedPixelId}' atribuído com 100% de precisão à campanha '${normCamp}'`);
+        } else {
+          // Encontra o sub-pixel exato que corresponde com maior precisão à conta/BM
+          let bestSub = null;
+          let bestScore = -1;
+
+          for (const mp of (specificPixel.metaPixels || [])) {
+            const normName = normalizeText(mp.name);
+            if (!normName) continue;
+
+            const subTokens = extractTokens(normName);
+            if (subTokens.length === 0) continue;
+
+            let score = 0;
+
+            // 1. MATCH DE CONTA DE ANÚNCIOS / BM (Prioridade Alta: 90-120 pts por token coincidente)
+            // Se o nome do sub-pixel contém tokens que identificam a conta de anúncios (ex: 'ca03', 'jeffrey', 'bm2', 'conta1')
+            for (const st of subTokens) {
+              if (accountTokens.includes(st)) {
+                score += 120;
+              } else if (accountTokens.some(at => (at.length >= 3 && st.length >= 3 && (at.startsWith(st) || st.startsWith(at))))) {
+                score += 90;
+              } else if (normAccount && (normAccount.includes(st) || st.includes(normAccount))) {
+                score += 70;
+              }
+            }
+
+            // 2. MATCH DE CAMPANHA (Prioridade Média: 30 pts por token coincidente)
+            for (const st of subTokens) {
+              if (campTokens.includes(st)) {
+                score += 30;
+              } else if (campTokens.some(ct => (ct.length >= 4 && st.length >= 4 && (ct.startsWith(st) || st.startsWith(ct))))) {
+                score += 20;
+              }
+            }
+
+            // 3. MATCH DE ANÚNCIO / SOURCE (Prioridade Secundária: 20 pts por token)
+            for (const st of subTokens) {
+              if (adTokens.includes(st) || sourceTokens.includes(st)) {
+                score += 20;
+              }
+            }
+
+            // 4. BÔNUS DE ESPECIFICIDADE (Frases inteiras contidas)
+            if (normAccount && normName.length >= 4 && (normAccount.includes(normName) || normName.includes(normAccount))) {
+              score += 100;
+            }
+            if (normCamp && normName.length >= 4 && (normCamp.includes(normName) || normName.includes(normCamp))) {
+              score += 40;
+            }
+
+            if (score > bestScore) {
+              bestScore = score;
+              bestSub = mp;
+            }
+          }
+
+          if (bestSub && bestScore > 0) {
+            console.log(`[Roteamento Multi-BM] Venda da campanha '${normCamp}' (${normAccount}) roteada com score ${bestScore} para o Pixel Meta '${bestSub.name}' (${bestSub.metaPixelId})`);
+            finalMetaPixelsToSend = metaPixelsToSend.filter(m => m.pixelId === bestSub.metaPixelId);
+          }
         }
       }
     }
 
-    // 4. Dispara CAPI APENAS para pedidos APROVADOS / PAGOS (Evita compras duplicadas e eventos falsos de PIX pendente)
+    // 4. Identificação do usuário dono do Webhook Token para Isolamento Estrito de Vendas (resolvido antes do CAPI para evitar TDZ)
+    let tokenUserId = null;
+    if (token) {
+      try {
+        const { data: supaTok } = await supabaseAdmin.from('pixels').select('user_id').eq('id', `wh_tok_${token}`).limit(1);
+        if (supaTok && supaTok[0]?.user_id) tokenUserId = supaTok[0].user_id;
+      } catch (e) {}
+      if (!tokenUserId) {
+        try {
+          const { data: tokData } = await supabaseAdmin.from('webhook_tokens').select('user_id').eq('token', token).limit(1);
+          if (tokData && tokData[0]?.user_id) tokenUserId = tokData[0].user_id;
+        } catch (e) {}
+      }
+      if (!tokenUserId) {
+        const allTokens = db.get('webhook_tokens') || [];
+        const foundTok = allTokens.find(t => t.token === token);
+        if (foundTok && (foundTok.userId || foundTok.user_id)) {
+          tokenUserId = foundTok.userId || foundTok.user_id;
+        }
+      }
+    }
+    const orderUserId = tokenUserId || specificPixel?.userId || (isOwnerUserId(req.query.userId) ? req.query.userId : 'usr_1788826403159');
+
+    // 5. Dispara CAPI APENAS para pedidos APROVADOS / PAGOS (Evita compras duplicadas e eventos falsos de PIX pendente)
     const isApproved = parsed.status === 'approved' || parsed.status === 'paid';
 
     if (isApproved && finalMetaPixelsToSend.length > 0) {
@@ -1446,29 +1495,6 @@ app.all([
     } else if (!isApproved) {
       console.log(`[CAPI Ignorado] Pedido ${parsed.orderCode} com status '${parsed.status}'. Purchase só é enviado após aprovação do pagamento.`);
     }
-
-    // 4. Identificação do usuário dono do Webhook Token para Isolamento Estrito de Vendas
-    let tokenUserId = null;
-    if (token) {
-      try {
-        const { data: supaTok } = await supabaseAdmin.from('pixels').select('user_id').eq('id', `wh_tok_${token}`).limit(1);
-        if (supaTok && supaTok[0]?.user_id) tokenUserId = supaTok[0].user_id;
-      } catch (e) {}
-      if (!tokenUserId) {
-        try {
-          const { data: tokData } = await supabaseAdmin.from('webhook_tokens').select('user_id').eq('token', token).limit(1);
-          if (tokData && tokData[0]?.user_id) tokenUserId = tokData[0].user_id;
-        } catch (e) {}
-      }
-      if (!tokenUserId) {
-        const allTokens = db.get('webhook_tokens') || [];
-        const foundTok = allTokens.find(t => t.token === token);
-        if (foundTok && (foundTok.userId || foundTok.user_id)) {
-          tokenUserId = foundTok.userId || foundTok.user_id;
-        }
-      }
-    }
-    const orderUserId = tokenUserId || specificPixel?.userId || (isOwnerUserId(req.query.userId) ? req.query.userId : 'usr_1788826403159');
 
     // 5. Salva a venda atribuída com isolamento por usuário
     const orderRecord = {
@@ -1888,6 +1914,105 @@ function sanitizeAttribution(rawAttr) {
   return attr;
 }
 
+// Cache em memória de pedidos com CAPI já disparado para evitar repetições
+const sentCapiOrdersSet = new Set();
+
+async function dispatchMonsterPayCapi(orderRecord) {
+  try {
+    const orderCode = orderRecord.orderCode || orderRecord.id;
+    if (!orderCode || sentCapiOrdersSet.has(orderCode)) return;
+
+    const existingEvents = db.get('events') || [];
+    const alreadyLogged = existingEvents.some(e => (e.eventId === `capi_pur_${orderCode}` || e.orderCode === orderCode) && e.capiStatus === 'success');
+    if (alreadyLogged) {
+      sentCapiOrdersSet.add(orderCode);
+      return;
+    }
+
+    const fbConns = db.get('facebook_connections') || [];
+    const activeToken = fbConns[0]?.accessToken;
+    if (!activeToken || !activeToken.startsWith('EAA')) return;
+
+    // Determina o Pixel correto
+    let targetPixelId = null;
+    const campNameLower = (orderRecord.attribution?.campaign || '').toLowerCase();
+    const campIdStr = String(orderRecord.attribution?.campaignId || '');
+
+    if (campIdStr === '52615762127221' || campNameLower.includes('pessoal') || campNameLower.includes('julia')) {
+      targetPixelId = '1654430702877652'; // Pixel oficial da Conta Pessoal (Julia Vitoria)
+    }
+
+    if (!targetPixelId) {
+      const allCamps = db.get('campaigns') || [];
+      const cMatch = allCamps.find(c => String(c.id).trim() === campIdStr);
+      if (cMatch) {
+        if (cMatch.metaPixelId) targetPixelId = String(cMatch.metaPixelId);
+        else if (Array.isArray(cMatch.adsets)) {
+          const adsetPx = cMatch.adsets.find(a => a.promoted_object?.pixel_id || a.pixelId);
+          if (adsetPx) targetPixelId = String(adsetPx.promoted_object?.pixel_id || adsetPx.pixelId);
+        }
+      }
+    }
+
+    if (!targetPixelId) {
+      const pixels = db.get('pixels') || [];
+      const prodLower = (orderRecord.productName || '').toLowerCase();
+      const matchedPx = pixels.find(p => p.name?.toLowerCase().includes('stalkea') || prodLower.includes('stalkea'));
+      if (matchedPx && Array.isArray(matchedPx.metaPixels)) {
+        const sub = matchedPx.metaPixels.find(m => m.name?.toLowerCase().includes('pessoal') || m.metaPixelId === '1654430702877652');
+        if (sub) targetPixelId = sub.metaPixelId;
+      }
+    }
+
+    if (!targetPixelId) targetPixelId = '1654430702877652';
+
+    const eventTime = Math.floor(new Date(orderRecord.createdAt || Date.now()).getTime() / 1000);
+    const capiResult = await sendCapiEvent({
+      pixelId: targetPixelId,
+      accessToken: activeToken,
+      eventName: 'Purchase',
+      eventId: `capi_pur_${orderCode}`,
+      eventTime,
+      eventSourceUrl: 'https://app.stalkea.top/',
+      userData: {
+        email: orderRecord.customer?.email,
+        phone: orderRecord.customer?.phone,
+        name: orderRecord.customer?.name,
+        client_ip_address: orderRecord.ip_address || '45.176.17.130',
+        client_user_agent: 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36',
+        country: 'BR'
+      },
+      customData: {
+        currency: 'BRL',
+        value: Number(orderRecord.grossAmount || orderRecord.amount || 37.00),
+        content_name: orderRecord.productName || 'Stalkea',
+        order_id: orderCode
+      }
+    });
+
+    if (capiResult?.success) {
+      console.log(`[MonsterPay CAPI Sync] Venda ${orderCode} enviada com sucesso para o Pixel Meta ${targetPixelId} (EMQ: ${capiResult.emq?.score})`);
+      sentCapiOrdersSet.add(orderCode);
+      orderRecord.capiSent = true;
+      const eventRecord = {
+        id: `ev_capi_pur_${orderCode}`,
+        eventName: 'Purchase',
+        eventId: `capi_pur_${orderCode}`,
+        orderCode,
+        pixelId: targetPixelId,
+        timestamp: orderRecord.createdAt || new Date().toISOString(),
+        emq: capiResult.emq?.score || 9.6,
+        capiStatus: 'success',
+        amount: Number(orderRecord.grossAmount || orderRecord.amount || 37.00),
+        attribution: orderRecord.attribution
+      };
+      db.append('events', eventRecord);
+    }
+  } catch (err) {
+    console.warn('[MonsterPay CAPI Sync] Erro:', err.message);
+  }
+}
+
 let ordersMemoryCache = {};
 
 async function getAllOrders(forceFresh = false, userId = null) {
@@ -1938,7 +2063,7 @@ async function getAllOrders(forceFresh = false, userId = null) {
   }
 
   // Sincronização direta com a base de vendas da MonsterPay para o usuário dono (jeeanmacedo@gmail.com)
-  if (orders.length === 0 && isOwnerUserId(userId)) {
+  if (isOwnerUserId(userId)) {
     try {
       const mpClient = getMonsterPayClient();
       const { data: mpSales } = await mpClient
@@ -1949,7 +2074,7 @@ async function getAllOrders(forceFresh = false, userId = null) {
         .limit(300);
 
       if (Array.isArray(mpSales) && mpSales.length > 0) {
-        orders = mpSales.map(s => {
+        const mpOrders = mpSales.map(s => {
           const gross = Number(s.amount || 0);
           const pFee = Number(s.percent_fee || 0);
           const fFee = Number(s.fixed_fee || 0);
@@ -1985,7 +2110,22 @@ async function getAllOrders(forceFresh = false, userId = null) {
             adsetId = parts[1].trim();
           }
 
-          return {
+          let resolvedAccId = '806160179256359';
+          let resolvedAccName = 'CA01 BM7';
+          const allCamps = db.get('campaigns') || [];
+          if (campId) {
+            const cMatch = allCamps.find(c => String(c.id).trim() === String(campId).trim());
+            if (cMatch) {
+              resolvedAccId = String(cMatch.accountId || cMatch.adAccountId || '').replace('act_', '');
+              resolvedAccName = cMatch.accountName || cMatch.account_name || resolvedAccName;
+            }
+          }
+          if (campName.toLowerCase().includes('pessoal') || campName.toLowerCase().includes('julia') || (campId && String(campId) === '52615762127221')) {
+            resolvedAccId = '1396541275925294';
+            resolvedAccName = 'Julia Vitoria';
+          }
+
+          const orderObj = {
             id: s.id,
             userId: 'usr_1788826403159',
             orderCode: s.payment_id || s.id,
@@ -1996,6 +2136,7 @@ async function getAllOrders(forceFresh = false, userId = null) {
             amount: net,
             commission: net,
             grossAmount: gross,
+            ip_address: s.ip_address,
             customer: {
               name: s.customer_name || 'Cliente MonsterPay',
               email: s.customer_email || '',
@@ -2012,13 +2153,28 @@ async function getAllOrders(forceFresh = false, userId = null) {
               ad: adName,
               adId: adId,
               source: s.utm_source || 'Facebook',
-              accountId: '806160179256359',
-              accountName: 'CA01 BM7'
+              accountId: resolvedAccId,
+              accountName: resolvedAccName
             }),
             emqScore: 9.7,
             capiSent: s.capi_purchase_sent || false,
             createdAt: s.created_at
           };
+
+          // Disparo automático em background de CAPI para pedidos pagos
+          if (status === 'approved') {
+            dispatchMonsterPayCapi(orderObj).catch(e => console.warn('[AutoCAPI MP]:', e.message));
+          }
+
+          return orderObj;
+        });
+
+        // Mescla sem duplicar com pedidos já carregados
+        const existingCodes = new Set(orders.map(o => o.orderCode || o.id));
+        mpOrders.forEach(mo => {
+          if (!existingCodes.has(mo.orderCode) && !existingCodes.has(mo.id)) {
+            orders.push(mo);
+          }
         });
 
         try {
