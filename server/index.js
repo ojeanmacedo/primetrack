@@ -1187,17 +1187,40 @@ app.all([
 
     // 3) Match semântico por Produto / Campanha / Palavras-chave
     if (!specificPixel) {
-      if (prodName.includes('transformando') || prodName.includes('vida') || prodName.includes('vakinha') || campName.includes('abo') || campName.includes('vakinha')) {
+      if (prodName.includes('transformando') || prodName.includes('vida') || prodName.includes('vakinha') || campName.includes('abo') || campName.includes('vakinha') || prodName.includes('kaue') || campName.includes('kaue')) {
         specificPixel = pixels.find(p => 
           (p.name && p.name.toLowerCase().includes('kaue')) || 
+          p.id === 'pt_px_n7jmhi3grhi' ||
+          p.metaPixelId === '4099709903493911' || 
           p.metaPixelId === '2460567341021217' || 
           (p.icValue && p.icValue.includes('donation'))
         );
       } else if (prodName.includes('mirella') || prodName.includes('privacy') || campName.includes('mirella')) {
         specificPixel = pixels.find(p => 
-          (p.name && (p.name.toLowerCase().includes('jofrrey') || p.name.toLowerCase().includes('mirella'))) || 
-          p.metaPixelId === '1058568486987355'
+          (p.name && (p.name.toLowerCase().includes('jofrrey') || p.name.toLowerCase().includes('mirella') || p.name.toLowerCase().includes('pixel mi') || p.name.toLowerCase().trim() === 'mi')) || 
+          p.id === 'pt_px_5o6pvce35bp' ||
+          p.metaPixelId === '2141846666371577' ||
+          p.metaPixelId === '1058568486987355' ||
+          (Array.isArray(p.metaPixels) && p.metaPixels.some(m => m.metaPixelId === '2141846666371577' || m.name?.toLowerCase().includes('mi')))
         );
+      } else if (prodName.includes('jump') || prodName.includes('internet') || campName.includes('jump')) {
+        specificPixel = pixels.find(p => 
+          (p.name && p.name.toLowerCase().includes('jump')) || 
+          p.id === 'pt_px_6lhl7qcgunt' ||
+          p.metaPixelId === '1123257223463672' ||
+          (Array.isArray(p.metaPixels) && p.metaPixels.some(m => m.metaPixelId === '1123257223463672' || m.metaPixelId === '1658272665919417'))
+        );
+      } else if (prodName.includes('stalkea') || prodName.includes('stalk') || campName.includes('stalk') || campName.includes('pessoal')) {
+        specificPixel = pixels.find(p => 
+          (p.name && (p.name.toLowerCase().includes('stalk') || p.name.toLowerCase().includes('julia'))) || 
+          p.id === 'pt_px_zpdpoqxrgvi'
+        );
+      } else if (prodName.includes('sermon') || campName.includes('sermon')) {
+        specificPixel = pixels.find(p => p.id === 'pt_px_sermon_todos' || (p.name && p.name.toLowerCase().includes('sermon')));
+      } else if (prodName.includes('potes') || campName.includes('potes')) {
+        specificPixel = pixels.find(p => p.id === 'pt_px_potes' || (p.name && p.name.toLowerCase().includes('potes')));
+      } else if (prodName.includes('moldes') || campName.includes('moldes')) {
+        specificPixel = pixels.find(p => p.id === 'pt_px_moldes' || (p.name && p.name.toLowerCase().includes('moldes')));
       }
     }
 
@@ -1929,63 +1952,166 @@ async function dispatchMonsterPayCapi(orderRecord) {
       return;
     }
 
+    // Meta CAPI só aceita eventos de até 7 dias atrás
+    const orderTimestamp = new Date(orderRecord.createdAt || Date.now()).getTime();
+    if (Date.now() - orderTimestamp > 7 * 24 * 60 * 60 * 1000) {
+      sentCapiOrdersSet.add(orderCode);
+      return;
+    }
+
     const fbConns = db.get('facebook_connections') || [];
-    const activeToken = fbConns[0]?.accessToken;
-    if (!activeToken || !activeToken.startsWith('EAA')) return;
+    const defaultFbToken = fbConns[0]?.accessToken;
+    const pixels = db.get('pixels') || [];
 
-    // Determina o Pixel correto
+    // Determina o Pixel e Token corretos
     let targetPixelId = null;
-    const campNameLower = (orderRecord.attribution?.campaign || '').toLowerCase();
-    const campIdStr = String(orderRecord.attribution?.campaignId || '');
+    let targetToken = null;
+    let eventSourceUrl = null;
 
-    if (campIdStr === '52615762127221' || campNameLower.includes('pessoal') || campNameLower.includes('julia')) {
+    const campNameLower = (orderRecord.attribution?.campaign || '').toLowerCase();
+    const campIdStr = String(orderRecord.attribution?.campaignId || '').trim();
+    const adsetIdStr = String(orderRecord.attribution?.adsetId || '').trim();
+    const prodLower = (orderRecord.productName || '').toLowerCase();
+
+    // 1. Prioridade: Campanha explícita Conta Pessoal
+    if (campIdStr === '52615762127221' || campNameLower.includes('pessoal') || campNameLower.includes('julia vitoria')) {
       targetPixelId = '1654430702877652'; // Pixel oficial da Conta Pessoal (Julia Vitoria)
     }
 
-    if (!targetPixelId) {
+    // 2. Consulta em campanhas locais e em memória (campaignsCache)
+    if (!targetPixelId && campIdStr) {
       const allCamps = db.get('campaigns') || [];
-      const cMatch = allCamps.find(c => String(c.id).trim() === campIdStr);
+      let cMatch = allCamps.find(c => String(c.id).trim() === campIdStr);
+      if (!cMatch) {
+        for (const entry of campaignsCache.values()) {
+          if (Array.isArray(entry.data)) {
+            const found = entry.data.find(c => String(c.id).trim() === campIdStr);
+            if (found) { cMatch = found; break; }
+          }
+        }
+      }
       if (cMatch) {
-        if (cMatch.metaPixelId) targetPixelId = String(cMatch.metaPixelId);
-        else if (Array.isArray(cMatch.adsets)) {
-          const adsetPx = cMatch.adsets.find(a => a.promoted_object?.pixel_id || a.pixelId);
-          if (adsetPx) targetPixelId = String(adsetPx.promoted_object?.pixel_id || adsetPx.pixelId);
+        if (adsetIdStr && Array.isArray(cMatch.adsets)) {
+          const matchAdset = cMatch.adsets.find(a => String(a.id || a.adsetId).trim() === adsetIdStr);
+          if (matchAdset?.promoted_object?.pixel_id || matchAdset?.pixelId) {
+            targetPixelId = String(matchAdset.promoted_object?.pixel_id || matchAdset.pixelId);
+          }
+        }
+        if (!targetPixelId) {
+          if (cMatch.metaPixelId) targetPixelId = String(cMatch.metaPixelId);
+          else if (Array.isArray(cMatch.adsets)) {
+            const adsetPx = cMatch.adsets.find(a => a.promoted_object?.pixel_id || a.pixelId);
+            if (adsetPx) targetPixelId = String(adsetPx.promoted_object?.pixel_id || adsetPx.pixelId);
+          }
         }
       }
     }
 
+    // 3. Fallback ao vivo: Consulta direta na Meta Graph API se a campanha não estiver no cache local
+    if (!targetPixelId && campIdStr && defaultFbToken && defaultFbToken.startsWith('EAA')) {
+      try {
+        const metaRes = await fetch(`https://graph.facebook.com/v20.0/${campIdStr}?fields=id,name,account_id,adsets{id,name,promoted_object}&access_token=${defaultFbToken}`);
+        const metaCamp = await metaRes.json();
+        if (metaCamp && Array.isArray(metaCamp.adsets?.data)) {
+          if (adsetIdStr) {
+            const mAdset = metaCamp.adsets.data.find(a => String(a.id).trim() === adsetIdStr);
+            if (mAdset?.promoted_object?.pixel_id) {
+              targetPixelId = String(mAdset.promoted_object.pixel_id);
+            }
+          }
+          if (!targetPixelId) {
+            const anyAdset = metaCamp.adsets.data.find(a => a.promoted_object?.pixel_id);
+            if (anyAdset?.promoted_object?.pixel_id) {
+              targetPixelId = String(anyAdset.promoted_object.pixel_id);
+            }
+          }
+        }
+      } catch (eMeta) {}
+    }
+
+    // 4. Mapeamento Semântico Preciso por Produto / Palavras-chave
     if (!targetPixelId) {
-      const pixels = db.get('pixels') || [];
-      const prodLower = (orderRecord.productName || '').toLowerCase();
-      const matchedPx = pixels.find(p => p.name?.toLowerCase().includes('stalkea') || prodLower.includes('stalkea'));
-      if (matchedPx && Array.isArray(matchedPx.metaPixels)) {
-        const sub = matchedPx.metaPixels.find(m => m.name?.toLowerCase().includes('pessoal') || m.metaPixelId === '1654430702877652');
-        if (sub) targetPixelId = sub.metaPixelId;
+      if (prodLower.includes('mirella') || prodLower.includes('privacy') || campNameLower.includes('mirella')) {
+        targetPixelId = '2141846666371577'; // Pixel MI (mi bm5)
+      } else if (prodLower.includes('jump') || prodLower.includes('internet') || campNameLower.includes('jump')) {
+        targetPixelId = '1123257223463672'; // Pixel Jump
+      } else if (prodLower.includes('kaue') || prodLower.includes('transformando') || campNameLower.includes('kaue') || campNameLower.includes('abo')) {
+        targetPixelId = '4099709903493911'; // Pixel Kauê
+      } else if (prodLower.includes('stalkea') || prodLower.includes('stalk') || campNameLower.includes('stalk')) {
+        targetPixelId = '1991445178222236'; // Stalkeia BM5
+      } else if (prodLower.includes('sermon') || campNameLower.includes('sermon')) {
+        targetPixelId = '1443456754305813';
+      } else if (prodLower.includes('potes') || campNameLower.includes('potes')) {
+        targetPixelId = '1546092043232502';
+      } else if (prodLower.includes('moldes') || campNameLower.includes('moldes')) {
+        targetPixelId = '1050402180946104';
       }
     }
 
-    if (!targetPixelId) targetPixelId = '1654430702877652';
+    // 5. Encontra o CAPI Token exato configurado para este Pixel / Sub-Pixel
+    let matchedPrimeTrackPixel = null;
+    if (targetPixelId) {
+      for (const p of pixels) {
+        if (p.metaPixelId === targetPixelId) {
+          matchedPrimeTrackPixel = p;
+          targetToken = p.capiTokenRaw || p.capiToken;
+          break;
+        }
+        if (Array.isArray(p.metaPixels)) {
+          const sub = p.metaPixels.find(m => m.metaPixelId === targetPixelId);
+          if (sub) {
+            matchedPrimeTrackPixel = p;
+            targetToken = sub.capiToken || p.capiTokenRaw || p.capiToken;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!targetToken) {
+      targetToken = defaultFbToken;
+    }
+
+    if (!targetPixelId || !targetToken || !targetToken.startsWith('EAA')) {
+      console.warn(`[MonsterPay CAPI Sync] Não foi possível resolver Pixel ou Token válido para o pedido ${orderCode}`);
+      return;
+    }
+
+    // 6. Resolução correta da URL do Checkout
+    if (prodLower.includes('mirella') || prodLower.includes('privacy')) {
+      eventSourceUrl = 'https://conteudodelas.shop/checkout';
+    } else if (prodLower.includes('stalkea') || prodLower.includes('stalk')) {
+      eventSourceUrl = 'https://app.stalkea.top/';
+    } else if (prodLower.includes('kaue') || prodLower.includes('transformando')) {
+      eventSourceUrl = 'https://vakinhahoje.icu/checkout';
+    } else if (matchedPrimeTrackPixel?.domain && matchedPrimeTrackPixel.domain !== '*') {
+      eventSourceUrl = `https://${matchedPrimeTrackPixel.domain.replace(/^https?:\/\//, '')}/checkout`;
+    } else {
+      eventSourceUrl = 'https://checkout.primetrack.top/checkout';
+    }
 
     const eventTime = Math.floor(new Date(orderRecord.createdAt || Date.now()).getTime() / 1000);
     const capiResult = await sendCapiEvent({
       pixelId: targetPixelId,
-      accessToken: activeToken,
+      accessToken: targetToken,
       eventName: 'Purchase',
       eventId: `capi_pur_${orderCode}`,
       eventTime,
-      eventSourceUrl: 'https://app.stalkea.top/',
+      eventSourceUrl,
       userData: {
         email: orderRecord.customer?.email,
         phone: orderRecord.customer?.phone,
         name: orderRecord.customer?.name,
-        client_ip_address: orderRecord.ip_address || '45.176.17.130',
+        client_ip_address: orderRecord.ip_address || '177.136.106.38',
         client_user_agent: 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36',
-        country: 'BR'
+        country: 'BR',
+        fbp: orderRecord.attribution?.fbp,
+        fbc: orderRecord.attribution?.fbc
       },
       customData: {
         currency: 'BRL',
-        value: Number(orderRecord.grossAmount || orderRecord.amount || 37.00),
-        content_name: orderRecord.productName || 'Stalkea',
+        value: Number(orderRecord.grossAmount || orderRecord.amount || 0),
+        content_name: orderRecord.productName || 'Produto',
         order_id: orderCode
       }
     });
@@ -2003,10 +2129,15 @@ async function dispatchMonsterPayCapi(orderRecord) {
         timestamp: orderRecord.createdAt || new Date().toISOString(),
         emq: capiResult.emq?.score || 9.6,
         capiStatus: 'success',
-        amount: Number(orderRecord.grossAmount || orderRecord.amount || 37.00),
-        attribution: orderRecord.attribution
+        amount: Number(orderRecord.grossAmount || orderRecord.amount || 0),
+        attribution: {
+          ...orderRecord.attribution,
+          metaPixelId: targetPixelId
+        }
       };
       db.append('events', eventRecord);
+    } else {
+      console.warn(`[MonsterPay CAPI Sync] Falha ao enviar para o Pixel ${targetPixelId}:`, capiResult?.error || capiResult?.response);
     }
   } catch (err) {
     console.warn('[MonsterPay CAPI Sync] Erro:', err.message);
@@ -2113,16 +2244,28 @@ async function getAllOrders(forceFresh = false, userId = null) {
           let resolvedAccId = '806160179256359';
           let resolvedAccName = 'CA01 BM7';
           const allCamps = db.get('campaigns') || [];
+          let cMatch = null;
           if (campId) {
-            const cMatch = allCamps.find(c => String(c.id).trim() === String(campId).trim());
+            cMatch = allCamps.find(c => String(c.id).trim() === String(campId).trim());
+            if (!cMatch) {
+              for (const entry of campaignsCache.values()) {
+                if (Array.isArray(entry.data)) {
+                  const found = entry.data.find(c => String(c.id).trim() === String(campId).trim());
+                  if (found) { cMatch = found; break; }
+                }
+              }
+            }
             if (cMatch) {
               resolvedAccId = String(cMatch.accountId || cMatch.adAccountId || '').replace('act_', '');
               resolvedAccName = cMatch.accountName || cMatch.account_name || resolvedAccName;
             }
           }
-          if (campName.toLowerCase().includes('pessoal') || campName.toLowerCase().includes('julia') || (campId && String(campId) === '52615762127221')) {
+          if (campName.toLowerCase().includes('pessoal') || (campId && String(campId) === '52615762127221')) {
             resolvedAccId = '1396541275925294';
             resolvedAccName = 'Julia Vitoria';
+          } else if (String(campId) === '120254044832120422' || String(campId) === '120254044828470422' || campName.toLowerCase().includes('1-3-1') || campName.toLowerCase().includes('mirella') || String(resolvedAccId) === '618758810108571') {
+            resolvedAccId = '618758810108571';
+            resolvedAccName = 'Julia Macedo';
           }
 
           const orderObj = {
