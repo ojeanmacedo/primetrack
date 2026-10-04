@@ -898,10 +898,20 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   const loadData = async (customPreset = periodFilterRef.current, customRangeObj = customRangeRef.current, isBackground = false, forceRefresh = false) => {
     const reqId = ++latestRequestIdRef.current;
+    if (typeof window !== 'undefined') {
+      try {
+        const v = localStorage.getItem('primetrack_cache_v5');
+        if (!v) {
+          localStorage.removeItem('primetrack_sync_overrides');
+          localStorage.removeItem('primetrack_sync_overrides_usr_1788826403159');
+          localStorage.removeItem('primetrack_cached_campaigns');
+          localStorage.setItem('primetrack_cache_v5', '1');
+        }
+      } catch (e) {}
+    }
     const saved = typeof window !== 'undefined' 
       ? (localStorage.getItem(userAccKey) || localStorage.getItem('primetrack_ad_accounts')) 
       : null;
-    let localSyncMap = {};
     let currentActiveAccs = [];
     if (saved) {
       try {
@@ -915,21 +925,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             } catch (e) {}
           }
 
-          parsed.forEach(p => {
-            if (p.id) {
-              const cleanKey = String(p.id).replace('act_', '');
-              let isSync = p.sync;
-              if (localOverrides[cleanKey] !== undefined) {
-                isSync = Boolean(localOverrides[cleanKey]);
-              } else if (localOverrides[`act_${cleanKey}`] !== undefined) {
-                isSync = Boolean(localOverrides[`act_${cleanKey}`]);
-              }
-              localSyncMap[cleanKey] = isSync;
-              localSyncMap[`act_${cleanKey}`] = isSync;
-              p.sync = isSync;
-            }
+          const activeList = parsed.filter(a => {
+            const isBlocked = a.status === 'Bloqueada' || a.status === 'DISABLED';
+            if (isBlocked) return false;
+            const cleanKey = String(a.id || '').replace('act_', '');
+            if (localOverrides[cleanKey] !== undefined) return Boolean(localOverrides[cleanKey]);
+            if (localOverrides[`act_${cleanKey}`] !== undefined) return Boolean(localOverrides[`act_${cleanKey}`]);
+            return a.sync === true;
           });
-          const activeList = parsed.filter(a => a.sync === true);
           currentActiveAccs = activeList;
           if (activeList.length > 0) {
             setAdAccountsList(activeList);
@@ -1026,17 +1029,16 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         const mappedAccs = data.adAccounts
           .map(a => {
             const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
-            let isSyncActive;
-            if (localOverrides[accId] !== undefined) {
-              isSyncActive = Boolean(localOverrides[accId]);
-            } else if (localOverrides[`act_${accId}`] !== undefined) {
-              isSyncActive = Boolean(localOverrides[`act_${accId}`]);
-            } else if (localSyncMap[accId] !== undefined) {
-              isSyncActive = Boolean(localSyncMap[accId]);
-            } else if (localSyncMap[`act_${accId}`] !== undefined) {
-              isSyncActive = Boolean(localSyncMap[`act_${accId}`]);
-            } else {
-              isSyncActive = a.syncActive === true;
+            const isAccountActive = a.status === 'ACTIVE' || a.status === 'Ativa';
+            let isSyncActive = false;
+            if (isAccountActive) {
+              if (localOverrides[accId] !== undefined) {
+                isSyncActive = Boolean(localOverrides[accId]);
+              } else if (localOverrides[`act_${accId}`] !== undefined) {
+                isSyncActive = Boolean(localOverrides[`act_${accId}`]);
+              } else {
+                isSyncActive = a.syncActive === true;
+              }
             }
 
             return {
@@ -1044,7 +1046,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               id: accId,
               bm: a.businessName || 'BM Principal',
               currency: a.currency || a.rawCurrency || 'BRL',
-              status: a.status === 'ACTIVE' || a.status === 'Ativa' ? 'Ativa' : 'Bloqueada',
+              status: isAccountActive ? 'Ativa' : 'Bloqueada',
               balance: a.balance || '0,00',
               amountSpent: a.amountSpent || '0,00',
               sync: isSyncActive

@@ -476,11 +476,22 @@ export default function Dashboard() {
 
   const [adAccountsList, setAdAccountsList] = useState(() => {
     if (typeof window !== 'undefined') {
+      try {
+        const v = localStorage.getItem('primetrack_cache_v5');
+        if (!v) {
+          localStorage.removeItem('primetrack_sync_overrides');
+          localStorage.removeItem('primetrack_sync_overrides_usr_1788826403159');
+          localStorage.removeItem('primetrack_cached_campaigns');
+          localStorage.removeItem('primetrack_cached_period_Hoje_usr_1788826403159');
+          localStorage.removeItem('primetrack_cached_period_Hoje');
+          localStorage.setItem('primetrack_cache_v5', '1');
+        }
+      } catch (e) {}
       const saved = localStorage.getItem('primetrack_ad_accounts');
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) return parsed.filter(a => a.sync === true);
+          if (Array.isArray(parsed)) return parsed.filter(a => a.sync === true && a.status !== 'Bloqueada' && a.status !== 'DISABLED');
         } catch (e) {}
       }
     }
@@ -634,24 +645,71 @@ export default function Dashboard() {
 
     const isToday = customPeriod === 'Hoje';
 
-    // Para período de hoje, se tiver contas ativas filtra; mas para períodos passados (Ontem, 7D, 30D, Mês passado),
-    // NUNCA limita aos IDs ativos no query param, garantindo que o servidor traga o histórico de todas as contas que gastaram!
-    const activeAccountsParam = (isToday && adAccountsList.length > 0)
-      ? `&activeAccounts=${encodeURIComponent(adAccountsList.filter(a => a.sync).map(a => a.id).join(','))}` 
-      : '';
-    const activeHeaders = (isToday && adAccountsList.length > 0)
-      ? { 'x-active-accounts': adAccountsList.filter(a => a.sync).map(a => a.id).join(',') }
-      : {};
+    let currentActiveAccs = adAccountsList.filter(a => a.sync === true && a.status !== 'Bloqueada' && a.status !== 'DISABLED');
+    let prefetchedMetaStatus = null;
 
-    const userHeaders = user?.id ? { 'x-user-id': user.id, ...activeHeaders } : { ...activeHeaders };
     const userParam = user?.id ? `&userId=${encodeURIComponent(user.id)}` : '';
     const userParamFirst = user?.id ? `?userId=${encodeURIComponent(user.id)}` : '';
 
+    if (isToday && currentActiveAccs.length === 0) {
+      try {
+        const sRes = await fetch('/api/meta/status' + userParamFirst, { headers: user?.id ? { 'x-user-id': user.id } : {} });
+        prefetchedMetaStatus = await sRes.json().catch(() => null);
+        if (prefetchedMetaStatus && Array.isArray(prefetchedMetaStatus.adAccounts)) {
+          const userOverridesKey = user?.id ? `primetrack_sync_overrides_${user.id}` : 'primetrack_sync_overrides';
+          let localOverrides = {};
+          if (typeof window !== 'undefined') {
+            try {
+              localOverrides = JSON.parse(localStorage.getItem(userOverridesKey) || localStorage.getItem('primetrack_sync_overrides') || '{}');
+            } catch (e) {}
+          }
+          const mapped = prefetchedMetaStatus.adAccounts.map(a => {
+            const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
+            const isActive = a.status === 'ACTIVE' || a.status === 'Ativa' || a.account_status === 1;
+            let isSync = false;
+            if (isActive) {
+              if (localOverrides[accId] !== undefined) {
+                isSync = Boolean(localOverrides[accId]);
+              } else if (localOverrides[`act_${accId}`] !== undefined) {
+                isSync = Boolean(localOverrides[`act_${accId}`]);
+              } else {
+                isSync = a.syncActive === true;
+              }
+            }
+            return {
+              ...a,
+              id: accId,
+              status: isActive ? 'Ativa' : 'Bloqueada',
+              sync: isSync
+            };
+          });
+          currentActiveAccs = mapped.filter(a => a.sync);
+          setAdAccountsList(currentActiveAccs);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('primetrack_ad_accounts', JSON.stringify(mapped));
+          }
+        }
+      } catch (e) {}
+    }
+
+    // Para período de hoje, se tiver contas ativas filtra; mas para períodos passados (Ontem, 7D, 30D, Mês passado),
+    // NUNCA limita aos IDs ativos no query param, garantindo que o servidor traga o histórico de todas as contas que gastaram!
+    const activeAccountsParam = (isToday && currentActiveAccs.length > 0)
+      ? `&activeAccounts=${encodeURIComponent(currentActiveAccs.map(a => a.id).join(','))}` 
+      : '';
+    const activeHeaders = (isToday && currentActiveAccs.length > 0)
+      ? { 'x-active-accounts': currentActiveAccs.map(a => a.id).join(',') }
+      : {};
+
+    const userHeaders = user?.id ? { 'x-user-id': user.id, ...activeHeaders } : { ...activeHeaders };
+
     try {
       // Se já temos as contas carregadas, não trava esperando /api/meta/status a cada troca de data
-      const statusPromise = (adAccountsList.length === 0)
-        ? fetch('/api/meta/status' + userParamFirst, { headers: userHeaders }).then(r => r.json()).catch(() => ({}))
-        : Promise.resolve(null);
+      const statusPromise = prefetchedMetaStatus
+        ? Promise.resolve(prefetchedMetaStatus)
+        : ((adAccountsList.length === 0)
+          ? fetch('/api/meta/status' + userParamFirst, { headers: userHeaders }).then(r => r.json()).catch(() => ({}))
+          : Promise.resolve(null));
 
       // Se os pedidos já estão carregados na memória do cliente, não trava esperando /api/orders na troca de período
       const ordersPromise = (ordersList.length === 0)
@@ -705,47 +763,41 @@ export default function Dashboard() {
         }
 
         if (data && Array.isArray(data.adAccounts) && data.adAccounts.length > 0) {
-          const saved = typeof window !== 'undefined' ? localStorage.getItem('primetrack_ad_accounts') : null;
-          let localSyncMap = {};
-          if (saved) {
-            try {
-              const parsed = JSON.parse(saved);
-              if (Array.isArray(parsed)) {
-                parsed.forEach(p => {
-                  if (p.id) localSyncMap[p.id] = p.sync;
-                });
-              }
-            } catch (e) {}
-          }
-
+          const userOverridesKey = user?.id ? `primetrack_sync_overrides_${user.id}` : 'primetrack_sync_overrides';
           let localOverrides = {};
           if (typeof window !== 'undefined') {
             try {
-              localOverrides = JSON.parse(localStorage.getItem('primetrack_sync_overrides') || '{}');
+              localOverrides = JSON.parse(localStorage.getItem(userOverridesKey) || localStorage.getItem('primetrack_sync_overrides') || '{}');
             } catch (e) {}
           }
 
           const allMappedAccs = data.adAccounts.map(a => {
             const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
-            let isSync;
-            if (localOverrides[accId] !== undefined) {
-              isSync = Boolean(localOverrides[accId]);
-            } else if (localOverrides[`act_${accId}`] !== undefined) {
-              isSync = Boolean(localOverrides[`act_${accId}`]);
-            } else if (localSyncMap[accId] !== undefined) {
-              isSync = localSyncMap[accId] === true;
-            } else {
-              isSync = a.syncActive === true;
+            const isAccountActive = a.status === 'ACTIVE' || a.status === 'Ativa' || a.account_status === 1;
+            let isSync = false;
+            if (isAccountActive) {
+              if (localOverrides[accId] !== undefined) {
+                isSync = Boolean(localOverrides[accId]);
+              } else if (localOverrides[`act_${accId}`] !== undefined) {
+                isSync = Boolean(localOverrides[`act_${accId}`]);
+              } else {
+                isSync = a.syncActive === true;
+              }
             }
             return {
               ...a,
               id: accId,
+              status: isAccountActive ? 'Ativa' : 'Bloqueada',
               sync: isSync
             };
           });
 
-          // Mantém todas as contas mapeadas para que qualquer conta (mesmo bloqueada ou inativa hoje) possa ser selecionada no filtro
-          setAdAccountsList(allMappedAccs);
+          // Filtra estritamente apenas as contas ativas (4 contas autorizadas)
+          const activeOnly = allMappedAccs.filter(a => a.sync === true);
+          setAdAccountsList(activeOnly);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('primetrack_ad_accounts', JSON.stringify(allMappedAccs));
+          }
         } else if (data && Array.isArray(data.adAccounts) && data.adAccounts.length === 0) {
           setAdAccountsList([]);
           if (typeof window !== 'undefined') {
@@ -952,10 +1004,11 @@ export default function Dashboard() {
         if (match) return cAdId === String(match.id);
         return c.accountName === selectedAccount || cAdId === selectedAccount;
       }
-      // Se for Hoje, filtra apenas pelas contas ativas no momento OU com gasto/vendas reais hoje
+      // Se for Hoje, filtra apenas pelas contas ativas no momento E que tenham status ativo ou gasto/vendas reais hoje
       // Se for período passado (Ontem, 7D, 30D, etc.), preserva todas as campanhas do período com gasto/lucro
       if (isToday && adAccountsList.length > 0) {
-        return adAccountsList.some(acc => cAdId === String(acc.id)) || Number(c.spend || 0) > 0 || Number(c.sales || 0) > 0;
+        const belongsToActiveAcc = adAccountsList.some(acc => cAdId === String(acc.id) || (acc.name && c.accountName === acc.name));
+        return belongsToActiveAcc && (c.status === true || Number(c.spend || 0) > 0 || Number(c.sales || 0) > 0);
       }
       return true;
     });

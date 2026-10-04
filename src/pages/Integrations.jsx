@@ -235,6 +235,17 @@ export default function Integrations() {
   };
 
   const loadAdAccounts = (dashId, isDef) => {
+    if (typeof window !== 'undefined') {
+      try {
+        const v = localStorage.getItem('primetrack_cache_v5');
+        if (!v) {
+          localStorage.removeItem('primetrack_sync_overrides');
+          localStorage.removeItem('primetrack_sync_overrides_usr_1788826403159');
+          localStorage.removeItem('primetrack_cached_campaigns');
+          localStorage.setItem('primetrack_cache_v5', '1');
+        }
+      } catch (e) {}
+    }
     if (typeof window === 'undefined') return [];
     const isDisc = localStorage.getItem(userDisconKey) === 'true' || localStorage.getItem('primetrack_meta_disconnected') === 'true';
     if (isDisc && (isDef || dashId === 'principal')) {
@@ -254,6 +265,10 @@ export default function Integrations() {
         if (Array.isArray(parsed)) {
           return parsed.map(a => {
             const cleanId = String(a.id || a.accountId || '').replace('act_', '');
+            const isBlocked = a.status === 'Bloqueada' || a.status === 'DISABLED';
+            if (isBlocked) {
+              return { ...a, sync: false };
+            }
             if (overrides[cleanId] !== undefined) {
               return { ...a, sync: Boolean(overrides[cleanId]) };
             }
@@ -732,6 +747,12 @@ export default function Integrations() {
     const cleanTargetId = String(accountId).replace('act_', '');
     const target = adAccounts.find(a => String(a.id).replace('act_', '') === cleanTargetId);
     if (!target) return;
+
+    if (!target.sync && (target.status === 'Bloqueada' || target.status === 'DISABLED')) {
+      setAccountSwitchToast('⚠️ Esta conta está bloqueada no Meta Ads e não pode ser ativada.');
+      setTimeout(() => setAccountSwitchToast(null), 4000);
+      return;
+    }
 
     const nextSync = !target.sync;
     let updated;
@@ -1331,25 +1352,6 @@ export default function Integrations() {
             localStorage.removeItem('primetrack_ad_accounts');
             localStorage.removeItem(userAccKey);
           } else {
-            const savedLocal = typeof window !== 'undefined' 
-              ? (localStorage.getItem(userAccKey) || localStorage.getItem('primetrack_ad_accounts')) 
-              : null;
-            let localSyncMap = {};
-            if (savedLocal) {
-              try {
-                const parsed = JSON.parse(savedLocal);
-                if (Array.isArray(parsed)) {
-                  parsed.forEach(p => {
-                    if (p.id) {
-                      const cleanKey = String(p.id).replace('act_', '');
-                      localSyncMap[cleanKey] = p.sync;
-                      localSyncMap[`act_${cleanKey}`] = p.sync;
-                    }
-                  });
-                }
-              } catch (e) {}
-            }
-
             const userOverridesKey = currentUser?.id ? `primetrack_sync_overrides_${currentUser.id}` : 'primetrack_sync_overrides';
             let localOverrides = {};
             if (typeof window !== 'undefined') {
@@ -1362,19 +1364,16 @@ export default function Integrations() {
               const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
               const isAccountActive = a.status === 'ACTIVE' || a.status === 'Ativa' || a.account_status === 1;
               
-              // Prioridade 1: Decisão explícita tomada pelo usuário no navegador
-              let isSyncActive;
-              if (localOverrides[accId] !== undefined) {
-                isSyncActive = Boolean(localOverrides[accId]);
-              } else if (localOverrides[`act_${accId}`] !== undefined) {
-                isSyncActive = Boolean(localOverrides[`act_${accId}`]);
-              } else if (localSyncMap[accId] !== undefined) {
-                isSyncActive = Boolean(localSyncMap[accId]);
-              } else if (localSyncMap[`act_${accId}`] !== undefined) {
-                isSyncActive = Boolean(localSyncMap[`act_${accId}`]);
-              } else {
-                // Prioridade 2: Status do backend se o usuário ainda não tiver tocado na conta
-                isSyncActive = a.syncActive === true;
+              // Se a conta de anúncio estiver Bloqueada ou Inativa na Meta, ela NUNCA pode ter sincronização ativa!
+              let isSyncActive = false;
+              if (isAccountActive) {
+                if (localOverrides[accId] !== undefined) {
+                  isSyncActive = Boolean(localOverrides[accId]);
+                } else if (localOverrides[`act_${accId}`] !== undefined) {
+                  isSyncActive = Boolean(localOverrides[`act_${accId}`]);
+                } else {
+                  isSyncActive = a.syncActive === true;
+                }
               }
 
               const isRealPrepay = a.isPrepay === true || accId === '1218349886840112';
