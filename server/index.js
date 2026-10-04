@@ -2918,6 +2918,18 @@ export function enrichCampaignsWithTracking({
 // ponytail: formatCampaignsForUser preserva dados históricos (gasto/lucro) de campanhas passadas mesmo se a conta for desativada hoje; teto: se usuário quer zerar histórico, desconectar conexão inteira.
 export function formatCampaignsForUser(campaignsList, userActiveIds, isToday = false, allUserConnectedAccIds = null) {
   if (!Array.isArray(campaignsList)) return [];
+  const adAccounts = db.get('ad_accounts') || [];
+  const blockedAccIds = new Set();
+  const blockedAccNames = new Set();
+  adAccounts.forEach(a => {
+    const isBlocked = a.status === 'Bloqueada' || a.status === 'DISABLED' || a.account_status === 2 || a.syncActive === false;
+    if (isBlocked) {
+      const clean = String(a.accountId || a.id || '').replace('act_', '');
+      if (clean) blockedAccIds.add(clean);
+      if (a.name) blockedAccNames.add(String(a.name).toLowerCase().trim());
+    }
+  });
+
   return campaignsList.filter(c => {
     const cActId = String(c.adAccountId || c.accountId || '').replace('act_', '');
     const isDeleted = isItemDeleted(c.id);
@@ -2939,8 +2951,15 @@ export function formatCampaignsForUser(campaignsList, userActiveIds, isToday = f
     const hasHistoricalData = (Number(c.spend) > 0) || (Number(c.revenue) > 0) || (Number(c.sales) > 0) || (Number(c.impressions) > 0);
     return hasHistoricalData;
   }).map(c => {
+    const cActId = String(c.adAccountId || c.accountId || '').replace('act_', '');
+    const cAccName = (c.accountName || '').toLowerCase().trim();
+    const isParentBlocked = (cActId && blockedAccIds.has(cActId)) || (cAccName && blockedAccNames.has(cAccName));
+
     const campOverride = getEffectiveStatusOverride(c.id);
-    const campStatus = campOverride !== undefined ? campOverride : c.status;
+    let campStatus = campOverride !== undefined ? campOverride : c.status;
+    if (isParentBlocked) {
+      campStatus = false;
+    }
     const cDetail = getEffectiveDetailOverride(c.id);
     const campBudget = cDetail?.budget !== undefined ? cDetail.budget : c.budget;
     const campBidCap = cDetail?.bidCap !== undefined ? cDetail.bidCap : c.bidCap;
@@ -2958,7 +2977,7 @@ export function formatCampaignsForUser(campaignsList, userActiveIds, isToday = f
       adsets: (c.adsets || []).filter(a => a && !isItemDeleted(a.id || a.adsetId)).map(a => {
         const asOverride = getEffectiveStatusOverride(a.id || a.adsetId);
         let asStatus = asOverride !== undefined ? asOverride : a.status;
-        if (!campStatus && asOverride === undefined) asStatus = false;
+        if ((!campStatus || isParentBlocked) && asOverride === undefined) asStatus = false;
         const asDetail = getEffectiveDetailOverride(a.id || a.adsetId);
         return {
           ...a,
@@ -2974,7 +2993,7 @@ export function formatCampaignsForUser(campaignsList, userActiveIds, isToday = f
       ads: (c.ads || []).filter(ad => ad && !isItemDeleted(ad.id || ad.adId)).map(ad => {
         const adOverride = getEffectiveStatusOverride(ad.id || ad.adId);
         let adStatus = adOverride !== undefined ? adOverride : ad.status;
-        if (!campStatus && adOverride === undefined) adStatus = false;
+        if ((!campStatus || isParentBlocked) && adOverride === undefined) adStatus = false;
         const adDetail = getEffectiveDetailOverride(ad.id || ad.adId);
         return {
           ...ad,
@@ -3429,6 +3448,21 @@ app.get('/api/campaigns', async (req, res) => {
         else userActiveIds.delete(clean);
       });
     }
+
+    // Complementa com contas marcadas explicitamente como syncActive: true no ad_accounts
+    const allAccsForUser = db.get('ad_accounts') || [];
+    allAccsForUser.forEach(a => {
+      const aUser = a.userId || a.user_id;
+      const isUserMatch = !userId || (isOwnerUserId(effectiveUser) ? (!aUser || isOwnerUserId(aUser)) : (aUser === effectiveUser));
+      if (isUserMatch) {
+        const clean = String(a.accountId || a.id || '').replace('act_', '');
+        if (a.syncActive === true && a.status !== 'Bloqueada' && a.status !== 'DISABLED') {
+          userActiveIds.add(clean);
+        } else if (a.status === 'Bloqueada' || a.status === 'DISABLED' || a.syncActive === false) {
+          userActiveIds.delete(clean);
+        }
+      }
+    });
   }
 
   // Carrega todas as contas vinculadas do usuário no store/Supabase
@@ -4195,6 +4229,21 @@ export const getActiveSetForUser = (targetUserId, optionalConnections = null) =>
       }
     });
   }
+
+  // Complementa com contas marcadas como syncActive: true em ad_accounts
+  const allAccsForUser = db.get('ad_accounts') || [];
+  allAccsForUser.forEach(a => {
+    const aUser = a.userId || a.user_id;
+    const isUserMatch = !targetUserId || (isOwnerUserId(effectiveUser) ? (!aUser || isOwnerUserId(aUser)) : (aUser === effectiveUser));
+    if (isUserMatch) {
+      const clean = String(a.accountId || a.id || '').replace('act_', '');
+      if (a.syncActive === true && a.status !== 'Bloqueada' && a.status !== 'DISABLED') {
+        set.add(clean);
+      } else if (a.status === 'Bloqueada' || a.status === 'DISABLED' || a.syncActive === false) {
+        set.delete(clean);
+      }
+    }
+  });
 
   // Aplica overrides manuais se existirem
   const overrides = db.get(`sync_overrides_${effectiveUser}`) || (isOwnerUserId(effectiveUser) ? db.get('sync_overrides') : null);

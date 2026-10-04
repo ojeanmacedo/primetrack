@@ -179,8 +179,31 @@ export const addDeletedIds = (ids) => {
   } catch (e) {}
 };
 
-export const isStatusActive = (item) => {
+export const isStatusActive = (item, optionalAccounts = null) => {
   if (!item) return false;
+
+  // 1. Se a campanha/conjunto/anúncio pertence a uma conta de anúncio bloqueada ou inativa, NUNCA é ativa!
+  const accId = String(item.adAccountId || item.accountId || '').replace('act_', '');
+  const accName = (item.accountName || '').toLowerCase().trim();
+
+  let accounts = optionalAccounts;
+  if (!accounts && typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('primetrack_ad_accounts');
+      if (raw) accounts = JSON.parse(raw);
+    } catch (e) {}
+  }
+  if (Array.isArray(accounts) && accounts.length > 0) {
+    const parentAcc = accounts.find(a => {
+      const aId = String(a.id || a.accountId || '').replace('act_', '');
+      const aName = (a.name || '').toLowerCase().trim();
+      return (aId && aId === accId) || (aName && (aName === accName || accName.includes(aName) || aName.includes(accName)));
+    });
+    if (parentAcc && (parentAcc.status === 'Bloqueada' || parentAcc.status === 'DISABLED' || parentAcc.sync === false)) {
+      return false;
+    }
+  }
+
   const itemId = String(item.id || item.adsetId || item.adId || '');
   if (itemId && typeof window !== 'undefined') {
     const overrides = getStatusOverrides();
@@ -204,18 +227,43 @@ export const isStatusActive = (item) => {
   return item.status === true || item.status === 'ACTIVE' || item.rawStatus === 'ACTIVE' || item.effectiveStatus === 'ACTIVE';
 };
 
-export const sanitizeCampaignsData = (cData) => {
+export const sanitizeCampaignsData = (cData, optionalAccounts = null) => {
   if (!Array.isArray(cData)) return [];
   const deletedIds = getDeletedIds();
   const overrides = getStatusOverrides();
   const detailOverrides = getDetailOverrides();
 
+  let accounts = optionalAccounts;
+  if (!accounts && typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('primetrack_ad_accounts');
+      if (raw) accounts = JSON.parse(raw);
+    } catch (e) {}
+  }
+  const blockedAccountIds = new Set();
+  const blockedAccountNames = new Set();
+  if (Array.isArray(accounts)) {
+    accounts.forEach(a => {
+      if (a.status === 'Bloqueada' || a.status === 'DISABLED' || a.sync === false) {
+        if (a.id) blockedAccountIds.add(String(a.id).replace('act_', ''));
+        if (a.name) blockedAccountNames.add(String(a.name).toLowerCase().trim());
+      }
+    });
+  }
+
   return cData
     .filter(c => c && c.id && !deletedIds.has(String(c.id)))
     .map(c => {
+      const cAdId = String(c.adAccountId || c.accountId || '').replace('act_', '');
+      const cAccName = (c.accountName || '').toLowerCase().trim();
+      const isParentBlocked = (cAdId && blockedAccountIds.has(cAdId)) || (cAccName && blockedAccountNames.has(cAccName));
+
       const campIdStr = String(c.id);
       const campOverride = overrides[campIdStr];
-      const campActive = campOverride !== undefined ? campOverride.status : isStatusActive(c);
+      let campActive = campOverride !== undefined ? campOverride.status : isStatusActive(c, accounts);
+      if (isParentBlocked) {
+        campActive = false;
+      }
       const cDetail = detailOverrides[campIdStr];
 
       const spend = Number(c.spend || 0);
@@ -250,8 +298,8 @@ export const sanitizeCampaignsData = (cData) => {
         .map(a => {
           const asIdStr = String(a.id || a.adsetId);
           const asOverride = overrides[asIdStr];
-          let active = asOverride !== undefined ? asOverride.status : isStatusActive(a);
-          if (!campActive && asOverride === undefined) {
+          let active = asOverride !== undefined ? asOverride.status : isStatusActive(a, accounts);
+          if ((!campActive || isParentBlocked) && asOverride === undefined) {
             active = false;
           }
 
@@ -292,8 +340,8 @@ export const sanitizeCampaignsData = (cData) => {
         .map(ad => {
           const adIdStr = String(ad.id || ad.adId);
           const adOverride = overrides[adIdStr];
-          let adActive = adOverride !== undefined ? adOverride.status : isStatusActive(ad);
-          if (!campActive && adOverride === undefined) {
+          let adActive = adOverride !== undefined ? adOverride.status : isStatusActive(ad, accounts);
+          if ((!campActive || isParentBlocked) && adOverride === undefined) {
             adActive = false;
           }
           const adDetail = detailOverrides[adIdStr];
@@ -936,14 +984,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     const refreshParam = forceRefresh ? '&refresh=true' : '';
 
     try {
-      const statusPromise = (currentActiveAccs.length === 0 || forceRefresh)
-        ? fetch('/api/meta/status' + userParamFirst, { headers: userHeaders }).then(r => r.json()).catch(() => ({}))
-        : Promise.resolve(null);
-
-      const [statusData, crRes] = await Promise.all([
-        statusPromise,
-        fetch(`/api/campaigns?${query}${userParam}${activeAccountsParam}${refreshParam}`, { headers: userHeaders })
-      ]);
+      let statusData = null;
+      if (currentActiveAccs.length === 0 || forceRefresh) {
+        statusData = await fetch('/api/meta/status' + userParamFirst, { headers: userHeaders }).then(r => r.json()).catch(() => ({}));
+      }
 
       const data = statusData || {};
 
@@ -1026,6 +1070,20 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         }
       }
 
+      const targetAccountsToRequest = (accountFilter && accountFilter !== 'Todas')
+        ? currentActiveAccs.filter(a => a.name === accountFilter || a.id === accountFilter)
+        : currentActiveAccs;
+
+      const dynamicActiveParam = targetAccountsToRequest.length > 0 
+        ? `&activeAccounts=${encodeURIComponent(targetAccountsToRequest.map(a => a.id).join(','))}` 
+        : '';
+      const dynamicActiveHeader = targetAccountsToRequest.length > 0
+        ? { 'x-active-accounts': targetAccountsToRequest.map(a => a.id).join(',') }
+        : {};
+      const dynamicUserHeaders = user?.id ? { 'x-user-id': user.id, ...dynamicActiveHeader } : { ...dynamicActiveHeader };
+
+      const crRes = await fetch(`/api/campaigns?${query}${userParam}${dynamicActiveParam}${refreshParam}`, { headers: dynamicUserHeaders });
+
       const cData = await crRes.json().catch(() => null);
       if (reqId !== latestRequestIdRef.current) {
         return;
@@ -1064,7 +1122,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
         const activeIds = new Set(currentActiveAccs.map(a => String(a.id).replace('act_', '')));
         const activeNames = new Set(currentActiveAccs.map(a => (a.name || '').toLowerCase().trim()));
-        const sanitized = sanitizeCampaignsData(cData);
+        const sanitized = sanitizeCampaignsData(cData, currentActiveAccs);
         const onlyActive = activeIds.size > 0 
           ? sanitized.filter(c => {
               const cAdId = String(c.adAccountId || c.accountId || '').replace('act_', '');

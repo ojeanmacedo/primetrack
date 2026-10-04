@@ -291,6 +291,13 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
 
   // 2. Busca métricas direto da Insights API (SEMPRE EM TEMPO REAL para o período exato solicitado)
   const cleanAct = actId.replace('act_', '');
+  const storedAccounts = db.get('ad_accounts') || [];
+  const matchedStoredAcc = storedAccounts.find(a => {
+    const aId = String(a.accountId || a.id || '').replace('act_', '');
+    return aId === cleanAct;
+  });
+  const isAccountBlocked = Boolean(matchedStoredAcc && (matchedStoredAcc.status === 'Bloqueada' || matchedStoredAcc.status === 'DISABLED' || matchedStoredAcc.account_status === 2 || matchedStoredAcc.syncActive === false));
+
   const nowStructure = Date.now();
   const cachedStructure = accountStructureCache.get(cleanAct) || accountStructureCache.get(actId);
   const isStructureValid = Boolean(cachedStructure && (nowStructure - cachedStructure.timestamp < 10 * 60 * 1000) && Array.isArray(cachedStructure.data?.data) && cachedStructure.data.data.length > 0);
@@ -810,12 +817,12 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       campaignId: adset.campaign_id,
       name: adset.name,
       accountName: accountName || 'Conta de Anúncios',
-      status: (adset.status === 'ACTIVE' || adset.status === true) && 
+      status: !isAccountBlocked && (adset.status === 'ACTIVE' || adset.status === true) && 
               adset.status !== 'PAUSED' && 
               adset.effective_status !== 'PAUSED' && 
               adset.effective_status !== 'ADSET_PAUSED',
-      rawStatus: adset.status,
-      effectiveStatus: adset.effective_status || adset.status,
+      rawStatus: isAccountBlocked ? 'PAUSED' : adset.status,
+      effectiveStatus: isAccountBlocked ? 'PAUSED' : (adset.effective_status || adset.status),
       budget: realBudget,
       budgetType: adset.daily_budget ? 'Diário' : 'Vitalício',
       bidCap: realBidCap,
@@ -908,12 +915,12 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       adAccountId: actId,
       accountId: actId.replace('act_', ''),
       accountName: accountName || 'Conta de Anúncios',
-      status: (ad.status === 'ACTIVE' || ad.status === true) && 
+      status: !isAccountBlocked && (ad.status === 'ACTIVE' || ad.status === true) && 
               ad.status !== 'PAUSED' && 
               ad.effective_status !== 'PAUSED' && 
               ad.effective_status !== 'AD_PAUSED',
-      rawStatus: ad.status,
-      effectiveStatus: ad.effective_status || ad.status,
+      rawStatus: isAccountBlocked ? 'PAUSED' : ad.status,
+      effectiveStatus: isAccountBlocked ? 'PAUSED' : (ad.effective_status || ad.status),
       mediaSrc: thumb,
       thumbnailUrl: thumb,
       videoUrl: null,
@@ -1076,7 +1083,8 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
       }
     }
 
-    const isPaused = !c.status || 
+    const isPaused = isAccountBlocked ||
+                     !c.status || 
                      c.status === 'PAUSED' || 
                      c.effective_status === 'PAUSED' || 
                      c.effective_status === 'CAMPAIGN_PAUSED' ||
