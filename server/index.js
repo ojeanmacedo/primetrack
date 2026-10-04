@@ -954,13 +954,16 @@ app.all([
             const token = conns?.[0]?.access_token;
             if (token) {
               if (attribution.campaignId) {
-                const metaRes = await fetch(`https://graph.facebook.com/v20.0/${attribution.campaignId}?fields=id,name,account_id&access_token=${token}`);
+                const metaRes = await fetch(`https://graph.facebook.com/v20.0/${attribution.campaignId}?fields=id,name,account_id,adsets{id,name,promoted_object}&access_token=${token}`);
                 const metaCamp = await metaRes.json();
                 if (metaCamp && metaCamp.account_id) {
+                  const promotedPx = metaCamp.adsets?.data?.find(a => a.promoted_object?.pixel_id)?.promoted_object?.pixel_id || null;
                   foundCamp = {
                     id: metaCamp.id,
                     name: metaCamp.name,
-                    account_id: metaCamp.account_id
+                    account_id: metaCamp.account_id,
+                    metaPixelId: promotedPx,
+                    adsets: metaCamp.adsets?.data || []
                   };
                   supabaseAdmin.from('campaigns').upsert({
                     id: String(metaCamp.id),
@@ -972,13 +975,15 @@ app.all([
                   }).then(() => {}).catch(() => {});
                 }
               } else if (attribution.adId) {
-                const metaRes = await fetch(`https://graph.facebook.com/v20.0/${attribution.adId}?fields=id,name,account_id,campaign_id&access_token=${token}`);
+                const metaRes = await fetch(`https://graph.facebook.com/v20.0/${attribution.adId}?fields=id,name,account_id,campaign_id,adset{id,name,promoted_object}&access_token=${token}`);
                 const metaAd = await metaRes.json();
                 if (metaAd && metaAd.account_id) {
                   foundCamp = {
                     id: metaAd.campaign_id,
                     name: metaAd.name,
-                    account_id: metaAd.account_id
+                    account_id: metaAd.account_id,
+                    metaPixelId: metaAd.adset?.promoted_object?.pixel_id || null,
+                    adsets: metaAd.adset ? [metaAd.adset] : []
                   };
                   if (!attribution.campaignId && metaAd.campaign_id) {
                     attribution.campaignId = metaAd.campaign_id;
@@ -1367,9 +1372,23 @@ app.all([
           if (directMatch.length > 0) {
             finalMetaPixelsToSend = directMatch;
           } else {
+            let pxToken = activeFbToken;
+            for (const p of pixels) {
+              if (p.metaPixelId === campaignPromotedPixelId) {
+                pxToken = p.capiTokenRaw || p.capiToken || pxToken;
+                break;
+              }
+              if (Array.isArray(p.metaPixels)) {
+                const sub = p.metaPixels.find(m => m.metaPixelId === campaignPromotedPixelId);
+                if (sub) {
+                  pxToken = sub.capiToken || p.capiTokenRaw || p.capiToken || pxToken;
+                  break;
+                }
+              }
+            }
             finalMetaPixelsToSend = [{
               pixelId: campaignPromotedPixelId,
-              accessToken: activeFbToken
+              accessToken: pxToken
             }];
           }
           console.log(`[Roteamento CAPI] Pixel oficial do Meta '${campaignPromotedPixelId}' atribuído com 100% de precisão à campanha '${normCamp}'`);
