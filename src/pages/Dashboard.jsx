@@ -692,12 +692,11 @@ export default function Dashboard() {
       } catch (e) {}
     }
 
-    // Para período de hoje, se tiver contas ativas filtra; mas para períodos passados (Ontem, 7D, 30D, Mês passado),
-    // NUNCA limita aos IDs ativos no query param, garantindo que o servidor traga o histórico de todas as contas que gastaram!
-    const activeAccountsParam = (isToday && currentActiveAccs.length > 0)
+    // Sempre envia as contas ativas do usuário para que o backend sincronize apenas o que importa com velocidade instantânea (< 2s)
+    const activeAccountsParam = currentActiveAccs.length > 0
       ? `&activeAccounts=${encodeURIComponent(currentActiveAccs.map(a => a.id).join(','))}` 
       : '';
-    const activeHeaders = (isToday && currentActiveAccs.length > 0)
+    const activeHeaders = currentActiveAccs.length > 0
       ? { 'x-active-accounts': currentActiveAccs.map(a => a.id).join(',') }
       : {};
 

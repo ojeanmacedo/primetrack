@@ -3084,11 +3084,10 @@ async function syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiv
   const syncPromise = (async () => {
     let syncResult = null;
     
-    // Para períodos históricos (ontem, 7d, 30d, etc.), NUNCA limita a sincronização apenas às contas ativas hoje!
-    // Sincroniza todas as contas conectadas do usuário para resgatar os gastos passados reais.
-    const targetAccountIds = (!isToday && allUserConnectedAccIds && allUserConnectedAccIds.size > 0)
-      ? Array.from(allUserConnectedAccIds)
-      : (userActiveIds.size > 0 ? Array.from(userActiveIds) : (allUserConnectedAccIds && allUserConnectedAccIds.size > 0 ? Array.from(allUserConnectedAccIds) : null));
+    // Prioriza sempre as contas ativas do usuário para velocidade máxima (< 2s)
+    const targetAccountIds = (userActiveIds && userActiveIds.size > 0)
+      ? Array.from(userActiveIds)
+      : (allUserConnectedAccIds && allUserConnectedAccIds.size > 0 ? Array.from(allUserConnectedAccIds) : null);
 
     try {
       syncResult = await executeMetaSync({ 
@@ -3586,6 +3585,20 @@ app.get('/api/campaigns', async (req, res) => {
       res.set('Cache-Control', 'private, max-age=10');
       res.set('X-Cache', 'STALE');
       return res.json(filteredCached);
+    }
+  }
+
+  // Se não há cache em RAM, verifica se já temos dados salvos no banco local para entrega instantânea (< 5ms)
+  if (refresh !== 'true') {
+    const savedPeriodData = getDailyCampaignInsights(userId, resolvedRange.since, resolvedRange.until, resolvedRange.isMaximum);
+    if (savedPeriodData && savedPeriodData.length > 0) {
+      // Revalida em segundo plano sem travar a resposta do usuário (Padrão Utmify)
+      syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiveIds, cacheKey, resolvedRange, todayBrazil, allUserConnectedAccIds })
+        .catch(e => console.warn('[Background DB Sync]:', e.message));
+      const formatted = formatCampaignsForUser(savedPeriodData, userActiveIds, isToday, allUserConnectedAccIds);
+      res.set('Cache-Control', 'private, max-age=10');
+      res.set('X-Cache', 'STALE-DB');
+      return res.json(formatted);
     }
   }
 

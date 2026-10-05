@@ -547,8 +547,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       localStorage.removeItem('primetrack_campaigns_period_filter');
       localStorage.removeItem('primetrack_campaigns_custom_range');
       localStorage.removeItem('primetrack_status_filter');
-      localStorage.removeItem('primetrack_cached_campaigns');
-      localStorage.removeItem('primetrack_cached_campaigns_date');
     }
   }, []);
 
@@ -717,7 +715,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       }
 
       const periodKeyHoje = getCampPeriodKey(userId, 'Hoje', null);
-      const saved = localStorage.getItem(periodKeyHoje) || localStorage.getItem(userCampKey);
+      const saved = localStorage.getItem(periodKeyHoje) || localStorage.getItem(userCampKey) || localStorage.getItem('primetrack_cached_campaigns');
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
@@ -1197,7 +1195,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       });
     }
 
-    loadData(periodFilterRef.current, customRangeRef.current);
+    const hasCached = campaignsList.length > 0 || (typeof window !== 'undefined' && Boolean(localStorage.getItem('primetrack_cached_campaigns')));
+    if (hasCached) {
+      setSyncing(true);
+      loadData(periodFilterRef.current, customRangeRef.current, true, false);
+    } else {
+      loadData(periodFilterRef.current, customRangeRef.current, false, false);
+    }
 
     const handleProfileSync = () => {
       loadData(periodFilterRef.current, customRangeRef.current);
