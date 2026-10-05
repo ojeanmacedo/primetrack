@@ -569,8 +569,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       // Revalida em segundo plano sem travar a interface nem zerar a tabela
       loadData(newPeriod, newRange, true, false);
     } else {
-      setIsLoadingData(true);
-      loadData(newPeriod, newRange, false, false);
+      if (campaignsList.length === 0) {
+        setIsLoadingData(true);
+      }
+      setSyncing(true);
+      loadData(newPeriod, newRange, campaignsList.length > 0, false);
     }
   };
 

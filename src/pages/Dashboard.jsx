@@ -506,6 +506,11 @@ export default function Dashboard() {
         if (cached && Array.isArray(cached.campaigns) && cached.campaigns.length > 0) {
           return cached.campaigns;
         }
+        const fallback = localStorage.getItem('primetrack_cached_campaigns');
+        if (fallback) {
+          const parsed = JSON.parse(fallback);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
       } catch (e) {}
     }
     return [];
@@ -516,8 +521,13 @@ export default function Dashboard() {
       try {
         const u = getCurrentUser();
         const cached = getCachedPeriodData(u?.id, 'Hoje', null);
-        if (cached && Array.isArray(cached.campaigns)) {
+        if (cached && Array.isArray(cached.campaigns) && cached.campaigns.length > 0) {
           return false;
+        }
+        const fallback = localStorage.getItem('primetrack_cached_campaigns');
+        if (fallback) {
+          const parsed = JSON.parse(fallback);
+          if (Array.isArray(parsed) && parsed.length > 0) return false;
         }
       } catch (e) {}
     }
