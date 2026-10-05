@@ -104,13 +104,17 @@ export default function Sales() {
         }
       }
 
-      const key = o.id || o.orderCode;
+      const key = o.orderCode || o.id;
       if (!orderMap.has(key)) {
-        orderMap.set(key, o);
+        orderMap.set(key, { ...o });
       } else {
         const existing = orderMap.get(key);
         if (['approved', 'paid', 'pago'].includes(o.status)) {
-          orderMap.set(key, o);
+          existing.status = 'approved';
+        }
+        if (o.id !== existing.id) {
+          existing.amount = Math.max(Number(existing.amount || 0), Number(o.amount || 0));
+          existing.grossAmount = Math.max(Number(existing.grossAmount || 0), Number(o.grossAmount || 0));
         }
       }
     }
@@ -253,7 +257,10 @@ function resolveCustomerCityState(cust, o) {
       email: cust.email || '—',
       city: cityState,
       product: o.productName || 'Produto',
-      value: `R$ ${Number(o.amount || 0).toFixed(2).replace('.', ',')}`,
+      hasBump: o.hasBump || false,
+      bumpCount: o.bumpCount || (Array.isArray(o.products) && o.products.length > 1 ? o.products.length - 1 : 0),
+      bumpNames: o.bumpNames || (Array.isArray(o.products) && o.products.length > 1 ? o.products.slice(1) : []),
+      value: `R$ ${Number(o.grossAmount || o.amount || 0).toFixed(2).replace('.', ',')}`,
       platform: o.gateway || 'MonsterPay',
       source: cleanSource,
       isOrganic,
@@ -410,7 +417,17 @@ function resolveCustomerCityState(cust, o) {
 
                   {/* Produto */}
                   <td className="py-3.5 px-4 text-zinc-300 text-xs font-medium">
-                    {sale.product}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span>{sale.product}</span>
+                      {sale.bumpCount > 0 && (
+                        <span 
+                          className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 font-mono"
+                          title={Array.isArray(sale.bumpNames) && sale.bumpNames.length > 0 ? `Order Bump: ${sale.bumpNames.join(' + ')}` : 'Com Order Bump'}
+                        >
+                          +{sale.bumpCount} Bump{sale.bumpCount > 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
                   </td>
 
                   {/* Valor */}

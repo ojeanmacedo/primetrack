@@ -1479,10 +1479,20 @@ app.all([
     }
     const orderUserId = tokenUserId || specificPixel?.userId || (isOwnerUserId(req.query.userId) ? req.query.userId : 'usr_1788826403159');
 
-    // 5. Dispara CAPI APENAS para pedidos APROVADOS / PAGOS (Evita compras duplicadas e eventos falsos de PIX pendente)
+    // 4.1 Carrega histórico do pedido para verificar se CAPI já foi enviado (anti-duplicação estrita)
+    const existingOrders = db.get('orders') || [];
+    const existingIdx = existingOrders.findIndex(o => o.orderCode === parsed.orderCode);
+    const prevOrder = existingIdx >= 0 ? existingOrders[existingIdx] : null;
+    const prevStatus = prevOrder ? prevOrder.status : null;
+    const alreadyCapiSent = (prevOrder && prevOrder.capiSent === true) || sentCapiOrdersSet.has(parsed.orderCode);
+
+    // 5. Dispara CAPI APENAS para pedidos APROVADOS / PAGOS e NUNCA duplica
     const isApproved = parsed.status === 'approved' || parsed.status === 'paid';
 
-    if (isApproved && finalMetaPixelsToSend.length > 0) {
+    if (isApproved && !alreadyCapiSent && finalMetaPixelsToSend.length > 0) {
+      // Bloqueio imediato na memória para evitar corridas simultâneas de webhook
+      sentCapiOrdersSet.add(parsed.orderCode);
+
       for (const targetMeta of finalMetaPixelsToSend) {
         const pxId = targetMeta.pixelId;
         const pxToken = targetMeta.accessToken;
@@ -1534,6 +1544,8 @@ app.all([
           }
         }
       }
+    } else if (alreadyCapiSent) {
+      console.log(`[CAPI Ignorado] Pedido ${parsed.orderCode} já teve Purchase disparado para o Meta CAPI anteriormente. Ignorando reenvio.`);
     } else if (!isApproved) {
       console.log(`[CAPI Ignorado] Pedido ${parsed.orderCode} com status '${parsed.status}'. Purchase só é enviado após aprovação do pagamento.`);
     }
@@ -1562,15 +1574,10 @@ app.all([
         client_ip: effectiveIp
       },
       emqScore: capiResult.emq.score,
-      capiSent: capiResult.success,
-      capiResponse: capiResult.response,
+      capiSent: capiResult.success || (prevOrder ? prevOrder.capiSent : false),
+      capiResponse: capiResult.response || (prevOrder ? prevOrder.capiResponse : null),
       createdAt: new Date().toISOString()
     };
-
-    const existingOrders = db.get('orders') || [];
-    const existingIdx = existingOrders.findIndex(o => o.orderCode === parsed.orderCode);
-    const prevOrder = existingIdx >= 0 ? existingOrders[existingIdx] : null;
-    const prevStatus = prevOrder ? prevOrder.status : null;
 
     if (existingIdx >= 0) {
       existingOrders[existingIdx] = {
@@ -1961,20 +1968,28 @@ const sentCapiOrdersSet = new Set();
 
 async function dispatchMonsterPayCapi(orderRecord) {
   try {
+    const isApproved = orderRecord?.status === 'approved' || orderRecord?.status === 'paid';
+    if (!isApproved) return;
+
     const orderCode = orderRecord.orderCode || orderRecord.id;
     if (!orderCode || sentCapiOrdersSet.has(orderCode)) return;
+
+    // Trava de concorrência atômica na memória imediata para impedir disparos paralelos
+    sentCapiOrdersSet.add(orderCode);
+
+    if (orderRecord.capiSent === true) {
+      return;
+    }
 
     const existingEvents = db.get('events') || [];
     const alreadyLogged = existingEvents.some(e => (e.eventId === `capi_pur_${orderCode}` || e.orderCode === orderCode) && e.capiStatus === 'success');
     if (alreadyLogged) {
-      sentCapiOrdersSet.add(orderCode);
       return;
     }
 
     // Meta CAPI só aceita eventos de até 7 dias atrás
     const orderTimestamp = new Date(orderRecord.createdAt || Date.now()).getTime();
     if (Date.now() - orderTimestamp > 7 * 24 * 60 * 60 * 1000) {
-      sentCapiOrdersSet.add(orderCode);
       return;
     }
 
@@ -2155,6 +2170,15 @@ async function dispatchMonsterPayCapi(orderRecord) {
         }
       };
       db.append('events', eventRecord);
+
+      try {
+        const mpClient = getMonsterPayClient();
+        if (orderRecord.rawPaymentId) {
+          mpClient.from('sales').update({ capi_purchase_sent: true }).eq('payment_id', orderRecord.rawPaymentId).then(() => {}).catch(() => {});
+        } else if (orderRecord.id) {
+          mpClient.from('sales').update({ capi_purchase_sent: true }).eq('id', orderRecord.id).then(() => {}).catch(() => {});
+        }
+      } catch (eMpUpdate) {}
     } else {
       console.warn(`[MonsterPay CAPI Sync] Falha ao enviar para o Pixel ${targetPixelId}:`, capiResult?.error || capiResult?.response);
     }
@@ -2224,19 +2248,56 @@ async function getAllOrders(forceFresh = false, userId = null) {
         .limit(300);
 
       if (Array.isArray(mpSales) && mpSales.length > 0) {
-        const mpOrders = mpSales.map(s => {
-          const gross = Number(s.amount || 0);
-          const pFee = Number(s.percent_fee || 0);
-          const fFee = Number(s.fixed_fee || 0);
-          const net = Number((gross - (gross * (pFee / 100)) - fFee).toFixed(2));
+        // Padrão de Ouro de Traqueamento (Utmify / Tracklead / Meta CAPI):
+        // 1 Checkout = 1 Venda Real (Agrupa order bumps pelo payment_id com soma total de faturamento)
+        const checkoutsMap = new Map();
+        mpSales.forEach(s => {
+          const payKey = s.payment_id || s.id;
+          if (!checkoutsMap.has(payKey)) {
+            checkoutsMap.set(payKey, []);
+          }
+          checkoutsMap.get(payKey).push(s);
+        });
+
+        const mpOrders = [];
+        const allCamps = db.get('campaigns') || [];
+
+        for (const [payKey, items] of checkoutsMap.entries()) {
+          // Ordena itens para que o produto de maior valor seja o produto principal
+          items.sort((a, b) => Number(b.amount || 0) - Number(a.amount || 0));
+          const primaryItem = items[0];
+
+          let totalGross = 0;
+          let totalNet = 0;
+          let anyPaid = false;
+          let anyRefunded = false;
+          let anyCapiSent = false;
+          const allProductNames = [];
+
+          items.forEach(item => {
+            const gross = Number(item.amount || 0);
+            const pFee = Number(item.percent_fee || 0);
+            const fFee = Number(item.fixed_fee || 0);
+            const net = Number((gross - (gross * (pFee / 100)) - fFee).toFixed(2));
+            totalGross += gross;
+            totalNet += net;
+
+            if (item.status === 'paid' || item.status === 'approved') anyPaid = true;
+            else if (item.status === 'refunded') anyRefunded = true;
+
+            if (item.capi_purchase_sent === true) anyCapiSent = true;
+
+            if (item.product_name && !allProductNames.includes(item.product_name)) {
+              allProductNames.push(item.product_name);
+            }
+          });
 
           let status = 'waiting_payment';
-          if (s.status === 'paid' || s.status === 'approved') status = 'approved';
-          else if (s.status === 'expired' || s.status === 'cancelled') status = 'cancelled';
-          else if (s.status === 'refunded') status = 'refunded';
-          else status = 'waiting_payment';
+          if (anyPaid) status = 'approved';
+          else if (anyRefunded) status = 'refunded';
+          else if (items.some(i => i.status === 'expired' || i.status === 'cancelled')) status = 'cancelled';
 
-          let campName = s.utm_campaign || 'Orgânico';
+          let campName = primaryItem.utm_campaign || 'Orgânico';
           let campId = null;
           if (campName && campName.includes('|')) {
             const parts = campName.split('|');
@@ -2244,7 +2305,7 @@ async function getAllOrders(forceFresh = false, userId = null) {
             campId = parts[1].trim();
           }
 
-          let adName = s.utm_content || '';
+          let adName = primaryItem.utm_content || '';
           let adId = null;
           if (adName && adName.includes('|')) {
             const parts = adName.split('|');
@@ -2252,7 +2313,7 @@ async function getAllOrders(forceFresh = false, userId = null) {
             adId = parts[1].trim();
           }
 
-          let adsetName = s.utm_medium || '';
+          let adsetName = primaryItem.utm_medium || '';
           let adsetId = null;
           if (adsetName && adsetName.includes('|')) {
             const parts = adsetName.split('|');
@@ -2262,7 +2323,6 @@ async function getAllOrders(forceFresh = false, userId = null) {
 
           let resolvedAccId = '806160179256359';
           let resolvedAccName = 'CA01 BM7';
-          const allCamps = db.get('campaigns') || [];
           let cMatch = null;
           if (campId) {
             cMatch = allCamps.find(c => String(c.id).trim() === String(campId).trim());
@@ -2287,23 +2347,31 @@ async function getAllOrders(forceFresh = false, userId = null) {
             resolvedAccName = 'Julia Macedo';
           }
 
+          const bumpCount = items.length > 1 ? (items.length - 1) : 0;
+          const bumpNames = items.length > 1 ? items.slice(1).map(i => i.product_name).filter(Boolean) : [];
+
           const orderObj = {
-            id: s.id,
+            id: payKey,
             userId: 'usr_1788826403159',
-            orderCode: s.payment_id || s.id,
+            orderCode: payKey,
+            rawPaymentId: payKey,
             gateway: 'MonsterPay',
-            productName: s.product_name || 'Vivendo De Internet',
+            productName: primaryItem.product_name || 'Vivendo De Internet',
+            products: allProductNames,
+            hasBump: bumpCount > 0,
+            bumpCount,
+            bumpNames,
             status,
             paymentMethod: 'pix',
-            amount: net,
-            commission: net,
-            grossAmount: gross,
-            ip_address: s.ip_address,
+            amount: Number(totalNet.toFixed(2)),
+            commission: Number(totalNet.toFixed(2)),
+            grossAmount: Number(totalGross.toFixed(2)),
+            ip_address: primaryItem.ip_address,
             customer: {
-              name: s.customer_name || 'Cliente MonsterPay',
-              email: s.customer_email || '',
-              phone: s.customer_phone || '',
-              document: s.customer_cpf || '',
+              name: primaryItem.customer_name || 'Cliente MonsterPay',
+              email: primaryItem.customer_email || '',
+              phone: primaryItem.customer_phone || '',
+              document: primaryItem.customer_cpf || '',
               city: '',
               state: ''
             },
@@ -2314,30 +2382,53 @@ async function getAllOrders(forceFresh = false, userId = null) {
               adsetId: adsetId,
               ad: adName,
               adId: adId,
-              source: s.utm_source || 'Facebook',
+              source: primaryItem.utm_source || 'Facebook',
               accountId: resolvedAccId,
               accountName: resolvedAccName
             }),
             emqScore: 9.7,
-            capiSent: s.capi_purchase_sent || false,
-            createdAt: s.created_at
+            capiSent: anyCapiSent,
+            createdAt: primaryItem.created_at
           };
 
-          // Disparo automático em background de CAPI para pedidos pagos
-          if (status === 'approved') {
+          // Disparo automático e único de CAPI para pedidos aprovados da MonsterPay
+          if (status === 'approved' && !anyCapiSent && !sentCapiOrdersSet.has(payKey)) {
+            sentCapiOrdersSet.add(payKey);
             dispatchMonsterPayCapi(orderObj).catch(e => console.warn('[AutoCAPI MP]:', e.message));
           }
 
-          return orderObj;
-        });
+          mpOrders.push(orderObj);
+        }
 
-        // Mescla sem duplicar com pedidos já carregados
+        // Mescla sem duplicar com pedidos já carregados, consolidando por código de pedido
         const existingCodes = new Set(orders.map(o => o.orderCode || o.id));
         mpOrders.forEach(mo => {
           if (!existingCodes.has(mo.orderCode) && !existingCodes.has(mo.id)) {
             orders.push(mo);
+            existingCodes.add(mo.orderCode);
+            existingCodes.add(mo.id);
           }
         });
+
+        // Consolida qualquer duplicata legada por orderCode
+        const consolidatedMap = new Map();
+        orders.forEach(o => {
+          const key = o.orderCode || o.id;
+          if (!consolidatedMap.has(key)) {
+            consolidatedMap.set(key, o);
+          } else {
+            const prev = consolidatedMap.get(key);
+            if (['approved', 'paid', 'pago'].includes(o.status)) {
+              consolidatedMap.set(key, {
+                ...prev,
+                ...o,
+                amount: Math.max(Number(prev.amount || 0), Number(o.amount || 0)),
+                grossAmount: Math.max(Number(prev.grossAmount || 0), Number(o.grossAmount || 0))
+              });
+            }
+          }
+        });
+        orders = Array.from(consolidatedMap.values());
 
         try {
           db.set('orders', orders);
@@ -2754,8 +2845,15 @@ export function enrichCampaignsWithTracking({
     const sumAdsetMetaSales = (c.adsets || []).reduce((sum, a) => sum + Number(a.metaPurchases || 0), 0);
     const sumAdsetMetaRev = (c.adsets || []).reduce((sum, a) => sum + Number(a.metaRevenue || 0), 0);
 
-    const totalSales = Math.max(webhookSales, pixelSales, metaCampSales, sumAdsetMetaSales);
-    const totalRevenue = Math.max(webhookRevenue, pixelRevenue, metaCampRev, sumAdsetMetaRev);
+    // REGRA ABSOLUTA DE OURO: Vendas reais rastreadas pelo Webhook são a única fonte de verdade!
+    // NUNCA inflar com metaCampSales (que reporta compras duplicadas do Facebook).
+    // metaCampSales só é utilizado como fallback se a campanha não tiver nenhum pedido de webhook rastreado.
+    const totalSales = webhookSales > 0 
+      ? webhookSales 
+      : (pixelSales > 0 ? pixelSales : Math.max(metaCampSales, sumAdsetMetaSales));
+    const totalRevenue = webhookSales > 0 
+      ? webhookRevenue 
+      : (pixelRevenue > 0 ? pixelRevenue : Math.max(metaCampRev, sumAdsetMetaRev));
     const spendNum = Number(c.spend || 0);
     const profitNum = totalRevenue - spendNum;
     const roasNum = spendNum > 0 ? (totalRevenue / spendNum).toFixed(2) : '0.00';
@@ -2785,24 +2883,25 @@ export function enrichCampaignsWithTracking({
       let asRevenue = 0;
 
       if (c.adsets.length === 1) {
-        // Se a campanha possui apenas 1 conjunto, todos os dados da campanha pertencem a ele
-        asSales = Math.max(totalSales, Number(as.metaPurchases || 0));
+        // Se a campanha possui apenas 1 conjunto, todos os dados reais da campanha pertencem a ele
+        asSales = totalSales;
         asPending = matchingPendingOrders.length;
-        asRevenue = Math.max(totalRevenue, Number(as.metaRevenue || 0));
+        asRevenue = totalRevenue;
       } else {
         // Múltiplos conjuntos (especialmente ABO, onde cada conjunto é independente):
-        // Reconcilia as vendas do webhook/pixel com os dados oficiais do Meta Insights daquele conjunto específico!
         const webhookAsSales = directOrders.length;
         const pixelAsSales = directPixelPurchases.length;
         const metaAsPurchases = Number(as.metaPurchases || 0);
-        asSales = Math.max(webhookAsSales, pixelAsSales, metaAsPurchases);
+        
+        // Prioridade absoluta para as vendas reais diretas do webhook
+        asSales = webhookAsSales > 0 ? webhookAsSales : (pixelAsSales > 0 ? pixelAsSales : metaAsPurchases);
         asPending = directPending.length;
 
         const webhookAsRev = directOrders.reduce((sum, o) => sum + Number(o.amount || 0), 0);
         const pixelAsRev = directPixelPurchases.reduce((sum, e) => sum + Number(e.amount || e.customData?.value || 0), 0);
         const metaAsRevenue = Number(as.metaRevenue || 0);
 
-        let effectiveAsRev = Math.max(webhookAsRev, pixelAsRev, metaAsRevenue);
+        let effectiveAsRev = webhookAsSales > 0 ? webhookAsRev : (pixelAsRev > 0 ? pixelAsRev : metaAsRevenue);
         if (effectiveAsRev === 0 && asSales > 0) {
           const avgTicket = (webhookRevenue > 0 && webhookSales > 0) ? (webhookRevenue / webhookSales) : 26.81;
           effectiveAsRev = asSales * avgTicket;
@@ -2855,21 +2954,23 @@ export function enrichCampaignsWithTracking({
       let adRevenue = 0;
 
       if (c.ads.length === 1) {
-        adSales = Math.max(totalSales, Number(ad.metaPurchases || 0));
+        adSales = totalSales;
         adPending = matchingPendingOrders.length;
         adRevenue = totalRevenue;
       } else {
         const webhookAdSales = directOrders.length;
         const pixelAdSales = directPixelPurchases.length;
         const metaAdPurchases = Number(ad.metaPurchases || 0);
-        adSales = Math.max(webhookAdSales, pixelAdSales, metaAdPurchases);
+        
+        // Prioridade absoluta para as vendas reais diretas do webhook
+        adSales = webhookAdSales > 0 ? webhookAdSales : (pixelAdSales > 0 ? pixelAdSales : metaAdPurchases);
         adPending = directPending.length;
 
         const webhookAdRev = directOrders.reduce((sum, o) => sum + Number(o.amount || 0), 0);
         const pixelAdRev = directPixelPurchases.reduce((sum, e) => sum + Number(e.amount || e.customData?.value || 0), 0);
         const metaAdRevenue = Number(ad.metaRevenue || 0);
 
-        let effectiveAdRev = Math.max(webhookAdRev, pixelAdRev, metaAdRevenue);
+        let effectiveAdRev = webhookAdSales > 0 ? webhookAdRev : (pixelAdRev > 0 ? pixelAdRev : metaAdRevenue);
         if (effectiveAdRev === 0 && adSales > 0) {
           const avgTicket = (webhookRevenue > 0 && webhookSales > 0) ? (webhookRevenue / webhookSales) : 26.81;
           effectiveAdRev = adSales * avgTicket;
