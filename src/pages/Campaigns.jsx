@@ -3937,7 +3937,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                           handleToggleSelectItem(item.id, e);
                         }
                       }}
-                      className={`group hover:bg-[#182236] transition-colors ${isRowSelected ? 'bg-[#0066FF]/10' : ''}`}
+                      className={`group transition-colors ${
+                        isRowSelected ? 'bg-[#122343] hover:bg-[#16294A]' : 'hover:bg-[#182236]'
+                      }`}
                     >
                       {/* Checkbox fixo na lateral apenas em desktop */}
                       <td 
@@ -3946,7 +3948,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                             handleToggleSelectItem(item.id, e);
                           }
                         }}
-                        className={`py-2.5 pl-3.5 pr-2.5 w-[46px] min-w-[46px] max-w-[46px] md:sticky md:left-0 md:z-10 transition-colors select-none cursor-pointer ${isRowSelected ? 'bg-[#0066FF]/20' : 'bg-[#141C2E] group-hover:bg-[#182236]'}`}
+                        className={`py-2.5 pl-3.5 pr-2.5 w-[46px] min-w-[46px] max-w-[46px] md:sticky md:left-0 md:z-10 transition-colors select-none cursor-pointer ${
+                          isRowSelected 
+                            ? 'bg-[#122343] group-hover:bg-[#16294A]' 
+                            : 'bg-[#141C2E] group-hover:bg-[#182236]'
+                        }`}
                       >
                         <input 
                           type="checkbox" 
@@ -3963,7 +3969,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       {/* Status Toggle fixo na lateral apenas em desktop */}
                       <td 
                         onClick={(e) => e.stopPropagation()}
-                        className={`py-2.5 pl-3.5 pr-2.5 w-[88px] min-w-[88px] max-w-[88px] md:sticky md:left-[46px] md:z-10 transition-colors ${activeSelectedSet.has(item.id) ? 'bg-[#0066FF]/20' : 'bg-[#141C2E] group-hover:bg-[#182236]'}`}
+                        className={`py-2.5 pl-3.5 pr-2.5 w-[88px] min-w-[88px] max-w-[88px] md:sticky md:left-[46px] md:z-10 transition-colors ${
+                          isRowSelected 
+                            ? 'bg-[#122343] group-hover:bg-[#16294A]' 
+                            : 'bg-[#141C2E] group-hover:bg-[#182236]'
+                        }`}
                       >
                         {(() => {
                           const targetKey = String(item.id || item.adsetId || item.adId || item.campaignId);
@@ -3993,7 +4003,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                       </td>
 
                       {/* Nome do Item fixo na lateral apenas em desktop */}
-                      <td className={`py-2.5 px-3.5 font-sans md:sticky md:left-[134px] md:z-10 min-w-[210px] max-w-[310px] transition-colors ${isRowSelected ? 'bg-[#0066FF]/20' : 'bg-[#141C2E] group-hover:bg-[#182236]'}`}>
+                      <td className={`py-2.5 px-3.5 font-sans md:sticky md:left-[134px] md:z-10 min-w-[210px] max-w-[310px] transition-colors ${
+                        isRowSelected 
+                          ? 'bg-[#122343] group-hover:bg-[#16294A]' 
+                          : 'bg-[#141C2E] group-hover:bg-[#182236]'
+                      }`}>
                         <div className="truncate">
                           <div 
                             onClick={(e) => {
