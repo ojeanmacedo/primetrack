@@ -626,7 +626,10 @@ export default function Dashboard() {
       setIsPeriodLoading(false);
       setSyncing(true);
     } else {
-      setIsPeriodLoading(true);
+      // Se já temos dados na tela, mantém visível com indicador de sincronização sem piscar skeletons
+      if (campaigns.length === 0) {
+        setIsPeriodLoading(true);
+      }
       setSyncing(true);
     }
 

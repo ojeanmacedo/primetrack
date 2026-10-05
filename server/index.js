@@ -2188,15 +2188,13 @@ async function dispatchMonsterPayCapi(orderRecord) {
 }
 
 let ordersMemoryCache = {};
+let ongoingOrdersSyncPromise = null;
 
-export async function getAllOrders(forceFresh = false, userId = null) {
+async function syncOrdersInternal(userId) {
   const cacheKey = userId || 'all';
   const now = Date.now();
-  if (!forceFresh && ordersMemoryCache[cacheKey] && (now - ordersMemoryCache[cacheKey].timestamp < 5000)) {
-    return ordersMemoryCache[cacheKey].data;
-  }
-
   let orders = [];
+
   try {
     let query = supabaseAdmin
       .from('orders')
@@ -2468,6 +2466,50 @@ export async function getAllOrders(forceFresh = false, userId = null) {
   const allOrders = Array.from(orderMap.values());
   ordersMemoryCache[cacheKey] = { data: allOrders, timestamp: now };
   return allOrders;
+}
+
+export async function getAllOrders(forceFresh = false, userId = null) {
+  const cacheKey = userId || 'all';
+  const now = Date.now();
+
+  // 1. HIT: Se temos cache em memória com menos de 30s, entrega instantânea (< 0.1ms)
+  if (!forceFresh && ordersMemoryCache[cacheKey] && (now - ordersMemoryCache[cacheKey].timestamp < 30000)) {
+    return ordersMemoryCache[cacheKey].data;
+  }
+
+  // 2. STALE: Se temos cache em memória com até 5 minutos, entrega imediata e revalida em segundo plano
+  if (!forceFresh && ordersMemoryCache[cacheKey] && (now - ordersMemoryCache[cacheKey].timestamp < 5 * 60 * 1000)) {
+    if (!ongoingOrdersSyncPromise) {
+      ongoingOrdersSyncPromise = syncOrdersInternal(userId)
+        .catch(e => console.warn('[Background Orders SWR]:', e.message))
+        .finally(() => { ongoingOrdersSyncPromise = null; });
+    }
+    return ordersMemoryCache[cacheKey].data;
+  }
+
+  // 3. SEED: Se a memória está vazia, mas já temos pedidos gravados no banco local, entrega em < 1ms e atualiza em 2º plano
+  if (!forceFresh) {
+    const localOrders = db.get('orders') || [];
+    if (localOrders.length > 0) {
+      const filtered = (isOwnerUserId(userId)
+        ? localOrders.filter(o => !o.userId || isOwnerUserId(o.userId))
+        : (userId ? localOrders.filter(o => o.userId === userId) : localOrders))
+        .map(o => ({ ...o, attribution: sanitizeAttribution(o.attribution) }));
+      
+      if (filtered.length > 0) {
+        ordersMemoryCache[cacheKey] = { data: filtered, timestamp: now };
+        if (!ongoingOrdersSyncPromise) {
+          ongoingOrdersSyncPromise = syncOrdersInternal(userId)
+            .catch(e => console.warn('[Background Orders Seed Sync]:', e.message))
+            .finally(() => { ongoingOrdersSyncPromise = null; });
+        }
+        return filtered;
+      }
+    }
+  }
+
+  // 4. Se não há nada no banco ou é forceFresh=true, aguarda sincronização direta
+  return await syncOrdersInternal(userId);
 }
 
 // Função de máxima precisão para identificação e desambiguação de campanhas (anti-colisão entre contas e cópias)
@@ -3357,7 +3399,7 @@ async function prewarmCommonPresets(targetUserId = null) {
     });
 
     const todayBrazil = toBrazilYMD(new Date());
-    const presetsToWarm = ['today', 'yesterday', 'last_7d'];
+    const presetsToWarm = ['today', 'yesterday', 'last_7d', 'last_30d', 'this_month'];
 
     for (const [uId, userActiveIds] of userActiveMap.entries()) {
       if (userActiveIds.size === 0) continue;
@@ -3384,7 +3426,7 @@ async function prewarmCommonPresets(targetUserId = null) {
         }).catch(e => console.warn(`[Prewarm ${preset}]:`, e.message));
       }
     }
-    console.log('[Cache Prewarm] Presets comuns (Hoje, Ontem, 7d) aquecidos no cache de memória.');
+    console.log('[Cache Prewarm] Presets comuns (Hoje, Ontem, 7d, 30d, Este mês) aquecidos no cache de memória.');
   } catch (err) {
     console.warn('[Prewarm Error]:', err.message);
   }
@@ -4345,8 +4387,30 @@ export const getActiveSetForUser = (targetUserId, optionalConnections = null) =>
 export async function reconcileFacebookData(force = false, userId = null) {
   const cacheKey = userId || 'all';
   const now = Date.now();
-  if (!force && reconcileCache[cacheKey] && (now - reconcileCache[cacheKey].timestamp < 45 * 1000)) {
+  if (!force && reconcileCache[cacheKey] && (now - reconcileCache[cacheKey].timestamp < 60 * 1000)) {
     return reconcileCache[cacheKey].data;
+  }
+
+  // OTIMIZAÇÃO SWR: se não for force e já temos perfis e contas salvas no banco local, entrega instantânea (< 1ms)
+  if (!force) {
+    const localConns = db.get('facebook_connections') || [];
+    const localAccs = db.get('ad_accounts') || [];
+    if (localConns.length > 0 && localAccs.length > 0) {
+      const filteredConns = userId
+        ? localConns.filter(c => isOwnerUserId(userId) ? (!c.userId || isOwnerUserId(c.userId) || !c.user_id || isOwnerUserId(c.user_id)) : (c.userId === userId || c.user_id === userId))
+        : localConns;
+      const filteredAccs = userId
+        ? localAccs.filter(a => isOwnerUserId(userId) ? (!a.userId || isOwnerUserId(a.userId)) : (a.userId === userId))
+        : localAccs;
+      
+      if (filteredConns.length > 0) {
+        const seedResult = { connections: filteredConns, adAccounts: filteredAccs };
+        reconcileCache[cacheKey] = { data: seedResult, timestamp: now };
+        // Atualiza ao vivo com a Graph API da Meta em segundo plano sem travar o cliente
+        reconcileFacebookData(true, userId).catch(e => console.warn('[Background Reconcile FB]:', e.message));
+        return seedResult;
+      }
+    }
   }
 
   let connections = [];
