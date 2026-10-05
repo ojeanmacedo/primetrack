@@ -104,17 +104,13 @@ export default function Sales() {
         }
       }
 
-      const key = o.orderCode || o.id;
+      const key = o.id || o.orderCode;
       if (!orderMap.has(key)) {
         orderMap.set(key, { ...o });
       } else {
         const existing = orderMap.get(key);
         if (['approved', 'paid', 'pago'].includes(o.status)) {
           existing.status = 'approved';
-        }
-        if (o.id !== existing.id) {
-          existing.amount = Math.max(Number(existing.amount || 0), Number(o.amount || 0));
-          existing.grossAmount = Math.max(Number(existing.grossAmount || 0), Number(o.grossAmount || 0));
         }
       }
     }

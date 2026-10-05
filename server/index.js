@@ -2189,7 +2189,7 @@ async function dispatchMonsterPayCapi(orderRecord) {
 
 let ordersMemoryCache = {};
 
-async function getAllOrders(forceFresh = false, userId = null) {
+export async function getAllOrders(forceFresh = false, userId = null) {
   const cacheKey = userId || 'all';
   const now = Date.now();
   if (!forceFresh && ordersMemoryCache[cacheKey] && (now - ordersMemoryCache[cacheKey].timestamp < 5000)) {
@@ -2248,56 +2248,23 @@ async function getAllOrders(forceFresh = false, userId = null) {
         .limit(300);
 
       if (Array.isArray(mpSales) && mpSales.length > 0) {
-        // Padrão de Ouro de Traqueamento (Utmify / Tracklead / Meta CAPI):
-        // 1 Checkout = 1 Venda Real (Agrupa order bumps pelo payment_id com soma total de faturamento)
-        const checkoutsMap = new Map();
-        mpSales.forEach(s => {
-          const payKey = s.payment_id || s.id;
-          if (!checkoutsMap.has(payKey)) {
-            checkoutsMap.set(payKey, []);
-          }
-          checkoutsMap.get(payKey).push(s);
-        });
-
         const mpOrders = [];
         const allCamps = db.get('campaigns') || [];
+        const approvedByPayment = new Map();
 
-        for (const [payKey, items] of checkoutsMap.entries()) {
-          // Ordena itens para que o produto de maior valor seja o produto principal
-          items.sort((a, b) => Number(b.amount || 0) - Number(a.amount || 0));
-          const primaryItem = items[0];
-
-          let totalGross = 0;
-          let totalNet = 0;
-          let anyPaid = false;
-          let anyRefunded = false;
-          let anyCapiSent = false;
-          const allProductNames = [];
-
-          items.forEach(item => {
-            const gross = Number(item.amount || 0);
-            const pFee = Number(item.percent_fee || 0);
-            const fFee = Number(item.fixed_fee || 0);
-            const net = Number((gross - (gross * (pFee / 100)) - fFee).toFixed(2));
-            totalGross += gross;
-            totalNet += net;
-
-            if (item.status === 'paid' || item.status === 'approved') anyPaid = true;
-            else if (item.status === 'refunded') anyRefunded = true;
-
-            if (item.capi_purchase_sent === true) anyCapiSent = true;
-
-            if (item.product_name && !allProductNames.includes(item.product_name)) {
-              allProductNames.push(item.product_name);
-            }
-          });
+        mpSales.forEach(s => {
+          const gross = Number(s.amount || 0);
+          const pFee = Number(s.percent_fee || 0);
+          const fFee = Number(s.fixed_fee || 0);
+          const net = Number((gross - (gross * (pFee / 100)) - fFee).toFixed(2));
 
           let status = 'waiting_payment';
-          if (anyPaid) status = 'approved';
-          else if (anyRefunded) status = 'refunded';
-          else if (items.some(i => i.status === 'expired' || i.status === 'cancelled')) status = 'cancelled';
+          if (s.status === 'paid' || s.status === 'approved') status = 'approved';
+          else if (s.status === 'refunded') status = 'refunded';
+          else if (s.status === 'expired' || s.status === 'cancelled') status = 'cancelled';
+          else if (s.status === 'pending') status = 'waiting_payment';
 
-          let campName = primaryItem.utm_campaign || 'Orgânico';
+          let campName = s.utm_campaign || 'Orgânico';
           let campId = null;
           if (campName && campName.includes('|')) {
             const parts = campName.split('|');
@@ -2305,7 +2272,7 @@ async function getAllOrders(forceFresh = false, userId = null) {
             campId = parts[1].trim();
           }
 
-          let adName = primaryItem.utm_content || '';
+          let adName = s.utm_content || '';
           let adId = null;
           if (adName && adName.includes('|')) {
             const parts = adName.split('|');
@@ -2313,7 +2280,7 @@ async function getAllOrders(forceFresh = false, userId = null) {
             adId = parts[1].trim();
           }
 
-          let adsetName = primaryItem.utm_medium || '';
+          let adsetName = s.utm_medium || '';
           let adsetId = null;
           if (adsetName && adsetName.includes('|')) {
             const parts = adsetName.split('|');
@@ -2347,31 +2314,24 @@ async function getAllOrders(forceFresh = false, userId = null) {
             resolvedAccName = 'Julia Macedo';
           }
 
-          const bumpCount = items.length > 1 ? (items.length - 1) : 0;
-          const bumpNames = items.length > 1 ? items.slice(1).map(i => i.product_name).filter(Boolean) : [];
-
           const orderObj = {
-            id: payKey,
+            id: s.id,
             userId: 'usr_1788826403159',
-            orderCode: payKey,
-            rawPaymentId: payKey,
+            orderCode: s.id,
+            rawPaymentId: s.payment_id || s.id,
             gateway: 'MonsterPay',
-            productName: primaryItem.product_name || 'Vivendo De Internet',
-            products: allProductNames,
-            hasBump: bumpCount > 0,
-            bumpCount,
-            bumpNames,
+            productName: s.product_name || 'Vivendo De Internet',
             status,
             paymentMethod: 'pix',
-            amount: Number(totalNet.toFixed(2)),
-            commission: Number(totalNet.toFixed(2)),
-            grossAmount: Number(totalGross.toFixed(2)),
-            ip_address: primaryItem.ip_address,
+            amount: net,
+            commission: net,
+            grossAmount: gross,
+            ip_address: s.ip_address,
             customer: {
-              name: primaryItem.customer_name || 'Cliente MonsterPay',
-              email: primaryItem.customer_email || '',
-              phone: primaryItem.customer_phone || '',
-              document: primaryItem.customer_cpf || '',
+              name: s.customer_name || 'Cliente MonsterPay',
+              email: s.customer_email || '',
+              phone: s.customer_phone || '',
+              document: s.customer_cpf || '',
               city: '',
               state: ''
             },
@@ -2382,53 +2342,59 @@ async function getAllOrders(forceFresh = false, userId = null) {
               adsetId: adsetId,
               ad: adName,
               adId: adId,
-              source: primaryItem.utm_source || 'Facebook',
+              source: s.utm_source || 'Facebook',
               accountId: resolvedAccId,
               accountName: resolvedAccName
             }),
             emqScore: 9.7,
-            capiSent: anyCapiSent,
-            createdAt: primaryItem.created_at
+            capiSent: s.capi_purchase_sent === true,
+            createdAt: s.created_at
           };
 
-          // Disparo automático e único de CAPI para pedidos aprovados da MonsterPay
-          if (status === 'approved' && !anyCapiSent && !sentCapiOrdersSet.has(payKey)) {
-            sentCapiOrdersSet.add(payKey);
-            dispatchMonsterPayCapi(orderObj).catch(e => console.warn('[AutoCAPI MP]:', e.message));
-          }
-
           mpOrders.push(orderObj);
+
+          if (status === 'approved') {
+            const payKey = s.payment_id || s.id;
+            if (!approvedByPayment.has(payKey)) {
+              approvedByPayment.set(payKey, []);
+            }
+            approvedByPayment.get(payKey).push(s);
+          }
+        });
+
+        // Disparo automático e único de CAPI para pedidos aprovados da MonsterPay agrupados por checkout
+        for (const [payKey, items] of approvedByPayment.entries()) {
+          const anyCapiSent = items.some(i => i.capi_purchase_sent === true);
+          if (!anyCapiSent && !sentCapiOrdersSet.has(payKey)) {
+            sentCapiOrdersSet.add(payKey);
+            items.sort((a, b) => Number(b.amount || 0) - Number(a.amount || 0));
+            const primary = items[0];
+            const totalGross = items.reduce((acc, i) => acc + Number(i.amount || 0), 0);
+            const capiOrder = {
+              id: payKey,
+              orderCode: payKey,
+              amount: totalGross,
+              customer: {
+                name: primary.customer_name,
+                email: primary.customer_email,
+                phone: primary.customer_phone,
+                document: primary.customer_cpf
+              },
+              attribution: {
+                campaign: primary.utm_campaign,
+                adset: primary.utm_medium,
+                ad: primary.utm_content,
+                source: primary.utm_source || 'Facebook'
+              },
+              createdAt: primary.created_at
+            };
+            dispatchMonsterPayCapi(capiOrder).catch(e => console.warn('[AutoCAPI MP]:', e.message));
+          }
         }
 
-        // Mescla sem duplicar com pedidos já carregados, consolidando por código de pedido
-        const existingCodes = new Set(orders.map(o => o.orderCode || o.id));
-        mpOrders.forEach(mo => {
-          if (!existingCodes.has(mo.orderCode) && !existingCodes.has(mo.id)) {
-            orders.push(mo);
-            existingCodes.add(mo.orderCode);
-            existingCodes.add(mo.id);
-          }
-        });
-
-        // Consolida qualquer duplicata legada por orderCode
-        const consolidatedMap = new Map();
-        orders.forEach(o => {
-          const key = o.orderCode || o.id;
-          if (!consolidatedMap.has(key)) {
-            consolidatedMap.set(key, o);
-          } else {
-            const prev = consolidatedMap.get(key);
-            if (['approved', 'paid', 'pago'].includes(o.status)) {
-              consolidatedMap.set(key, {
-                ...prev,
-                ...o,
-                amount: Math.max(Number(prev.amount || 0), Number(o.amount || 0)),
-                grossAmount: Math.max(Number(prev.grossAmount || 0), Number(o.grossAmount || 0))
-              });
-            }
-          }
-        });
-        orders = Array.from(consolidatedMap.values());
+        // Remove pedidos anteriores da MonsterPay para substituir pela lista sincronizada mais recente
+        const nonMpOrders = orders.filter(o => o.gateway !== 'MonsterPay');
+        orders = [...nonMpOrders, ...mpOrders];
 
         try {
           db.set('orders', orders);
