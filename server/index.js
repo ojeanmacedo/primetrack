@@ -3116,6 +3116,116 @@ export function formatCampaignsForUser(campaignsList, userActiveIds, isToday = f
   });
 }
 
+export function getUserActiveAccountIds(userId = null, connections = null) {
+  const userActiveIds = new Set();
+  const effectiveUser = userId || 'usr_1788826403159';
+
+  const explicitSaved = db.get(`active_accounts_${effectiveUser}`) || (isOwnerUserId(effectiveUser) ? db.get('active_accounts') : null);
+  if (Array.isArray(explicitSaved) && explicitSaved.length > 0) {
+    explicitSaved.forEach(id => userActiveIds.add(String(id).replace('act_', '')));
+  } else {
+    const conns = connections || db.get('facebook_connections') || [];
+    conns.forEach(c => {
+      const cUser = c.userId || c.user_id;
+      const isMatch = !userId || (isOwnerUserId(effectiveUser) ? (!cUser || isOwnerUserId(cUser)) : (cUser === effectiveUser));
+      if (isMatch && c.email) {
+        try {
+          const meta = JSON.parse(c.email);
+          if (Array.isArray(meta?.activeAccounts)) {
+            meta.activeAccounts.forEach(id => userActiveIds.add(String(id).replace('act_', '')));
+          }
+        } catch (e) {}
+      }
+    });
+  }
+
+  const overrides = db.get(`sync_overrides_${effectiveUser}`) || (isOwnerUserId(effectiveUser) ? db.get('sync_overrides') : null);
+  if (overrides && typeof overrides === 'object') {
+    Object.entries(overrides).forEach(([accId, isActive]) => {
+      const clean = String(accId).replace('act_', '');
+      if (isActive) userActiveIds.add(clean);
+      else userActiveIds.delete(clean);
+    });
+  }
+
+  const allAccsForUser = db.get('ad_accounts') || [];
+  allAccsForUser.forEach(a => {
+    const aUser = a.userId || a.user_id;
+    const isUserMatch = !userId || (isOwnerUserId(effectiveUser) ? (!aUser || isOwnerUserId(aUser)) : (aUser === effectiveUser));
+    if (isUserMatch) {
+      const clean = String(a.accountId || a.id || '').replace('act_', '');
+      if (a.syncActive === true && a.status !== 'Bloqueada' && a.status !== 'DISABLED') {
+        userActiveIds.add(clean);
+      } else if (a.status === 'Bloqueada' || a.status === 'DISABLED' || a.syncActive === false) {
+        userActiveIds.delete(clean);
+      }
+    }
+  });
+
+  return userActiveIds;
+}
+
+export function getStoredCampaignsForPeriod(userId, resolvedRange, userActiveIds, isToday = false, allUserConnectedAccIds = null) {
+  const allStored = (db.get('campaigns') || []).filter(c => isOwnerUserId(userId) ? (!c.userId || isOwnerUserId(c.userId)) : (c.userId === userId));
+  const savedPeriodData = getDailyCampaignInsights(userId, resolvedRange.since, resolvedRange.until, resolvedRange.isMaximum) || [];
+
+  const periodInsightsMap = new Map();
+  savedPeriodData.forEach(p => {
+    const pId = String(p.campaignId || p.id);
+    periodInsightsMap.set(pId, p);
+  });
+
+  const combined = [];
+  const targetPeriodDate = resolvedRange.isMaximum ? 'Máximo' : (resolvedRange.since || toBrazilYMD(new Date()));
+
+  allStored.forEach(c => {
+    const cId = String(c.id);
+    if (periodInsightsMap.has(cId)) {
+      const metric = periodInsightsMap.get(cId);
+      periodInsightsMap.delete(cId);
+      combined.push({
+        ...c,
+        ...metric,
+        spend: metric.spend || c.spend,
+        impressions: metric.impressions !== undefined ? metric.impressions : c.impressions,
+        clicks: metric.clicks !== undefined ? metric.clicks : c.clicks,
+        date: targetPeriodDate
+      });
+    } else {
+      combined.push({
+        ...c,
+        spend: '0.00',
+        rawSpendUsd: c.rawSpendUsd !== null ? '0.00' : null,
+        impressions: 0,
+        clicks: 0,
+        cpc: '0.00',
+        cpm: '0.00',
+        ctr: '0.00%',
+        initCheckouts: 0,
+        costPerIc: '0.00',
+        profit: '0.00',
+        sales: 0,
+        pendingSales: 0,
+        revenue: '0.00',
+        roas: '0.00',
+        cpa: '0.00',
+        date: targetPeriodDate,
+        adsets: (c.adsets || []).map(as => ({ ...as, spend: '0.00', rawSpendUsd: as.rawSpendUsd !== null ? '0.00' : null, impressions: 0, clicks: 0, cpc: '0.00', cpm: '0.00', ctr: '0.00%', initCheckouts: 0, costPerIc: '0.00', sales: 0, pendingSales: 0, revenue: '0.00', profit: '0.00', roas: '0.00', cpa: '0.00' })),
+        ads: (c.ads || []).map(ad => ({ ...ad, spend: '0.00', rawSpendUsd: ad.rawSpendUsd !== null ? '0.00' : null, impressions: 0, clicks: 0, cpc: '0.00', cpm: '0.00', ctr: '0.00%', initCheckouts: 0, costPerIc: '0.00', sales: 0, pendingSales: 0, revenue: '0.00', profit: '0.00', roas: '0.00', cpa: '0.00' }))
+      });
+    }
+  });
+
+  periodInsightsMap.forEach(metric => {
+    combined.push({
+      ...metric,
+      date: targetPeriodDate
+    });
+  });
+
+  return formatCampaignsForUser(combined, userActiveIds, isToday, allUserConnectedAccIds);
+}
+
 async function syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiveIds, cacheKey, resolvedRange, todayBrazil, allUserConnectedAccIds = null }) {
   if (ongoingCampaignSyncs.has(cacheKey)) {
     return ongoingCampaignSyncs.get(cacheKey);
@@ -3401,7 +3511,8 @@ async function prewarmCommonPresets(targetUserId = null) {
     const todayBrazil = toBrazilYMD(new Date());
     const presetsToWarm = ['today', 'yesterday', 'last_7d', 'last_30d', 'this_month'];
 
-    for (const [uId, userActiveIds] of userActiveMap.entries()) {
+    for (const [uId] of userActiveMap.entries()) {
+      const userActiveIds = getUserActiveAccountIds(uId, connections);
       if (userActiveIds.size === 0) continue;
       const allUserConnectedAccIds = new Set();
       const allUserAccs = (db.get('ad_accounts') || []).filter(a => isOwnerUserId(uId) ? (!a.userId || isOwnerUserId(a.userId)) : (a.userId === uId));
@@ -3413,7 +3524,9 @@ async function prewarmCommonPresets(targetUserId = null) {
       for (const preset of presetsToWarm) {
         const resolvedRange = resolveDateRange(preset);
         const timeRange = (resolvedRange.since && resolvedRange.until) ? resolvedRange : null;
-        const cacheKey = getCampaignsCacheKey(uId, preset, resolvedRange);
+        const activeAccountsKey = Array.from(userActiveIds).sort().join('_') || 'all';
+        const baseCacheKey = getCampaignsCacheKey(uId, preset, resolvedRange);
+        const cacheKey = `${baseCacheKey}_${activeAccountsKey}`;
         await syncAndEnrichCampaigns({
           datePreset: preset,
           timeRange,
@@ -3475,9 +3588,11 @@ app.get('/api/campaigns', async (req, res) => {
 
     // Se o usuário não possui conexão ativa com Facebook, verifica se possui histórico salvo no banco para o período!
     if (connections.length === 0) {
-      const savedDaily = getDailyCampaignInsights(userId, resolvedRange.since, resolvedRange.until, resolvedRange.isMaximum);
-      if (savedDaily && savedDaily.length > 0) {
-        return res.json(savedDaily);
+      const todayBrazil = toBrazilYMD(new Date());
+      const activeIds = getUserActiveAccountIds(userId);
+      const stored = getStoredCampaignsForPeriod(userId, resolvedRange, activeIds, resolvedRange.since === todayBrazil, null);
+      if (stored && stored.length > 0) {
+        return res.json(stored);
       }
       return res.json([]);
     }
@@ -3508,9 +3623,11 @@ app.get('/api/campaigns', async (req, res) => {
     }
 
     if (connections.length === 0) {
-      const savedDaily = getDailyCampaignInsights(null, resolvedRange.since, resolvedRange.until, resolvedRange.isMaximum);
-      if (savedDaily && savedDaily.length > 0) {
-        return res.json(savedDaily);
+      const todayBrazil = toBrazilYMD(new Date());
+      const activeIds = getUserActiveAccountIds(null);
+      const stored = getStoredCampaignsForPeriod(null, resolvedRange, activeIds, resolvedRange.since === todayBrazil, null);
+      if (stored && stored.length > 0) {
+        return res.json(stored);
       }
       return res.json([]);
     }
@@ -3531,46 +3648,8 @@ app.get('/api/campaigns', async (req, res) => {
 
   // 2. Se o cliente não passou activeAccounts, busca do banco/store do usuário
   if (userActiveIds.size === 0) {
-    const explicitSaved = db.get(`active_accounts_${effectiveUser}`) || (isOwnerUserId(effectiveUser) ? db.get('active_accounts') : null);
-    if (Array.isArray(explicitSaved) && explicitSaved.length > 0) {
-      explicitSaved.forEach(id => userActiveIds.add(String(id).replace('act_', '')));
-    } else {
-      connections.forEach(c => {
-        if (c.email) {
-          try {
-            const meta = JSON.parse(c.email);
-            if (Array.isArray(meta?.activeAccounts)) {
-              meta.activeAccounts.forEach(id => userActiveIds.add(String(id).replace('act_', '')));
-            }
-          } catch (e) {}
-        }
-      });
-    }
-
-    // Aplica overrides manuais se existirem
-    const overrides = db.get(`sync_overrides_${effectiveUser}`) || (isOwnerUserId(effectiveUser) ? db.get('sync_overrides') : null);
-    if (overrides && typeof overrides === 'object') {
-      Object.entries(overrides).forEach(([accId, isActive]) => {
-        const clean = String(accId).replace('act_', '');
-        if (isActive) userActiveIds.add(clean);
-        else userActiveIds.delete(clean);
-      });
-    }
-
-    // Complementa com contas marcadas explicitamente como syncActive: true no ad_accounts
-    const allAccsForUser = db.get('ad_accounts') || [];
-    allAccsForUser.forEach(a => {
-      const aUser = a.userId || a.user_id;
-      const isUserMatch = !userId || (isOwnerUserId(effectiveUser) ? (!aUser || isOwnerUserId(aUser)) : (aUser === effectiveUser));
-      if (isUserMatch) {
-        const clean = String(a.accountId || a.id || '').replace('act_', '');
-        if (a.syncActive === true && a.status !== 'Bloqueada' && a.status !== 'DISABLED') {
-          userActiveIds.add(clean);
-        } else if (a.status === 'Bloqueada' || a.status === 'DISABLED' || a.syncActive === false) {
-          userActiveIds.delete(clean);
-        }
-      }
-    });
+    const defaultActives = getUserActiveAccountIds(effectiveUser, connections);
+    defaultActives.forEach(id => userActiveIds.add(id));
   }
 
   // Carrega todas as contas vinculadas do usuário no store/Supabase
@@ -3630,17 +3709,16 @@ app.get('/api/campaigns', async (req, res) => {
     }
   }
 
-  // Se não há cache em RAM, verifica se já temos dados salvos no banco local para entrega instantânea (< 5ms)
+  // Se não há cache em RAM, entrega instantânea (< 5ms) com TODAS as campanhas do período salvas localmente
   if (refresh !== 'true') {
-    const savedPeriodData = getDailyCampaignInsights(userId, resolvedRange.since, resolvedRange.until, resolvedRange.isMaximum);
-    if (savedPeriodData && savedPeriodData.length > 0) {
+    const storedPeriodCampaigns = getStoredCampaignsForPeriod(userId, resolvedRange, userActiveIds, isToday, allUserConnectedAccIds);
+    if (storedPeriodCampaigns && storedPeriodCampaigns.length > 0) {
       // Revalida em segundo plano sem travar a resposta do usuário (Padrão Utmify)
       syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiveIds, cacheKey, resolvedRange, todayBrazil, allUserConnectedAccIds })
         .catch(e => console.warn('[Background DB Sync]:', e.message));
-      const formatted = formatCampaignsForUser(savedPeriodData, userActiveIds, isToday, allUserConnectedAccIds);
       res.set('Cache-Control', 'private, max-age=10');
       res.set('X-Cache', 'STALE-DB');
-      return res.json(formatted);
+      return res.json(storedPeriodCampaigns);
     }
   }
 
@@ -3657,9 +3735,9 @@ app.get('/api/campaigns', async (req, res) => {
     if (cached && Array.isArray(cached.campaigns)) {
       return res.json(formatCampaignsForUser(cached.campaigns, userActiveIds, isToday, allUserConnectedAccIds));
     }
-    const fallbackDaily = getDailyCampaignInsights(userId, resolvedRange.since, resolvedRange.until, resolvedRange.isMaximum);
-    if (fallbackDaily && fallbackDaily.length > 0) {
-      return res.json(formatCampaignsForUser(fallbackDaily, userActiveIds, isToday, allUserConnectedAccIds));
+    const fallbackStored = getStoredCampaignsForPeriod(userId, resolvedRange, userActiveIds, isToday, allUserConnectedAccIds);
+    if (fallbackStored && fallbackStored.length > 0) {
+      return res.json(fallbackStored);
     }
     return res.json([]);
   }

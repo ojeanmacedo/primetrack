@@ -389,7 +389,7 @@ export const mergeCampaignsPreservingOrder = (prevList, incomingList) => {
     return sortItemsDeterministically(incomingList);
   }
   if (!Array.isArray(incomingList) || incomingList.length === 0) {
-    return [];
+    return prevList;
   }
 
   const incomingMap = new Map();
@@ -411,6 +411,9 @@ export const mergeCampaignsPreservingOrder = (prevList, incomingList) => {
         adsets: mergedAdsets,
         ads: mergedAds
       });
+    } else {
+      // Preserva campanha existente na tabela para que respostas parciais nunca apaguem campanhas já carregadas
+      updatedExisting.push(prevC);
     }
   });
 
@@ -719,20 +722,88 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
       const periodKeyHoje = getCampPeriodKey(userId, 'Hoje', null);
       const saved = localStorage.getItem(periodKeyHoje) || localStorage.getItem(userCampKey) || localStorage.getItem('primetrack_cached_campaigns');
+      let parsed = null;
       if (saved) {
         try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            const sanitized = sanitizeCampaignsData(parsed);
-            const savedPeriod = 'Hoje';
-            const savedDate = localStorage.getItem(userCampDateKey) || localStorage.getItem('primetrack_cached_campaigns_date');
-            const todayYMD = getBrazilTodayYMD();
-            if (savedPeriod === 'Hoje' && (!savedDate || savedDate !== todayYMD)) {
-              // O dia virou! Preserva estrutura das campanhas para não sumirem, mas zera métricas de ontem
-              return sanitized.map(c => ({
-                ...c,
+          parsed = JSON.parse(saved);
+        } catch (e) {}
+      }
+
+      // Se o cache de hoje tem muito poucas campanhas (ex: <= 2) mas o usuário possui mais campanhas gravadas em outros períodos:
+      if (!parsed || (Array.isArray(parsed) && parsed.length <= 2)) {
+        const fallbackPresets = ['7 dias', '30 dias', 'Este mês', 'Máximo'];
+        for (const preset of fallbackPresets) {
+          const fbKey = getCampPeriodKey(userId, preset, null);
+          const fbSaved = localStorage.getItem(fbKey);
+          if (fbSaved) {
+            try {
+              const fbParsed = JSON.parse(fbSaved);
+              if (Array.isArray(fbParsed) && fbParsed.length > (parsed ? parsed.length : 0)) {
+                const existingMetricsMap = new Map();
+                if (Array.isArray(parsed)) {
+                  parsed.forEach(c => {
+                    if (c && c.id && (Number(c.spend || 0) > 0 || Number(c.sales || 0) > 0)) existingMetricsMap.set(String(c.id), c);
+                  });
+                }
+                parsed = fbParsed.map(c => {
+                  const cId = String(c.id);
+                  if (existingMetricsMap.has(cId)) return existingMetricsMap.get(cId);
+                  return {
+                    ...c,
+                    spend: '0.00',
+                    rawSpendUsd: c.rawSpendUsd !== null ? '0.00' : null,
+                    impressions: 0,
+                    clicks: 0,
+                    cpc: '0.00',
+                    cpm: '0.00',
+                    ctr: '0.00%',
+                    initCheckouts: 0,
+                    costPerIc: '0.00',
+                    profit: '0.00',
+                    sales: 0,
+                    pendingSales: 0,
+                    revenue: '0.00',
+                    roas: '0.00',
+                    cpa: '0.00'
+                  };
+                });
+                break;
+              }
+            } catch (e) {}
+          }
+        }
+      }
+
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        try {
+          const sanitized = sanitizeCampaignsData(parsed);
+          const savedPeriod = 'Hoje';
+          const savedDate = localStorage.getItem(userCampDateKey) || localStorage.getItem('primetrack_cached_campaigns_date');
+          const todayYMD = getBrazilTodayYMD();
+          if (savedPeriod === 'Hoje' && (!savedDate || savedDate !== todayYMD)) {
+            // O dia virou! Preserva estrutura das campanhas para não sumirem, mas zera métricas de ontem
+            return sanitized.map(c => ({
+              ...c,
+              spend: '0.00',
+              rawSpendUsd: c.rawSpendUsd !== null ? '0.00' : null,
+              impressions: 0,
+              clicks: 0,
+              cpc: '0.00',
+              cpm: '0.00',
+              ctr: '0.00%',
+              initCheckouts: 0,
+              costPerIc: '0.00',
+              sales: 0,
+              pendingSales: 0,
+              revenue: '0.00',
+              profit: '0.00',
+              roas: '0.00',
+              cpa: '0.00',
+              date: todayYMD,
+              adsets: (c.adsets || []).map(as => ({
+                ...as,
                 spend: '0.00',
-                rawSpendUsd: c.rawSpendUsd !== null ? '0.00' : null,
+                rawSpendUsd: as.rawSpendUsd !== null ? '0.00' : null,
                 impressions: 0,
                 clicks: 0,
                 cpc: '0.00',
@@ -745,48 +816,29 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 revenue: '0.00',
                 profit: '0.00',
                 roas: '0.00',
-                cpa: '0.00',
-                date: todayYMD,
-                adsets: (c.adsets || []).map(as => ({
-                  ...as,
-                  spend: '0.00',
-                  rawSpendUsd: as.rawSpendUsd !== null ? '0.00' : null,
-                  impressions: 0,
-                  clicks: 0,
-                  cpc: '0.00',
-                  cpm: '0.00',
-                  ctr: '0.00%',
-                  initCheckouts: 0,
-                  costPerIc: '0.00',
-                  sales: 0,
-                  pendingSales: 0,
-                  revenue: '0.00',
-                  profit: '0.00',
-                  roas: '0.00',
-                  cpa: '0.00'
-                })),
-                ads: (c.ads || []).map(ad => ({
-                  ...ad,
-                  spend: '0.00',
-                  rawSpendUsd: ad.rawSpendUsd !== null ? '0.00' : null,
-                  impressions: 0,
-                  clicks: 0,
-                  cpc: '0.00',
-                  cpm: '0.00',
-                  ctr: '0.00%',
-                  initCheckouts: 0,
-                  costPerIc: '0.00',
-                  sales: 0,
-                  pendingSales: 0,
-                  revenue: '0.00',
-                  profit: '0.00',
-                  roas: '0.00',
-                  cpa: '0.00'
-                }))
-              }));
-            }
-            return sanitized;
+                cpa: '0.00'
+              })),
+              ads: (c.ads || []).map(ad => ({
+                ...ad,
+                spend: '0.00',
+                rawSpendUsd: ad.rawSpendUsd !== null ? '0.00' : null,
+                impressions: 0,
+                clicks: 0,
+                cpc: '0.00',
+                cpm: '0.00',
+                ctr: '0.00%',
+                initCheckouts: 0,
+                costPerIc: '0.00',
+                sales: 0,
+                pendingSales: 0,
+                revenue: '0.00',
+                profit: '0.00',
+                roas: '0.00',
+                cpa: '0.00'
+              }))
+            }));
           }
+          return sanitized;
         } catch (e) {}
       }
     }
@@ -802,7 +854,21 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return parsed.filter(a => a.sync === true);
+          const userOverridesKey = userId ? `primetrack_sync_overrides_${userId}` : 'primetrack_sync_overrides';
+          let localOverrides = {};
+          if (typeof window !== 'undefined') {
+            try {
+              localOverrides = JSON.parse(localStorage.getItem(userOverridesKey) || localStorage.getItem('primetrack_sync_overrides') || '{}');
+            } catch (e) {}
+          }
+          return parsed.filter(a => {
+            const isBlocked = a.status === 'Bloqueada' || a.status === 'DISABLED';
+            if (isBlocked) return false;
+            const cleanKey = String(a.id || '').replace('act_', '');
+            if (localOverrides[cleanKey] !== undefined) return Boolean(localOverrides[cleanKey]);
+            if (localOverrides[`act_${cleanKey}`] !== undefined) return Boolean(localOverrides[`act_${cleanKey}`]);
+            return a.sync === true;
+          });
         }
       } catch (e) {}
     }
