@@ -3913,7 +3913,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             </div>
           ) : (
             <div 
-              className="w-full overflow-x-auto overflow-y-auto max-h-[calc(100vh-265px)] min-h-[420px] scrollbar-thin scrollbar-thumb-[#0066FF]/40 scrollbar-track-[#141C2E] touch-pan-x touch-pan-y overscroll-x-contain"
+              className="w-full overflow-x-auto overflow-y-auto max-h-[calc(100vh-265px)] scrollbar-thin scrollbar-thumb-[#0066FF]/40 scrollbar-track-[#141C2E] touch-pan-x touch-pan-y overscroll-x-contain"
               style={{ WebkitOverflowScrolling: 'touch' }}
             >
               <table className="w-full text-left text-xs font-sans whitespace-nowrap border-collapse">
