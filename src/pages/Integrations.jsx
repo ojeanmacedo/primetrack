@@ -237,12 +237,11 @@ export default function Integrations() {
   const loadAdAccounts = (dashId, isDef) => {
     if (typeof window !== 'undefined') {
       try {
-        const v = localStorage.getItem('primetrack_cache_v5');
+        const v = localStorage.getItem('primetrack_cache_v7');
         if (!v) {
-          localStorage.removeItem('primetrack_sync_overrides');
-          localStorage.removeItem('primetrack_sync_overrides_usr_1788826403159');
+          localStorage.removeItem('primetrack_ad_accounts');
           localStorage.removeItem('primetrack_cached_campaigns');
-          localStorage.setItem('primetrack_cache_v5', '1');
+          localStorage.setItem('primetrack_cache_v7', '1');
         }
       } catch (e) {}
     }

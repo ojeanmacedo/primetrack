@@ -477,12 +477,13 @@ export default function Dashboard() {
   const [adAccountsList, setAdAccountsList] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
-        const v = localStorage.getItem('primetrack_cache_v6');
+        const v = localStorage.getItem('primetrack_cache_v7');
         if (!v) {
+          localStorage.removeItem('primetrack_ad_accounts');
           localStorage.removeItem('primetrack_cached_campaigns');
           localStorage.removeItem('primetrack_cached_period_Hoje_usr_1788826403159');
           localStorage.removeItem('primetrack_cached_period_Hoje');
-          localStorage.setItem('primetrack_cache_v6', '1');
+          localStorage.setItem('primetrack_cache_v7', '1');
         }
       } catch (e) {}
       const saved = localStorage.getItem('primetrack_ad_accounts');
@@ -669,7 +670,13 @@ export default function Dashboard() {
         if (prefetchedMetaStatus && Array.isArray(prefetchedMetaStatus.adAccounts)) {
           const userOverridesKey = user?.id ? `primetrack_sync_overrides_${user.id}` : 'primetrack_sync_overrides';
           let localOverrides = {};
-          if (typeof window !== 'undefined') {
+          if (prefetchedMetaStatus.overrides && typeof prefetchedMetaStatus.overrides === 'object' && Object.keys(prefetchedMetaStatus.overrides).length > 0) {
+            localOverrides = prefetchedMetaStatus.overrides;
+            if (typeof window !== 'undefined') {
+              localStorage.setItem(userOverridesKey, JSON.stringify(localOverrides));
+              localStorage.setItem('primetrack_sync_overrides', JSON.stringify(localOverrides));
+            }
+          } else if (typeof window !== 'undefined') {
             try {
               localOverrides = JSON.parse(localStorage.getItem(userOverridesKey) || localStorage.getItem('primetrack_sync_overrides') || '{}');
             } catch (e) {}
@@ -775,7 +782,13 @@ export default function Dashboard() {
         if (data && Array.isArray(data.adAccounts) && data.adAccounts.length > 0) {
           const userOverridesKey = user?.id ? `primetrack_sync_overrides_${user.id}` : 'primetrack_sync_overrides';
           let localOverrides = {};
-          if (typeof window !== 'undefined') {
+          if (data.overrides && typeof data.overrides === 'object' && Object.keys(data.overrides).length > 0) {
+            localOverrides = data.overrides;
+            if (typeof window !== 'undefined') {
+              localStorage.setItem(userOverridesKey, JSON.stringify(localOverrides));
+              localStorage.setItem('primetrack_sync_overrides', JSON.stringify(localOverrides));
+            }
+          } else if (typeof window !== 'undefined') {
             try {
               localOverrides = JSON.parse(localStorage.getItem(userOverridesKey) || localStorage.getItem('primetrack_sync_overrides') || '{}');
             } catch (e) {}

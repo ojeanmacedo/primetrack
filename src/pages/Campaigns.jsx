@@ -967,12 +967,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     const reqId = ++latestRequestIdRef.current;
     if (typeof window !== 'undefined') {
       try {
-        const v = localStorage.getItem('primetrack_cache_v5');
+        const v = localStorage.getItem('primetrack_cache_v7');
         if (!v) {
-          localStorage.removeItem('primetrack_sync_overrides');
-          localStorage.removeItem('primetrack_sync_overrides_usr_1788826403159');
+          localStorage.removeItem('primetrack_ad_accounts');
           localStorage.removeItem('primetrack_cached_campaigns');
-          localStorage.setItem('primetrack_cache_v5', '1');
+          localStorage.setItem('primetrack_cache_v7', '1');
         }
       } catch (e) {}
     }
@@ -1087,7 +1086,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       if (data && Array.isArray(data.adAccounts) && data.adAccounts.length > 0) {
         const userOverridesKey = user?.id ? `primetrack_sync_overrides_${user.id}` : 'primetrack_sync_overrides';
         let localOverrides = {};
-        if (typeof window !== 'undefined') {
+        if (data.overrides && typeof data.overrides === 'object' && Object.keys(data.overrides).length > 0) {
+          localOverrides = data.overrides;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(userOverridesKey, JSON.stringify(localOverrides));
+            localStorage.setItem('primetrack_sync_overrides', JSON.stringify(localOverrides));
+          }
+        } else if (typeof window !== 'undefined') {
           try {
             localOverrides = JSON.parse(localStorage.getItem(userOverridesKey) || localStorage.getItem('primetrack_sync_overrides') || '{}');
           } catch (e) {}

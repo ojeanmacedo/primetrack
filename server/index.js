@@ -4656,6 +4656,7 @@ export const getActiveSetForUser = (targetUserId, optionalConnections = null) =>
   if (hasExplicitSaved) {
     explicitSaved.forEach(id => set.add(String(id).replace('act_', '')));
   } else {
+    // 2. Se o usuário nunca salvou explicitamente, busca das conexões do Facebook
     const conns = (Array.isArray(optionalConnections) && optionalConnections.length > 0)
       ? optionalConnections
       : (db.get('facebook_connections') || []);
@@ -4671,22 +4672,20 @@ export const getActiveSetForUser = (targetUserId, optionalConnections = null) =>
         connSet.forEach(id => set.add(id));
       }
     });
-  }
 
-  // Complementa com contas marcadas como syncActive: true em ad_accounts
-  const allAccsForUser = db.get('ad_accounts') || [];
-  allAccsForUser.forEach(a => {
-    const aUser = a.userId || a.user_id;
-    const isUserMatch = !targetUserId || (isOwnerUserId(effectiveUser) ? (!aUser || isOwnerUserId(aUser)) : (aUser === effectiveUser));
-    if (isUserMatch) {
-      const clean = String(a.accountId || a.id || '').replace('act_', '');
-      if (a.syncActive === true && a.status !== 'Bloqueada' && a.status !== 'DISABLED') {
-        set.add(clean);
-      } else if (!hasExplicitSaved && (a.status === 'Bloqueada' || a.status === 'DISABLED' || a.syncActive === false)) {
-        set.delete(clean);
+    // 3. Fallback: contas com syncActive: true em ad_accounts
+    const allAccsForUser = db.get('ad_accounts') || [];
+    allAccsForUser.forEach(a => {
+      const aUser = a.userId || a.user_id;
+      const isUserMatch = !targetUserId || (isOwnerUserId(effectiveUser) ? (!aUser || isOwnerUserId(aUser)) : (aUser === effectiveUser));
+      if (isUserMatch) {
+        const clean = String(a.accountId || a.id || '').replace('act_', '');
+        if (a.syncActive === true && a.status !== 'Bloqueada' && a.status !== 'DISABLED') {
+          set.add(clean);
+        }
       }
-    }
-  });
+    });
+  }
 
   // Aplica overrides manuais se existirem
   const overrides = db.get(`sync_overrides_${effectiveUser}`) || (isOwnerUserId(effectiveUser) ? db.get('sync_overrides') : null);
@@ -5028,10 +5027,14 @@ app.get('/api/meta/status', async (req, res) => {
       };
     });
 
+    const serverOverrides = db.get(`sync_overrides_${effectiveUser}`) || (isOwnerUserId(effectiveUser) ? db.get('sync_overrides') : null) || {};
+
     res.json({
       success: true,
       connections: reconciled.connections,
       adAccounts: accountsWithSync,
+      activeAccounts: Array.from(activeSet),
+      overrides: serverOverrides,
       appId: process.env.META_APP_ID || '1650241273321193'
     });
   } catch (err) {
