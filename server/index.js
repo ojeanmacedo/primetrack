@@ -291,8 +291,8 @@ export function saveDailyCampaignInsights(campaignsList, dateStr, userId = null)
           roas: c.roas || existing?.roas || '0.00',
           cpa: c.cpa || existing?.cpa || '0.00',
           status: c.status !== undefined ? c.status : existing?.status,
-          rawStatus: c.rawStatus || existing?.rawStatus || 'ACTIVE',
-          effectiveStatus: c.effectiveStatus || existing?.effectiveStatus || 'ACTIVE',
+          rawStatus: c.rawStatus || existing?.rawStatus || (c.status ? 'ACTIVE' : 'PAUSED'),
+          effectiveStatus: c.effectiveStatus || existing?.effectiveStatus || (c.status ? 'ACTIVE' : 'PAUSED'),
           adsets: Array.isArray(c.adsets) ? c.adsets : (existing?.adsets || []),
           ads: Array.isArray(c.ads) ? c.ads : (existing?.ads || []),
           updatedAt: new Date().toISOString()
@@ -3064,8 +3064,9 @@ export function formatCampaignsForUser(campaignsList, userActiveIds, isToday = f
     const cAccName = (c.accountName || '').toLowerCase().trim();
     const isParentBlocked = (cActId && blockedAccIds.has(cActId)) || (cAccName && blockedAccNames.has(cAccName));
 
+    const isPaused = c.status === false || c.status === 'false' || c.status === 'PAUSED' || c.rawStatus === 'PAUSED' || c.effectiveStatus === 'PAUSED' || c.effectiveStatus === 'CAMPAIGN_PAUSED';
     const campOverride = getEffectiveStatusOverride(c.id);
-    let campStatus = campOverride !== undefined ? campOverride : c.status;
+    let campStatus = campOverride !== undefined ? campOverride : (!isPaused && (c.status === true || c.status === 'ACTIVE' || c.rawStatus === 'ACTIVE' || c.effectiveStatus === 'ACTIVE'));
     if (isParentBlocked) {
       campStatus = false;
     }
@@ -3085,7 +3086,8 @@ export function formatCampaignsForUser(campaignsList, userActiveIds, isToday = f
       effectiveStatus: campStatus ? 'ACTIVE' : 'PAUSED',
       adsets: (c.adsets || []).filter(a => a && !isItemDeleted(a.id || a.adsetId)).map(a => {
         const asOverride = getEffectiveStatusOverride(a.id || a.adsetId);
-        let asStatus = asOverride !== undefined ? asOverride : a.status;
+        const isAsPaused = a.status === false || a.status === 'false' || a.status === 'PAUSED' || a.rawStatus === 'PAUSED' || a.effectiveStatus === 'PAUSED' || a.effectiveStatus === 'ADSET_PAUSED';
+        let asStatus = asOverride !== undefined ? asOverride : (!isAsPaused && (a.status === true || a.status === 'ACTIVE' || a.rawStatus === 'ACTIVE' || a.effectiveStatus === 'ACTIVE'));
         if ((!campStatus || isParentBlocked) && asOverride === undefined) asStatus = false;
         const asDetail = getEffectiveDetailOverride(a.id || a.adsetId);
         return {
@@ -3101,7 +3103,8 @@ export function formatCampaignsForUser(campaignsList, userActiveIds, isToday = f
       }),
       ads: (c.ads || []).filter(ad => ad && !isItemDeleted(ad.id || ad.adId)).map(ad => {
         const adOverride = getEffectiveStatusOverride(ad.id || ad.adId);
-        let adStatus = adOverride !== undefined ? adOverride : ad.status;
+        const isAdPaused = ad.status === false || ad.status === 'false' || ad.status === 'PAUSED' || ad.rawStatus === 'PAUSED' || ad.effectiveStatus === 'PAUSED' || ad.effectiveStatus === 'AD_PAUSED';
+        let adStatus = adOverride !== undefined ? adOverride : (!isAdPaused && (ad.status === true || ad.status === 'ACTIVE' || ad.rawStatus === 'ACTIVE' || ad.effectiveStatus === 'ACTIVE'));
         if ((!campStatus || isParentBlocked) && adOverride === undefined) adStatus = false;
         const adDetail = getEffectiveDetailOverride(ad.id || ad.adId);
         return {
@@ -3183,9 +3186,63 @@ export function getStoredCampaignsForPeriod(userId, resolvedRange, userActiveIds
     if (periodInsightsMap.has(cId)) {
       const metric = periodInsightsMap.get(cId);
       periodInsightsMap.delete(cId);
+
+      const mergedAdsets = (c.adsets || []).map(as => {
+        const asIdStr = String(as.id || as.adsetId);
+        const asMetric = (metric.adsets || []).find(m => String(m.id || m.adsetId) === asIdStr);
+        if (!asMetric) return as;
+        return {
+          ...as,
+          spend: asMetric.spend || as.spend,
+          rawSpendUsd: asMetric.rawSpendUsd !== undefined ? asMetric.rawSpendUsd : as.rawSpendUsd,
+          impressions: asMetric.impressions !== undefined ? asMetric.impressions : as.impressions,
+          clicks: asMetric.clicks !== undefined ? asMetric.clicks : as.clicks,
+          cpc: asMetric.cpc || as.cpc,
+          cpm: asMetric.cpm || as.cpm,
+          ctr: asMetric.ctr || as.ctr,
+          sales: asMetric.sales !== undefined ? asMetric.sales : as.sales,
+          revenue: asMetric.revenue !== undefined ? asMetric.revenue : as.revenue,
+          profit: asMetric.profit !== undefined ? asMetric.profit : as.profit,
+          roas: asMetric.roas || as.roas,
+          cpa: asMetric.cpa || as.cpa,
+          status: as.status,
+          rawStatus: as.rawStatus,
+          effectiveStatus: as.effectiveStatus
+        };
+      });
+
+      const mergedAds = (c.ads || []).map(ad => {
+        const adIdStr = String(ad.id || ad.adId);
+        const adMetric = (metric.ads || []).find(m => String(m.id || m.adId) === adIdStr);
+        if (!adMetric) return ad;
+        return {
+          ...ad,
+          spend: adMetric.spend || ad.spend,
+          rawSpendUsd: adMetric.rawSpendUsd !== undefined ? adMetric.rawSpendUsd : ad.rawSpendUsd,
+          impressions: adMetric.impressions !== undefined ? adMetric.impressions : ad.impressions,
+          clicks: adMetric.clicks !== undefined ? adMetric.clicks : ad.clicks,
+          cpc: adMetric.cpc || ad.cpc,
+          cpm: adMetric.cpm || ad.cpm,
+          ctr: adMetric.ctr || ad.ctr,
+          sales: adMetric.sales !== undefined ? adMetric.sales : ad.sales,
+          revenue: adMetric.revenue !== undefined ? adMetric.revenue : ad.revenue,
+          profit: adMetric.profit !== undefined ? adMetric.profit : ad.profit,
+          roas: adMetric.roas || ad.roas,
+          cpa: adMetric.cpa || ad.cpa,
+          status: ad.status,
+          rawStatus: ad.rawStatus,
+          effectiveStatus: ad.effectiveStatus
+        };
+      });
+
       combined.push({
         ...c,
         ...metric,
+        status: c.status,
+        rawStatus: c.rawStatus,
+        effectiveStatus: c.effectiveStatus,
+        adsets: mergedAdsets,
+        ads: mergedAds,
         spend: metric.spend || c.spend,
         impressions: metric.impressions !== undefined ? metric.impressions : c.impressions,
         clicks: metric.clicks !== undefined ? metric.clicks : c.clicks,
@@ -3219,6 +3276,9 @@ export function getStoredCampaignsForPeriod(userId, resolvedRange, userActiveIds
   periodInsightsMap.forEach(metric => {
     combined.push({
       ...metric,
+      status: false,
+      rawStatus: 'PAUSED',
+      effectiveStatus: 'PAUSED',
       date: targetPeriodDate
     });
   });
@@ -3290,6 +3350,9 @@ async function syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiv
       if (!allCampaigns.some(c => String(c.id) === cIdStr)) {
         allCampaigns.push({
           ...savedMetric,
+          status: false,
+          rawStatus: 'PAUSED',
+          effectiveStatus: 'PAUSED',
           date: resolvedRange.since || todayBrazil
         });
       }
@@ -3319,9 +3382,62 @@ async function syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiv
       // Se temos o histórico gravado desta campanha neste período no banco, restaura os dados reais do banco
       if (savedInsightsMap.has(cIdStr)) {
         const savedMetric = savedInsightsMap.get(cIdStr);
+        const mergedAdsets = (c.adsets || []).map(as => {
+          const asIdStr = String(as.id || as.adsetId);
+          const asMetric = (savedMetric.adsets || []).find(m => String(m.id || m.adsetId) === asIdStr);
+          if (!asMetric) return as;
+          return {
+            ...as,
+            spend: asMetric.spend || as.spend,
+            rawSpendUsd: asMetric.rawSpendUsd !== undefined ? asMetric.rawSpendUsd : as.rawSpendUsd,
+            impressions: asMetric.impressions !== undefined ? asMetric.impressions : as.impressions,
+            clicks: asMetric.clicks !== undefined ? asMetric.clicks : as.clicks,
+            cpc: asMetric.cpc || as.cpc,
+            cpm: asMetric.cpm || as.cpm,
+            ctr: asMetric.ctr || as.ctr,
+            sales: asMetric.sales !== undefined ? asMetric.sales : as.sales,
+            revenue: asMetric.revenue !== undefined ? asMetric.revenue : as.revenue,
+            profit: asMetric.profit !== undefined ? asMetric.profit : as.profit,
+            roas: asMetric.roas || as.roas,
+            cpa: asMetric.cpa || as.cpa,
+            status: as.status,
+            rawStatus: as.rawStatus,
+            effectiveStatus: as.effectiveStatus
+          };
+        });
+
+        const mergedAds = (c.ads || []).map(ad => {
+          const adIdStr = String(ad.id || ad.adId);
+          const adMetric = (savedMetric.ads || []).find(m => String(m.id || m.adId) === adIdStr);
+          if (!adMetric) return ad;
+          return {
+            ...ad,
+            spend: adMetric.spend || ad.spend,
+            rawSpendUsd: adMetric.rawSpendUsd !== undefined ? adMetric.rawSpendUsd : ad.rawSpendUsd,
+            impressions: adMetric.impressions !== undefined ? adMetric.impressions : ad.impressions,
+            clicks: adMetric.clicks !== undefined ? adMetric.clicks : ad.clicks,
+            cpc: adMetric.cpc || ad.cpc,
+            cpm: adMetric.cpm || ad.cpm,
+            ctr: adMetric.ctr || ad.ctr,
+            sales: adMetric.sales !== undefined ? adMetric.sales : ad.sales,
+            revenue: adMetric.revenue !== undefined ? adMetric.revenue : ad.revenue,
+            profit: adMetric.profit !== undefined ? adMetric.profit : ad.profit,
+            roas: adMetric.roas || ad.roas,
+            cpa: adMetric.cpa || ad.cpa,
+            status: ad.status,
+            rawStatus: ad.rawStatus,
+            effectiveStatus: ad.effectiveStatus
+          };
+        });
+
         return {
           ...c,
           ...savedMetric,
+          status: c.status,
+          rawStatus: c.rawStatus,
+          effectiveStatus: c.effectiveStatus,
+          adsets: mergedAdsets,
+          ads: mergedAds,
           spend: savedMetric.spend || c.spend,
           impressions: savedMetric.impressions !== undefined ? savedMetric.impressions : c.impressions,
           clicks: savedMetric.clicks !== undefined ? savedMetric.clicks : c.clicks,
