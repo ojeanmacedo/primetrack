@@ -130,14 +130,16 @@ export async function getUsdToBrlRate() {
  * 4. Busca todas as Contas de Anúncios vinculadas a esse perfil
  */
 export async function fetchAdAccounts(accessToken) {
-  const url = `${GRAPH_BASE_URL}/me/adaccounts?fields=id,name,account_id,account_status,currency,amount_spent,balance,is_prepay_account,funding_source_details,business_name,business&limit=100&access_token=${accessToken}`;
-  const res = await fetch(url);
-  const data = await res.json();
-  if (data.error) throw new Error(data.error.message);
-  
-  const usdRate = await getUsdToBrlRate();
+  if (!accessToken) return [];
 
-  return (data.data || []).map(acc => {
+  const usdRate = await getUsdToBrlRate();
+  const allAccountsMap = new Map(); // cleanId -> account object
+
+  const parseAccountObj = (acc, defaultBmName = null) => {
+    const rawId = String(acc.id || '');
+    const cleanId = String(acc.account_id || rawId.replace('act_', '')).trim();
+    if (!cleanId) return null;
+
     const isPrepay = acc.is_prepay_account === true;
     const isCreditCard = acc.funding_source_details?.type === 1 || !isPrepay;
     const isUsd = acc.currency === 'USD';
@@ -146,14 +148,15 @@ export async function fetchAdAccounts(accessToken) {
     const rawBalance = Number(acc.balance || 0) / 100;
     const rawSpent = Number(acc.amount_spent || 0) / 100;
 
-    // Converte saldo e gastos em Dólar para Real Brasileiro (R$)
     const realAvailableBalance = isCreditCard ? '0.00' : (rawBalance * rate).toFixed(2);
     const convertedSpent = (rawSpent * rate).toFixed(2);
 
+    const bmName = acc.business_name || acc.business?.name || defaultBmName || 'BM Principal';
+
     return {
-      id: acc.id, // ex: act_1092137896602979
-      accountId: acc.account_id, // ex: 1092137896602979
-      name: acc.name || `Conta ${acc.account_id}`,
+      id: `act_${cleanId}`,
+      accountId: cleanId,
+      name: acc.name || `Conta ${cleanId}`,
       currency: acc.currency || 'BRL',
       rawCurrency: acc.currency,
       amountSpent: convertedSpent,
@@ -161,12 +164,75 @@ export async function fetchAdAccounts(accessToken) {
       rawBalanceUsd: isUsd ? rawBalance.toFixed(2) : null,
       isPrepay,
       cardInfo: acc.funding_source_details?.display_string || null,
-      account_status: acc.account_status,
-      status: acc.account_status === 1 ? 'Ativa' : 'Bloqueada',
-      businessName: acc.business_name || acc.business?.name || 'BM Principal',
+      account_status: acc.account_status !== undefined ? acc.account_status : 1,
+      status: acc.account_status === 1 ? 'Ativa' : (acc.account_status === 2 ? 'Bloqueada' : 'Ativa'),
+      businessName: bmName,
       syncActive: false
     };
-  });
+  };
+
+  const fields = 'id,name,account_id,account_status,currency,amount_spent,balance,is_prepay_account,funding_source_details,business_name,business';
+
+  // 1. Busca contas diretas do perfil (/me/adaccounts) com limite alto
+  try {
+    const url = `${GRAPH_BASE_URL}/me/adaccounts?fields=${fields}&limit=150&access_token=${accessToken}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (Array.isArray(data.data)) {
+      data.data.forEach(acc => {
+        const parsed = parseAccountObj(acc);
+        if (parsed) allAccountsMap.set(parsed.accountId, parsed);
+      });
+    }
+  } catch (errMe) {
+    console.warn('[fetchAdAccounts] Erro ao buscar /me/adaccounts:', errMe.message);
+  }
+
+  // 2. Busca todas as Business Managers (BMs) que o perfil tem acesso, recebeu ou gerencia
+  try {
+    const bizUrl = `${GRAPH_BASE_URL}/me/businesses?fields=id,name&limit=100&access_token=${accessToken}`;
+    const bizRes = await fetch(bizUrl);
+    const bizData = await bizRes.json();
+    const businesses = Array.isArray(bizData.data) ? bizData.data : [];
+
+    // Para cada BM, busca owned_ad_accounts e client_ad_accounts em paralelo
+    if (businesses.length > 0) {
+      await Promise.all(
+        businesses.map(async (bm) => {
+          if (!bm || !bm.id) return;
+          const bmName = bm.name || 'BM Principal';
+
+          const [ownedRes, clientRes] = await Promise.all([
+            fetch(`${GRAPH_BASE_URL}/${bm.id}/owned_ad_accounts?fields=${fields}&limit=100&access_token=${accessToken}`).then(r => r.json()).catch(() => ({})),
+            fetch(`${GRAPH_BASE_URL}/${bm.id}/client_ad_accounts?fields=${fields}&limit=100&access_token=${accessToken}`).then(r => r.json()).catch(() => ({}))
+          ]);
+
+          const mergeBmAccs = (list) => {
+            if (Array.isArray(list)) {
+              list.forEach(acc => {
+                const parsed = parseAccountObj(acc, bmName);
+                if (parsed) {
+                  const existing = allAccountsMap.get(parsed.accountId);
+                  if (!existing) {
+                    allAccountsMap.set(parsed.accountId, parsed);
+                  } else if (existing.businessName === 'BM Principal' && bmName !== 'BM Principal') {
+                    existing.businessName = bmName;
+                  }
+                }
+              });
+            }
+          };
+
+          mergeBmAccs(ownedRes.data);
+          mergeBmAccs(clientRes.data);
+        })
+      );
+    }
+  } catch (errBiz) {
+    console.warn('[fetchAdAccounts] Erro ao buscar BMs:', errBiz.message);
+  }
+
+  return Array.from(allAccountsMap.values());
 }
 
 const liveAccountDetailsCache = new Map();
@@ -296,7 +362,7 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     const aId = String(a.accountId || a.id || '').replace('act_', '');
     return aId === cleanAct;
   });
-  const isAccountBlocked = Boolean(matchedStoredAcc && (matchedStoredAcc.status === 'Bloqueada' || matchedStoredAcc.status === 'DISABLED' || matchedStoredAcc.account_status === 2 || matchedStoredAcc.syncActive === false));
+  const isAccountBlocked = Boolean(matchedStoredAcc && (matchedStoredAcc.status === 'Bloqueada' || matchedStoredAcc.status === 'DISABLED' || matchedStoredAcc.account_status === 2));
 
   const nowStructure = Date.now();
   const cachedStructure = accountStructureCache.get(cleanAct) || accountStructureCache.get(actId);

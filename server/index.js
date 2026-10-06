@@ -3076,7 +3076,7 @@ export function formatCampaignsForUser(campaignsList, userActiveIds, isToday = f
   const blockedAccIds = new Set();
   const blockedAccNames = new Set();
   adAccounts.forEach(a => {
-    const isBlocked = a.status === 'Bloqueada' || a.status === 'DISABLED' || a.account_status === 2 || a.syncActive === false;
+    const isBlocked = a.status === 'Bloqueada' || a.status === 'DISABLED' || a.account_status === 2;
     if (isBlocked) {
       const clean = String(a.accountId || a.id || '').replace('act_', '');
       if (clean) blockedAccIds.add(clean);
@@ -3090,11 +3090,15 @@ export function formatCampaignsForUser(campaignsList, userActiveIds, isToday = f
     if (isDeleted) return false;
 
     // Se é consulta do dia de hoje (ao vivo):
-    // Retorna contas ativas OU qualquer campanha que teve gasto, vendas ou receita real hoje!
     if (isToday) {
-      if (userActiveIds.has(cActId)) return true;
+      if (userActiveIds.size > 0) {
+        if (userActiveIds.has(cActId)) return true;
+        const hasTodayActivity = (Number(c.spend) > 0) || (Number(c.revenue) > 0) || (Number(c.sales) > 0);
+        return hasTodayActivity;
+      }
+      const isCampActive = c.status === true || c.status === 'ACTIVE' || c.rawStatus === 'ACTIVE' || c.effectiveStatus === 'ACTIVE';
       const hasTodayActivity = (Number(c.spend) > 0) || (Number(c.revenue) > 0) || (Number(c.sales) > 0);
-      return hasTodayActivity;
+      return hasTodayActivity || (isCampActive && (!allUserConnectedAccIds || allUserConnectedAccIds.has(cActId)));
     }
 
     // Para períodos históricos (ontem, 7d, personalizado, etc.):
@@ -3169,7 +3173,8 @@ export function getUserActiveAccountIds(userId = null, connections = null) {
   const effectiveUser = userId || 'usr_1788826403159';
 
   const explicitSaved = db.get(`active_accounts_${effectiveUser}`) || (isOwnerUserId(effectiveUser) ? db.get('active_accounts') : null);
-  if (Array.isArray(explicitSaved) && explicitSaved.length > 0) {
+  const hasExplicitSaved = Array.isArray(explicitSaved) && explicitSaved.length > 0;
+  if (hasExplicitSaved) {
     explicitSaved.forEach(id => userActiveIds.add(String(id).replace('act_', '')));
   } else {
     const conns = connections || db.get('facebook_connections') || [];
@@ -3204,7 +3209,7 @@ export function getUserActiveAccountIds(userId = null, connections = null) {
       const clean = String(a.accountId || a.id || '').replace('act_', '');
       if (a.syncActive === true && a.status !== 'Bloqueada' && a.status !== 'DISABLED') {
         userActiveIds.add(clean);
-      } else if (a.status === 'Bloqueada' || a.status === 'DISABLED' || a.syncActive === false) {
+      } else if (!hasExplicitSaved && (a.status === 'Bloqueada' || a.status === 'DISABLED' || a.syncActive === false)) {
         userActiveIds.delete(clean);
       }
     }
@@ -3407,8 +3412,13 @@ async function syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiv
       allCampaigns = allCampaigns.filter(c => {
         const cActId = String(c.adAccountId || c.accountId || '').replace('act_', '');
         if (isToday) {
-          if (userActiveIds.has(cActId)) return true;
-          return (Number(c.spend) > 0) || (Number(c.revenue) > 0) || (Number(c.sales) > 0);
+          if (userActiveIds.size > 0) {
+            if (userActiveIds.has(cActId)) return true;
+            const hasTodayActivity = (Number(c.spend) > 0) || (Number(c.revenue) > 0) || (Number(c.sales) > 0);
+            return hasTodayActivity;
+          }
+          const isCampActive = c.status === true || c.status === 'ACTIVE' || c.rawStatus === 'ACTIVE' || c.effectiveStatus === 'ACTIVE';
+          return (Number(c.spend) > 0) || (Number(c.revenue) > 0) || (Number(c.sales) > 0) || (isCampActive && (!allUserConnectedAccIds || allUserConnectedAccIds.has(cActId)));
         }
         if (userActiveIds.has(cActId)) return true;
         if (allUserConnectedAccIds && allUserConnectedAccIds.has(cActId)) return true;
@@ -4627,7 +4637,8 @@ export const getActiveSetForUser = (targetUserId, optionalConnections = null) =>
   const effectiveUser = targetUserId || 'usr_1788826403159';
   // 1. Prioridade máxima: lista salva explicitamente pelo usuário
   const explicitSaved = db.get(`active_accounts_${effectiveUser}`) || (isOwnerUserId(effectiveUser) ? db.get('active_accounts') : null);
-  if (Array.isArray(explicitSaved)) {
+  const hasExplicitSaved = Array.isArray(explicitSaved) && explicitSaved.length > 0;
+  if (hasExplicitSaved) {
     explicitSaved.forEach(id => set.add(String(id).replace('act_', '')));
   } else {
     const conns = (Array.isArray(optionalConnections) && optionalConnections.length > 0)
@@ -4656,7 +4667,7 @@ export const getActiveSetForUser = (targetUserId, optionalConnections = null) =>
       const clean = String(a.accountId || a.id || '').replace('act_', '');
       if (a.syncActive === true && a.status !== 'Bloqueada' && a.status !== 'DISABLED') {
         set.add(clean);
-      } else if (a.status === 'Bloqueada' || a.status === 'DISABLED' || a.syncActive === false) {
+      } else if (!hasExplicitSaved && (a.status === 'Bloqueada' || a.status === 'DISABLED' || a.syncActive === false)) {
         set.delete(clean);
       }
     }
@@ -5249,7 +5260,9 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
   // Mapeia todas as contas para seus respectivos tokens de conexão e descobre contas novas
   const accountTokenMap = new Map(); // cleanId/act_Id -> token
   const nowAccountsCheck = Date.now();
-  const shouldDiscoverAccs = allAdAccounts.length === 0 || (nowAccountsCheck - lastAdAccountsDiscoveryTime > 15 * 60 * 1000);
+  const requestedIds = Array.isArray(accountIds) ? accountIds.map(id => String(id).replace('act_', '')) : (accountId ? [String(accountId).replace('act_', '')] : []);
+  const hasUnknownRequestedAcc = requestedIds.some(reqId => !allAdAccounts.some(a => (a.accountId || a.id || '').replace('act_', '') === reqId));
+  const shouldDiscoverAccs = allAdAccounts.length === 0 || hasUnknownRequestedAcc || (nowAccountsCheck - lastAdAccountsDiscoveryTime > 5 * 60 * 1000);
 
   if (shouldDiscoverAccs) {
     await Promise.all(
@@ -5265,7 +5278,8 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
                 accountTokenMap.set(`act_${clean}`, token);
 
                 // Garante que a conta conste em allAdAccounts
-                if (!allAdAccounts.some(a => (a.accountId || a.id || '').replace('act_', '') === clean)) {
+                const existingIdx = allAdAccounts.findIndex(a => (a.accountId || a.id || '').replace('act_', '') === clean);
+                if (existingIdx === -1) {
                   allAdAccounts.push({
                     id: acc.id || `act_${clean}`,
                     accountId: clean,
@@ -5277,6 +5291,17 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
                     balance: String(acc.balance || '0.00'),
                     syncActive: activeSet.has(clean)
                   });
+                } else {
+                  allAdAccounts[existingIdx] = {
+                    ...allAdAccounts[existingIdx],
+                    name: acc.name || allAdAccounts[existingIdx].name,
+                    businessName: acc.businessName || allAdAccounts[existingIdx].businessName,
+                    currency: acc.currency || allAdAccounts[existingIdx].currency,
+                    status: acc.status || allAdAccounts[existingIdx].status,
+                    amountSpent: String(acc.amountSpent || allAdAccounts[existingIdx].amountSpent),
+                    balance: String(acc.balance || allAdAccounts[existingIdx].balance),
+                    syncActive: activeSet.has(clean) ? true : allAdAccounts[existingIdx].syncActive
+                  };
                 }
               });
             }
@@ -5302,6 +5327,19 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
     });
   }
 
+  // Garante que qualquer conta requisitada receba o token da conexão do perfil
+  connections.forEach(conn => {
+    const token = conn.accessToken || conn.access_token;
+    if (token) {
+      requestedIds.forEach(reqId => {
+        if (!accountTokenMap.has(reqId)) {
+          accountTokenMap.set(reqId, token);
+          accountTokenMap.set(`act_${reqId}`, token);
+        }
+      });
+    }
+  });
+
   const fallbackToken = connections[0]?.accessToken || connections[0]?.access_token;
 
   // Se o usuário especificou contas
@@ -5309,17 +5347,19 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
   if (Array.isArray(accountIds) && accountIds.length > 0) {
     const idSet = new Set(accountIds.map(id => String(id).replace('act_', '')));
     targetAccounts = allAdAccounts.filter(a => idSet.has((a.accountId || a.id || '').replace('act_', '')));
-    if (targetAccounts.length === 0) {
-      targetAccounts = accountIds.map(id => {
+    if (targetAccounts.length < idSet.size) {
+      accountIds.forEach(id => {
         const clean = String(id).replace('act_', '');
-        return {
-          id: `act_${clean}`,
-          accountId: clean,
-          name: 'Conta de Anúncio',
-          currency: 'BRL',
-          status: 'ACTIVE',
-          syncActive: true
-        };
+        if (!targetAccounts.some(a => (a.accountId || a.id || '').replace('act_', '') === clean)) {
+          targetAccounts.push({
+            id: `act_${clean}`,
+            accountId: clean,
+            name: 'Conta de Anúncio',
+            currency: 'BRL',
+            status: 'ACTIVE',
+            syncActive: true
+          });
+        }
       });
     }
   } else if (accountId) {
@@ -5853,6 +5893,28 @@ app.post('/api/meta/accounts/sync-status', async (req, res) => {
       }
       return acc;
     });
+
+    // Garante que qualquer conta ativada que ainda não conste em ad_accounts seja adicionada
+    explicitActiveIds.forEach(activeId => {
+      const clean = String(activeId).replace('act_', '');
+      const exists = adAccounts.some(a => (a.accountId || a.id || '').replace('act_', '') === clean);
+      if (!exists) {
+        adAccounts.push({
+          id: `act_${clean}`,
+          accountId: clean,
+          name: 'Conta de Anúncio',
+          businessName: 'BM Principal',
+          currency: 'BRL',
+          status: 'Ativa',
+          amountSpent: '0.00',
+          balance: '0.00',
+          syncActive: true,
+          userId: effectiveTargetUser,
+          user_id: effectiveTargetUser
+        });
+      }
+    });
+
     db.set('ad_accounts', adAccounts);
 
     // Salva o mapa de contas ativas no Supabase (apenas nos perfis do Facebook deste usuário específico)
