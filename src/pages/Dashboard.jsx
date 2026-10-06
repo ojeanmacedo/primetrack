@@ -477,14 +477,12 @@ export default function Dashboard() {
   const [adAccountsList, setAdAccountsList] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
-        const v = localStorage.getItem('primetrack_cache_v5');
+        const v = localStorage.getItem('primetrack_cache_v6');
         if (!v) {
-          localStorage.removeItem('primetrack_sync_overrides');
-          localStorage.removeItem('primetrack_sync_overrides_usr_1788826403159');
           localStorage.removeItem('primetrack_cached_campaigns');
           localStorage.removeItem('primetrack_cached_period_Hoje_usr_1788826403159');
           localStorage.removeItem('primetrack_cached_period_Hoje');
-          localStorage.setItem('primetrack_cache_v5', '1');
+          localStorage.setItem('primetrack_cache_v6', '1');
         }
       } catch (e) {}
       const saved = localStorage.getItem('primetrack_ad_accounts');
@@ -996,6 +994,40 @@ export default function Dashboard() {
     return Array.from(set);
   }, [deduplicatedOrders]);
 
+  // Lista unificada de contas de anúncio disponíveis para filtro no Dashboard
+  // Inclui contas ativas, contas salvas no cache do usuário e contas com histórico nas campanhas carregadas
+  const availableAccounts = useMemo(() => {
+    const map = new Map();
+    if (Array.isArray(adAccountsList)) {
+      adAccountsList.forEach(a => {
+        const cleanId = String(a.id || a.accountId || '').replace('act_', '').trim();
+        if (cleanId) map.set(cleanId, { id: cleanId, name: a.name || `Conta ${cleanId}` });
+      });
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = JSON.parse(localStorage.getItem('primetrack_ad_accounts') || '[]');
+        if (Array.isArray(stored)) {
+          stored.forEach(a => {
+            const cleanId = String(a.accountId || a.id || '').replace('act_', '').trim();
+            if (cleanId && !map.has(cleanId)) {
+              map.set(cleanId, { id: cleanId, name: a.name || `Conta ${cleanId}` });
+            }
+          });
+        }
+      } catch (e) {}
+    }
+    if (Array.isArray(campaigns)) {
+      campaigns.forEach(c => {
+        const cleanId = String(c.adAccountId || c.accountId || '').replace('act_', '').trim();
+        if (cleanId && !map.has(cleanId)) {
+          map.set(cleanId, { id: cleanId, name: c.accountName || `Conta ${cleanId}` });
+        }
+      });
+    }
+    return Array.from(map.values()).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  }, [adAccountsList, campaigns]);
+
   // Filtra as campanhas baseado na conta selecionada e no dashboard ativo
   const filteredCampaigns = useMemo(() => {
     // Se o dashboard ativo não é o padrão ("Principal"), ele vem zerado a menos que tenha campanhas/contas vinculadas
@@ -1010,21 +1042,51 @@ export default function Dashboard() {
     const isToday = period === 'Hoje';
 
     return campaigns.filter(c => {
-      const cAdId = String(c.adAccountId || '').replace('act_', '');
+      const cAdId = String(c.adAccountId || c.accountId || '').replace('act_', '').trim();
+      const cAccName = (c.accountName || '').toLowerCase().trim();
+
+      // Se uma conta específica foi selecionada no filtro:
       if (selectedAccount !== 'Todas') {
-        const match = adAccountsList.find(a => a.name === selectedAccount || a.id === selectedAccount);
-        if (match) return cAdId === String(match.id);
-        return c.accountName === selectedAccount || cAdId === selectedAccount;
+        const cleanSelected = String(selectedAccount).replace('act_', '').trim();
+        const selectedMatch = availableAccounts.find(a => 
+          a.name === selectedAccount || 
+          String(a.id).replace('act_', '').trim() === cleanSelected
+        );
+        const targetId = selectedMatch ? String(selectedMatch.id).replace('act_', '').trim() : cleanSelected;
+        const targetName = selectedMatch ? (selectedMatch.name || '').toLowerCase().trim() : String(selectedAccount).toLowerCase().trim();
+
+        const matchesById = cAdId && cAdId === targetId;
+        const matchesByName = cAccName && (cAccName === targetName || targetName.includes(cAccName) || cAccName.includes(targetName));
+        return matchesById || matchesByName;
       }
-      // Se for Hoje, filtra apenas pelas contas ativas no momento E que tenham status ativo ou gasto/vendas reais hoje
-      // Se for período passado (Ontem, 7D, 30D, etc.), preserva todas as campanhas do período com gasto/lucro
-      if (isToday && adAccountsList.length > 0) {
-        const belongsToActiveAcc = adAccountsList.some(acc => cAdId === String(acc.id) || (acc.name && c.accountName === acc.name));
-        return belongsToActiveAcc && (c.status === true || Number(c.spend || 0) > 0 || Number(c.sales || 0) > 0);
+
+      // Se for "Todas" / "Qualquer":
+      // REGRA FUNDAMENTAL: Gasto e vendas NUNCA somem do usuário,
+      // mesmo que a conta de anúncio tenha sido desativada em integrações ou bloqueada no Facebook.
+      const hasFinancialActivity = 
+        Number(c.spend || 0) > 0 || 
+        Number(c.sales || 0) > 0 || 
+        Number(c.revenue || 0) > 0 || 
+        Number(c.clicks || 0) > 0 || 
+        Number(c.impressions || 0) > 0;
+
+      if (hasFinancialActivity) {
+        return true;
       }
+
+      // Se não teve movimentação financeira no período:
+      // Exibe campanhas pertencentes a contas ativas em Integrações
+      if (adAccountsList.length > 0) {
+        const belongsToActiveAcc = adAccountsList.some(acc => {
+          const accIdClean = String(acc.id || acc.accountId || '').replace('act_', '').trim();
+          return (cAdId && cAdId === accIdClean) || (acc.name && cAccName === acc.name.toLowerCase().trim());
+        });
+        return belongsToActiveAcc && (c.status === true || !isToday);
+      }
+
       return true;
     });
-  }, [campaigns, selectedAccount, adAccountsList, activeDashboard, period]);
+  }, [campaigns, selectedAccount, adAccountsList, availableAccounts, activeDashboard, period]);
 
   // Filtra as vendas baseado no período e filtros selecionados
   const filteredOrders = useMemo(() => {
@@ -1094,8 +1156,12 @@ export default function Dashboard() {
 
       // Filtro de conta de anúncios
       if (selectedAccount !== 'Todas') {
-        const match = adAccountsList.find(a => a.name === selectedAccount || a.id === selectedAccount);
-        const targetId = match ? String(match.id).replace('act_', '') : String(selectedAccount).replace('act_', '');
+        const cleanSelected = String(selectedAccount).replace('act_', '').trim();
+        const match = availableAccounts.find(a => 
+          a.name === selectedAccount || 
+          String(a.id).replace('act_', '').trim() === cleanSelected
+        );
+        const targetId = match ? String(match.id).replace('act_', '').trim() : cleanSelected;
         const targetName = match ? (match.name || '').toLowerCase().trim() : String(selectedAccount).toLowerCase().trim();
 
         const orderAccId = String(o.attribution?.accountId || o.attribution?.adAccountId || o.accountId || '').replace('act_', '').trim();
@@ -1153,7 +1219,7 @@ export default function Dashboard() {
 
       return true;
     });
-  }, [deduplicatedOrders, period, selectedSource, selectedPlatform, selectedProduct, selectedAccount, adAccountsList, filteredCampaigns, activeDashboard]);
+  }, [deduplicatedOrders, period, selectedSource, selectedPlatform, selectedProduct, selectedAccount, availableAccounts, filteredCampaigns, activeDashboard]);
 
   // Vendas Pendentes reais da MonsterPay
   const pendingOrders = filteredOrders.filter(o => 
@@ -2145,7 +2211,7 @@ export default function Dashboard() {
                 className="w-full appearance-none bg-[#0F1728] border border-[#1E293B] rounded-lg px-2.5 py-1.5 text-zinc-200 focus:outline-none focus:border-[#0066FF] text-xs cursor-pointer font-medium"
               >
                 <option value="Todas">Qualquer</option>
-                {adAccountsList.map(acc => (
+                {availableAccounts.map(acc => (
                   <option key={acc.id} value={acc.id}>{acc.name} ({acc.id})</option>
                 ))}
               </select>

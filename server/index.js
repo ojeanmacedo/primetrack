@@ -3093,11 +3093,11 @@ export function formatCampaignsForUser(campaignsList, userActiveIds, isToday = f
     if (isToday) {
       if (userActiveIds.size > 0) {
         if (userActiveIds.has(cActId)) return true;
-        const hasTodayActivity = (Number(c.spend) > 0) || (Number(c.revenue) > 0) || (Number(c.sales) > 0);
+        const hasTodayActivity = (Number(c.spend) > 0) || (Number(c.revenue) > 0) || (Number(c.sales) > 0) || (Number(c.clicks) > 0) || (Number(c.impressions) > 0);
         return hasTodayActivity;
       }
       const isCampActive = c.status === true || c.status === 'ACTIVE' || c.rawStatus === 'ACTIVE' || c.effectiveStatus === 'ACTIVE';
-      const hasTodayActivity = (Number(c.spend) > 0) || (Number(c.revenue) > 0) || (Number(c.sales) > 0);
+      const hasTodayActivity = (Number(c.spend) > 0) || (Number(c.revenue) > 0) || (Number(c.sales) > 0) || (Number(c.clicks) > 0) || (Number(c.impressions) > 0);
       return hasTodayActivity || (isCampActive && (!allUserConnectedAccIds || allUserConnectedAccIds.has(cActId)));
     }
 
@@ -3106,7 +3106,7 @@ export function formatCampaignsForUser(campaignsList, userActiveIds, isToday = f
     if (userActiveIds.has(cActId)) return true;
     if (allUserConnectedAccIds && allUserConnectedAccIds.has(cActId)) return true;
 
-    const hasHistoricalData = (Number(c.spend) > 0) || (Number(c.revenue) > 0) || (Number(c.sales) > 0) || (Number(c.impressions) > 0);
+    const hasHistoricalData = (Number(c.spend) > 0) || (Number(c.revenue) > 0) || (Number(c.sales) > 0) || (Number(c.impressions) > 0) || (Number(c.clicks) > 0);
     return hasHistoricalData;
   }).map(c => {
     const cActId = String(c.adAccountId || c.accountId || '').replace('act_', '');
@@ -3384,15 +3384,23 @@ async function syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiv
     const savedCampaigns = (db.get('campaigns') || []).filter(c => isOwnerUserId(userId) ? (!c.userId || isOwnerUserId(c.userId)) : (c.userId === userId));
     const cached = campaignsCache.get(cacheKey);
 
-    let allCampaigns = (syncResult && Array.isArray(syncResult.campaigns) && syncResult.campaigns.length > 0)
-      ? syncResult.campaigns
-      : savedCampaigns;
+    let allCampaigns = [];
+    if (syncResult && Array.isArray(syncResult.campaigns) && syncResult.campaigns.length > 0) {
+      allCampaigns = [...syncResult.campaigns];
+      // Preserva campanhas salvas localmente de outras contas que não foram consultadas nesta sincronização
+      const syncedAccountIds = new Set(targetAccountIds || []);
+      savedCampaigns.forEach(sc => {
+        const scActId = String(sc.adAccountId || sc.accountId || '').replace('act_', '');
+        if (!syncedAccountIds.has(scActId) && !allCampaigns.some(c => String(c.id) === String(sc.id))) {
+          allCampaigns.push(sc);
+        }
+      });
+    } else {
+      allCampaigns = savedCampaigns.length > 0 ? [...savedCampaigns] : (cached?.campaigns ? [...cached.campaigns] : []);
+    }
 
     if ((!allCampaigns || allCampaigns.length === 0) && cached && Array.isArray(cached.campaigns) && cached.campaigns.length > 0) {
       allCampaigns = cached.campaigns;
-    }
-    if ((!allCampaigns || allCampaigns.length === 0) && savedCampaigns.length > 0) {
-      allCampaigns = savedCampaigns;
     }
 
     // Garante que todas as campanhas gravadas no histórico diário para este período estejam presentes em allCampaigns
@@ -3414,15 +3422,15 @@ async function syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiv
         if (isToday) {
           if (userActiveIds.size > 0) {
             if (userActiveIds.has(cActId)) return true;
-            const hasTodayActivity = (Number(c.spend) > 0) || (Number(c.revenue) > 0) || (Number(c.sales) > 0);
+            const hasTodayActivity = (Number(c.spend) > 0) || (Number(c.revenue) > 0) || (Number(c.sales) > 0) || (Number(c.clicks) > 0) || (Number(c.impressions) > 0);
             return hasTodayActivity;
           }
           const isCampActive = c.status === true || c.status === 'ACTIVE' || c.rawStatus === 'ACTIVE' || c.effectiveStatus === 'ACTIVE';
-          return (Number(c.spend) > 0) || (Number(c.revenue) > 0) || (Number(c.sales) > 0) || (isCampActive && (!allUserConnectedAccIds || allUserConnectedAccIds.has(cActId)));
+          return (Number(c.spend) > 0) || (Number(c.revenue) > 0) || (Number(c.sales) > 0) || (Number(c.clicks) > 0) || (Number(c.impressions) > 0) || (isCampActive && (!allUserConnectedAccIds || allUserConnectedAccIds.has(cActId)));
         }
         if (userActiveIds.has(cActId)) return true;
         if (allUserConnectedAccIds && allUserConnectedAccIds.has(cActId)) return true;
-        return (Number(c.spend) > 0) || (Number(c.revenue) > 0) || (Number(c.sales) > 0) || (Number(c.impressions) > 0);
+        return (Number(c.spend) > 0) || (Number(c.revenue) > 0) || (Number(c.sales) > 0) || (Number(c.impressions) > 0) || (Number(c.clicks) > 0);
       });
     }
 
@@ -3432,6 +3440,13 @@ async function syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiv
       // Se a campanha veio do Meta nesta consulta com dados frescos do período, preserva
       const freshCamp = syncResult && Array.isArray(syncResult.campaigns) ? syncResult.campaigns.find(fc => String(fc.id) === cIdStr) : null;
       if (freshCamp) {
+        // Se temos histórico salvo gravado com gasto e a API retornou 0 (ex: conta bloqueada/desativada no meio do dia), preserva o maior gasto
+        if (savedInsightsMap.has(cIdStr)) {
+          const savedMetric = savedInsightsMap.get(cIdStr);
+          if (Number(savedMetric.spend || 0) > Number(freshCamp.spend || 0)) {
+            freshCamp.spend = savedMetric.spend;
+          }
+        }
         return freshCamp;
       }
       // Se temos o histórico gravado desta campanha neste período no banco, restaura os dados reais do banco
