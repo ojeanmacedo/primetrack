@@ -14,7 +14,7 @@ export default function Notifications() {
     return {
       vendasAprovadas: true,
       vendasPendentes: true,
-      vendasReembolsadas: false,
+      vendasReembolsadas: true,
       ocultarProduto: true,
       mostrarCampanha: true,
       mostrarDashboard: false,

@@ -32,7 +32,7 @@ self.addEventListener('push', (event) => {
     icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
     badge: 'https://app.primetrack.top/images/primetrack-app-icon.png',
     tag: data.tag || 'sale-alert',
-    renotify: true,
+    renotify: false,
     data: data.data || { url: '/sales' }
   };
 

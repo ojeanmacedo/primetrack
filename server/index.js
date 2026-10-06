@@ -75,7 +75,7 @@ export function isOwnerUserId(id) {
   return OWNER_USER_IDS.includes(id);
 }
 
-// Cache anti-duplicação de notificações push (TTL de 15 minutos para evitar disparos em rajada de webhooks repetidos)
+// Cache anti-duplicação de notificações push (retenção de 24 horas por pedido/status)
 const recentlyNotifiedOrders = new Map();
 
 export function resolveDateRange(datePreset = 'today', since = null, until = null) {
@@ -1576,7 +1576,10 @@ app.all([
       emqScore: capiResult.emq.score,
       capiSent: capiResult.success || (prevOrder ? prevOrder.capiSent : false),
       capiResponse: capiResult.response || (prevOrder ? prevOrder.capiResponse : null),
-      createdAt: new Date().toISOString()
+      notifiedApproved: prevOrder?.notifiedApproved || false,
+      notifiedPending: prevOrder?.notifiedPending || false,
+      notifiedRefunded: prevOrder?.notifiedRefunded || false,
+      createdAt: prevOrder ? prevOrder.createdAt : new Date().toISOString()
     };
 
     if (existingIdx >= 0) {
@@ -1584,7 +1587,10 @@ app.all([
         ...existingOrders[existingIdx],
         ...orderRecord,
         userId: existingOrders[existingIdx].userId || orderUserId,
-        status: parsed.status || 'waiting_payment'
+        status: parsed.status || 'waiting_payment',
+        notifiedApproved: existingOrders[existingIdx].notifiedApproved || orderRecord.notifiedApproved,
+        notifiedPending: existingOrders[existingIdx].notifiedPending || orderRecord.notifiedPending,
+        notifiedRefunded: existingOrders[existingIdx].notifiedRefunded || orderRecord.notifiedRefunded
       };
       db.set('orders', existingOrders);
     } else {
@@ -1651,23 +1657,13 @@ app.all([
       const isPendingAlready = isPending && (effectivelyPreviousStatus === 'waiting_payment' || effectivelyPreviousStatus === 'pending');
       const isRefundedAlready = isRefunded && (effectivelyPreviousStatus === 'refunded');
 
-      // Deduplicação: se for o mesmo pedido com o mesmo status exato num intervalo menor que 3 segundos, evita duplicação
+      // Deduplicação estrita de 24 horas por pedido e tipo de evento
       const notifStatusKey = isPaid ? 'approved' : (isPending ? 'pending' : (isRefunded ? 'refunded' : parsed.status));
       const notifDedupeKey = `${parsed.orderCode}_${notifStatusKey}`;
       const now = Date.now();
-      const recentlyNotified = recentlyNotifiedOrders.has(notifDedupeKey) && (now - recentlyNotifiedOrders.get(notifDedupeKey) < 3 * 1000);
+      const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+      const recentlyNotified = recentlyNotifiedOrders.has(notifDedupeKey) && (now - recentlyNotifiedOrders.get(notifDedupeKey) < ONE_DAY_MS);
 
-      // Notifica se houver mudança de status ou se for um novo pedido / evento
-      const shouldNotify = !recentlyNotified && (!isPaidAlready || !isPendingAlready);
-      if (shouldNotify) {
-        recentlyNotifiedOrders.set(notifDedupeKey, now);
-        if (recentlyNotifiedOrders.size > 1000) {
-          for (const [k, ts] of recentlyNotifiedOrders.entries()) {
-            if (now - ts > 10 * 1000) recentlyNotifiedOrders.delete(k);
-          }
-        }
-      }
-      
       // Respeita configurações de notificação do usuário (busca Supabase primeiro)
       let notifSettings = {};
       try {
@@ -1683,8 +1679,8 @@ app.all([
           .limit(1);
 
         if (supaSet && supaSet[0]?.domain) {
-          const parsed = JSON.parse(supaSet[0].domain);
-          notifSettings = parsed.notificationSettings || parsed;
+          const parsedSet = JSON.parse(supaSet[0].domain);
+          notifSettings = parsedSet.notificationSettings || parsedSet;
         }
       } catch (e) {}
 
@@ -1695,7 +1691,7 @@ app.all([
 
       const allowApproved = notifSettings.vendasAprovadas !== false;
       const allowPending = notifSettings.vendasPendentes !== false;
-      const allowRefunded = notifSettings.vendasReembolsadas === true;
+      const allowRefunded = notifSettings.vendasReembolsadas !== false;
       const hideProduct = notifSettings.ocultarProduto !== false;
       const showCampaign = notifSettings.mostrarCampanha !== false;
       const showDashboard = notifSettings.mostrarDashboard === true;
@@ -1720,8 +1716,41 @@ app.all([
         return text;
       };
 
-      if (shouldNotify) {
-        if (isPaid && allowApproved) {
+      // Decisão rigorosa por tipo de evento sem duplicidade:
+      let shouldNotify = false;
+      let notificationType = null; // 'approved' | 'pending' | 'refunded'
+
+      if (isPaid) {
+        const alreadyNotifiedApproved = (prevOrder?.notifiedApproved === true) || isPaidAlready || recentlyNotified;
+        if (!alreadyNotifiedApproved && allowApproved) {
+          shouldNotify = true;
+          notificationType = 'approved';
+        } else {
+          console.log(`[WebPush] Notificação de Venda Aprovada ignorada para ${parsed.orderCode}: já notificada anteriormente.`);
+        }
+      } else if (isPending) {
+        const wasAlreadyPaid = (prevOrder?.notifiedApproved === true) || effectivelyPreviousStatus === 'paid' || effectivelyPreviousStatus === 'approved';
+        const alreadyNotifiedPending = (prevOrder?.notifiedPending === true) || isPendingAlready || recentlyNotified;
+        if (!alreadyNotifiedPending && !wasAlreadyPaid && allowPending) {
+          shouldNotify = true;
+          notificationType = 'pending';
+        } else {
+          console.log(`[WebPush] Notificação de Venda Pendente ignorada para ${parsed.orderCode}: já notificada ou pedido já aprovado.`);
+        }
+      } else if (isRefunded) {
+        const alreadyNotifiedRefunded = (prevOrder?.notifiedRefunded === true) || isRefundedAlready || recentlyNotified;
+        if (!alreadyNotifiedRefunded && allowRefunded) {
+          shouldNotify = true;
+          notificationType = 'refunded';
+        } else {
+          console.log(`[WebPush] Notificação de Reembolso ignorada para ${parsed.orderCode}: já notificada anteriormente.`);
+        }
+      }
+
+      if (shouldNotify && notificationType) {
+        recentlyNotifiedOrders.set(notifDedupeKey, now);
+
+        if (notificationType === 'approved') {
           await sendSalesNotification({
             title: `${titlePrefix}Venda Aprovada!`,
             body: buildNotifBody(false),
@@ -1730,7 +1759,7 @@ app.all([
             data: { url: '/sales', orderCode: parsed.orderCode },
             userId: orderUserId
           });
-        } else if (isPending && allowPending) {
+        } else if (notificationType === 'pending') {
           await sendSalesNotification({
             title: `${titlePrefix}Venda Pendente!`,
             body: buildNotifBody(false),
@@ -1739,7 +1768,7 @@ app.all([
             data: { url: '/sales', orderCode: parsed.orderCode },
             userId: orderUserId
           });
-        } else if (isRefunded && allowRefunded) {
+        } else if (notificationType === 'refunded') {
           await sendSalesNotification({
             title: `${titlePrefix}Venda Reembolsada!`,
             body: buildNotifBody(true),
@@ -1749,8 +1778,24 @@ app.all([
             userId: orderUserId
           });
         }
-      } else {
-        console.log(`[WebPush] Notificação ignorada para ${parsed.orderCode}: status '${parsed.status}' já foi notificado anteriormente.`);
+
+        // Atualiza a flag de notificação no banco de dados local para imunidade contra reenvios futuros
+        try {
+          const currentOrders = db.get('orders') || [];
+          const curIdx = currentOrders.findIndex(o => o.orderCode === parsed.orderCode);
+          if (curIdx >= 0) {
+            if (notificationType === 'approved') currentOrders[curIdx].notifiedApproved = true;
+            if (notificationType === 'pending') currentOrders[curIdx].notifiedPending = true;
+            if (notificationType === 'refunded') currentOrders[curIdx].notifiedRefunded = true;
+            db.set('orders', currentOrders);
+          }
+        } catch (eDb) {}
+
+        if (recentlyNotifiedOrders.size > 5000) {
+          for (const [k, ts] of recentlyNotifiedOrders.entries()) {
+            if (now - ts > ONE_DAY_MS) recentlyNotifiedOrders.delete(k);
+          }
+        }
       }
     } catch (pushErr) {
       console.warn('[WebPush] Falha ao enviar notificação de webhook:', pushErr.message);

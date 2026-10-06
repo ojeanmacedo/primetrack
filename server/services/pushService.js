@@ -166,7 +166,7 @@ export async function sendSalesNotification({ title, body, icon, tag, data, user
     body: body || 'Nova venda registrada no PrimeTrack',
     icon: icon || 'https://app.primetrack.top/images/primetrack-app-icon.png',
     badge: 'https://app.primetrack.top/images/primetrack-app-icon.png',
-    tag: tag ? `${tag}_${Date.now()}` : `sale_${Date.now()}`,
+    tag: tag || `sale_${Date.now()}`,
     data: data || { url: '/sales' }
   });
 
