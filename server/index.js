@@ -1289,7 +1289,100 @@ app.all([
     // Roteamento inteligente de Sub-Pixels Meta (quando há múltiplos pixels para o mesmo produto em BMs diferentes)
     let finalMetaPixelsToSend = metaPixelsToSend;
 
-    if (metaPixelsToSend.length > 1) {
+    // Normalizador universal de texto (remove acentos, pontuação, lowercase)
+    const normalizeText = (s) => String(s || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+
+    // Extrator de tokens significativos (palavras com >= 2 caracteres alfanuméricos)
+    const extractTokens = (s) => normalizeText(s)
+      .split(/[^a-z0-9]+/i)
+      .filter(t => t.length >= 2);
+
+    const campId = attribution.campaignId;
+    const allCampaigns = db.get('campaigns') || [];
+    let campMatch = allCampaigns.find(c => String(c.id).trim() === String(campId).trim());
+
+    // Se não achou na memória, busca no Supabase
+    if (!campMatch && campId) {
+      try {
+        const { data: sCamps } = await supabaseAdmin
+          .from('campaigns')
+          .select('*')
+          .eq('id', String(campId).trim())
+          .limit(1);
+        if (sCamps && sCamps[0]) {
+          campMatch = sCamps[0];
+        }
+      } catch (e) {}
+    }
+
+    let resolvedAccountName = campMatch?.accountName || campMatch?.account_name || attribution.accountName || '';
+    if (!resolvedAccountName && (campMatch?.account_id || campMatch?.accountId)) {
+      const accId = String(campMatch.account_id || campMatch.accountId).replace('act_', '');
+      try {
+        const { data: sAccs } = await supabaseAdmin
+          .from('ad_accounts')
+          .select('name')
+          .or(`id.eq.act_${accId},id.eq.${accId}`)
+          .limit(1);
+        if (sAccs && sAccs[0]?.name) {
+          resolvedAccountName = sAccs[0].name;
+        }
+      } catch (e) {}
+    }
+
+    const normAccount = normalizeText(resolvedAccountName);
+    const normCamp = normalizeText(campMatch?.name || attribution.campaign || parsed.tracking?.utm_campaign || '');
+    const normAd = normalizeText(attribution.adName || attribution.adSetName || parsed.tracking?.utm_content || '');
+    const normSource = normalizeText(parsed.tracking?.utm_source || attribution.source || '');
+
+    const accountTokens = extractTokens(normAccount);
+    const campTokens = extractTokens(normCamp);
+    const adTokens = extractTokens(normAd);
+    const sourceTokens = extractTokens(normSource);
+
+    // 0. Prioridade Suprema: Pixel oficial configurado no Conjunto de Anúncios da Campanha no Meta (promoted_object.pixel_id)
+    let campaignPromotedPixelId = null;
+    if (campMatch) {
+      if (campMatch.metaPixelId) campaignPromotedPixelId = String(campMatch.metaPixelId);
+      else if (Array.isArray(campMatch.adsets)) {
+        const adsetWithPixel = campMatch.adsets.find(a => a.promoted_object?.pixel_id || a.pixelId);
+        if (adsetWithPixel) campaignPromotedPixelId = String(adsetWithPixel.promoted_object?.pixel_id || adsetWithPixel.pixelId);
+      }
+    }
+    if (!campaignPromotedPixelId && (campId === '52615762127221' || normCamp.includes('conta pessoal') || normAccount.includes('julia vitoria'))) {
+      campaignPromotedPixelId = '1654430702877652';
+    }
+
+    if (campaignPromotedPixelId) {
+      const directMatch = metaPixelsToSend.filter(m => m.pixelId === campaignPromotedPixelId);
+      if (directMatch.length > 0) {
+        finalMetaPixelsToSend = directMatch;
+      } else {
+        let pxToken = activeFbToken;
+        for (const p of pixels) {
+          if (p.metaPixelId === campaignPromotedPixelId) {
+            pxToken = p.capiTokenRaw || p.capiToken || pxToken;
+            break;
+          }
+          if (Array.isArray(p.metaPixels)) {
+            const sub = p.metaPixels.find(m => m.metaPixelId === campaignPromotedPixelId);
+            if (sub) {
+              pxToken = sub.capiToken || p.capiTokenRaw || p.capiToken || pxToken;
+              break;
+            }
+          }
+        }
+        finalMetaPixelsToSend = [{
+          pixelId: campaignPromotedPixelId,
+          accessToken: pxToken
+        }];
+      }
+      console.log(`[Roteamento CAPI] Pixel oficial do Meta '${campaignPromotedPixelId}' atribuído com 100% de precisão à campanha '${normCamp}'`);
+    } else if (metaPixelsToSend.length > 1) {
       // 1. Prioridade: Parâmetro explícito na URL/tracking (ex: pt_meta_pixel=1712345646538691 ou meta_pixel)
       const explicitMetaPx = parsed.tracking?.pt_meta_pixel || parsed.tracking?.meta_pixel || parsed.tracking?.pixel || req.query?.pt_meta_pixel || req.query?.meta_pixel;
       if (explicitMetaPx) {
@@ -1297,161 +1390,64 @@ app.all([
         if (found.length > 0) finalMetaPixelsToSend = found;
       }
 
-      // 2. Prioridade: Roteamento contextual por Conta de Anúncios / Campanha das BMs
+      // 2. Prioridade: Roteamento contextual por Conta de Anúncios / Sub-pixel correspondente
       if (finalMetaPixelsToSend.length > 1) {
-        const campId = attribution.campaignId;
-        const allCampaigns = db.get('campaigns') || [];
-        let campMatch = allCampaigns.find(c => String(c.id).trim() === String(campId).trim());
+        let bestSub = null;
+        let bestScore = -1;
 
-        // Se não achou na memória, busca no Supabase
-        if (!campMatch && campId) {
-          try {
-            const { data: sCamps } = await supabaseAdmin
-              .from('campaigns')
-              .select('*')
-              .eq('id', String(campId).trim())
-              .limit(1);
-            if (sCamps && sCamps[0]) {
-              campMatch = sCamps[0];
-            }
-          } catch (e) {}
-        }
+        for (const mp of (specificPixel?.metaPixels || [])) {
+          const normName = normalizeText(mp.name);
+          if (!normName) continue;
 
-        let resolvedAccountName = campMatch?.accountName || campMatch?.account_name || attribution.accountName || '';
-        if (!resolvedAccountName && (campMatch?.account_id || campMatch?.accountId)) {
-          const accId = String(campMatch.account_id || campMatch.accountId).replace('act_', '');
-          try {
-            const { data: sAccs } = await supabaseAdmin
-              .from('ad_accounts')
-              .select('name')
-              .or(`id.eq.act_${accId},id.eq.${accId}`)
-              .limit(1);
-            if (sAccs && sAccs[0]?.name) {
-              resolvedAccountName = sAccs[0].name;
-            }
-          } catch (e) {}
-        }
+          const subTokens = extractTokens(normName);
+          if (subTokens.length === 0) continue;
 
-        // Normalizador universal de texto (remove acentos, pontuação, lowercase)
-        const normalizeText = (s) => String(s || '')
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .toLowerCase()
-          .trim();
+          let score = 0;
 
-        // Extrator de tokens significativos (palavras com >= 2 caracteres alfanuméricos)
-        const extractTokens = (s) => normalizeText(s)
-          .split(/[^a-z0-9]+/i)
-          .filter(t => t.length >= 2);
-
-        const normAccount = normalizeText(resolvedAccountName);
-        const normCamp = normalizeText(campMatch?.name || attribution.campaign || parsed.tracking?.utm_campaign || '');
-        const normAd = normalizeText(attribution.adName || attribution.adSetName || parsed.tracking?.utm_content || '');
-        const normSource = normalizeText(parsed.tracking?.utm_source || attribution.source || '');
-
-        const accountTokens = extractTokens(normAccount);
-        const campTokens = extractTokens(normCamp);
-        const adTokens = extractTokens(normAd);
-        const sourceTokens = extractTokens(normSource);
-
-        // 0. Prioridade Suprema: Pixel oficial configurado no Conjunto de Anúncios da Campanha no Meta (promoted_object.pixel_id)
-        let campaignPromotedPixelId = null;
-        if (campMatch) {
-          if (campMatch.metaPixelId) campaignPromotedPixelId = String(campMatch.metaPixelId);
-          else if (Array.isArray(campMatch.adsets)) {
-            const adsetWithPixel = campMatch.adsets.find(a => a.promoted_object?.pixel_id || a.pixelId);
-            if (adsetWithPixel) campaignPromotedPixelId = String(adsetWithPixel.promoted_object?.pixel_id || adsetWithPixel.pixelId);
-          }
-        }
-        if (!campaignPromotedPixelId && (campId === '52615762127221' || normCamp.includes('conta pessoal') || normAccount.includes('julia vitoria'))) {
-          campaignPromotedPixelId = '1654430702877652';
-        }
-
-        if (campaignPromotedPixelId) {
-          const directMatch = metaPixelsToSend.filter(m => m.pixelId === campaignPromotedPixelId);
-          if (directMatch.length > 0) {
-            finalMetaPixelsToSend = directMatch;
-          } else {
-            let pxToken = activeFbToken;
-            for (const p of pixels) {
-              if (p.metaPixelId === campaignPromotedPixelId) {
-                pxToken = p.capiTokenRaw || p.capiToken || pxToken;
-                break;
-              }
-              if (Array.isArray(p.metaPixels)) {
-                const sub = p.metaPixels.find(m => m.metaPixelId === campaignPromotedPixelId);
-                if (sub) {
-                  pxToken = sub.capiToken || p.capiTokenRaw || p.capiToken || pxToken;
-                  break;
-                }
-              }
-            }
-            finalMetaPixelsToSend = [{
-              pixelId: campaignPromotedPixelId,
-              accessToken: pxToken
-            }];
-          }
-          console.log(`[Roteamento CAPI] Pixel oficial do Meta '${campaignPromotedPixelId}' atribuído com 100% de precisão à campanha '${normCamp}'`);
-        } else {
-          // Encontra o sub-pixel exato que corresponde com maior precisão à conta/BM
-          let bestSub = null;
-          let bestScore = -1;
-
-          for (const mp of (specificPixel.metaPixels || [])) {
-            const normName = normalizeText(mp.name);
-            if (!normName) continue;
-
-            const subTokens = extractTokens(normName);
-            if (subTokens.length === 0) continue;
-
-            let score = 0;
-
-            // 1. MATCH DE CONTA DE ANÚNCIOS / BM (Prioridade Alta: 90-120 pts por token coincidente)
-            // Se o nome do sub-pixel contém tokens que identificam a conta de anúncios (ex: 'ca03', 'jeffrey', 'bm2', 'conta1')
-            for (const st of subTokens) {
-              if (accountTokens.includes(st)) {
-                score += 120;
-              } else if (accountTokens.some(at => (at.length >= 3 && st.length >= 3 && (at.startsWith(st) || st.startsWith(at))))) {
-                score += 90;
-              } else if (normAccount && (normAccount.includes(st) || st.includes(normAccount))) {
-                score += 70;
-              }
-            }
-
-            // 2. MATCH DE CAMPANHA (Prioridade Média: 30 pts por token coincidente)
-            for (const st of subTokens) {
-              if (campTokens.includes(st)) {
-                score += 30;
-              } else if (campTokens.some(ct => (ct.length >= 4 && st.length >= 4 && (ct.startsWith(st) || st.startsWith(ct))))) {
-                score += 20;
-              }
-            }
-
-            // 3. MATCH DE ANÚNCIO / SOURCE (Prioridade Secundária: 20 pts por token)
-            for (const st of subTokens) {
-              if (adTokens.includes(st) || sourceTokens.includes(st)) {
-                score += 20;
-              }
-            }
-
-            // 4. BÔNUS DE ESPECIFICIDADE (Frases inteiras contidas)
-            if (normAccount && normName.length >= 4 && (normAccount.includes(normName) || normName.includes(normAccount))) {
-              score += 100;
-            }
-            if (normCamp && normName.length >= 4 && (normCamp.includes(normName) || normName.includes(normCamp))) {
-              score += 40;
-            }
-
-            if (score > bestScore) {
-              bestScore = score;
-              bestSub = mp;
+          // 1. MATCH DE CONTA DE ANÚNCIOS / BM (Prioridade Alta: 90-120 pts por token coincidente)
+          for (const st of subTokens) {
+            if (accountTokens.includes(st)) {
+              score += 120;
+            } else if (accountTokens.some(at => (at.length >= 3 && st.length >= 3 && (at.startsWith(st) || st.startsWith(at))))) {
+              score += 90;
+            } else if (normAccount && (normAccount.includes(st) || st.includes(normAccount))) {
+              score += 70;
             }
           }
 
-          if (bestSub && bestScore > 0) {
-            console.log(`[Roteamento Multi-BM] Venda da campanha '${normCamp}' (${normAccount}) roteada com score ${bestScore} para o Pixel Meta '${bestSub.name}' (${bestSub.metaPixelId})`);
-            finalMetaPixelsToSend = metaPixelsToSend.filter(m => m.pixelId === bestSub.metaPixelId);
+          // 2. MATCH DE CAMPANHA (Prioridade Média: 30 pts por token coincidente)
+          for (const st of subTokens) {
+            if (campTokens.includes(st)) {
+              score += 30;
+            } else if (campTokens.some(ct => (ct.length >= 4 && st.length >= 4 && (ct.startsWith(st) || st.startsWith(ct))))) {
+              score += 20;
+            }
           }
+
+          // 3. MATCH DE ANÚNCIO / SOURCE (Prioridade Secundária: 20 pts por token)
+          for (const st of subTokens) {
+            if (adTokens.includes(st) || sourceTokens.includes(st)) {
+              score += 20;
+            }
+          }
+
+          // 4. BÔNUS DE ESPECIFICIDADE (Frases inteiras contidas)
+          if (normAccount && normName.length >= 4 && (normAccount.includes(normName) || normName.includes(normAccount))) {
+            score += 100;
+          }
+          if (normCamp && normName.length >= 4 && (normCamp.includes(normName) || normName.includes(normCamp))) {
+            score += 40;
+          }
+
+          if (score > bestScore) {
+            bestScore = score;
+            bestSub = mp;
+          }
+        }
+
+        if (bestSub && bestScore > 0) {
+          console.log(`[Roteamento Multi-BM] Venda da campanha '${normCamp}' (${normAccount}) roteada com score ${bestScore} para o Pixel Meta '${bestSub.name}' (${bestSub.metaPixelId})`);
+          finalMetaPixelsToSend = metaPixelsToSend.filter(m => m.pixelId === bestSub.metaPixelId);
         }
       }
     }
