@@ -95,6 +95,29 @@ export const resolvePresetDateKey = (periodName, range) => {
   return `${norm}_${today}`;
 };
 
+export const formatTimeAgo = (mins) => {
+  if (!mins || mins <= 0) return 'alguns segundos';
+  if (mins === 1) return '1 minuto';
+  if (mins < 60) return `${mins} minutos`;
+
+  const hours = Math.floor(mins / 60);
+  const remMins = mins % 60;
+
+  if (hours < 24) {
+    if (remMins === 0) {
+      return hours === 1 ? '1 hora' : `${hours} horas`;
+    }
+    return `${hours}h e ${remMins} min`;
+  }
+
+  const days = Math.floor(hours / 24);
+  const remHours = hours % 24;
+  if (remHours === 0) {
+    return days === 1 ? '1 dia' : `${days} dias`;
+  }
+  return `${days} ${days === 1 ? 'dia' : 'dias'} e ${remHours}h`;
+};
+
 function FunnelGauge({ percentage, strokeColor = '#0066FF', isFull = false }) {
   const radius = 24;
   const strokeWidth = 3.5;
@@ -205,6 +228,7 @@ export default function Dashboard() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [minsAgo, setMinsAgo] = useState(0);
+  const lastSyncTimeRef = useRef(Date.now());
 
   // Filtros dropdowns
   const [selectedAccount, setSelectedAccount] = useState('Todas');
@@ -839,6 +863,7 @@ export default function Dashboard() {
         });
       }
 
+      lastSyncTimeRef.current = Date.now();
       setMinsAgo(0);
     } catch (err) {
       console.warn('Erro ao carregar dados do Dashboard:', err);
@@ -906,6 +931,7 @@ export default function Dashboard() {
           pixelStats: finalPix
         });
       }
+      lastSyncTimeRef.current = Date.now();
       setMinsAgo(0);
     } catch (err) {
       console.error('Erro ao sincronizar:', err);
@@ -944,14 +970,21 @@ export default function Dashboard() {
       }
     }, 60000);
 
-    const minsInterval = setInterval(() => {
-      setMinsAgo(m => m + 1);
-    }, 60000);
+    const updateMinsAgo = () => {
+      if (lastSyncTimeRef.current) {
+        const diff = Math.floor((Date.now() - lastSyncTimeRef.current) / 60000);
+        setMinsAgo(Math.max(0, diff));
+      }
+    };
+
+    const minsInterval = setInterval(updateMinsAgo, 30000);
+    window.addEventListener('focus', updateMinsAgo);
 
     window.addEventListener('primetrack_profile_sync', handleProfileSync);
     return () => {
       clearInterval(midnightCheckInterval);
       clearInterval(minsInterval);
+      window.removeEventListener('focus', updateMinsAgo);
       window.removeEventListener('primetrack_profile_sync', handleProfileSync);
       if (typeof window !== 'undefined') {
         try {
@@ -2140,7 +2173,7 @@ export default function Dashboard() {
           </h2>
           <div className="flex items-center gap-3">
             <span className="text-[11px] text-zinc-400 font-sans">
-              Atualizado há {minsAgo === 0 ? 'alguns segundos' : `${minsAgo} minutos`}
+              Atualizado há {formatTimeAgo(minsAgo)}
             </span>
             <button 
               onClick={handleSync}
