@@ -3332,8 +3332,8 @@ export function getStoredCampaignsForPeriod(userId, resolvedRange, userActiveIds
   return formatCampaignsForUser(combined, userActiveIds, isToday, allUserConnectedAccIds);
 }
 
-async function syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiveIds, cacheKey, resolvedRange, todayBrazil, allUserConnectedAccIds = null }) {
-  if (ongoingCampaignSyncs.has(cacheKey)) {
+async function syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiveIds, cacheKey, resolvedRange, todayBrazil, allUserConnectedAccIds = null, forceRefresh = false }) {
+  if (!forceRefresh && ongoingCampaignSyncs.has(cacheKey)) {
     return ongoingCampaignSyncs.get(cacheKey);
   }
 
@@ -3352,7 +3352,8 @@ async function syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiv
         datePreset, 
         timeRange, 
         userId, 
-        accountIds: targetAccountIds 
+        accountIds: targetAccountIds,
+        forceRefresh
       });
     } catch (e) {
       console.warn('[Sync Campaigns Error]:', e.message);
@@ -3907,7 +3908,27 @@ app.get('/api/campaigns', async (req, res) => {
   // Se não há cache ou o cache expirou (age >= freshTtlMs) ou o usuário forçou refresh=true:
   // Busca dados frescos em tempo real diretamente da API da Meta e retorna a resposta exata
   try {
-    const freshCampaigns = await syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiveIds, cacheKey, resolvedRange, todayBrazil, allUserConnectedAccIds });
+    const isForceRefresh = refresh === 'true';
+    if (isForceRefresh) {
+      campaignsCache.delete(cacheKey);
+      ongoingCampaignSyncs.delete(cacheKey);
+      if (userActiveIds && userActiveIds.size > 0) {
+        userActiveIds.forEach(id => invalidateAccountStructureCache(id));
+      } else {
+        invalidateAccountStructureCache();
+      }
+    }
+    const freshCampaigns = await syncAndEnrichCampaigns({ 
+      datePreset, 
+      timeRange, 
+      userId, 
+      userActiveIds, 
+      cacheKey, 
+      resolvedRange, 
+      todayBrazil, 
+      allUserConnectedAccIds,
+      forceRefresh: isForceRefresh
+    });
     const formatted = formatCampaignsForUser(freshCampaigns, userActiveIds, isToday, allUserConnectedAccIds);
 
     res.set('Cache-Control', 'private, max-age=30');
@@ -5042,6 +5063,8 @@ app.get('/api/meta/status', async (req, res) => {
 app.post('/api/meta/refresh-accounts', async (req, res) => {
   try {
     const userId = req.headers['x-user-id'] || req.body?.userId || req.query.userId || null;
+    invalidateAccountStructureCache();
+    campaignsCache.clear();
     const reconciled = await reconcileFacebookData(true, userId);
     res.json({
       success: true,
@@ -5180,9 +5203,19 @@ app.post('/api/meta/connect-token', async (req, res) => {
 });
 
 // D. Função central para sincronizar campanhas e saldos reais das contas ativas em integrações
-export async function executeMetaSync({ datePreset = 'today', timeRange = null, accountIds = null, accountId = null, userId = null } = {}) {
+export async function executeMetaSync({ datePreset = 'today', timeRange = null, accountIds = null, accountId = null, userId = null, forceRefresh = false } = {}) {
   let connections = [];
   let allAdAccounts = [];
+
+  if (forceRefresh) {
+    if (Array.isArray(accountIds)) {
+      accountIds.forEach(id => invalidateAccountStructureCache(id));
+    } else if (accountId) {
+      invalidateAccountStructureCache(accountId);
+    } else {
+      invalidateAccountStructureCache();
+    }
+  }
 
   // Em ambiente serverless (Vercel), restaura do Supabase sempre filtrando por userId se fornecido
   try {
@@ -5421,7 +5454,7 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
 
       // Executa busca de campanhas e detalhes de saldo em paralelo para máxima velocidade
       const [campaigns, liveDetails] = await Promise.all([
-        fetchCampaigns(acc.id, accountToken, acc.name, datePreset, timeRange, acc.rawCurrency || acc.currency),
+        fetchCampaigns(acc.id, accountToken, acc.name, datePreset, timeRange, acc.rawCurrency || acc.currency, forceRefresh),
         fetchLiveAccountDetails(acc.id, accountToken).catch(() => ({}))
       ]);
 
@@ -5724,7 +5757,7 @@ app.post('/api/meta/sync', async (req, res) => {
     const { datePreset = 'today', since, until, accountId, accountIds } = req.body || {};
     const resolvedRange = resolveDateRange(datePreset, since, until);
     const timeRange = (since && until) ? { since, until } : (resolvedRange.isMaximum ? { isMaximum: true } : null);
-    const result = await executeMetaSync({ datePreset, timeRange, accountId, accountIds, userId });
+    const result = await executeMetaSync({ datePreset, timeRange, accountId, accountIds, userId, forceRefresh: true });
 
     const allOrders = await getAllOrders(false, userId);
     const approvedOrders = allOrders.filter(o => o.status === 'approved' || o.status === 'paid' || o.status === 'pago');
@@ -6262,6 +6295,7 @@ app.post('/api/campaigns/status', async (req, res) => {
     });
     db.set('campaigns', updatedCampaigns);
     campaignsCache.clear();
+    invalidateAccountStructureCache(accountId || targetCamp?.adAccountId || targetCamp?.accountId);
 
     // 4. Persiste no Supabase se existir
     try {
@@ -6389,6 +6423,7 @@ app.post('/api/campaigns/status-bulk', async (req, res) => {
     });
     db.set('campaigns', updatedCampaigns);
     campaignsCache.clear();
+    invalidateAccountStructureCache(accountId);
 
     // 3. Atualiza no Supabase
     try {

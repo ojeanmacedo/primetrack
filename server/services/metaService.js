@@ -298,7 +298,7 @@ export async function fetchLiveAccountDetails(adAccountId, accessToken) {
 /**
  * 5. Busca Campanhas reais da Conta de Anúncios com Gastos, Vendas e Receita em Tempo Real (BRL)
  */
-export async function fetchCampaigns(adAccountId, accessToken, accountName = '', datePreset = 'today', timeRange = null, accountCurrency = null) {
+export async function fetchCampaigns(adAccountId, accessToken, accountName = '', datePreset = 'today', timeRange = null, accountCurrency = null, forceRefresh = false) {
   const actId = adAccountId.startsWith('act_') ? adAccountId : `act_${adAccountId}`;
 
   const isMaximum = datePreset === 'maximum' || datePreset === 'maximo' || timeRange?.isMaximum;
@@ -365,8 +365,16 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
   const isAccountBlocked = Boolean(matchedStoredAcc && (matchedStoredAcc.status === 'Bloqueada' || matchedStoredAcc.status === 'DISABLED' || matchedStoredAcc.account_status === 2));
 
   const nowStructure = Date.now();
-  const cachedStructure = accountStructureCache.get(cleanAct) || accountStructureCache.get(actId);
-  const isStructureValid = Boolean(cachedStructure && (nowStructure - cachedStructure.timestamp < 10 * 60 * 1000) && Array.isArray(cachedStructure.data?.data) && cachedStructure.data.data.length > 0);
+  if (forceRefresh) {
+    accountStructureCache.delete(cleanAct);
+    accountStructureCache.delete(actId);
+  }
+  const cachedStructure = !forceRefresh ? (accountStructureCache.get(cleanAct) || accountStructureCache.get(actId)) : null;
+  const normPresetForCache = (datePreset || 'today').toLowerCase().trim();
+  const isTodaySync = normPresetForCache === 'today' || normPresetForCache === 'hoje' || (effectiveRange && effectiveRange.since === effectiveRange.until);
+  // Para Hoje ao vivo, estrutura tem cache curto de 45 segundos para refletir novas campanhas e status; para datas fechadas, 5 minutos
+  const maxStructAge = isTodaySync ? (45 * 1000) : (5 * 60 * 1000);
+  const isStructureValid = !forceRefresh && Boolean(cachedStructure && (nowStructure - cachedStructure.timestamp < maxStructAge) && Array.isArray(cachedStructure.data?.data) && cachedStructure.data.data.length > 0);
 
   const insightsPromise = Promise.all([
     fetch(`${GRAPH_BASE_URL}/${actId}/insights?level=campaign&${timeParam}&fields=campaign_id,campaign_name,spend,impressions,clicks,cpc,cpm,ctr,actions,action_values&limit=100&access_token=${accessToken}`).catch(() => null),
