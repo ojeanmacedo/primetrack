@@ -4932,13 +4932,14 @@ export async function reconcileFacebookData(force = false, userId = null) {
       const cleanId = String(a.accountId || a.id || '').replace('act_', '').split('___')[0];
       const targetUser = a.user_id || a.userId || userId || 'usr_1788826403159';
       const key = `${cleanId}___${targetUser}`;
+      const targetUserSet = getActiveSetForUser(targetUser);
       uniqueAccsMap.set(key, {
         ...a,
         id: `act_${cleanId}`,
         accountId: cleanId,
         userId: targetUser,
         user_id: targetUser,
-        syncActive: Boolean(a.syncActive)
+        syncActive: targetUserSet.has(cleanId)
       });
     });
     db.set('ad_accounts', Array.from(uniqueAccsMap.values()));

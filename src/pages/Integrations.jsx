@@ -1809,7 +1809,7 @@ export default function Integrations() {
                         });
                         const statusData = await statusRes.json();
                         if (statusData.adAccounts) {
-                          setAdAccounts(statusData.adAccounts.map(a => ({
+                          const refreshedMapped = statusData.adAccounts.map(a => ({
                             name: a.name || 'Conta',
                             id: (a.accountId || a.id || '').replace('act_', ''),
                             bm: a.businessName || 'BM Principal',
@@ -1817,7 +1817,11 @@ export default function Integrations() {
                             status: a.status === 'ACTIVE' || a.status === 'Ativa' ? 'Ativa' : 'Bloqueada',
                             balance: a.balance || '0,00',
                             sync: a.syncActive === true
-                          })));
+                          }));
+                          setAdAccounts(refreshedMapped);
+                          localStorage.setItem('primetrack_ad_accounts', JSON.stringify(refreshedMapped));
+                          localStorage.setItem(userAccKey, JSON.stringify(refreshedMapped));
+                          localStorage.setItem(getScopedKey('primetrack_ad_accounts'), JSON.stringify(refreshedMapped));
                         }
                       }
                     } catch (e) {
