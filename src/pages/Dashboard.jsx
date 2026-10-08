@@ -729,6 +729,9 @@ export default function Dashboard() {
           setAdAccountsList(currentActiveAccs);
           if (typeof window !== 'undefined') {
             localStorage.setItem('primetrack_ad_accounts', JSON.stringify(mapped));
+            if (user?.id) {
+              localStorage.setItem(`primetrack_ad_accounts_${user.id}`, JSON.stringify(mapped));
+            }
           }
         }
       } catch (e) {}
@@ -844,11 +847,17 @@ export default function Dashboard() {
           setAdAccountsList(activeOnly);
           if (typeof window !== 'undefined') {
             localStorage.setItem('primetrack_ad_accounts', JSON.stringify(allMappedAccs));
+            if (user?.id) {
+              localStorage.setItem(`primetrack_ad_accounts_${user.id}`, JSON.stringify(allMappedAccs));
+            }
           }
         } else if (data && Array.isArray(data.adAccounts) && data.adAccounts.length === 0) {
           setAdAccountsList([]);
           if (typeof window !== 'undefined') {
             localStorage.removeItem('primetrack_ad_accounts');
+            if (user?.id) {
+              localStorage.removeItem(`primetrack_ad_accounts_${user.id}`);
+            }
           }
         }
       }

@@ -742,7 +742,7 @@ export default function Integrations() {
     }).catch(() => {});
   };
 
-  const handleToggleSync = (accountId) => {
+  const handleToggleSync = async (accountId) => {
     const cleanTargetId = String(accountId).replace('act_', '');
     const target = adAccounts.find(a => String(a.id).replace('act_', '') === cleanTargetId);
     if (!target) return;
@@ -805,19 +805,28 @@ export default function Integrations() {
     }
 
     // Persiste no backend imediatamente para nunca perder a configuração
-    fetch('/api/meta/accounts/sync-status', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
-      body: JSON.stringify({
-        activeAccounts: activeIds,
-        accountId: cleanTargetId,
-        syncActive: nextSync,
-        userId: currentUser?.id,
-        overrides: currentOverrides
-      })
-    }).catch(err => console.warn('Erro ao salvar status da conta no servidor:', err.message));
+    try {
+      const res = await fetch('/api/meta/accounts/sync-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
+        body: JSON.stringify({
+          activeAccounts: activeIds,
+          accountId: cleanTargetId,
+          syncActive: nextSync,
+          userId: currentUser?.id,
+          overrides: currentOverrides
+        })
+      });
+      const data = await res.json();
+      if (data && data.overrides && typeof data.overrides === 'object') {
+        localStorage.setItem(userOverridesKey, JSON.stringify(data.overrides));
+        localStorage.setItem('primetrack_sync_overrides', JSON.stringify(data.overrides));
+      }
+    } catch (err) {
+      console.warn('Erro ao salvar status da conta no servidor:', err.message);
+    }
 
-    // Se ativou conta(s), dispara sincronização com o Meta Ads imediatamente e armazena resultado no cache
+    // Se ativou conta(s), dispara sincronização com o Meta Ads após persistência
     if (activeIds.length > 0) {
       fetch('/api/meta/sync', {
         method: 'POST',
@@ -829,7 +838,6 @@ export default function Integrations() {
         if (data && Array.isArray(data.campaigns) && data.campaigns.length > 0) {
           safeStorageSet(userCampKey, data.campaigns);
           safeStorageSet('primetrack_cached_campaigns', data.campaigns);
-          window.dispatchEvent(new Event('primetrack_profile_sync'));
         }
       })
       .catch(err => console.warn('Erro ao sincronizar Meta:', err.message));
@@ -1359,6 +1367,19 @@ export default function Integrations() {
               } catch (e) {}
             }
 
+            // Sincroniza e mescla os overrides autoritativos vindos do servidor
+            if (data.overrides && typeof data.overrides === 'object' && Object.keys(data.overrides).length > 0) {
+              localOverrides = { ...localOverrides, ...data.overrides };
+              if (typeof window !== 'undefined') {
+                localStorage.setItem(userOverridesKey, JSON.stringify(localOverrides));
+                localStorage.setItem('primetrack_sync_overrides', JSON.stringify(localOverrides));
+              }
+            }
+
+            const activeSet = Array.isArray(data.activeAccounts)
+              ? new Set(data.activeAccounts.map(id => String(id).replace('act_', '')))
+              : null;
+
             const mappedAccs = data.adAccounts.map(a => {
               const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
               const isAccountActive = a.status === 'ACTIVE' || a.status === 'Ativa' || a.account_status === 1;
@@ -1370,6 +1391,8 @@ export default function Integrations() {
                   isSyncActive = Boolean(localOverrides[accId]);
                 } else if (localOverrides[`act_${accId}`] !== undefined) {
                   isSyncActive = Boolean(localOverrides[`act_${accId}`]);
+                } else if (activeSet) {
+                  isSyncActive = activeSet.has(accId);
                 } else {
                   isSyncActive = a.syncActive === true;
                 }
@@ -1396,6 +1419,7 @@ export default function Integrations() {
             setAdAccounts(mappedAccs);
             localStorage.setItem('primetrack_ad_accounts', JSON.stringify(mappedAccs));
             localStorage.setItem(userAccKey, JSON.stringify(mappedAccs));
+            localStorage.setItem(getScopedKey('primetrack_ad_accounts'), JSON.stringify(mappedAccs));
           }
         }
       })

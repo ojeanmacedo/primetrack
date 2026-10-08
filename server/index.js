@@ -3169,7 +3169,7 @@ export function getUserActiveAccountIds(userId = null, connections = null) {
   const effectiveUser = userId || 'usr_1788826403159';
 
   const explicitSaved = db.get(`active_accounts_${effectiveUser}`) || (isOwnerUserId(effectiveUser) ? db.get('active_accounts') : null);
-  const hasExplicitSaved = Array.isArray(explicitSaved) && explicitSaved.length > 0;
+  const hasExplicitSaved = Array.isArray(explicitSaved);
   if (hasExplicitSaved) {
     explicitSaved.forEach(id => userActiveIds.add(String(id).replace('act_', '')));
   } else {
@@ -3186,8 +3186,21 @@ export function getUserActiveAccountIds(userId = null, connections = null) {
         } catch (e) {}
       }
     });
+
+    const allAccsForUser = db.get('ad_accounts') || [];
+    allAccsForUser.forEach(a => {
+      const aUser = a.userId || a.user_id;
+      const isUserMatch = !userId || (isOwnerUserId(effectiveUser) ? (!aUser || isOwnerUserId(aUser)) : (aUser === effectiveUser));
+      if (isUserMatch) {
+        const clean = String(a.accountId || a.id || '').replace('act_', '');
+        if (a.syncActive === true && a.status !== 'Bloqueada' && a.status !== 'DISABLED') {
+          userActiveIds.add(clean);
+        }
+      }
+    });
   }
 
+  // Overrides manuais SEMPRE têm a palavra final absoluta
   const overrides = db.get(`sync_overrides_${effectiveUser}`) || (isOwnerUserId(effectiveUser) ? db.get('sync_overrides') : null);
   if (overrides && typeof overrides === 'object') {
     Object.entries(overrides).forEach(([accId, isActive]) => {
@@ -3196,20 +3209,6 @@ export function getUserActiveAccountIds(userId = null, connections = null) {
       else userActiveIds.delete(clean);
     });
   }
-
-  const allAccsForUser = db.get('ad_accounts') || [];
-  allAccsForUser.forEach(a => {
-    const aUser = a.userId || a.user_id;
-    const isUserMatch = !userId || (isOwnerUserId(effectiveUser) ? (!aUser || isOwnerUserId(aUser)) : (aUser === effectiveUser));
-    if (isUserMatch) {
-      const clean = String(a.accountId || a.id || '').replace('act_', '');
-      if (a.syncActive === true && a.status !== 'Bloqueada' && a.status !== 'DISABLED') {
-        userActiveIds.add(clean);
-      } else if (!hasExplicitSaved && (a.status === 'Bloqueada' || a.status === 'DISABLED' || a.syncActive === false)) {
-        userActiveIds.delete(clean);
-      }
-    }
-  });
 
   return userActiveIds;
 }
@@ -4669,7 +4668,7 @@ export const getActiveSetForUser = (targetUserId, optionalConnections = null) =>
   const effectiveUser = targetUserId || 'usr_1788826403159';
   // 1. Prioridade máxima: lista salva explicitamente pelo usuário
   const explicitSaved = db.get(`active_accounts_${effectiveUser}`) || (isOwnerUserId(effectiveUser) ? db.get('active_accounts') : null);
-  const hasExplicitSaved = Array.isArray(explicitSaved) && explicitSaved.length > 0;
+  const hasExplicitSaved = Array.isArray(explicitSaved);
   if (hasExplicitSaved) {
     explicitSaved.forEach(id => set.add(String(id).replace('act_', '')));
   } else {
@@ -5253,17 +5252,8 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
     return { campaigns: [], count: 0, liveSynced: false };
   }
 
-  let activeSet = new Set();
-  connections.forEach(c => {
-    if (c.email) {
-      try {
-        const parsedMeta = JSON.parse(c.email);
-        if (parsedMeta && Array.isArray(parsedMeta.activeAccounts)) {
-          parsedMeta.activeAccounts.forEach(acc => activeSet.add(String(acc).replace('act_', '')));
-        }
-      } catch (e) {}
-    }
-  });
+  const effectiveSyncUser = userId || 'usr_1788826403159';
+  const activeSet = getActiveSetForUser(effectiveSyncUser, connections);
 
   try {
     let qAcc = supabaseAdmin.from('ad_accounts').select('*');
@@ -5347,7 +5337,7 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
                     status: acc.status || allAdAccounts[existingIdx].status,
                     amountSpent: String(acc.amountSpent || allAdAccounts[existingIdx].amountSpent),
                     balance: String(acc.balance || allAdAccounts[existingIdx].balance),
-                    syncActive: activeSet.has(clean) ? true : allAdAccounts[existingIdx].syncActive
+                    syncActive: activeSet.has(clean)
                   };
                 }
               });
@@ -5719,17 +5709,16 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
   });
 
   const currentAccounts = db.get('ad_accounts') || [];
+  const syncActiveSet = activeSet || getActiveSetForUser(userId || 'usr_1788826403159');
   const updatedAccounts = currentAccounts.map(acc => {
     const clean = String(acc.accountId || acc.id).replace('act_', '');
     const live = balanceMap.get(clean);
-    if (live) {
-      return {
-        ...acc,
-        balance: live.balance !== undefined ? live.balance : acc.balance,
-        amountSpent: live.amountSpent !== undefined ? live.amountSpent : acc.amountSpent
-      };
-    }
-    return acc;
+    return {
+      ...acc,
+      syncActive: syncActiveSet.has(clean),
+      balance: live && live.balance !== undefined ? live.balance : acc.balance,
+      amountSpent: live && live.amountSpent !== undefined ? live.amountSpent : acc.amountSpent
+    };
   });
   db.set('ad_accounts', updatedAccounts);
 
@@ -5921,11 +5910,15 @@ app.post('/api/meta/accounts/sync-status', async (req, res) => {
       db.set('active_accounts', explicitActiveIds);
     }
     const { overrides } = req.body || {};
-    if (overrides && typeof overrides === 'object') {
-      db.set(`sync_overrides_${effectiveTargetUser}`, overrides);
-      if (isOwnerUserId(effectiveTargetUser)) {
-        db.set('sync_overrides', overrides);
-      }
+    let finalOverrides = (overrides && typeof overrides === 'object') ? { ...overrides } : {};
+    if (accountId !== undefined) {
+      const cleanTarget = String(accountId).replace('act_', '');
+      finalOverrides[cleanTarget] = Boolean(syncActive);
+      finalOverrides[`act_${cleanTarget}`] = Boolean(syncActive);
+    }
+    db.set(`sync_overrides_${effectiveTargetUser}`, finalOverrides);
+    if (isOwnerUserId(effectiveTargetUser)) {
+      db.set('sync_overrides', finalOverrides);
     }
 
     // 2. Atualiza o status syncActive de todas as contas em db.get('ad_accounts')
@@ -6007,7 +6000,7 @@ app.post('/api/meta/accounts/sync-status', async (req, res) => {
     const filteredReturn = userId 
       ? adAccounts.filter(a => a.userId === userId || (isOwnerUserId(userId) && (isOwnerUserId(a.userId) || !a.userId)))
       : adAccounts;
-    res.json({ success: true, adAccounts: filteredReturn, activeAccounts: explicitActiveIds });
+    res.json({ success: true, adAccounts: filteredReturn, activeAccounts: explicitActiveIds, overrides: finalOverrides });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
