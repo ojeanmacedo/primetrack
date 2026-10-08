@@ -1136,7 +1136,8 @@ export default function Dashboard() {
           const accIdClean = String(acc.id || acc.accountId || '').replace('act_', '').trim();
           return (cAdId && cAdId === accIdClean) || (acc.name && cAccName === acc.name.toLowerCase().trim());
         });
-        return belongsToActiveAcc && (c.status === true || !isToday);
+        const isCampActive = c.status === true || c.status === 'ACTIVE' || c.rawStatus === 'ACTIVE' || c.effectiveStatus === 'ACTIVE';
+        return belongsToActiveAcc && (isCampActive || !isToday);
       }
 
       return true;
