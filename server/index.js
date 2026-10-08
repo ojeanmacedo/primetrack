@@ -3106,8 +3106,7 @@ export function formatCampaignsForUser(campaignsList, userActiveIds, isToday = f
     return hasHistoricalData;
   }).map(c => {
     const cActId = String(c.adAccountId || c.accountId || '').replace('act_', '');
-    const cAccName = (c.accountName || '').toLowerCase().trim();
-    const isParentBlocked = (cActId && blockedAccIds.has(cActId)) || (cAccName && blockedAccNames.has(cAccName));
+    const isParentBlocked = Boolean(cActId && blockedAccIds.has(cActId));
 
     const isPaused = c.status === false || c.status === 'false' || c.status === 'PAUSED' || c.rawStatus === 'PAUSED' || c.effectiveStatus === 'PAUSED' || c.effectiveStatus === 'CAMPAIGN_PAUSED';
     const campOverride = getEffectiveStatusOverride(c.id);

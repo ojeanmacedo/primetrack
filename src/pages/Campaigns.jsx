@@ -182,24 +182,21 @@ export const addDeletedIds = (ids) => {
 export const isStatusActive = (item, optionalAccounts = null) => {
   if (!item) return false;
 
-  // 1. Se a campanha/conjunto/anúncio pertence a uma conta de anúncio bloqueada ou inativa, NUNCA é ativa!
+  // 1. Se a conta de anúncio pai estiver explicitamente bloqueada no Meta Ads (DISABLED/Bloqueada), a campanha não pode rodar
   const accId = String(item.adAccountId || item.accountId || '').replace('act_', '');
-  const accName = (item.accountName || '').toLowerCase().trim();
 
   let accounts = optionalAccounts;
   if (!accounts && typeof window !== 'undefined') {
     try {
-      const raw = localStorage.getItem('primetrack_ad_accounts');
+      const user = getCurrentUser();
+      const userAccKey = user?.id ? `primetrack_ad_accounts_${user.id}` : 'primetrack_ad_accounts';
+      const raw = localStorage.getItem(userAccKey) || localStorage.getItem('primetrack_ad_accounts');
       if (raw) accounts = JSON.parse(raw);
     } catch (e) {}
   }
-  if (Array.isArray(accounts) && accounts.length > 0) {
-    const parentAcc = accounts.find(a => {
-      const aId = String(a.id || a.accountId || '').replace('act_', '');
-      const aName = (a.name || '').toLowerCase().trim();
-      return (aId && aId === accId) || (aName && (aName === accName || accName.includes(aName) || aName.includes(accName)));
-    });
-    if (parentAcc && (parentAcc.status === 'Bloqueada' || parentAcc.status === 'DISABLED' || parentAcc.sync === false)) {
+  if (accId && Array.isArray(accounts) && accounts.length > 0) {
+    const parentAcc = accounts.find(a => String(a.id || a.accountId || '').replace('act_', '') === accId);
+    if (parentAcc && (parentAcc.status === 'Bloqueada' || parentAcc.status === 'DISABLED' || parentAcc.account_status === 2)) {
       return false;
     }
   }
@@ -211,20 +208,30 @@ export const isStatusActive = (item, optionalAccounts = null) => {
       return overrides[itemId].status === true;
     }
   }
-  // Se explicitamente desligado em qualquer formato (booleano false, string 'false', 'PAUSED', etc)
-  if (
-    item.status === false ||
-    item.status === 'false' ||
-    item.status === 'PAUSED' ||
-    item.rawStatus === 'PAUSED' ||
-    item.effectiveStatus === 'PAUSED' ||
-    item.effectiveStatus === 'ADSET_PAUSED' ||
-    item.effectiveStatus === 'AD_PAUSED' ||
-    item.effectiveStatus === 'CAMPAIGN_PAUSED'
-  ) {
+  // Prioridade autoritativa: status real retornado pela Meta (rawStatus/effectiveStatus)
+  const isMetaPaused = item.rawStatus === 'PAUSED' || 
+                       item.effectiveStatus === 'PAUSED' || 
+                       item.effectiveStatus === 'ADSET_PAUSED' || 
+                       item.effectiveStatus === 'AD_PAUSED' || 
+                       item.effectiveStatus === 'CAMPAIGN_PAUSED' ||
+                       item.rawStatus === 'ARCHIVED' ||
+                       item.effectiveStatus === 'ARCHIVED' ||
+                       item.status === 'PAUSED';
+  if (isMetaPaused) {
     return false;
   }
-  return item.status === true || item.status === 'ACTIVE' || item.rawStatus === 'ACTIVE' || item.effectiveStatus === 'ACTIVE';
+
+  const isMetaActive = item.rawStatus === 'ACTIVE' || 
+                       item.effectiveStatus === 'ACTIVE' ||
+                       item.status === 'ACTIVE';
+  if (isMetaActive) {
+    return true;
+  }
+
+  if (item.status === false || item.status === 'false') {
+    return false;
+  }
+  return item.status === true;
 };
 
 export const sanitizeCampaignsData = (cData, optionalAccounts = null) => {
@@ -236,17 +243,18 @@ export const sanitizeCampaignsData = (cData, optionalAccounts = null) => {
   let accounts = optionalAccounts;
   if (!accounts && typeof window !== 'undefined') {
     try {
-      const raw = localStorage.getItem('primetrack_ad_accounts');
+      const user = getCurrentUser();
+      const userAccKey = user?.id ? `primetrack_ad_accounts_${user.id}` : 'primetrack_ad_accounts';
+      const raw = localStorage.getItem(userAccKey) || localStorage.getItem('primetrack_ad_accounts');
       if (raw) accounts = JSON.parse(raw);
     } catch (e) {}
   }
   const blockedAccountIds = new Set();
-  const blockedAccountNames = new Set();
   if (Array.isArray(accounts)) {
     accounts.forEach(a => {
-      if (a.status === 'Bloqueada' || a.status === 'DISABLED' || a.sync === false) {
-        if (a.id) blockedAccountIds.add(String(a.id).replace('act_', ''));
-        if (a.name) blockedAccountNames.add(String(a.name).toLowerCase().trim());
+      if (a.status === 'Bloqueada' || a.status === 'DISABLED' || a.account_status === 2) {
+        const cleanAId = String(a.id || a.accountId || '').replace('act_', '');
+        if (cleanAId) blockedAccountIds.add(cleanAId);
       }
     });
   }
@@ -255,8 +263,7 @@ export const sanitizeCampaignsData = (cData, optionalAccounts = null) => {
     .filter(c => c && c.id && !deletedIds.has(String(c.id)))
     .map(c => {
       const cAdId = String(c.adAccountId || c.accountId || '').replace('act_', '');
-      const cAccName = (c.accountName || '').toLowerCase().trim();
-      const isParentBlocked = (cAdId && blockedAccountIds.has(cAdId)) || (cAccName && blockedAccountNames.has(cAccName));
+      const isParentBlocked = Boolean(cAdId && blockedAccountIds.has(cAdId));
 
       const campIdStr = String(c.id);
       const campOverride = overrides[campIdStr];
