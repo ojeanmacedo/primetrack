@@ -776,7 +776,11 @@ export default function Dashboard() {
       ? { 'x-active-accounts': currentActiveAccs.map(a => a.id).join(',') }
       : {};
 
-    const userHeaders = user?.id ? { 'x-user-id': user.id, ...activeHeaders } : { ...activeHeaders };
+    const metaToken = typeof window !== 'undefined'
+      ? (localStorage.getItem(`primetrack_meta_token_${user?.id}`) || localStorage.getItem('primetrack_meta_token') || '')
+      : '';
+    const tokenHeader = metaToken ? { 'x-meta-token': metaToken } : {};
+    const userHeaders = user?.id ? { 'x-user-id': user.id, ...activeHeaders, ...tokenHeader } : { ...activeHeaders, ...tokenHeader };
 
     try {
       // Se já temos as contas carregadas, não trava esperando /api/meta/status a cada troca de data
@@ -944,7 +948,11 @@ export default function Dashboard() {
       ? { 'x-active-accounts': adAccountsList.filter(a => a.sync).map(a => a.id).join(',') }
       : {};
 
-    const userHeaders = user?.id ? { 'x-user-id': user.id, ...activeHeaders } : { ...activeHeaders };
+    const metaToken = typeof window !== 'undefined'
+      ? (localStorage.getItem(`primetrack_meta_token_${user?.id}`) || localStorage.getItem('primetrack_meta_token') || '')
+      : '';
+    const tokenHeader = metaToken ? { 'x-meta-token': metaToken } : {};
+    const userHeaders = user?.id ? { 'x-user-id': user.id, ...activeHeaders, ...tokenHeader } : { ...activeHeaders, ...tokenHeader };
     const userParam = user?.id ? `&userId=${encodeURIComponent(user.id)}` : '';
     const userParamOrdersRefresh = user?.id ? `?userId=${encodeURIComponent(user.id)}&refresh=true` : '?refresh=true';
 

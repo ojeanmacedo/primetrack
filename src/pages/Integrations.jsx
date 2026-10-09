@@ -51,6 +51,11 @@ export default function Integrations() {
   const userAccKey = currentUser?.id ? `primetrack_ad_accounts_${currentUser.id}` : 'primetrack_ad_accounts';
   const userCampKey = currentUser?.id ? `primetrack_cached_campaigns_${currentUser.id}` : 'primetrack_cached_campaigns';
   const userDisconKey = currentUser?.id ? `primetrack_meta_disconnected_${currentUser.id}` : 'primetrack_meta_disconnected';
+  const userTokKey = currentUser?.id ? `primetrack_meta_token_${currentUser.id}` : 'primetrack_meta_token';
+  const getStoredMetaToken = () => {
+    if (typeof window === 'undefined') return '';
+    return localStorage.getItem(userTokKey) || localStorage.getItem('primetrack_meta_token') || '';
+  };
 
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -806,15 +811,21 @@ export default function Integrations() {
 
     // Persiste no backend imediatamente para nunca perder a configuração
     try {
+      const metaTok = getStoredMetaToken();
       const res = await fetch('/api/meta/accounts/sync-status', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
+        headers: { 
+          'Content-Type': 'application/json', 
+          'x-user-id': currentUser?.id || '',
+          ...(metaTok ? { 'x-meta-token': metaTok } : {})
+        },
         body: JSON.stringify({
           activeAccounts: activeIds,
           accountId: cleanTargetId,
           syncActive: nextSync,
           userId: currentUser?.id,
-          overrides: currentOverrides
+          overrides: currentOverrides,
+          metaToken: metaTok
         })
       });
       const data = await res.json();
@@ -829,10 +840,15 @@ export default function Integrations() {
 
     // Se ativou conta(s), dispara sincronização com o Meta Ads após persistência
     if (activeIds.length > 0) {
+      const metaTok = getStoredMetaToken();
       fetch('/api/meta/sync', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
-        body: JSON.stringify({ accountIds: activeIds, datePreset: 'today', userId: currentUser?.id })
+        headers: { 
+          'Content-Type': 'application/json', 
+          'x-user-id': currentUser?.id || '',
+          ...(metaTok ? { 'x-meta-token': metaTok } : {})
+        },
+        body: JSON.stringify({ accountIds: activeIds, datePreset: 'today', userId: currentUser?.id, metaToken: metaTok })
       })
       .then(res => res.json())
       .then(data => {
@@ -1260,10 +1276,15 @@ export default function Integrations() {
       localStorage.removeItem('primetrack_connected_profiles');
       localStorage.removeItem('primetrack_ad_accounts');
       localStorage.removeItem('primetrack_cached_campaigns');
+      localStorage.removeItem(userTokKey);
+      localStorage.removeItem('primetrack_meta_token');
     } else {
       localStorage.setItem('primetrack_connected_profiles', JSON.stringify(remaining));
       fetch(`/api/meta/status${currentUser?.id ? `?userId=${currentUser.id}` : ''}`, {
-        headers: { 'x-user-id': currentUser?.id || '' }
+        headers: { 
+          'x-user-id': currentUser?.id || '',
+          ...(getStoredMetaToken() ? { 'x-meta-token': getStoredMetaToken() } : {})
+        }
       }).then(r => r.json()).then(d => {
         if (Array.isArray(d.adAccounts)) {
           setAdAccounts(d.adAccounts);
@@ -1293,6 +1314,8 @@ export default function Integrations() {
     localStorage.removeItem('primetrack_connected_profiles');
     localStorage.removeItem('primetrack_ad_accounts');
     localStorage.removeItem('primetrack_cached_campaigns');
+    localStorage.removeItem(userTokKey);
+    localStorage.removeItem('primetrack_meta_token');
     window.dispatchEvent(new Event('primetrack_profile_sync'));
 
     setDisconnectToast('Todos os perfis e contas foram desconectados com sucesso.');
@@ -1307,9 +1330,36 @@ export default function Integrations() {
     }
 
     if (params.get('connected') === 'true') {
+      localStorage.removeItem(userDisconKey);
       localStorage.removeItem('primetrack_meta_disconnected');
-      // Limpa cache antigo de contas ativas para garantir que todas venham desativadas na nova conexão
-      localStorage.removeItem('primetrack_ad_accounts');
+
+      const metaAuth = params.get('meta_auth');
+      if (metaAuth) {
+        try {
+          const raw = atob(metaAuth.replace(/-/g, '+').replace(/_/g, '/'));
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.t) {
+            localStorage.setItem(userTokKey, parsed.t);
+            localStorage.setItem('primetrack_meta_token', parsed.t);
+            if (parsed.p && parsed.n) {
+              const profObj = [{
+                id: parsed.p,
+                name: parsed.n,
+                initial: parsed.n.charAt(0).toUpperCase(),
+                accountsCount: parsed.c || 0,
+                isNew: true
+              }];
+              const userConnKey = currentUser?.id ? `primetrack_connected_profiles_${currentUser.id}` : 'primetrack_connected_profiles';
+              localStorage.setItem(userConnKey, JSON.stringify(profObj));
+              localStorage.setItem('primetrack_connected_profiles', JSON.stringify(profObj));
+              setConnectedProfiles(profObj);
+            }
+          }
+        } catch (e) {
+          console.warn('Erro ao processar meta_auth:', e);
+        }
+      }
+
       const userName = params.get('name') || 'Perfil';
       setConnectionSuccessMsg(`🎉 Perfil ${userName} conectado com sucesso ao PrimeTrack!`);
       setTimeout(() => setConnectionSuccessMsg(null), 5000);
@@ -1327,15 +1377,26 @@ export default function Integrations() {
       return;
     }
 
-    // Busca status real das conexões salvas no backend (isolado por usuário)
-    const userHeader = currentUser?.id ? { 'x-user-id': currentUser.id } : {};
+    // Busca status real das conexões salvas no backend (isolado por usuário com auto-reidratação de token)
+    const metaTok = getStoredMetaToken();
+    const userHeader = {
+      ...(currentUser?.id ? { 'x-user-id': currentUser.id } : {}),
+      ...(metaTok ? { 'x-meta-token': metaTok } : {})
+    };
     fetch(`/api/meta/status${currentUser?.id ? `?userId=${currentUser.id}` : ''}`, {
       headers: userHeader
     })
       .then(res => res.json())
       .then(data => {
         if (data.connections && data.connections.length > 0) {
+          localStorage.removeItem(userDisconKey);
           localStorage.removeItem('primetrack_meta_disconnected');
+          const firstConn = data.connections[0];
+          const token = firstConn?.accessToken || firstConn?.access_token;
+          if (token && typeof token === 'string' && token.length > 15) {
+            localStorage.setItem(userTokKey, token);
+            localStorage.setItem('primetrack_meta_token', token);
+          }
           const mapped = data.connections.map(c => ({
             id: c.id,
             name: c.name,
@@ -1345,6 +1406,7 @@ export default function Integrations() {
           }));
           setConnectedProfiles(mapped);
           localStorage.setItem('primetrack_connected_profiles', JSON.stringify(mapped));
+          localStorage.setItem(getScopedKey('primetrack_connected_profiles'), JSON.stringify(mapped));
         } else if (data && Array.isArray(data.connections) && data.connections.length === 0) {
           const isUserExplicitlyDisc = typeof window !== 'undefined' && (
             localStorage.getItem(userDisconKey) === 'true' || 
@@ -1821,10 +1883,15 @@ export default function Integrations() {
                   onClick={async () => {
                     setIsRefreshingAccounts(true);
                     try {
+                      const metaTok = getStoredMetaToken();
                       const res = await fetch('/api/meta/refresh-accounts', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
-                        body: JSON.stringify({ userId: currentUser?.id })
+                        headers: { 
+                          'Content-Type': 'application/json', 
+                          'x-user-id': currentUser?.id || '',
+                          ...(metaTok ? { 'x-meta-token': metaTok } : {})
+                        },
+                        body: JSON.stringify({ userId: currentUser?.id, metaToken: metaTok })
                       });
                       const d = await res.json();
                       if (d.success) {
@@ -1833,7 +1900,10 @@ export default function Integrations() {
 
                         if (!accountsToUse) {
                           const statusRes = await fetch(`/api/meta/status${currentUser?.id ? `?userId=${currentUser.id}` : ''}`, {
-                            headers: { 'x-user-id': currentUser?.id || '' }
+                            headers: { 
+                              'x-user-id': currentUser?.id || '',
+                              ...(metaTok ? { 'x-meta-token': metaTok } : {})
+                            }
                           });
                           const statusData = await statusRes.json();
                           if (Array.isArray(statusData.adAccounts)) accountsToUse = statusData.adAccounts;
@@ -1874,15 +1944,33 @@ export default function Integrations() {
                             };
                           });
 
-                          setAdAccounts(refreshedMapped);
-                          localStorage.setItem('primetrack_ad_accounts', JSON.stringify(refreshedMapped));
-                          localStorage.setItem(userAccKey, JSON.stringify(refreshedMapped));
-                          localStorage.setItem(getScopedKey('primetrack_ad_accounts'), JSON.stringify(refreshedMapped));
+                          // Merge aditivo cumulativo com contas existentes para nunca perder contas de nenhuma BM
+                          const accountsMap = new Map();
+                          (adAccounts || []).forEach(a => {
+                            const cid = String(a.id || a.accountId || '').replace('act_', '');
+                            if (cid) accountsMap.set(cid, a);
+                          });
+                          refreshedMapped.forEach(a => {
+                            const cid = String(a.id || a.accountId || '').replace('act_', '');
+                            if (cid) {
+                              const existing = accountsMap.get(cid);
+                              accountsMap.set(cid, {
+                                ...a,
+                                sync: (existing && existing.sync !== undefined) ? existing.sync : a.sync
+                              });
+                            }
+                          });
+
+                          const finalMerged = Array.from(accountsMap.values());
+                          setAdAccounts(finalMerged);
+                          localStorage.setItem('primetrack_ad_accounts', JSON.stringify(finalMerged));
+                          localStorage.setItem(userAccKey, JSON.stringify(finalMerged));
+                          localStorage.setItem(getScopedKey('primetrack_ad_accounts'), JSON.stringify(finalMerged));
 
                           // Atualiza badge de contas nos perfis conectados
                           setConnectedProfiles(prev => (prev || []).map(p => ({
                             ...p,
-                            accountsCount: refreshedMapped.length
+                            accountsCount: finalMerged.length
                           })));
                         }
                       }

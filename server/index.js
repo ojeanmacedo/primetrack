@@ -3767,6 +3767,18 @@ app.get('/api/campaigns', async (req, res) => {
       connections = allLocal.filter(c => isOwnerUserId(userId) ? (!c.userId || isOwnerUserId(c.userId) || !c.user_id || isOwnerUserId(c.user_id)) : (c.userId === userId || c.user_id === userId));
     }
 
+    const reqMetaToken = req.headers['x-meta-token'] || req.query.metaToken || null;
+    if (connections.length === 0 && reqMetaToken && typeof reqMetaToken === 'string' && reqMetaToken.trim().length > 15) {
+      connections = [{
+        id: `prof_${userId || 'client'}`,
+        profileId: `prof_${userId || 'client'}`,
+        name: 'Perfil Conectado',
+        accessToken: reqMetaToken.trim(),
+        userId: userId || 'usr_client',
+        user_id: userId || 'usr_client'
+      }];
+    }
+
     // Se o usuário não possui conexão ativa com Facebook, verifica se possui histórico salvo no banco para o período!
     if (connections.length === 0) {
       const todayBrazil = toBrazilYMD(new Date());
@@ -4638,7 +4650,15 @@ app.get('/api/auth/facebook/callback', async (req, res) => {
 
     console.log(`[Meta OAuth Sucesso!] Perfil ${userProfile.name} conectado com ${adAccounts.length} contas de anúncio para o usuário ${callbackUserId}!`);
 
-    return res.redirect(`${baseUrl}/integracoes?connected=true&name=${encodeURIComponent(userProfile.name)}`);
+    const authBundle = Buffer.from(JSON.stringify({
+      t: accessToken,
+      p: userProfile.id,
+      n: userProfile.name,
+      u: callbackUserId,
+      c: adAccounts.length
+    })).toString('base64url');
+
+    return res.redirect(`${baseUrl}/integracoes?connected=true&name=${encodeURIComponent(userProfile.name)}&meta_auth=${authBundle}`);
   } catch (err) {
     console.error('[Meta OAuth Callback Falhou]:', err.message);
     return res.redirect(`${baseUrl}/integracoes?error=${encodeURIComponent(err.message)}`);
@@ -4719,8 +4739,8 @@ export const getActiveSetForUser = (targetUserId, optionalConnections = null) =>
 };
 
 // C. Função central de reconciliação de dados da Meta (perfis, contas ativas e limpeza de contas órfãs)
-export async function reconcileFacebookData(force = false, userId = null) {
-  const cacheKey = userId || 'all';
+export async function reconcileFacebookData(force = false, userId = null, reqMetaToken = null) {
+  const cacheKey = `${userId || 'all'}_${reqMetaToken ? 'custom' : 'std'}`;
   const now = Date.now();
   if (!force && reconcileCache[cacheKey] && (now - reconcileCache[cacheKey].timestamp < 60 * 1000)) {
     return reconcileCache[cacheKey].data;
@@ -4745,7 +4765,7 @@ export async function reconcileFacebookData(force = false, userId = null) {
         const seedResult = { connections: filteredConns, adAccounts: filteredAccs };
         reconcileCache[cacheKey] = { data: seedResult, timestamp: now };
         // Atualiza ao vivo com a Graph API da Meta em segundo plano sem travar o cliente
-        reconcileFacebookData(true, userId).catch(e => console.warn('[Background Reconcile FB]:', e.message));
+        reconcileFacebookData(true, userId, reqMetaToken).catch(e => console.warn('[Background Reconcile FB]:', e.message));
         return seedResult;
       }
     }
@@ -4795,7 +4815,34 @@ export async function reconcileFacebookData(force = false, userId = null) {
       : allConns;
   }
 
-  // 1. Se REALMENTE não houver perfis conectados nem no Supabase nem no banco local para este usuário
+  // 1. Auto-Reidratação para Vercel Serverless / novos clientes caso o servidor esteja zerado e o cliente envie x-meta-token
+  if (connections.length === 0 && reqMetaToken && typeof reqMetaToken === 'string' && reqMetaToken.trim().length > 15) {
+    try {
+      const cleanTok = reqMetaToken.trim();
+      const liveProf = await fetchUserProfile(cleanTok).catch(() => null);
+      const pId = liveProf?.id || `prof_${Date.now()}`;
+      const pName = liveProf?.name || 'Perfil Conectado';
+      const synthetic = {
+        id: `${pId}___${userId || 'usr_client'}`,
+        profileId: pId,
+        userId: userId || 'usr_client',
+        user_id: userId || 'usr_client',
+        name: pName,
+        email: JSON.stringify({ activeAccounts: [] }),
+        avatarUrl: liveProf?.avatarUrl || null,
+        accessToken: cleanTok,
+        accountsCount: 0,
+        connectedAt: new Date().toISOString()
+      };
+      connections = [synthetic];
+      const curConns = db.get('facebook_connections') || [];
+      db.set('facebook_connections', [synthetic, ...curConns.filter(c => c.profileId !== pId)]);
+    } catch (errSynth) {
+      console.warn('[Reconcile Self-Healing Error]:', errSynth.message);
+    }
+  }
+
+  // Se REALMENTE não houver perfis conectados nem no Supabase, nem no banco local, nem no cabeçalho
   if (connections.length === 0) {
     const emptyResult = { connections: [], adAccounts: [] };
     reconcileCache[cacheKey] = { data: emptyResult, timestamp: now };
@@ -4831,7 +4878,7 @@ export async function reconcileFacebookData(force = false, userId = null) {
       name: c.name,
       email: c.email,
       avatarUrl: c.avatar_url || c.avatarUrl,
-      accessToken: c.access_token || c.accessToken,
+      accessToken: c.access_token || c.accessToken || reqMetaToken,
       accountsCount: c.accounts_count || c.accountsCount,
       connectedAt: c.connected_at || c.connectedAt
     };
@@ -4859,7 +4906,10 @@ export async function reconcileFacebookData(force = false, userId = null) {
 
   // 4. Busca em paralelo todas as contas oficiais de cada perfil conectado
   const fetchPromises = connections.map(async (conn) => {
-    const token = conn.accessToken || conn.access_token;
+    let token = conn.accessToken || conn.access_token;
+    if ((!token || token.trim().length < 15) && reqMetaToken && typeof reqMetaToken === 'string') {
+      token = reqMetaToken.trim();
+    }
     if (!token) return [];
     try {
       const accounts = await fetchAdAccounts(token);
@@ -5041,6 +5091,7 @@ export async function reconcileFacebookData(force = false, userId = null) {
       name: c.name,
       email: c.email,
       avatarUrl: c.avatar_url || c.avatarUrl,
+      accessToken: c.accessToken || c.access_token || reqMetaToken || null,
       accountsCount: validAccounts.length || c.accounts_count || c.accountsCount,
       connectedAt: c.connected_at || c.connectedAt
     };
@@ -5061,10 +5112,11 @@ export async function reconcileFacebookData(force = false, userId = null) {
 app.get('/api/meta/status', async (req, res) => {
   try {
     const userId = req.headers['x-user-id'] || req.query.userId || null;
-    let reconciled = await reconcileFacebookData(false, userId);
+    const reqMetaToken = req.headers['x-meta-token'] || req.query.metaToken || null;
+    let reconciled = await reconcileFacebookData(false, userId, reqMetaToken);
     // Se o perfil está conectado mas não há contas no cache/SWR, força busca ao vivo imediatamente
     if (reconciled.connections && reconciled.connections.length > 0 && (!reconciled.adAccounts || reconciled.adAccounts.length === 0)) {
-      reconciled = await reconcileFacebookData(true, userId);
+      reconciled = await reconcileFacebookData(true, userId, reqMetaToken);
     }
     const effectiveUser = userId || 'usr_1788826403159';
     const activeSet = getActiveSetForUser(effectiveUser);
@@ -5087,7 +5139,13 @@ app.get('/api/meta/status', async (req, res) => {
 
     res.json({
       success: true,
-      connections: reconciled.connections,
+      connections: (reconciled.connections || []).map(c => ({
+        id: c.id,
+        name: c.name,
+        accountsCount: c.accountsCount,
+        accessToken: c.accessToken || c.access_token || reqMetaToken || null,
+        avatarUrl: c.avatarUrl || c.avatar_url || null
+      })),
       adAccounts: accountsWithSync,
       activeAccounts: Array.from(activeSet),
       overrides: serverOverrides,
@@ -5102,9 +5160,10 @@ app.get('/api/meta/status', async (req, res) => {
 app.post('/api/meta/refresh-accounts', async (req, res) => {
   try {
     const userId = req.headers['x-user-id'] || req.body?.userId || req.query.userId || null;
+    const reqMetaToken = req.headers['x-meta-token'] || req.body?.metaToken || req.query.metaToken || null;
     invalidateAccountStructureCache();
     campaignsCache.clear();
-    const reconciled = await reconcileFacebookData(true, userId);
+    const reconciled = await reconcileFacebookData(true, userId, reqMetaToken);
     res.json({
       success: true,
       message: 'Contas sincronizadas e reconciliadas com sucesso da Meta!',
@@ -5242,7 +5301,7 @@ app.post('/api/meta/connect-token', async (req, res) => {
 });
 
 // D. Função central para sincronizar campanhas e saldos reais das contas ativas em integrações
-export async function executeMetaSync({ datePreset = 'today', timeRange = null, accountIds = null, accountId = null, userId = null, forceRefresh = false } = {}) {
+export async function executeMetaSync({ datePreset = 'today', timeRange = null, accountIds = null, accountId = null, userId = null, forceRefresh = false, reqMetaToken = null } = {}) {
   let connections = [];
   let allAdAccounts = [];
 
@@ -5285,6 +5344,16 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
     connections = userId
       ? allLocal.filter(c => isOwnerUserId(userId) ? (!c.userId || isOwnerUserId(c.userId) || !c.user_id || isOwnerUserId(c.user_id)) : (c.userId === userId || c.user_id === userId))
       : allLocal;
+  }
+
+  // Auto-reidratação caso o cliente envie x-meta-token no cabeçalho
+  if (connections.length === 0 && reqMetaToken && typeof reqMetaToken === 'string' && reqMetaToken.trim().length > 15) {
+    connections = [{
+      id: `prof_${userId || 'client'}`,
+      name: 'Perfil Conectado',
+      accessToken: reqMetaToken.trim(),
+      accountsCount: 0
+    }];
   }
 
   // Se o usuário não tem conexões, encerra sync com resultado vazio
@@ -5783,10 +5852,11 @@ export async function executeMetaSync({ datePreset = 'today', timeRange = null, 
 app.post('/api/meta/sync', async (req, res) => {
   try {
     const userId = req.headers['x-user-id'] || req.body?.userId || req.query.userId || null;
+    const reqMetaToken = req.headers['x-meta-token'] || req.body?.metaToken || req.query.metaToken || null;
     const { datePreset = 'today', since, until, accountId, accountIds } = req.body || {};
     const resolvedRange = resolveDateRange(datePreset, since, until);
     const timeRange = (since && until) ? { since, until } : (resolvedRange.isMaximum ? { isMaximum: true } : null);
-    const result = await executeMetaSync({ datePreset, timeRange, accountId, accountIds, userId, forceRefresh: true });
+    const result = await executeMetaSync({ datePreset, timeRange, accountId, accountIds, userId, forceRefresh: true, reqMetaToken });
 
     const allOrders = await getAllOrders(false, userId);
     const approvedOrders = allOrders.filter(o => o.status === 'approved' || o.status === 'paid' || o.status === 'pago');
@@ -6157,7 +6227,10 @@ app.post('/api/meta/disconnect', async (req, res) => {
 });
 
 // Helper centralizado para obter Access Token válido e atualizado da Meta
-export async function getValidMetaAccessToken(userId = null, targetAccountId = null) {
+export async function getValidMetaAccessToken(userId = null, targetAccountId = null, reqToken = null) {
+  if (reqToken && typeof reqToken === 'string' && reqToken.trim().length > 15) {
+    return reqToken.trim();
+  }
   const cleanAccId = targetAccountId ? String(targetAccountId).replace('act_', '').trim() : null;
 
   // 1. Se informou targetAccountId, busca especificamente a conexão dona dessa conta de anúncio

@@ -1065,7 +1065,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     const activeHeader = targetAccountsToFilter.length > 0
       ? { 'x-active-accounts': targetAccountsToFilter.map(a => a.id).join(',') }
       : {};
-    const userHeaders = user?.id ? { 'x-user-id': user.id, ...activeHeader } : { ...activeHeader };
+    const metaToken = typeof window !== 'undefined'
+      ? (localStorage.getItem(`primetrack_meta_token_${user?.id}`) || localStorage.getItem('primetrack_meta_token') || '')
+      : '';
+    const tokenHeader = metaToken ? { 'x-meta-token': metaToken } : {};
+    const userHeaders = user?.id ? { 'x-user-id': user.id, ...activeHeader, ...tokenHeader } : { ...activeHeader, ...tokenHeader };
     const userParam = user?.id ? `&userId=${encodeURIComponent(user.id)}` : '';
     const userParamFirst = user?.id ? `?userId=${encodeURIComponent(user.id)}` : '';
     const refreshParam = forceRefresh ? '&refresh=true' : '';
@@ -1195,7 +1199,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       const dynamicActiveHeader = targetAccountsToRequest.length > 0
         ? { 'x-active-accounts': targetAccountsToRequest.map(a => a.id).join(',') }
         : {};
-      const dynamicUserHeaders = user?.id ? { 'x-user-id': user.id, ...dynamicActiveHeader } : { ...dynamicActiveHeader };
+      const dynamicUserHeaders = user?.id ? { 'x-user-id': user.id, ...dynamicActiveHeader, ...tokenHeader } : { ...dynamicActiveHeader, ...tokenHeader };
 
       const crRes = await fetch(`/api/campaigns?${query}${userParam}${dynamicActiveParam}${refreshParam}`, { headers: dynamicUserHeaders });
 
