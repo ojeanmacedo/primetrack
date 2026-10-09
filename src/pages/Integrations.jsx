@@ -1346,19 +1346,30 @@ export default function Integrations() {
           setConnectedProfiles(mapped);
           localStorage.setItem('primetrack_connected_profiles', JSON.stringify(mapped));
         } else if (data && Array.isArray(data.connections) && data.connections.length === 0) {
-          // Se backend explicitamente reportar 0 conexões (ex: nova instalação ou analista Meta)
-          setConnectedProfiles([]);
-          setAdAccounts([]);
-          localStorage.removeItem('primetrack_connected_profiles');
-          localStorage.removeItem('primetrack_ad_accounts');
-          localStorage.removeItem(userAccKey);
+          const isUserExplicitlyDisc = typeof window !== 'undefined' && (
+            localStorage.getItem(userDisconKey) === 'true' || 
+            localStorage.getItem('primetrack_meta_disconnected') === 'true'
+          );
+          if (isUserExplicitlyDisc || connectedProfiles.length === 0) {
+            setConnectedProfiles([]);
+            setAdAccounts([]);
+            localStorage.removeItem('primetrack_connected_profiles');
+            localStorage.removeItem('primetrack_ad_accounts');
+            localStorage.removeItem(userAccKey);
+          }
         }
 
         if (Array.isArray(data.adAccounts)) {
           if (data.adAccounts.length === 0 && (!data.connections || data.connections.length === 0)) {
-            setAdAccounts([]);
-            localStorage.removeItem('primetrack_ad_accounts');
-            localStorage.removeItem(userAccKey);
+            const isUserExplicitlyDisc = typeof window !== 'undefined' && (
+              localStorage.getItem(userDisconKey) === 'true' || 
+              localStorage.getItem('primetrack_meta_disconnected') === 'true'
+            );
+            if (isUserExplicitlyDisc) {
+              setAdAccounts([]);
+              localStorage.removeItem('primetrack_ad_accounts');
+              localStorage.removeItem(userAccKey);
+            }
           } else if (data.adAccounts.length > 0) {
             const userOverridesKey = currentUser?.id ? `primetrack_sync_overrides_${currentUser.id}` : 'primetrack_sync_overrides';
             let localOverrides = {};

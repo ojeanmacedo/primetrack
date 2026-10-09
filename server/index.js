@@ -4925,7 +4925,20 @@ export async function reconcileFacebookData(force = false, userId = null) {
         const aUserId = a.userId || a.user_id;
         return !isThisUser(aUserId);
       });
-      updatedLocalAccs = [...otherLocalAccs, ...validAccounts];
+      const currentUserLocalAccs = allLocalAccs.filter(a => {
+        const aUserId = a.userId || a.user_id;
+        return isThisUser(aUserId);
+      });
+      const mergedUserAccsMap = new Map();
+      currentUserLocalAccs.forEach(a => {
+        const clean = String(a.accountId || a.id || '').replace('act_', '').split('___')[0];
+        mergedUserAccsMap.set(clean, a);
+      });
+      validAccounts.forEach(a => {
+        const clean = String(a.accountId || a.id || '').replace('act_', '').split('___')[0];
+        mergedUserAccsMap.set(clean, { ...(mergedUserAccsMap.get(clean) || {}), ...a });
+      });
+      updatedLocalAccs = [...otherLocalAccs, ...Array.from(mergedUserAccsMap.values())];
     } else {
       updatedLocalAccs = validAccounts;
     }
