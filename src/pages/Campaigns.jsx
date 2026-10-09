@@ -1132,16 +1132,30 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             };
           });
 
+        // Preserva quaisquer contas já salvas no localStorage (ex: contas de nova BM recém-adicionadas)
+        let currentLocalSaved = [];
         if (typeof window !== 'undefined') {
-          localStorage.setItem(userAccKey, JSON.stringify(mappedAccs));
-          localStorage.setItem('primetrack_ad_accounts', JSON.stringify(mappedAccs));
+          try {
+            const raw = localStorage.getItem(userAccKey) || localStorage.getItem('primetrack_ad_accounts');
+            if (raw) currentLocalSaved = JSON.parse(raw);
+          } catch (e) {}
+        }
+        const serverCleanIds = new Set(mappedAccs.map(a => String(a.id).replace('act_', '')));
+        const preservedLocal = Array.isArray(currentLocalSaved)
+          ? currentLocalSaved.filter(a => a && (a.id || a.accountId) && !serverCleanIds.has(String(a.id || a.accountId || '').replace('act_', '')))
+          : [];
+        const finalAllAccs = [...mappedAccs, ...preservedLocal];
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(userAccKey, JSON.stringify(finalAllAccs));
+          localStorage.setItem('primetrack_ad_accounts', JSON.stringify(finalAllAccs));
         }
 
-        const freshActive = mappedAccs.filter(a => a.sync === true);
+        const freshActive = finalAllAccs.filter(a => a.sync === true);
         if (freshActive.length > 0) {
           currentActiveAccs = freshActive;
           setAdAccountsList(freshActive);
-        } else if (data.adAccounts.every(a => a.syncActive === false) && (!data.connections || data.connections.length === 0)) {
+        } else if (finalAllAccs.every(a => a.sync === false) && (!data.connections || data.connections.length === 0)) {
           currentActiveAccs = [];
           setAdAccountsList([]);
         }

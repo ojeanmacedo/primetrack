@@ -151,7 +151,9 @@ export async function fetchAdAccounts(accessToken) {
     const realAvailableBalance = isCreditCard ? '0.00' : (rawBalance * rate).toFixed(2);
     const convertedSpent = (rawSpent * rate).toFixed(2);
 
-    const bmName = acc.business_name || acc.business?.name || defaultBmName || 'BM Principal';
+    const bmName = (defaultBmName && defaultBmName !== 'BM Principal')
+      ? defaultBmName
+      : (acc.business_name || acc.business?.name || 'BM Principal');
 
     return {
       id: `act_${cleanId}`,
@@ -215,7 +217,7 @@ export async function fetchAdAccounts(accessToken) {
                   const existing = allAccountsMap.get(parsed.accountId);
                   if (!existing) {
                     allAccountsMap.set(parsed.accountId, parsed);
-                  } else if (existing.businessName === 'BM Principal' && bmName !== 'BM Principal') {
+                  } else if (bmName && bmName !== 'BM Principal') {
                     existing.businessName = bmName;
                   }
                 }

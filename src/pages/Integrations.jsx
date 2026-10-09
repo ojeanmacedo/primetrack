@@ -1354,11 +1354,11 @@ export default function Integrations() {
         }
 
         if (Array.isArray(data.adAccounts)) {
-          if (data.adAccounts.length === 0) {
+          if (data.adAccounts.length === 0 && (!data.connections || data.connections.length === 0)) {
             setAdAccounts([]);
             localStorage.removeItem('primetrack_ad_accounts');
             localStorage.removeItem(userAccKey);
-          } else {
+          } else if (data.adAccounts.length > 0) {
             const userOverridesKey = currentUser?.id ? `primetrack_sync_overrides_${currentUser.id}` : 'primetrack_sync_overrides';
             let localOverrides = {};
             if (typeof window !== 'undefined') {
@@ -1407,7 +1407,7 @@ export default function Integrations() {
               return {
                 name: a.name || 'Conta',
                 id: accId,
-                bm: a.businessName || 'BM Principal',
+                bm: a.businessName || a.bm_name || 'BM Principal',
                 currency: realCurrency,
                 status: isAccountActive ? 'Ativa' : 'Bloqueada',
                 balance: realBalance,
@@ -1416,10 +1416,25 @@ export default function Integrations() {
                 isPrepay: isRealPrepay
               };
             });
-            setAdAccounts(mappedAccs);
-            localStorage.setItem('primetrack_ad_accounts', JSON.stringify(mappedAccs));
-            localStorage.setItem(userAccKey, JSON.stringify(mappedAccs));
-            localStorage.setItem(getScopedKey('primetrack_ad_accounts'), JSON.stringify(mappedAccs));
+
+            // Preserva e mescla quaisquer contas já salvas no localStorage (ex: contas de nova BM recém-adicionadas)
+            let existingLocal = [];
+            try {
+              const localSaved = localStorage.getItem(userAccKey) || localStorage.getItem('primetrack_ad_accounts');
+              if (localSaved) existingLocal = JSON.parse(localSaved);
+            } catch (e) {}
+
+            const serverCleanIds = new Set(mappedAccs.map(a => String(a.id).replace('act_', '')));
+            const preservedLocal = Array.isArray(existingLocal)
+              ? existingLocal.filter(a => a && (a.id || a.accountId) && !serverCleanIds.has(String(a.id || a.accountId || '').replace('act_', '')))
+              : [];
+
+            const combinedAccs = [...mappedAccs, ...preservedLocal];
+
+            setAdAccounts(combinedAccs);
+            localStorage.setItem('primetrack_ad_accounts', JSON.stringify(combinedAccs));
+            localStorage.setItem(userAccKey, JSON.stringify(combinedAccs));
+            localStorage.setItem(getScopedKey('primetrack_ad_accounts'), JSON.stringify(combinedAccs));
           }
         }
       })
@@ -1801,27 +1816,62 @@ export default function Integrations() {
                       });
                       const d = await res.json();
                       if (d.success) {
-                        setRefreshAccountsToast(`✨ ${d.count} conta(s) atualizadas diretamente da Meta!`);
-                        setTimeout(() => setRefreshAccountsToast(null), 4000);
-                        // Recarrega status
-                        const statusRes = await fetch(`/api/meta/status${currentUser?.id ? `?userId=${currentUser.id}` : ''}`, {
-                          headers: { 'x-user-id': currentUser?.id || '' }
-                        });
-                        const statusData = await statusRes.json();
-                        if (statusData.adAccounts) {
-                          const refreshedMapped = statusData.adAccounts.map(a => ({
-                            name: a.name || 'Conta',
-                            id: (a.accountId || a.id || '').replace('act_', ''),
-                            bm: a.businessName || 'BM Principal',
-                            currency: a.currency || 'BRL',
-                            status: a.status === 'ACTIVE' || a.status === 'Ativa' ? 'Ativa' : 'Bloqueada',
-                            balance: a.balance || '0,00',
-                            sync: a.syncActive === true
-                          }));
+                        const rawAccounts = Array.isArray(d.adAccounts) && d.adAccounts.length > 0 ? d.adAccounts : null;
+                        let accountsToUse = rawAccounts;
+
+                        if (!accountsToUse) {
+                          const statusRes = await fetch(`/api/meta/status${currentUser?.id ? `?userId=${currentUser.id}` : ''}`, {
+                            headers: { 'x-user-id': currentUser?.id || '' }
+                          });
+                          const statusData = await statusRes.json();
+                          if (Array.isArray(statusData.adAccounts)) accountsToUse = statusData.adAccounts;
+                        }
+
+                        if (accountsToUse) {
+                          setRefreshAccountsToast(`✨ ${accountsToUse.length} conta(s) sincronizadas diretamente da Meta!`);
+                          setTimeout(() => setRefreshAccountsToast(null), 4000);
+
+                          const userOverridesKey = currentUser?.id ? `primetrack_sync_overrides_${currentUser.id}` : 'primetrack_sync_overrides';
+                          let localOverrides = {};
+                          try {
+                            localOverrides = JSON.parse(localStorage.getItem(userOverridesKey) || localStorage.getItem('primetrack_sync_overrides') || '{}');
+                          } catch (e) {}
+
+                          const refreshedMapped = accountsToUse.map(a => {
+                            const accId = (a.accountId || a.id || '').replace('act_', '');
+                            const isAccountActive = a.status === 'ACTIVE' || a.status === 'Ativa' || a.account_status === 1;
+                            let isSyncActive = false;
+                            if (isAccountActive) {
+                              if (localOverrides[accId] !== undefined) {
+                                isSyncActive = Boolean(localOverrides[accId]);
+                              } else if (localOverrides[`act_${accId}`] !== undefined) {
+                                isSyncActive = Boolean(localOverrides[`act_${accId}`]);
+                              } else {
+                                isSyncActive = a.syncActive === true;
+                              }
+                            }
+                            return {
+                              name: a.name || 'Conta',
+                              id: accId,
+                              bm: a.businessName || a.bm_name || 'BM Principal',
+                              currency: a.currency || 'BRL',
+                              status: isAccountActive ? 'Ativa' : 'Bloqueada',
+                              balance: a.balance || '0,00',
+                              amountSpent: a.amountSpent || '0,00',
+                              sync: isSyncActive
+                            };
+                          });
+
                           setAdAccounts(refreshedMapped);
                           localStorage.setItem('primetrack_ad_accounts', JSON.stringify(refreshedMapped));
                           localStorage.setItem(userAccKey, JSON.stringify(refreshedMapped));
                           localStorage.setItem(getScopedKey('primetrack_ad_accounts'), JSON.stringify(refreshedMapped));
+
+                          // Atualiza badge de contas nos perfis conectados
+                          setConnectedProfiles(prev => (prev || []).map(p => ({
+                            ...p,
+                            accountsCount: refreshedMapped.length
+                          })));
                         }
                       }
                     } catch (e) {

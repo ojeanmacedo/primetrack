@@ -842,16 +842,29 @@ export default function Dashboard() {
             };
           });
 
-          // Filtra estritamente apenas as contas ativas (4 contas autorizadas)
-          const activeOnly = allMappedAccs.filter(a => a.sync === true);
+          // Preserva quaisquer contas já salvas no localStorage (ex: contas de nova BM recém-adicionadas)
+          let currentLocalSaved = [];
+          if (typeof window !== 'undefined') {
+            try {
+              const raw = (user?.id ? localStorage.getItem(`primetrack_ad_accounts_${user.id}`) : null) || localStorage.getItem('primetrack_ad_accounts');
+              if (raw) currentLocalSaved = JSON.parse(raw);
+            } catch (e) {}
+          }
+          const serverCleanIds = new Set(allMappedAccs.map(a => String(a.id).replace('act_', '')));
+          const preservedLocal = Array.isArray(currentLocalSaved)
+            ? currentLocalSaved.filter(a => a && (a.id || a.accountId) && !serverCleanIds.has(String(a.id || a.accountId || '').replace('act_', '')))
+            : [];
+          const finalAllAccs = [...allMappedAccs, ...preservedLocal];
+
+          const activeOnly = finalAllAccs.filter(a => a.sync === true);
           setAdAccountsList(activeOnly);
           if (typeof window !== 'undefined') {
-            localStorage.setItem('primetrack_ad_accounts', JSON.stringify(allMappedAccs));
+            localStorage.setItem('primetrack_ad_accounts', JSON.stringify(finalAllAccs));
             if (user?.id) {
-              localStorage.setItem(`primetrack_ad_accounts_${user.id}`, JSON.stringify(allMappedAccs));
+              localStorage.setItem(`primetrack_ad_accounts_${user.id}`, JSON.stringify(finalAllAccs));
             }
           }
-        } else if (data && Array.isArray(data.adAccounts) && data.adAccounts.length === 0) {
+        } else if (data && Array.isArray(data.adAccounts) && data.adAccounts.length === 0 && (!data.connections || data.connections.length === 0)) {
           setAdAccountsList([]);
           if (typeof window !== 'undefined') {
             localStorage.removeItem('primetrack_ad_accounts');

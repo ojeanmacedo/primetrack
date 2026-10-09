@@ -4735,10 +4735,13 @@ export async function reconcileFacebookData(force = false, userId = null) {
         ? localConns.filter(c => isOwnerUserId(userId) ? (!c.userId || isOwnerUserId(c.userId) || !c.user_id || isOwnerUserId(c.user_id)) : (c.userId === userId || c.user_id === userId))
         : localConns;
       const filteredAccs = userId
-        ? localAccs.filter(a => isOwnerUserId(userId) ? (!a.userId || isOwnerUserId(a.userId)) : (a.userId === userId))
+        ? localAccs.filter(a => {
+            const aUser = a.userId || a.user_id;
+            return isOwnerUserId(userId) ? (!aUser || isOwnerUserId(aUser)) : (aUser === userId);
+          })
         : localAccs;
       
-      if (filteredConns.length > 0) {
+      if (filteredConns.length > 0 && filteredAccs.length > 0) {
         const seedResult = { connections: filteredConns, adAccounts: filteredAccs };
         reconcileCache[cacheKey] = { data: seedResult, timestamp: now };
         // Atualiza ao vivo com a Graph API da Meta em segundo plano sem travar o cliente
@@ -4942,6 +4945,20 @@ export async function reconcileFacebookData(force = false, userId = null) {
       });
     });
     db.set('ad_accounts', Array.from(uniqueAccsMap.values()));
+
+    // Atualiza accountsCount em facebook_connections no banco local
+    const currentFbConns = db.get('facebook_connections') || [];
+    const connsWithUpdatedCount = currentFbConns.map(c => {
+      const cUser = c.userId || c.user_id;
+      if (isThisUser(cUser)) {
+        return {
+          ...c,
+          accountsCount: validAccounts.length
+        };
+      }
+      return c;
+    });
+    db.set('facebook_connections', connsWithUpdatedCount);
   } else if (connections.length > 0) {
     // Se a busca ao vivo na Meta falhou (ex: rate limit ou erro de rede temporário),
     // recupera as contas existentes já salvas no Supabase e no banco local para não apagar a visualização do usuário
@@ -5031,7 +5048,11 @@ export async function reconcileFacebookData(force = false, userId = null) {
 app.get('/api/meta/status', async (req, res) => {
   try {
     const userId = req.headers['x-user-id'] || req.query.userId || null;
-    const reconciled = await reconcileFacebookData(false, userId);
+    let reconciled = await reconcileFacebookData(false, userId);
+    // Se o perfil está conectado mas não há contas no cache/SWR, força busca ao vivo imediatamente
+    if (reconciled.connections && reconciled.connections.length > 0 && (!reconciled.adAccounts || reconciled.adAccounts.length === 0)) {
+      reconciled = await reconcileFacebookData(true, userId);
+    }
     const effectiveUser = userId || 'usr_1788826403159';
     const activeSet = getActiveSetForUser(effectiveUser);
 
