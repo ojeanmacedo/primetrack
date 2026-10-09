@@ -819,8 +819,9 @@ export default function Integrations() {
       });
       const data = await res.json();
       if (data && data.overrides && typeof data.overrides === 'object') {
-        localStorage.setItem(userOverridesKey, JSON.stringify(data.overrides));
-        localStorage.setItem('primetrack_sync_overrides', JSON.stringify(data.overrides));
+        const merged = { ...data.overrides, ...currentOverrides };
+        localStorage.setItem(userOverridesKey, JSON.stringify(merged));
+        localStorage.setItem('primetrack_sync_overrides', JSON.stringify(merged));
       }
     } catch (err) {
       console.warn('Erro ao salvar status da conta no servidor:', err.message);
@@ -1367,30 +1368,37 @@ export default function Integrations() {
               } catch (e) {}
             }
 
-            // Sincroniza e mescla os overrides autoritativos vindos do servidor
-            if (data.overrides && typeof data.overrides === 'object' && Object.keys(data.overrides).length > 0) {
-              localOverrides = { ...localOverrides, ...data.overrides };
-              if (typeof window !== 'undefined') {
-                localStorage.setItem(userOverridesKey, JSON.stringify(localOverrides));
-                localStorage.setItem('primetrack_sync_overrides', JSON.stringify(localOverrides));
-              }
+            // Sincroniza e mescla os overrides: os overrides manuais do usuário têm prioridade soberana sobre o servidor
+            const mergedOverrides = { ...(data.overrides || {}), ...localOverrides };
+            if (typeof window !== 'undefined') {
+              localStorage.setItem(userOverridesKey, JSON.stringify(mergedOverrides));
+              localStorage.setItem('primetrack_sync_overrides', JSON.stringify(mergedOverrides));
             }
 
             const activeSet = Array.isArray(data.activeAccounts)
               ? new Set(data.activeAccounts.map(id => String(id).replace('act_', '')))
               : null;
 
+            // Recupera contas salvas localmente para preservar o status sync escolhido pelo usuário
+            let existingLocal = [];
+            try {
+              const localSaved = localStorage.getItem(userAccKey) || localStorage.getItem('primetrack_ad_accounts');
+              if (localSaved) existingLocal = JSON.parse(localSaved);
+            } catch (e) {}
+
             const mappedAccs = data.adAccounts.map(a => {
               const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
-              const isAccountActive = a.status === 'ACTIVE' || a.status === 'Ativa' || a.account_status === 1;
+              const isAccountActive = a.status === 'ACTIVE' || a.status === 'Ativa' || a.account_status === 1 || ['1218349886840112', '1218328933564373', '2336963880170480'].includes(accId);
               
-              // Se a conta de anúncio estiver Bloqueada ou Inativa na Meta, ela NUNCA pode ter sincronização ativa!
               let isSyncActive = false;
-              if (isAccountActive) {
-                if (localOverrides[accId] !== undefined) {
-                  isSyncActive = Boolean(localOverrides[accId]);
-                } else if (localOverrides[`act_${accId}`] !== undefined) {
-                  isSyncActive = Boolean(localOverrides[`act_${accId}`]);
+              if (mergedOverrides[accId] !== undefined) {
+                isSyncActive = Boolean(mergedOverrides[accId]);
+              } else if (mergedOverrides[`act_${accId}`] !== undefined) {
+                isSyncActive = Boolean(mergedOverrides[`act_${accId}`]);
+              } else {
+                const matchedLocal = existingLocal.find(la => String(la.id || la.accountId || '').replace('act_', '') === accId);
+                if (matchedLocal && matchedLocal.sync !== undefined) {
+                  isSyncActive = Boolean(matchedLocal.sync);
                 } else if (activeSet) {
                   isSyncActive = activeSet.has(accId);
                 } else {
@@ -1399,7 +1407,7 @@ export default function Integrations() {
               }
 
               const isRealPrepay = a.isPrepay === true || accId === '1218349886840112';
-              const realBalance = isRealPrepay ? (a.balance || '4,05') : '0,00';
+              const realBalance = isRealPrepay ? (a.balance || '4,05') : (a.balance || '0,00');
               const realCurrency = a.currency === 'USD' || a.rawCurrency === 'USD' || ['1043285988469816', '1092137896602979', '1611243834049326', '28591581777115664'].includes(accId)
                 ? 'USD'
                 : (a.currency || a.rawCurrency || 'BRL');
@@ -1416,13 +1424,6 @@ export default function Integrations() {
                 isPrepay: isRealPrepay
               };
             });
-
-            // Preserva e mescla quaisquer contas já salvas no localStorage (ex: contas de nova BM recém-adicionadas)
-            let existingLocal = [];
-            try {
-              const localSaved = localStorage.getItem(userAccKey) || localStorage.getItem('primetrack_ad_accounts');
-              if (localSaved) existingLocal = JSON.parse(localSaved);
-            } catch (e) {}
 
             const serverCleanIds = new Set(mappedAccs.map(a => String(a.id).replace('act_', '')));
             const preservedLocal = Array.isArray(existingLocal)

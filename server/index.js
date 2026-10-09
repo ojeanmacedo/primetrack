@@ -5056,6 +5056,12 @@ app.get('/api/meta/status', async (req, res) => {
     const effectiveUser = userId || 'usr_1788826403159';
     const activeSet = getActiveSetForUser(effectiveUser);
 
+    const headerActiveAccs = req.headers['x-active-accounts'] || req.query.activeAccounts;
+    if (headerActiveAccs && typeof headerActiveAccs === 'string') {
+      const headerList = headerActiveAccs.split(',').map(s => s.trim().replace('act_', '')).filter(Boolean);
+      headerList.forEach(id => activeSet.add(id));
+    }
+
     const accountsWithSync = (reconciled.adAccounts || []).map(acc => {
       const clean = (acc.accountId || acc.id || '').replace('act_', '');
       return {
@@ -5923,19 +5929,32 @@ app.post('/api/meta/accounts/sync-status', async (req, res) => {
       explicitActiveIds = currentActive;
     }
 
-    const activeSet = new Set(explicitActiveIds);
+    const existingServerOverrides = db.get(`sync_overrides_${effectiveTargetUser}`) || (isOwnerUserId(effectiveTargetUser) ? db.get('sync_overrides') : null) || {};
+    const { overrides } = req.body || {};
+    let finalOverrides = { ...existingServerOverrides, ...((overrides && typeof overrides === 'object') ? overrides : {}) };
+    if (accountId !== undefined) {
+      const cleanTarget = String(accountId).replace('act_', '');
+      finalOverrides[cleanTarget] = Boolean(syncActive);
+      finalOverrides[`act_${cleanTarget}`] = Boolean(syncActive);
+    }
+
+    // Mescla explicitActiveIds com quaisquer contas marcadas como true em finalOverrides
+    const mergedActiveSet = new Set(explicitActiveIds);
+    Object.entries(finalOverrides).forEach(([k, v]) => {
+      const clean = String(k).replace('act_', '');
+      if (v === true) {
+        mergedActiveSet.add(clean);
+      } else if (v === false) {
+        mergedActiveSet.delete(clean);
+      }
+    });
+    explicitActiveIds = Array.from(mergedActiveSet);
+    const activeSet = mergedActiveSet;
 
     // 1. Salva explicitamente a lista oficial de contas ativas no banco para este usuário
     db.set(`active_accounts_${effectiveTargetUser}`, explicitActiveIds);
     if (isOwnerUserId(effectiveTargetUser)) {
       db.set('active_accounts', explicitActiveIds);
-    }
-    const { overrides } = req.body || {};
-    let finalOverrides = (overrides && typeof overrides === 'object') ? { ...overrides } : {};
-    if (accountId !== undefined) {
-      const cleanTarget = String(accountId).replace('act_', '');
-      finalOverrides[cleanTarget] = Boolean(syncActive);
-      finalOverrides[`act_${cleanTarget}`] = Boolean(syncActive);
     }
     db.set(`sync_overrides_${effectiveTargetUser}`, finalOverrides);
     if (isOwnerUserId(effectiveTargetUser)) {

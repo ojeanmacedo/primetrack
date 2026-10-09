@@ -62938,7 +62938,7 @@
       "name": "2336963880170480",
       "businessName": "DJS01",
       "currency": "BRL",
-      "status": "Bloqueada",
+      "status": "Ativa",
       "amountSpent": "262.52",
       "balance": "0.00",
       "syncActive": false
@@ -63061,7 +63061,7 @@
       "status": "Ativa",
       "amountSpent": "423.48",
       "balance": "0.00",
-      "syncActive": false
+      "syncActive": true
     },
     {
       "id": "act_1382762426809874",
@@ -63088,10 +63088,10 @@
       "name": "DJS01 CA01",
       "businessName": "DJS01",
       "currency": "BRL",
-      "status": "Bloqueada",
+      "status": "Ativa",
       "amountSpent": "1465.65",
       "balance": "4.05",
-      "syncActive": false
+      "syncActive": true
     },
     {
       "id": "act_1218328933564373",
@@ -63103,7 +63103,7 @@
       "name": "DJS01 CA05",
       "businessName": "DJS01",
       "currency": "BRL",
-      "status": "Bloqueada",
+      "status": "Ativa",
       "amountSpent": "163.84",
       "balance": "0.00",
       "syncActive": false
@@ -100598,16 +100598,22 @@
     }
   ],
   "active_accounts": [
-    "2292269048278267"
+    "2292269048278267",
+    "1218349886840112",
+    "1644138016951671"
   ],
   "active_accounts_usr_1788826403159": [
-    "2292269048278267"
+    "2292269048278267",
+    "1218349886840112",
+    "1644138016951671"
   ],
   "sync_overrides_usr_1788826403159": {
-    "2079518495988487": false,
-    "act_2079518495988487": false,
     "2292269048278267": true,
-    "act_2292269048278267": true
+    "act_2292269048278267": true,
+    "1644138016951671": true,
+    "act_1644138016951671": true,
+    "1218349886840112": true,
+    "act_1218349886840112": true
   },
   "pixels_usr_1788826403159": [
     {
@@ -100860,9 +100866,11 @@
     }
   ],
   "sync_overrides": {
-    "2079518495988487": false,
-    "act_2079518495988487": false,
     "2292269048278267": true,
-    "act_2292269048278267": true
+    "act_2292269048278267": true,
+    "1644138016951671": true,
+    "act_1644138016951671": true,
+    "1218349886840112": true,
+    "act_1218349886840112": true
   }
 }

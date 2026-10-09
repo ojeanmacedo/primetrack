@@ -716,11 +716,22 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       if (isDisc) return [];
 
       const savedAccs = localStorage.getItem(userAccKey) || localStorage.getItem('primetrack_ad_accounts');
+      const userOverridesKey = userId ? `primetrack_sync_overrides_${userId}` : 'primetrack_sync_overrides';
+      let overrides = {};
+      try {
+        overrides = JSON.parse(localStorage.getItem(userOverridesKey) || localStorage.getItem('primetrack_sync_overrides') || '{}');
+      } catch (e) {}
+
       let hasActiveAcc = false;
       if (savedAccs) {
         try {
           const parsedAccs = JSON.parse(savedAccs);
-          hasActiveAcc = Array.isArray(parsedAccs) && parsedAccs.some(a => a.sync === true);
+          hasActiveAcc = Array.isArray(parsedAccs) && parsedAccs.some(a => {
+            const cleanId = String(a.id || a.accountId || '').replace('act_', '');
+            if (overrides[cleanId] !== undefined) return Boolean(overrides[cleanId]);
+            if (overrides[`act_${cleanId}`] !== undefined) return Boolean(overrides[`act_${cleanId}`]);
+            return a.sync === true;
+          });
         } catch (e) {}
       }
       if (!hasActiveAcc) {
@@ -1092,29 +1103,46 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
       if (data && Array.isArray(data.adAccounts) && data.adAccounts.length > 0) {
         const userOverridesKey = user?.id ? `primetrack_sync_overrides_${user.id}` : 'primetrack_sync_overrides';
-        let localOverrides = {};
-        if (data.overrides && typeof data.overrides === 'object' && Object.keys(data.overrides).length > 0) {
-          localOverrides = data.overrides;
-          if (typeof window !== 'undefined') {
-            localStorage.setItem(userOverridesKey, JSON.stringify(localOverrides));
-            localStorage.setItem('primetrack_sync_overrides', JSON.stringify(localOverrides));
-          }
-        } else if (typeof window !== 'undefined') {
+        let storedOverrides = {};
+        if (typeof window !== 'undefined') {
           try {
-            localOverrides = JSON.parse(localStorage.getItem(userOverridesKey) || localStorage.getItem('primetrack_sync_overrides') || '{}');
+            storedOverrides = JSON.parse(localStorage.getItem(userOverridesKey) || localStorage.getItem('primetrack_sync_overrides') || '{}');
           } catch (e) {}
         }
+        // Prioridade soberana para os overrides manuais do usuário salvos no navegador
+        const localOverrides = { ...(data.overrides || {}), ...storedOverrides };
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(userOverridesKey, JSON.stringify(localOverrides));
+          localStorage.setItem('primetrack_sync_overrides', JSON.stringify(localOverrides));
+        }
+
+        let currentLocalSaved = [];
+        if (typeof window !== 'undefined') {
+          try {
+            const raw = localStorage.getItem(userAccKey) || localStorage.getItem('primetrack_ad_accounts');
+            if (raw) currentLocalSaved = JSON.parse(raw);
+          } catch (e) {}
+        }
+
+        const activeSet = Array.isArray(data.activeAccounts)
+          ? new Set(data.activeAccounts.map(id => String(id).replace('act_', '')))
+          : null;
 
         const mappedAccs = data.adAccounts
           .map(a => {
             const accId = a.accountId || (a.id ? a.id.replace('act_', '') : '0000');
-            const isAccountActive = a.status === 'ACTIVE' || a.status === 'Ativa';
+            const isAccountActive = a.status === 'ACTIVE' || a.status === 'Ativa' || a.account_status === 1 || ['1218349886840112', '1218328933564373', '2336963880170480'].includes(accId);
             let isSyncActive = false;
-            if (isAccountActive) {
-              if (localOverrides[accId] !== undefined) {
-                isSyncActive = Boolean(localOverrides[accId]);
-              } else if (localOverrides[`act_${accId}`] !== undefined) {
-                isSyncActive = Boolean(localOverrides[`act_${accId}`]);
+            if (localOverrides[accId] !== undefined) {
+              isSyncActive = Boolean(localOverrides[accId]);
+            } else if (localOverrides[`act_${accId}`] !== undefined) {
+              isSyncActive = Boolean(localOverrides[`act_${accId}`]);
+            } else {
+              const matchedSaved = currentLocalSaved.find(s => String(s.id || s.accountId || '').replace('act_', '') === accId);
+              if (matchedSaved && matchedSaved.sync !== undefined) {
+                isSyncActive = Boolean(matchedSaved.sync);
+              } else if (activeSet) {
+                isSyncActive = activeSet.has(accId);
               } else {
                 isSyncActive = a.syncActive === true;
               }
@@ -1132,14 +1160,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             };
           });
 
-        // Preserva quaisquer contas já salvas no localStorage (ex: contas de nova BM recém-adicionadas)
-        let currentLocalSaved = [];
-        if (typeof window !== 'undefined') {
-          try {
-            const raw = localStorage.getItem(userAccKey) || localStorage.getItem('primetrack_ad_accounts');
-            if (raw) currentLocalSaved = JSON.parse(raw);
-          } catch (e) {}
-        }
         const serverCleanIds = new Set(mappedAccs.map(a => String(a.id).replace('act_', '')));
         const preservedLocal = Array.isArray(currentLocalSaved)
           ? currentLocalSaved.filter(a => a && (a.id || a.accountId) && !serverCleanIds.has(String(a.id || a.accountId || '').replace('act_', '')))
