@@ -354,19 +354,58 @@ app.get('/api/health', (req, res) => {
 // ==========================================
 // Cloud Storage Persistente Global para Pixels (Multi-Tenant & Vercel Serverless)
 // ==========================================
-async function syncPixelsToCloud(pixels, targetUserId) {
+function chunkString(str, size = 1500) {
+  const chunks = [];
+  for (let i = 0; i < str.length; i += size) {
+    chunks.push(str.slice(i, i + size));
+  }
+  return chunks;
+}
+
+async function syncPixelsToCloud(pixels, targetUserId = 'usr_1788826403159') {
   if (!Array.isArray(pixels)) return;
   try {
     const cloud = getMonsterPayClient();
+    const effectiveUserId = targetUserId || 'usr_1788826403159';
     const validPixels = pixels.filter(p => !p.id?.startsWith('settings_') && !p.id?.startsWith('push_sub_') && !p.id?.startsWith('wh_tok_') && p.name !== 'UserSettings');
     
-    // Lista de IDs válidos atuais para remoção de pixels deletados
+    // 1. Persiste a lista completa do usuário usando chunking seguro (evita erro de limite de 2704 bytes do índice btree)
+    try {
+      const fullJson = JSON.stringify(validPixels);
+      const pieces = chunkString(fullJson, 1500);
+
+      // Deleta chunks anteriores do usuário
+      await cloud.from('pix_rate_limits').delete().like('ip_address', `pt_chk:upx:${effectiveUserId}:%`);
+      
+      const chunkRows = pieces.map((piece, idx) => ({
+        ip_address: `pt_chk:upx:${effectiveUserId}:${idx}:${pieces.length}:${piece}`
+      }));
+      await cloud.from('pix_rate_limits').insert(chunkRows);
+
+      if (isOwnerUserId(effectiveUserId)) {
+        await cloud.from('pix_rate_limits').delete().like('ip_address', 'pt_chk:upx:default:%');
+        const defaultRows = pieces.map((piece, idx) => ({
+          ip_address: `pt_chk:upx:default:${idx}:${pieces.length}:${piece}`
+        }));
+        await cloud.from('pix_rate_limits').insert(defaultRows);
+      }
+    } catch (eUser) {
+      console.warn('[CloudPixels] Erro ao salvar lista unificada de pixels via chunks:', eUser.message);
+    }
+
+    // 2. Persiste individualmente cada pixel para resolução rápida pelo script /pixel.js (/api/pixel/config)
     const validIds = validPixels.map(px => px.pixelId || px.internalPixelId || px.id).filter(Boolean);
 
-    for (const px of validPixels) {
+    // Remove registros individuais antigos em paralelo
+    const deletePromises = validIds.map(id => 
+      cloud.from('pix_rate_limits').delete().like('ip_address', `pt_px_cloud:${id}:%`)
+    );
+    await Promise.allSettled(deletePromises);
+
+    // Insere registros individuais se couberem em 2200 caracteres
+    const insertRows = validPixels.map(px => {
       const id = px.pixelId || px.internalPixelId || px.id;
-      if (!id) continue;
-      
+      if (!id) return null;
       const payload = {
         id,
         pixelId: id,
@@ -380,18 +419,64 @@ async function syncPixelsToCloud(pixels, targetUserId) {
         icValue: px.icValue || '',
         icRule: px.icRule || '',
         status: px.status || 'Ativo',
-        userId: targetUserId || px.userId || 'usr_1788826403159',
+        userId: effectiveUserId || px.userId || 'usr_1788826403159',
         updatedAt: new Date().toISOString()
       };
+      const rec = `pt_px_cloud:${id}:${JSON.stringify(payload)}`;
+      if (rec.length < 2200) {
+        return { ip_address: rec };
+      }
+      return null;
+    }).filter(Boolean);
 
-      // Deleta versão antiga e insere nova com dados atualizados
-      await cloud.from('pix_rate_limits').delete().like('ip_address', `pt_px_cloud:${id}:%`);
-      const record = `pt_px_cloud:${id}:${JSON.stringify(payload)}`;
-      await cloud.from('pix_rate_limits').insert({ ip_address: record });
+    if (insertRows.length > 0) {
+      await cloud.from('pix_rate_limits').insert(insertRows);
     }
   } catch (err) {
     console.warn('[CloudPixels] Erro ao sincronizar pixels na nuvem:', err.message);
   }
+}
+
+async function getUserPixelsFromCloud(targetUserId) {
+  try {
+    const cloud = getMonsterPayClient();
+    const effectiveUserId = targetUserId || 'usr_1788826403159';
+    
+    // 1. Tenta carregar chunks específicos do usuário
+    let { data, error } = await cloud
+      .from('pix_rate_limits')
+      .select('ip_address')
+      .like('ip_address', `pt_chk:upx:${effectiveUserId}:%`);
+
+    // 2. Se não encontrou e for owner, tenta os chunks default
+    if ((!data || data.length === 0) && isOwnerUserId(effectiveUserId)) {
+      const defRes = await cloud
+        .from('pix_rate_limits')
+        .select('ip_address')
+        .like('ip_address', 'pt_chk:upx:default:%');
+      data = defRes.data;
+    }
+
+    if (Array.isArray(data) && data.length > 0) {
+      const parsedChunks = data.map(r => {
+        const raw = r.ip_address;
+        const parts = raw.split(':');
+        const idx = parseInt(parts[3], 10);
+        const prefix = parts.slice(0, 5).join(':') + ':';
+        const piece = raw.substring(prefix.length);
+        return { idx, piece };
+      }).filter(c => !isNaN(c.idx)).sort((a, b) => a.idx - b.idx);
+
+      const reassembled = parsedChunks.map(c => c.piece).join('');
+      const list = JSON.parse(reassembled);
+      if (Array.isArray(list)) {
+        return list;
+      }
+    }
+  } catch (err) {
+    console.warn('[CloudPixels] Erro ao buscar lista de pixels do usuário na nuvem:', err.message);
+  }
+  return null;
 }
 
 async function getPixelFromCloud(pixelId) {
@@ -402,6 +487,7 @@ async function getPixelFromCloud(pixelId) {
       .from('pix_rate_limits')
       .select('ip_address')
       .like('ip_address', `pt_px_cloud:${pixelId}:%`)
+      .order('id', { ascending: false })
       .limit(1);
 
     if (data && data[0] && data[0].ip_address) {
@@ -424,15 +510,30 @@ async function getAllPixelsFromCloud() {
       .like('ip_address', 'pt_px_cloud:%');
 
     if (Array.isArray(data) && data.length > 0) {
-      return data.map(row => {
+      const map = new Map();
+      data.forEach(row => {
         try {
           const raw = row.ip_address;
           const jsonStr = raw.substring(raw.indexOf(':', raw.indexOf(':') + 1) + 1);
-          return JSON.parse(jsonStr);
-        } catch (e) {
-          return null;
-        }
-      }).filter(Boolean);
+          const px = JSON.parse(jsonStr);
+          if (px) {
+            const k = px.pixelId || px.id;
+            if (k) {
+              const existing = map.get(k);
+              if (!existing) {
+                map.set(k, px);
+              } else {
+                const dateExisting = existing.updatedAt ? new Date(existing.updatedAt).getTime() : 0;
+                const datePx = px.updatedAt ? new Date(px.updatedAt).getTime() : 0;
+                if (datePx >= dateExisting) {
+                  map.set(k, px);
+                }
+              }
+            }
+          }
+        } catch (e) {}
+      });
+      return Array.from(map.values());
     }
   } catch (err) {
     console.warn('[CloudPixels] Erro ao buscar todos os pixels na nuvem:', err.message);
@@ -451,15 +552,25 @@ app.get('/api/pixel/config', async (req, res) => {
 
   let foundPixel = pixels.find(p => p.pixelId === id || p.internalPixelId === id || p.id === id);
 
-  // 1. Busca imediata no Cloud Storage Global (Sincronizado em tempo real entre todas as instâncias Serverless)
+  // 1. Busca prioritária na lista sincronizada de pixels na Nuvem Global
   if (id) {
+    try {
+      const uPixels = await getUserPixelsFromCloud('usr_1788826403159');
+      if (Array.isArray(uPixels)) {
+        const match = uPixels.find(p => p.pixelId === id || p.internalPixelId === id || p.id === id);
+        if (match) {
+          foundPixel = match;
+        }
+      }
+    } catch (eU) {}
+  }
+
+  // 2. Busca no Cloud Storage Global individual
+  if (!foundPixel && id) {
     try {
       const cloudPx = await getPixelFromCloud(id);
       if (cloudPx) {
-        // Se o pixel na nuvem tiver dados ou subpixels mais atualizados, assume a versão da nuvem
-        if (!foundPixel || (Array.isArray(cloudPx.metaPixels) && cloudPx.metaPixels.length >= (foundPixel.metaPixels?.length || 0))) {
-          foundPixel = { ...foundPixel, ...cloudPx };
-        }
+        foundPixel = { ...(foundPixel || {}), ...cloudPx };
       }
     } catch (eCloud) {}
   }
@@ -548,36 +659,45 @@ app.get('/api/pixel/config', async (req, res) => {
 
 app.get('/api/pixels', async (req, res) => {
   const userId = req.headers['x-user-id'] || req.query.userId || 'usr_1788826403159';
+
+  // 1. Fonte primária autoritativa: busca a lista exata do usuário salva no Cloud Storage
+  try {
+    const cloudUserPixels = await getUserPixelsFromCloud(userId);
+    if (Array.isArray(cloudUserPixels) && cloudUserPixels.length > 0) {
+      db.set(`pixels_${userId}`, cloudUserPixels);
+      if (isOwnerUserId(userId)) {
+        db.set('pixels', cloudUserPixels);
+      }
+      return res.json(cloudUserPixels);
+    }
+  } catch (eCloudUser) {}
+
+  // 2. Fallback: busca pixels individuais salvos na nuvem global
+  let cloudPixels = [];
+  try {
+    cloudPixels = await getAllPixelsFromCloud();
+  } catch (eAll) {}
+
+  // 3. Fallback: banco em memória (store.json)
   const userPixels = db.get(`pixels_${userId}`) || db.get('pixels') || [];
   let localPixels = userPixels.filter(p => !p.id?.startsWith('settings_') && !p.id?.startsWith('push_sub_') && !p.id?.startsWith('wh_tok_') && p.name !== 'UserSettings');
 
-  // Mescla com pixels salvos na nuvem global
-  try {
-    const cloudPixels = await getAllPixelsFromCloud();
-    if (Array.isArray(cloudPixels) && cloudPixels.length > 0) {
-      const map = new Map();
-      localPixels.forEach(p => map.set(p.pixelId || p.id, p));
-      
-      cloudPixels.forEach(cp => {
-        const k = cp.pixelId || cp.id;
-        if (k) {
-          const existing = map.get(k);
-          if (!existing) {
-            map.set(k, cp);
-          } else {
-            // Mescla preservando a versão mais rica de subpixels
-            const mergedMeta = (Array.isArray(cp.metaPixels) && cp.metaPixels.length > (existing.metaPixels?.length || 0))
-              ? cp.metaPixels
-              : (existing.metaPixels || cp.metaPixels || []);
-            map.set(k, { ...existing, ...cp, metaPixels: mergedMeta });
-          }
-        }
-      });
-      localPixels = Array.from(map.values());
+  const map = new Map();
+  // Os pixels da nuvem têm precedência total sobre o store.json estático
+  cloudPixels.forEach(cp => {
+    const k = cp.pixelId || cp.id;
+    if (k) map.set(k, cp);
+  });
+  // Completa com quaisquer pixels do db local que não estejam na nuvem
+  localPixels.forEach(p => {
+    const k = p.pixelId || p.id;
+    if (k && !map.has(k)) {
+      map.set(k, p);
     }
-  } catch (e) {}
+  });
 
-  return res.json(localPixels);
+  const finalPixels = Array.from(map.values());
+  return res.json(finalPixels);
 });
 
 app.post('/api/pixels', async (req, res) => {
@@ -591,12 +711,14 @@ app.post('/api/pixels', async (req, res) => {
       db.set('pixels', validPixels);
     }
 
-    // 1. Sincronização IMEDIATA na Nuvem Global (Garante funcionamento instantâneo em todas as instâncias da Vercel)
-    syncPixelsToCloud(validPixels, targetUserId).catch(err => {
-      console.warn('[CloudPixels] Falha assíncrona ao sincronizar:', err);
-    });
+    // 1. Sincronização OBRIGATÓRIA AWAIT na Nuvem Global (Garante funcionamento permanente no ambiente Serverless da Vercel)
+    try {
+      await syncPixelsToCloud(validPixels, targetUserId);
+    } catch (errSync) {
+      console.warn('[CloudPixels] Falha ao sincronizar na nuvem:', errSync);
+    }
 
-    // 2. Persiste no Supabase com isolamento por usuário
+    // 2. Persiste no Supabase secundário com isolamento por usuário
     try {
       const validIds = validPixels.map(px => px.pixelId || px.internalPixelId || px.id).filter(Boolean);
       if (validIds.length > 0) {
@@ -7498,7 +7620,7 @@ app.post('/api/auth/2fa/verify-login', async (req, res) => {
 });
 
 // 2. Login e Cadastro via Google
-app.post('/api/auth/google-login', async (req, res) => {
+app.post(['/api/auth/google', '/api/auth/google-login'], async (req, res) => {
   try {
     const { email, name } = req.body;
     const cleanEmail = (email || '').trim().toLowerCase();

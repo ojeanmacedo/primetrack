@@ -929,8 +929,8 @@ export default function Integrations() {
       }
       fetch('/api/pixels', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
-        body: JSON.stringify({ pixels: updated, userId: currentUser?.id })
+        headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || 'usr_1788826403159' },
+        body: JSON.stringify({ pixels: updated, userId: currentUser?.id || 'usr_1788826403159' })
       }).catch(() => {});
       setShowNewPixelModal(false);
       setNewPixelName('');
@@ -1139,8 +1139,8 @@ export default function Integrations() {
 
       fetch('/api/pixels', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
-        body: JSON.stringify({ pixels: updated, userId: currentUser?.id })
+        headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || 'usr_1788826403159' },
+        body: JSON.stringify({ pixels: updated, userId: currentUser?.id || 'usr_1788826403159' })
       }).catch(err => console.warn('Erro ao salvar pixel no backend:', err));
       
       setPixelToEdit(null);
@@ -1212,8 +1212,8 @@ export default function Integrations() {
     }
     fetch('/api/pixels', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
-      body: JSON.stringify({ pixels: updated, userId: currentUser?.id })
+      headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || 'usr_1788826403159' },
+      body: JSON.stringify({ pixels: updated, userId: currentUser?.id || 'usr_1788826403159' })
     }).catch(() => {});
   };
 
@@ -1242,8 +1242,8 @@ export default function Integrations() {
     try {
       await fetch('/api/pixels', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
-        body: JSON.stringify({ pixels: updated, userId: currentUser?.id })
+        headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || 'usr_1788826403159' },
+        body: JSON.stringify({ pixels: updated, userId: currentUser?.id || 'usr_1788826403159' })
       });
       setPixelSuccessMsg('Pixel excluído com sucesso!');
       setTimeout(() => setPixelSuccessMsg(null), 3000);
@@ -1589,18 +1589,26 @@ export default function Integrations() {
             } catch (e) {}
           }
 
+          // Mapa com indexação por todos os identificadores possíveis
           const localMap = new Map();
           if (Array.isArray(localPixels)) {
             localPixels.forEach(lp => {
-              const k = lp.pixelId || lp.id || lp.internalPixelId;
-              if (k) localMap.set(k, lp);
+              if (lp.pixelId) localMap.set(lp.pixelId, lp);
+              if (lp.id) localMap.set(lp.id, lp);
+              if (lp.internalPixelId) localMap.set(lp.internalPixelId, lp);
             });
           }
 
+          const getLocalMatch = (serverPx) => {
+            return (serverPx.pixelId && localMap.get(serverPx.pixelId)) ||
+                   (serverPx.id && localMap.get(serverPx.id)) ||
+                   (serverPx.internalPixelId && localMap.get(serverPx.internalPixelId)) ||
+                   null;
+          };
+
           // Mescla os pixels preservando quaisquer subpixels adicionados localmente
           const mergedPixels = cleanPixels.map(serverPx => {
-            const k = serverPx.pixelId || serverPx.id || serverPx.internalPixelId;
-            const localPx = localMap.get(k);
+            const localPx = getLocalMatch(serverPx);
             if (!localPx) return serverPx;
 
             // Une subpixels da Meta sem perder nenhum que foi cadastrado localmente
@@ -1653,10 +1661,20 @@ export default function Integrations() {
 
           // Se o usuário criou um pixel novo localmente que ainda não está no servidor
           if (Array.isArray(localPixels)) {
-            const serverKeys = new Set(cleanPixels.map(p => p.pixelId || p.id || p.internalPixelId));
+            const serverKeys = new Set();
+            cleanPixels.forEach(p => {
+              if (p.pixelId) serverKeys.add(p.pixelId);
+              if (p.id) serverKeys.add(p.id);
+              if (p.internalPixelId) serverKeys.add(p.internalPixelId);
+            });
             localPixels.forEach(lp => {
-              const k = lp.pixelId || lp.id || lp.internalPixelId;
-              if (k && !serverKeys.has(k) && !deletedIds.includes(k) && !deletedIds.includes(lp.id)) {
+              const isPresentOnServer = (lp.pixelId && serverKeys.has(lp.pixelId)) ||
+                                        (lp.id && serverKeys.has(lp.id)) ||
+                                        (lp.internalPixelId && serverKeys.has(lp.internalPixelId));
+              const isDeleted = (lp.pixelId && deletedIds.includes(lp.pixelId)) ||
+                                (lp.id && deletedIds.includes(lp.id)) ||
+                                (lp.internalPixelId && deletedIds.includes(lp.internalPixelId));
+              if (!isPresentOnServer && !isDeleted) {
                 mergedPixels.push(lp);
               }
             });
@@ -1664,10 +1682,10 @@ export default function Integrations() {
 
           setTrackingPixels(mergedPixels);
           if (typeof window !== 'undefined') {
-            localStorage.setItem('primetrack_pixels', JSON.stringify(mergedPixels));
-            localStorage.setItem(getScopedKey('primetrack_pixels'), JSON.stringify(mergedPixels));
+            safeStorageSet('primetrack_pixels', mergedPixels);
+            safeStorageSet(getScopedKey('primetrack_pixels'), mergedPixels);
             if (currentUser?.id) {
-              localStorage.setItem(`primetrack_pixels_${currentUser.id}`, JSON.stringify(mergedPixels));
+              safeStorageSet(`primetrack_pixels_${currentUser.id}`, mergedPixels);
             }
           }
 
@@ -1676,8 +1694,8 @@ export default function Integrations() {
           if (isDifferent) {
             fetch('/api/pixels', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
-              body: JSON.stringify({ pixels: mergedPixels, userId: currentUser?.id })
+              headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || 'usr_1788826403159' },
+              body: JSON.stringify({ pixels: mergedPixels, userId: currentUser?.id || 'usr_1788826403159' })
             }).catch(() => {});
           }
         }
