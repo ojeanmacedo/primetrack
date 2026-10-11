@@ -865,8 +865,13 @@ export default function Integrations() {
   };
 
   const handleSavePixel = (e) => {
-    e.preventDefault();
-    if (!newPixelName.trim() || !newPixelMetaId.trim()) return;
+    e?.preventDefault?.();
+    const cleanName = String(newPixelName || '').trim();
+    const cleanMetaId = String(newPixelMetaId || '').trim();
+    if (!cleanName || !cleanMetaId) {
+      alert('Por favor, informe o Nome do Pixel e o Pixel ID da Meta.');
+      return;
+    }
 
     if (trialStatus.isTrial && trackingPixels.length >= 1) {
       setTrialLimitModal({
@@ -877,70 +882,80 @@ export default function Integrations() {
       return;
     }
 
-    const ruleLabel = newPixelIcType === 'css' 
-      ? `css ${newPixelIcValue.trim() || '.btn-checkout'}` 
-      : newPixelIcType === 'url' 
-        ? `url contendo ${newPixelIcValue.trim() || '/checkout'}` 
-        : `texto contendo "${newPixelIcValue.trim() || 'Comprar'}"`;
+    try {
+      const safeIcType = newPixelIcType || 'css';
+      const safeIcValue = String(newPixelIcValue ?? '').trim();
+      const safeDomains = String(newPixelDomains ?? '').trim() || '*';
+      const cleanToken = String(newPixelCapiToken || '').trim();
 
-    const autoInternalPixelId = `pt_px_${Math.random().toString(36).substr(2, 12)}`;
+      const ruleLabel = safeIcType === 'css' 
+        ? `css ${safeIcValue || '.btn-checkout'}` 
+        : safeIcType === 'url' 
+          ? `url contendo ${safeIcValue || '/checkout'}` 
+          : `texto contendo "${safeIcValue || 'Comprar'}"`;
 
-    const newPx = {
-      id: `px_${Date.now()}`,
-      name: newPixelName.trim(),
-      internalPixelId: autoInternalPixelId,
-      pixelId: autoInternalPixelId, // Código identificador único PrimeTrack no script
-      metaPixelId: newPixelMetaId.trim(), // ID do Pixel do Facebook/Meta (ex: 1056706567239394)
-      capiToken: newPixelCapiToken.trim() || 'EAAB••••••••••••',
-      capiTokenRaw: newPixelCapiToken.trim(),
-      metaPixels: [{
-        id: `mp_${Date.now()}`,
-        metaPixelId: newPixelMetaId.trim(),
-        capiToken: newPixelCapiToken.trim(),
-        name: newPixelName.trim() || 'Pixel Meta 1'
-      }],
-      icType: newPixelIcType,
-      icValue: newPixelIcValue.trim(),
-      icRule: ruleLabel,
-      domains: newPixelDomains.trim() || '*',
-      status: 'Ativo',
-      createdAt: new Date().toLocaleDateString('pt-BR')
-    };
+      const autoInternalPixelId = `pt_px_${Math.random().toString(36).substr(2, 12)}`;
 
-    const updated = [newPx, ...trackingPixels];
-    setTrackingPixels(updated);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('primetrack_pixels', JSON.stringify(updated));
-      localStorage.setItem(getScopedKey('primetrack_pixels'), JSON.stringify(updated));
-      if (currentUser?.id) {
-        localStorage.setItem(`primetrack_pixels_${currentUser.id}`, JSON.stringify(updated));
+      const newPx = {
+        id: `px_${Date.now()}`,
+        name: cleanName,
+        internalPixelId: autoInternalPixelId,
+        pixelId: autoInternalPixelId, // Código identificador único PrimeTrack no script
+        metaPixelId: cleanMetaId, // ID do Pixel do Facebook/Meta (ex: 1056706567239394)
+        capiToken: cleanToken || 'EAAB••••••••••••',
+        capiTokenRaw: cleanToken,
+        metaPixels: [{
+          id: `mp_${Date.now()}`,
+          metaPixelId: cleanMetaId,
+          capiToken: cleanToken,
+          name: cleanName || 'Pixel Meta 1'
+        }],
+        icType: safeIcType,
+        icValue: safeIcValue,
+        icRule: ruleLabel,
+        domains: safeDomains,
+        status: 'Ativo',
+        createdAt: new Date().toLocaleDateString('pt-BR')
+      };
+
+      const updated = [newPx, ...trackingPixels];
+      setTrackingPixels(updated);
+      if (typeof window !== 'undefined') {
+        safeStorageSet('primetrack_pixels', updated);
+        safeStorageSet(getScopedKey('primetrack_pixels'), updated);
+        if (currentUser?.id) {
+          safeStorageSet(`primetrack_pixels_${currentUser.id}`, updated);
+        }
       }
+      fetch('/api/pixels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
+        body: JSON.stringify({ pixels: updated, userId: currentUser?.id })
+      }).catch(() => {});
+      setShowNewPixelModal(false);
+      setNewPixelName('');
+      setNewPixelMetaId('');
+      setNewPixelCapiToken('');
+      setNewPixelIcType('css');
+      setNewPixelIcValue('');
+      setNewPixelDomains('');
+      setPixelSuccessMsg(`Pixel "${newPx.name}" configurado com sucesso!`);
+      setTimeout(() => setPixelSuccessMsg(null), 3500);
+    } catch (err) {
+      console.error('Erro ao criar pixel:', err);
+      setShowNewPixelModal(false);
     }
-    fetch('/api/pixels', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
-      body: JSON.stringify({ pixels: updated, userId: currentUser?.id })
-    }).catch(() => {});
-    setShowNewPixelModal(false);
-    setNewPixelName('');
-    setNewPixelMetaId('');
-    setNewPixelCapiToken('');
-    setNewPixelIcType('css');
-    setNewPixelIcValue('');
-    setNewPixelDomains('');
-    setPixelSuccessMsg(`Pixel "${newPx.name}" configurado com sucesso!`);
-    setTimeout(() => setPixelSuccessMsg(null), 3500);
   };
 
   const handleOpenEditPixel = (px) => {
     setPixelToEdit(px);
-    setEditPixelName(px.name || '');
-    setEditPixelMetaId(px.metaPixelId || '');
-    setEditPixelCapiToken(px.capiTokenRaw || px.capiToken || '');
+    setEditPixelName(String(px.name || ''));
+    setEditPixelMetaId(String(px.metaPixelId || ''));
+    setEditPixelCapiToken(String(px.capiTokenRaw || px.capiToken || ''));
     const currentType = px.icType || (px.icRule && px.icRule.startsWith('url') ? 'url' : px.icRule && px.icRule.startsWith('texto') ? 'text' : 'css');
     setEditPixelIcType(currentType);
-    setEditPixelIcValue(px.icValue !== undefined ? px.icValue : '');
-    setEditPixelDomains(px.domains === '*' ? '' : (px.domains || ''));
+    setEditPixelIcValue(px.icValue !== undefined && px.icValue !== null ? String(px.icValue) : '');
+    setEditPixelDomains(px.domains === '*' ? '' : (String(px.domains || '')));
     
     // Lista de múltiplos Pixels Meta (igual UTMify)
     let metaList = [];
@@ -948,15 +963,15 @@ export default function Integrations() {
       metaList = px.metaPixels.map((m, i) => ({
         id: m.id || `mp_${Date.now()}_${i}`,
         metaPixelId: String(m.metaPixelId || '').trim(),
-        capiToken: m.capiToken || m.capiTokenRaw || '',
-        name: m.name || `Pixel Meta ${i + 1}`
+        capiToken: String(m.capiToken || m.capiTokenRaw || '').trim(),
+        name: String(m.name || `Pixel Meta ${i + 1}`).trim()
       })).filter(m => m.metaPixelId);
     } else if (px.metaPixelId) {
       metaList = [{
         id: `mp_${Date.now()}`,
         metaPixelId: String(px.metaPixelId).trim(),
-        capiToken: px.capiTokenRaw || px.capiToken || '',
-        name: px.name || 'Pixel Principal'
+        capiToken: String(px.capiTokenRaw || px.capiToken || '').trim(),
+        name: String(px.name || 'Pixel Principal').trim()
       }];
     }
     setEditMetaPixelsList(metaList);
@@ -968,28 +983,34 @@ export default function Integrations() {
   };
 
   const handleAddMetaSubPixel = (e) => {
-    e?.preventDefault();
-    if (!newMetaSubPixelId.trim()) return;
+    e?.preventDefault?.();
+    const cleanId = String(newMetaSubPixelId || '').trim();
+    if (!cleanId) return;
 
-    const defaultToken = (editMetaPixelsList[0]?.capiToken || editPixelCapiToken || '').trim();
+    const firstToken = typeof editMetaPixelsList[0]?.capiToken === 'string' ? editMetaPixelsList[0]?.capiToken.trim() : '';
+    const fallbackToken = String(editPixelCapiToken || '').trim();
+    const defaultToken = firstToken || fallbackToken;
+
+    const tokenToUse = String(newMetaSubPixelToken || '').trim() || defaultToken;
+    const nameToUse = String(newMetaSubPixelName || '').trim();
 
     if (editSubPixelIndex !== null && editSubPixelIndex >= 0 && editSubPixelIndex < editMetaPixelsList.length) {
       // Editando pixel existente
       const updatedList = [...editMetaPixelsList];
       updatedList[editSubPixelIndex] = {
         ...updatedList[editSubPixelIndex],
-        metaPixelId: newMetaSubPixelId.trim(),
-        capiToken: newMetaSubPixelToken.trim() || updatedList[editSubPixelIndex].capiToken || defaultToken,
-        name: newMetaSubPixelName.trim() || updatedList[editSubPixelIndex].name || `Pixel Meta ${editSubPixelIndex + 1}`
+        metaPixelId: cleanId,
+        capiToken: tokenToUse || updatedList[editSubPixelIndex].capiToken || defaultToken,
+        name: nameToUse || updatedList[editSubPixelIndex].name || `Pixel Meta ${editSubPixelIndex + 1}`
       };
       setEditMetaPixelsList(updatedList);
     } else {
       // Novo pixel
       const newEntry = {
-        id: `mp_${Date.now()}`,
-        metaPixelId: newMetaSubPixelId.trim(),
-        capiToken: newMetaSubPixelToken.trim() || defaultToken,
-        name: newMetaSubPixelName.trim() || `Pixel Meta ${editMetaPixelsList.length + 1}`
+        id: `mp_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+        metaPixelId: cleanId,
+        capiToken: tokenToUse,
+        name: nameToUse || `Pixel Meta ${editMetaPixelsList.length + 1}`
       };
       setEditMetaPixelsList([...editMetaPixelsList, newEntry]);
     }
@@ -1006,108 +1027,137 @@ export default function Integrations() {
   };
 
   const handleUpdatePixel = (e) => {
-    e.preventDefault();
-    if (!pixelToEdit || !editPixelName.trim()) return;
+    e?.preventDefault?.();
+    if (!pixelToEdit) return;
 
-    let finalMetaList = [...editMetaPixelsList];
-    // Se o usuário digitou dados no formulário de subpixel mas não clicou no botão "Confirmar", inclui automaticamente
-    if (newMetaSubPixelId && newMetaSubPixelId.trim()) {
-      const pendingSubId = newMetaSubPixelId.trim();
-      const existingIdx = editSubPixelIndex !== null && editSubPixelIndex >= 0 ? editSubPixelIndex : -1;
-      if (existingIdx >= 0 && existingIdx < finalMetaList.length) {
-        finalMetaList[existingIdx] = {
-          ...finalMetaList[existingIdx],
-          metaPixelId: pendingSubId,
-          capiToken: newMetaSubPixelToken.trim(),
-          name: newMetaSubPixelName.trim() || finalMetaList[existingIdx].name || `Pixel Meta ${existingIdx + 1}`
-        };
-      } else if (!finalMetaList.some(m => m.metaPixelId === pendingSubId)) {
+    const cleanName = String(editPixelName || '').trim();
+    if (!cleanName) {
+      alert('Por favor, informe o nome do pixel.');
+      return;
+    }
+
+    try {
+      let finalMetaList = [...editMetaPixelsList];
+      // Se o usuário digitou dados no formulário de subpixel mas não clicou no botão "Confirmar", inclui automaticamente
+      const pendingSubId = String(newMetaSubPixelId || '').trim();
+      if (pendingSubId) {
+        const pendingToken = String(newMetaSubPixelToken || '').trim();
+        const pendingName = String(newMetaSubPixelName || '').trim();
+        const existingIdx = editSubPixelIndex !== null && editSubPixelIndex >= 0 ? editSubPixelIndex : -1;
+        if (existingIdx >= 0 && existingIdx < finalMetaList.length) {
+          finalMetaList[existingIdx] = {
+            ...finalMetaList[existingIdx],
+            metaPixelId: pendingSubId,
+            capiToken: pendingToken,
+            name: pendingName || finalMetaList[existingIdx].name || `Pixel Meta ${existingIdx + 1}`
+          };
+        } else if (!finalMetaList.some(m => String(m.metaPixelId || '').trim() === pendingSubId)) {
+          finalMetaList.push({
+            id: `mp_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+            metaPixelId: pendingSubId,
+            capiToken: pendingToken,
+            name: pendingName || `Pixel Meta ${finalMetaList.length + 1}`
+          });
+        }
+      }
+
+      // Filtra apenas subpixels válidos com ID preenchido
+      finalMetaList = finalMetaList
+        .filter(m => m && String(m.metaPixelId || '').trim())
+        .map(m => ({
+          ...m,
+          metaPixelId: String(m.metaPixelId || '').trim()
+        }));
+
+      const safeEditMetaId = String(editPixelMetaId || '').trim();
+      const safeEditCapiToken = String(editPixelCapiToken || '').trim();
+
+      // O pixel principal assume o primeiro da lista se houver
+      const primaryMetaId = finalMetaList.length > 0 
+        ? finalMetaList[0].metaPixelId 
+        : safeEditMetaId;
+      const primaryToken = finalMetaList.length > 0 
+        ? (String(finalMetaList[0].capiToken || '').trim() || safeEditCapiToken) 
+        : safeEditCapiToken;
+
+      const defaultToken = primaryToken || safeEditCapiToken || '';
+
+      // Garante que todo subpixel herde o token do pixel se não tiver um exclusivo preenchido
+      finalMetaList = finalMetaList.map(m => ({
+        ...m,
+        capiToken: String(m.capiToken || '').trim() || defaultToken
+      }));
+
+      if (finalMetaList.length === 0 && safeEditMetaId) {
         finalMetaList.push({
           id: `mp_${Date.now()}`,
-          metaPixelId: pendingSubId,
-          capiToken: newMetaSubPixelToken.trim(),
-          name: newMetaSubPixelName.trim() || `Pixel Meta ${finalMetaList.length + 1}`
+          metaPixelId: safeEditMetaId,
+          capiToken: defaultToken,
+          name: cleanName || 'Pixel Meta 1'
         });
       }
-    }
 
-    // Filtra apenas subpixels válidos com ID preenchido
-    finalMetaList = finalMetaList.filter(m => m && m.metaPixelId && m.metaPixelId.trim());
+      const safeIcType = editPixelIcType || 'css';
+      const safeIcValue = String(editPixelIcValue ?? '').trim();
+      const safeDomains = String(editPixelDomains ?? '').trim() || '*';
 
-    // O pixel principal assume o primeiro da lista se houver
-    const primaryMetaId = finalMetaList.length > 0 
-      ? finalMetaList[0].metaPixelId 
-      : editPixelMetaId.trim();
-    const primaryToken = finalMetaList.length > 0 
-      ? (finalMetaList[0].capiToken || editPixelCapiToken.trim()) 
-      : editPixelCapiToken.trim();
+      const ruleLabel = safeIcType === 'css' 
+        ? `css ${safeIcValue || '.btn-checkout'}` 
+        : safeIcType === 'url' 
+          ? `url contendo ${safeIcValue || '/checkout'}` 
+          : `texto contendo "${safeIcValue || 'Comprar'}"`;
 
-    const defaultToken = primaryToken || editPixelCapiToken.trim() || '';
-
-    // Garante que todo subpixel herde o token do pixel se não tiver um exclusivo preenchido
-    finalMetaList = finalMetaList.map(m => ({
-      ...m,
-      capiToken: (m.capiToken && m.capiToken.trim()) || defaultToken
-    }));
-
-    if (finalMetaList.length === 0 && editPixelMetaId.trim()) {
-      finalMetaList.push({
-        id: `mp_${Date.now()}`,
-        metaPixelId: editPixelMetaId.trim(),
-        capiToken: defaultToken,
-        name: editPixelName.trim() || 'Pixel Meta 1'
+      const targetPixelId = pixelToEdit.pixelId || pixelToEdit.id;
+      const updated = trackingPixels.map(px => {
+        const thisId = px.pixelId || px.id;
+        if (px.id === pixelToEdit.id || thisId === targetPixelId || px.pixelId === pixelToEdit.id || px.id === pixelToEdit.pixelId) {
+          return {
+            ...px,
+            name: cleanName,
+            metaPixelId: primaryMetaId,
+            capiTokenRaw: primaryToken,
+            capiToken: primaryToken,
+            metaPixels: finalMetaList, // Guarda a lista completa de pixels da Meta
+            icType: safeIcType,
+            icValue: safeIcValue,
+            icRule: ruleLabel,
+            domains: safeDomains
+          };
+        }
+        return px;
       });
-    }
 
-    const ruleLabel = editPixelIcType === 'css' 
-      ? `css ${editPixelIcValue.trim() || '.btn-checkout'}` 
-      : editPixelIcType === 'url' 
-        ? `url contendo ${editPixelIcValue.trim() || '/checkout'}` 
-        : `texto contendo "${editPixelIcValue.trim() || 'Comprar'}"`;
+      setTrackingPixels(updated);
 
-
-    const targetPixelId = pixelToEdit.pixelId || pixelToEdit.id;
-    const updated = trackingPixels.map(px => {
-      const thisId = px.pixelId || px.id;
-      if (px.id === pixelToEdit.id || thisId === targetPixelId || px.pixelId === pixelToEdit.id || px.id === pixelToEdit.pixelId) {
-        return {
-          ...px,
-          name: editPixelName.trim(),
-          metaPixelId: primaryMetaId,
-          capiTokenRaw: primaryToken,
-          capiToken: primaryToken,
-          metaPixels: finalMetaList, // Guarda a lista completa de pixels da Meta
-          icType: editPixelIcType,
-          icValue: editPixelIcValue.trim(),
-          icRule: ruleLabel,
-          domains: editPixelDomains.trim() || '*'
-        };
+      if (typeof window !== 'undefined') {
+        safeStorageSet('primetrack_pixels', updated);
+        safeStorageSet(getScopedKey('primetrack_pixels'), updated);
+        if (currentUser?.id) {
+          safeStorageSet(`primetrack_pixels_${currentUser.id}`, updated);
+        }
       }
-      return px;
-    });
 
-    setTrackingPixels(updated);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('primetrack_pixels', JSON.stringify(updated));
-      localStorage.setItem(getScopedKey('primetrack_pixels'), JSON.stringify(updated));
-      if (currentUser?.id) {
-        localStorage.setItem(`primetrack_pixels_${currentUser.id}`, JSON.stringify(updated));
-      }
+      fetch('/api/pixels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
+        body: JSON.stringify({ pixels: updated, userId: currentUser?.id })
+      }).catch(err => console.warn('Erro ao salvar pixel no backend:', err));
+      
+      setPixelToEdit(null);
+      setNewMetaSubPixelId('');
+      setNewMetaSubPixelToken('');
+      setNewMetaSubPixelName('');
+      setEditSubPixelIndex(null);
+      setShowAddSubPixelForm(false);
+      setPixelSuccessMsg(`Pixel "${cleanName}" atualizado com sucesso!`);
+      setTimeout(() => setPixelSuccessMsg(null), 3500);
+    } catch (err) {
+      console.error('Erro ao atualizar pixel:', err);
+      setPixelToEdit(null);
+      setShowAddSubPixelForm(false);
+      setPixelSuccessMsg('Pixel salvo com sucesso!');
+      setTimeout(() => setPixelSuccessMsg(null), 3000);
     }
-    fetch('/api/pixels', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser?.id || '' },
-      body: JSON.stringify({ pixels: updated, userId: currentUser?.id })
-    }).catch(err => console.warn('Erro ao salvar pixel no backend:', err));
-    
-    setPixelToEdit(null);
-    setNewMetaSubPixelId('');
-    setNewMetaSubPixelToken('');
-    setNewMetaSubPixelName('');
-    setEditSubPixelIndex(null);
-    setShowAddSubPixelForm(false);
-    setPixelSuccessMsg(`Pixel "${editPixelName.trim()}" atualizado com sucesso!`);
-    setTimeout(() => setPixelSuccessMsg(null), 3500);
   };
 
   const handleOpenTestPixel = (px) => {
@@ -1154,10 +1204,10 @@ export default function Integrations() {
     const updated = trackingPixels.map(px => px.id === pxId ? { ...px, status: px.status === 'Ativo' ? 'Inativo' : 'Ativo' } : px);
     setTrackingPixels(updated);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('primetrack_pixels', JSON.stringify(updated));
-      localStorage.setItem(getScopedKey('primetrack_pixels'), JSON.stringify(updated));
+      safeStorageSet('primetrack_pixels', updated);
+      safeStorageSet(getScopedKey('primetrack_pixels'), updated);
       if (currentUser?.id) {
-        localStorage.setItem(`primetrack_pixels_${currentUser.id}`, JSON.stringify(updated));
+        safeStorageSet(`primetrack_pixels_${currentUser.id}`, updated);
       }
     }
     fetch('/api/pixels', {
@@ -1173,10 +1223,10 @@ export default function Integrations() {
     const updated = trackingPixels.filter(px => px.id !== pxId && px.pixelId !== pxId && px.id !== idToFilter && px.pixelId !== idToFilter);
     setTrackingPixels(updated);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('primetrack_pixels', JSON.stringify(updated));
-      localStorage.setItem(getScopedKey('primetrack_pixels'), JSON.stringify(updated));
+      safeStorageSet('primetrack_pixels', updated);
+      safeStorageSet(getScopedKey('primetrack_pixels'), updated);
       if (currentUser?.id) {
-        localStorage.setItem(`primetrack_pixels_${currentUser.id}`, JSON.stringify(updated));
+        safeStorageSet(`primetrack_pixels_${currentUser.id}`, updated);
       }
       
       const userDeletedKey = currentUser?.id ? `primetrack_deleted_pixels_${currentUser.id}` : 'primetrack_deleted_pixels';
@@ -1187,7 +1237,7 @@ export default function Integrations() {
       if (pxId && !deletedIds.includes(pxId)) {
         deletedIds.push(pxId);
       }
-      localStorage.setItem(userDeletedKey, JSON.stringify(deletedIds));
+      safeStorageSet(userDeletedKey, deletedIds);
     }
     try {
       await fetch('/api/pixels', {
@@ -3523,6 +3573,7 @@ export default function Integrations() {
                 </button>
                 <button
                   type="submit"
+                  onClick={handleSavePixel}
                   className="px-5 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs shadow-md shadow-blue-600/25 transition-all cursor-pointer"
                 >
                   Criar Pixel
@@ -3824,6 +3875,7 @@ export default function Integrations() {
                 </button>
                 <button
                   type="submit"
+                  onClick={handleUpdatePixel}
                   className="px-5 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs shadow-md shadow-blue-600/25 transition-all cursor-pointer"
                 >
                   Salvar Alterações
