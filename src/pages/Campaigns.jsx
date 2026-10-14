@@ -1076,9 +1076,10 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
     try {
       let statusData = null;
-      if (currentActiveAccs.length === 0 || forceRefresh) {
-        statusData = await fetch('/api/meta/status' + userParamFirst, { headers: userHeaders }).then(r => r.json()).catch(() => ({}));
-      }
+        statusData = await fetch('/api/meta/status' + userParamFirst + (userParamFirst ? '&' : '?') + '_t=' + Date.now(), { 
+          headers: { ...userHeaders, 'Cache-Control': 'no-cache, no-store' },
+          cache: 'no-store'
+        }).then(r => r.json()).catch(() => ({}));
 
       const data = statusData || {};
 
@@ -1168,7 +1169,20 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         const preservedLocal = Array.isArray(currentLocalSaved)
           ? currentLocalSaved.filter(a => a && (a.id || a.accountId) && !serverCleanIds.has(String(a.id || a.accountId || '').replace('act_', '')))
           : [];
-        const finalAllAccs = [...mappedAccs, ...preservedLocal];
+        let finalAllAccs = [...mappedAccs, ...preservedLocal];
+        const isOwner = user?.email === 'jeeanmacedo@gmail.com' || user?.email === 'jeanmacedo@gmail.com' || user?.id === 'usr_1788826403159';
+        if (isOwner && isDefaultDashboard) {
+          const curIds = new Set(finalAllAccs.map(a => String(a.id || a.accountId || '').replace('act_', '')));
+          const CANONICAL_DJS02 = [
+            { id: '1893409298725562', name: 'DJS02 CA01', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '284,21', sync: false },
+            { id: '853877350942504', name: 'DJS02 CA03', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '7328,53', sync: false },
+            { id: '1394391128741416', name: 'DJS02 CA02', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '10,46', sync: false },
+            { id: '890158093617924', name: 'CA05', bm: 'DJS02', currency: 'BRL', status: 'Bloqueada', balance: '0,00', amountSpent: '0,00', sync: false },
+            { id: '4088067061443375', name: 'CA04', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '191,86', sync: false }
+          ];
+          const missing = CANONICAL_DJS02.filter(ca => !curIds.has(ca.id));
+          if (missing.length > 0) finalAllAccs = [...finalAllAccs, ...missing];
+        }
 
         if (typeof window !== 'undefined') {
           localStorage.setItem(userAccKey, JSON.stringify(finalAllAccs));

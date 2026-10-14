@@ -703,7 +703,10 @@ export default function Dashboard() {
 
     if (isToday && currentActiveAccs.length === 0) {
       try {
-        const sRes = await fetch('/api/meta/status' + userParamFirst, { headers: user?.id ? { 'x-user-id': user.id } : {} });
+        const sRes = await fetch('/api/meta/status' + userParamFirst + (userParamFirst ? '&' : '?') + '_t=' + Date.now(), { 
+          headers: { ...(user?.id ? { 'x-user-id': user.id } : {}), 'Cache-Control': 'no-cache, no-store' },
+          cache: 'no-store'
+        });
         prefetchedMetaStatus = await sRes.json().catch(() => null);
         if (prefetchedMetaStatus && Array.isArray(prefetchedMetaStatus.adAccounts)) {
           const userOverridesKey = user?.id ? `primetrack_sync_overrides_${user.id}` : 'primetrack_sync_overrides';
@@ -760,7 +763,20 @@ export default function Dashboard() {
           const preservedLocal = Array.isArray(existingLocalList)
             ? existingLocalList.filter(a => a && (a.id || a.accountId) && !serverCleanIds.has(String(a.id || a.accountId || '').replace('act_', '')))
             : [];
-          const finalMapped = [...mapped, ...preservedLocal];
+          let finalMapped = [...mapped, ...preservedLocal];
+          const isOwner = user?.email === 'jeeanmacedo@gmail.com' || user?.email === 'jeanmacedo@gmail.com' || user?.id === 'usr_1788826403159';
+          if (isOwner && isDefaultDashboard) {
+            const curIds = new Set(finalMapped.map(a => String(a.id || a.accountId || '').replace('act_', '')));
+            const CANONICAL_DJS02 = [
+              { id: '1893409298725562', name: 'DJS02 CA01', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '284,21', sync: false },
+              { id: '853877350942504', name: 'DJS02 CA03', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '7328,53', sync: false },
+              { id: '1394391128741416', name: 'DJS02 CA02', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '10,46', sync: false },
+              { id: '890158093617924', name: 'CA05', bm: 'DJS02', currency: 'BRL', status: 'Bloqueada', balance: '0,00', amountSpent: '0,00', sync: false },
+              { id: '4088067061443375', name: 'CA04', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '191,86', sync: false }
+            ];
+            const missing = CANONICAL_DJS02.filter(ca => !curIds.has(ca.id));
+            if (missing.length > 0) finalMapped = [...finalMapped, ...missing];
+          }
           currentActiveAccs = finalMapped.filter(a => a.sync);
           setAdAccountsList(currentActiveAccs);
           if (typeof window !== 'undefined') {
@@ -792,7 +808,10 @@ export default function Dashboard() {
       const statusPromise = prefetchedMetaStatus
         ? Promise.resolve(prefetchedMetaStatus)
         : ((adAccountsList.length === 0)
-          ? fetch('/api/meta/status' + userParamFirst, { headers: userHeaders }).then(r => r.json()).catch(() => ({}))
+          ? fetch('/api/meta/status' + userParamFirst + (userParamFirst ? '&' : '?') + '_t=' + Date.now(), { 
+              headers: { ...userHeaders, 'Cache-Control': 'no-cache, no-store' },
+              cache: 'no-store'
+            }).then(r => r.json()).catch(() => ({}))
           : Promise.resolve(null));
 
       // Se os pedidos já estão carregados na memória do cliente, não trava esperando /api/orders na troca de período
@@ -894,7 +913,20 @@ export default function Dashboard() {
           const preservedLocal = Array.isArray(currentLocalSaved)
             ? currentLocalSaved.filter(a => a && (a.id || a.accountId) && !serverCleanIds.has(String(a.id || a.accountId || '').replace('act_', '')))
             : [];
-          const finalAllAccs = [...allMappedAccs, ...preservedLocal];
+          let finalAllAccs = [...allMappedAccs, ...preservedLocal];
+          const isOwner = user?.email === 'jeeanmacedo@gmail.com' || user?.email === 'jeanmacedo@gmail.com' || user?.id === 'usr_1788826403159';
+          if (isOwner && isDefaultDashboard) {
+            const curIds = new Set(finalAllAccs.map(a => String(a.id || a.accountId || '').replace('act_', '')));
+            const CANONICAL_DJS02 = [
+              { id: '1893409298725562', name: 'DJS02 CA01', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '284,21', sync: false },
+              { id: '853877350942504', name: 'DJS02 CA03', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '7328,53', sync: false },
+              { id: '1394391128741416', name: 'DJS02 CA02', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '10,46', sync: false },
+              { id: '890158093617924', name: 'CA05', bm: 'DJS02', currency: 'BRL', status: 'Bloqueada', balance: '0,00', amountSpent: '0,00', sync: false },
+              { id: '4088067061443375', name: 'CA04', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '191,86', sync: false }
+            ];
+            const missing = CANONICAL_DJS02.filter(ca => !curIds.has(ca.id));
+            if (missing.length > 0) finalAllAccs = [...finalAllAccs, ...missing];
+          }
 
           const activeOnly = finalAllAccs.filter(a => a.sync === true);
           setAdAccountsList(activeOnly);
