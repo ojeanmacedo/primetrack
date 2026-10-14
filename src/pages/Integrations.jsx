@@ -1454,7 +1454,7 @@ export default function Integrations() {
           } catch (e) {}
 
           const mapped = data.connections.map(c => ({
-            id: c.id,
+            id: String(c.profileId || c.id || '').split('___')[0],
             name: c.name,
             initial: c.name ? c.name.charAt(0).toUpperCase() : 'M',
             accountsCount: Math.max(c.accountsCount || 0, data.adAccounts ? data.adAccounts.length : 0, currentSavedCount),
@@ -1566,17 +1566,19 @@ export default function Integrations() {
             localStorage.setItem(userAccKey, JSON.stringify(combinedAccs));
             localStorage.setItem(getScopedKey('primetrack_ad_accounts'), JSON.stringify(combinedAccs));
 
-            // Sincroniza badge e notifica backend caso haja novas contas no localStorage
+            // Sincroniza badge de forma garantida
+            setConnectedProfiles(prev => {
+              const updated = (prev || []).map(p => ({
+                ...p,
+                accountsCount: Math.max(p.accountsCount || 0, combinedAccs.length)
+              }));
+              localStorage.setItem('primetrack_connected_profiles', JSON.stringify(updated));
+              localStorage.setItem(getScopedKey('primetrack_connected_profiles'), JSON.stringify(updated));
+              return updated;
+            });
+
+            // Notifica backend caso haja novas contas no localStorage
             if (combinedAccs.length > (data.adAccounts ? data.adAccounts.length : 0)) {
-              setConnectedProfiles(prev => {
-                const updated = (prev || []).map(p => ({
-                  ...p,
-                  accountsCount: Math.max(p.accountsCount || 0, combinedAccs.length)
-                }));
-                localStorage.setItem('primetrack_connected_profiles', JSON.stringify(updated));
-                localStorage.setItem(getScopedKey('primetrack_connected_profiles'), JSON.stringify(updated));
-                return updated;
-              });
 
               fetch('/api/meta/save-accounts', {
                 method: 'POST',
@@ -1930,7 +1932,7 @@ export default function Integrations() {
                             )}
                           </div>
                           <div className="text-[11px] font-mono text-zinc-400 mt-0.5">
-                            ID: {prof.id} · {prof.accountsCount} conta(s) de anúncio
+                            ID: {String(prof.profileId || prof.id || '').split('___')[0]} · {Math.max(prof.accountsCount || 0, adAccounts.length)} conta(s) de anúncio
                           </div>
                           {isMuriloBackup ? (
                             <div className="text-[10px] text-zinc-500 mt-1 flex items-center gap-1">

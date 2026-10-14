@@ -550,24 +550,24 @@ export async function syncAdAccountsToCloud(accounts, targetUserId = 'usr_178882
   try {
     const cloud = getMonsterPayClient();
     const effectiveUserId = targetUserId || 'usr_1788826403159';
+    const batchId = Date.now();
     const fullJson = JSON.stringify(accounts);
-    const pieces = chunkString(fullJson, 1500);
+    const pieces = chunkString(fullJson, 1400);
 
-    // Deleta chunks anteriores do usuário
-    await cloud.from('pix_rate_limits').delete().like('ip_address', `pt_chk:uacc:${effectiveUserId}:%`);
-    
     const chunkRows = pieces.map((piece, idx) => ({
-      ip_address: `pt_chk:uacc:${effectiveUserId}:${idx}:${pieces.length}:${piece}`
+      ip_address: `pt_chk:uacc:${effectiveUserId}:${batchId}:${idx}:${pieces.length}:${piece}`
     }));
     await cloud.from('pix_rate_limits').insert(chunkRows);
 
     if (isOwnerUserId(effectiveUserId)) {
-      await cloud.from('pix_rate_limits').delete().like('ip_address', 'pt_chk:uacc:default:%');
       const defaultRows = pieces.map((piece, idx) => ({
-        ip_address: `pt_chk:uacc:default:${idx}:${pieces.length}:${piece}`
+        ip_address: `pt_chk:uacc:default:${batchId}:${idx}:${pieces.length}:${piece}`
       }));
       await cloud.from('pix_rate_limits').insert(defaultRows);
     }
+
+    // Limpa batches anteriores em segundo plano
+    cloud.from('pix_rate_limits').delete().like('ip_address', `pt_chk:uacc:${effectiveUserId}:%`).neq('ip_address', `pt_chk:uacc:${effectiveUserId}:${batchId}:%`).then(() => {}).catch(() => {});
   } catch (err) {
     console.warn('[CloudAdAccounts] Erro ao sincronizar contas na nuvem:', err.message);
   }
@@ -592,19 +592,35 @@ export async function getAdAccountsFromCloud(targetUserId = 'usr_1788826403159')
     }
 
     if (Array.isArray(data) && data.length > 0) {
-      const parsedChunks = data.map(r => {
+      const batches = new Map();
+      data.forEach(r => {
         const raw = r.ip_address;
         const parts = raw.split(':');
-        const idx = parseInt(parts[3], 10);
-        const prefix = parts.slice(0, 5).join(':') + ':';
+        const hasBatchId = parts.length >= 7;
+        const bId = hasBatchId ? parseInt(parts[3], 10) : 0;
+        const idx = parseInt(hasBatchId ? parts[4] : parts[3], 10);
+        const total = parseInt(hasBatchId ? parts[5] : parts[4], 10);
+        const prefix = parts.slice(0, hasBatchId ? 6 : 5).join(':') + ':';
         const piece = raw.substring(prefix.length);
-        return { idx, piece };
-      }).filter(c => !isNaN(c.idx)).sort((a, b) => a.idx - b.idx);
+        if (!isNaN(idx)) {
+          if (!batches.has(bId)) batches.set(bId, new Map());
+          batches.get(bId).set(idx, { total, piece });
+        }
+      });
 
-      const reassembled = parsedChunks.map(c => c.piece).join('');
-      const list = JSON.parse(reassembled);
-      if (Array.isArray(list)) {
-        return list;
+      if (batches.size > 0) {
+        const sortedBatches = Array.from(batches.keys()).sort((a, b) => b - a);
+        for (const bId of sortedBatches) {
+          const chunkMap = batches.get(bId);
+          const entries = Array.from(chunkMap.entries()).sort((a, b) => a[0] - b[0]);
+          const reassembled = entries.map(e => e[1].piece).join('');
+          try {
+            const list = JSON.parse(reassembled);
+            if (Array.isArray(list) && list.length > 0) {
+              return list;
+            }
+          } catch (e) {}
+        }
       }
     }
   } catch (err) {
@@ -621,23 +637,23 @@ export async function syncConnectionsToCloud(connections, targetUserId = 'usr_17
   try {
     const cloud = getMonsterPayClient();
     const effectiveUserId = targetUserId || 'usr_1788826403159';
+    const batchId = Date.now();
     const fullJson = JSON.stringify(connections);
-    const pieces = chunkString(fullJson, 1500);
+    const pieces = chunkString(fullJson, 1400);
 
-    await cloud.from('pix_rate_limits').delete().like('ip_address', `pt_chk:uconn:${effectiveUserId}:%`);
-    
     const chunkRows = pieces.map((piece, idx) => ({
-      ip_address: `pt_chk:uconn:${effectiveUserId}:${idx}:${pieces.length}:${piece}`
+      ip_address: `pt_chk:uconn:${effectiveUserId}:${batchId}:${idx}:${pieces.length}:${piece}`
     }));
     await cloud.from('pix_rate_limits').insert(chunkRows);
 
     if (isOwnerUserId(effectiveUserId)) {
-      await cloud.from('pix_rate_limits').delete().like('ip_address', 'pt_chk:uconn:default:%');
       const defaultRows = pieces.map((piece, idx) => ({
-        ip_address: `pt_chk:uconn:default:${idx}:${pieces.length}:${piece}`
+        ip_address: `pt_chk:uconn:default:${batchId}:${idx}:${pieces.length}:${piece}`
       }));
       await cloud.from('pix_rate_limits').insert(defaultRows);
     }
+
+    cloud.from('pix_rate_limits').delete().like('ip_address', `pt_chk:uconn:${effectiveUserId}:%`).neq('ip_address', `pt_chk:uconn:${effectiveUserId}:${batchId}:%`).then(() => {}).catch(() => {});
   } catch (err) {
     console.warn('[CloudConnections] Erro ao sincronizar conexões na nuvem:', err.message);
   }
@@ -662,19 +678,35 @@ export async function getConnectionsFromCloud(targetUserId = 'usr_1788826403159'
     }
 
     if (Array.isArray(data) && data.length > 0) {
-      const parsedChunks = data.map(r => {
+      const batches = new Map();
+      data.forEach(r => {
         const raw = r.ip_address;
         const parts = raw.split(':');
-        const idx = parseInt(parts[3], 10);
-        const prefix = parts.slice(0, 5).join(':') + ':';
+        const hasBatchId = parts.length >= 7;
+        const bId = hasBatchId ? parseInt(parts[3], 10) : 0;
+        const idx = parseInt(hasBatchId ? parts[4] : parts[3], 10);
+        const total = parseInt(hasBatchId ? parts[5] : parts[4], 10);
+        const prefix = parts.slice(0, hasBatchId ? 6 : 5).join(':') + ':';
         const piece = raw.substring(prefix.length);
-        return { idx, piece };
-      }).filter(c => !isNaN(c.idx)).sort((a, b) => a.idx - b.idx);
+        if (!isNaN(idx)) {
+          if (!batches.has(bId)) batches.set(bId, new Map());
+          batches.get(bId).set(idx, { total, piece });
+        }
+      });
 
-      const reassembled = parsedChunks.map(c => c.piece).join('');
-      const list = JSON.parse(reassembled);
-      if (Array.isArray(list)) {
-        return list;
+      if (batches.size > 0) {
+        const sortedBatches = Array.from(batches.keys()).sort((a, b) => b - a);
+        for (const bId of sortedBatches) {
+          const chunkMap = batches.get(bId);
+          const entries = Array.from(chunkMap.entries()).sort((a, b) => a[0] - b[0]);
+          const reassembled = entries.map(e => e[1].piece).join('');
+          try {
+            const list = JSON.parse(reassembled);
+            if (Array.isArray(list) && list.length > 0) {
+              return list;
+            }
+          } catch (e) {}
+        }
       }
     }
   } catch (err) {
