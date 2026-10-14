@@ -868,29 +868,41 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     const saved = typeof window !== 'undefined' 
       ? (localStorage.getItem(userAccKey) || localStorage.getItem('primetrack_ad_accounts'))
       : null;
+    let list = [];
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          const userOverridesKey = userId ? `primetrack_sync_overrides_${userId}` : 'primetrack_sync_overrides';
-          let localOverrides = {};
-          if (typeof window !== 'undefined') {
-            try {
-              localOverrides = JSON.parse(localStorage.getItem(userOverridesKey) || localStorage.getItem('primetrack_sync_overrides') || '{}');
-            } catch (e) {}
-          }
-          return parsed.filter(a => {
-            const isBlocked = a.status === 'Bloqueada' || a.status === 'DISABLED';
-            if (isBlocked) return false;
-            const cleanKey = String(a.id || '').replace('act_', '');
-            if (localOverrides[cleanKey] !== undefined) return Boolean(localOverrides[cleanKey]);
-            if (localOverrides[`act_${cleanKey}`] !== undefined) return Boolean(localOverrides[`act_${cleanKey}`]);
-            return a.sync === true;
-          });
-        }
+        if (Array.isArray(parsed)) list = parsed;
       } catch (e) {}
     }
-    return [];
+    const isOwner = user?.email === 'jeeanmacedo@gmail.com' || user?.email === 'jeanmacedo@gmail.com' || user?.id === 'usr_1788826403159';
+    if (isOwner) {
+      const existingIds = new Set(list.map(a => String(a.id || a.accountId || '').replace('act_', '')));
+      const CANONICAL_DJS02 = [
+        { id: '1893409298725562', name: 'DJS02 CA01', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '284,21', sync: true },
+        { id: '853877350942504', name: 'DJS02 CA03', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '7328,53', sync: false },
+        { id: '1394391128741416', name: 'DJS02 CA02', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '10,46', sync: true },
+        { id: '890158093617924', name: 'CA05', bm: 'DJS02', currency: 'BRL', status: 'Bloqueada', balance: '0,00', amountSpent: '0,00', sync: false },
+        { id: '4088067061443375', name: 'CA04', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '191,86', sync: false }
+      ];
+      const missing = CANONICAL_DJS02.filter(ca => !existingIds.has(ca.id));
+      if (missing.length > 0) list = [...list, ...missing];
+    }
+    const userOverridesKey = userId ? `primetrack_sync_overrides_${userId}` : 'primetrack_sync_overrides';
+    let localOverrides = {};
+    if (typeof window !== 'undefined') {
+      try {
+        localOverrides = JSON.parse(localStorage.getItem(userOverridesKey) || localStorage.getItem('primetrack_sync_overrides') || '{}');
+      } catch (e) {}
+    }
+    return list.filter(a => {
+      const isBlocked = a.status === 'Bloqueada' || a.status === 'DISABLED';
+      if (isBlocked) return false;
+      const cleanKey = String(a.id || '').replace('act_', '');
+      if (localOverrides[cleanKey] !== undefined) return Boolean(localOverrides[cleanKey]);
+      if (localOverrides[`act_${cleanKey}`] !== undefined) return Boolean(localOverrides[`act_${cleanKey}`]);
+      return a.sync === true;
+    });
   });
 
   const [isClientMode, setIsClientMode] = useState(clientMode === 'clean');
@@ -999,8 +1011,22 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     let currentActiveAccs = [];
     if (saved) {
       try {
-        const parsed = JSON.parse(saved);
+        let parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
+          const isOwner = user?.email === 'jeeanmacedo@gmail.com' || user?.email === 'jeanmacedo@gmail.com' || user?.id === 'usr_1788826403159';
+          if (isOwner) {
+            const existingIds = new Set(parsed.map(a => String(a.id || a.accountId || '').replace('act_', '')));
+            const CANONICAL_DJS02 = [
+              { id: '1893409298725562', name: 'DJS02 CA01', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '284,21', sync: true },
+              { id: '853877350942504', name: 'DJS02 CA03', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '7328,53', sync: false },
+              { id: '1394391128741416', name: 'DJS02 CA02', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '10,46', sync: true },
+              { id: '890158093617924', name: 'CA05', bm: 'DJS02', currency: 'BRL', status: 'Bloqueada', balance: '0,00', amountSpent: '0,00', sync: false },
+              { id: '4088067061443375', name: 'CA04', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '191,86', sync: false }
+            ];
+            const missing = CANONICAL_DJS02.filter(ca => !existingIds.has(ca.id));
+            if (missing.length > 0) parsed = [...parsed, ...missing];
+          }
+
           const userOverridesKey = user?.id ? `primetrack_sync_overrides_${user.id}` : 'primetrack_sync_overrides';
           let localOverrides = {};
           if (typeof window !== 'undefined') {
@@ -1171,7 +1197,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           : [];
         let finalAllAccs = [...mappedAccs, ...preservedLocal];
         const isOwner = user?.email === 'jeeanmacedo@gmail.com' || user?.email === 'jeanmacedo@gmail.com' || user?.id === 'usr_1788826403159';
-        if (isOwner && isDefaultDashboard) {
+        if (isOwner) {
           const curIds = new Set(finalAllAccs.map(a => String(a.id || a.accountId || '').replace('act_', '')));
           const CANONICAL_DJS02 = [
             { id: '1893409298725562', name: 'DJS02 CA01', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '284,21', sync: true },

@@ -516,20 +516,34 @@ export default function Dashboard() {
       try {
         overrides = JSON.parse(localStorage.getItem(userOverridesKey) || localStorage.getItem('primetrack_sync_overrides') || '{}');
       } catch (e) {}
-      const saved = localStorage.getItem(userAccKey) || localStorage.getItem('primetrack_ad_accounts');
+      let list = [];
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) {
-            return parsed.map(a => {
-              const cleanId = String(a.id || a.accountId || '').replace('act_', '');
-              let isSync = a.sync === true;
-              if (overrides[cleanId] !== undefined) isSync = Boolean(overrides[cleanId]);
-              else if (overrides[`act_${cleanId}`] !== undefined) isSync = Boolean(overrides[`act_${cleanId}`]);
-              return { ...a, sync: isSync };
-            }).filter(a => a.sync === true && a.status !== 'Bloqueada' && a.status !== 'DISABLED');
-          }
+          if (Array.isArray(parsed)) list = parsed;
         } catch (e) {}
+      }
+      const isOwner = user?.email === 'jeeanmacedo@gmail.com' || user?.email === 'jeanmacedo@gmail.com' || user?.id === 'usr_1788826403159';
+      if (isOwner) {
+        const existingIds = new Set(list.map(a => String(a.id || a.accountId || '').replace('act_', '')));
+        const CANONICAL_DJS02 = [
+          { id: '1893409298725562', name: 'DJS02 CA01', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '284,21', sync: true },
+          { id: '853877350942504', name: 'DJS02 CA03', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '7328,53', sync: false },
+          { id: '1394391128741416', name: 'DJS02 CA02', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '10,46', sync: true },
+          { id: '890158093617924', name: 'CA05', bm: 'DJS02', currency: 'BRL', status: 'Bloqueada', balance: '0,00', amountSpent: '0,00', sync: false },
+          { id: '4088067061443375', name: 'CA04', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '191,86', sync: false }
+        ];
+        const missing = CANONICAL_DJS02.filter(ca => !existingIds.has(ca.id));
+        if (missing.length > 0) list = [...list, ...missing];
+      }
+      if (list.length > 0) {
+        return list.map(a => {
+          const cleanId = String(a.id || a.accountId || '').replace('act_', '');
+          let isSync = a.sync === true;
+          if (overrides[cleanId] !== undefined) isSync = Boolean(overrides[cleanId]);
+          else if (overrides[`act_${cleanId}`] !== undefined) isSync = Boolean(overrides[`act_${cleanId}`]);
+          return { ...a, sync: isSync };
+        }).filter(a => a.sync === true && a.status !== 'Bloqueada' && a.status !== 'DISABLED');
       }
     }
     return [];
@@ -765,6 +779,7 @@ export default function Dashboard() {
             : [];
           let finalMapped = [...mapped, ...preservedLocal];
           const isOwner = user?.email === 'jeeanmacedo@gmail.com' || user?.email === 'jeanmacedo@gmail.com' || user?.id === 'usr_1788826403159';
+          const isDefaultDashboard = !activeDashboard || activeDashboard.isDefault === true || activeDashboard.id === 'principal';
           if (isOwner && isDefaultDashboard) {
             const curIds = new Set(finalMapped.map(a => String(a.id || a.accountId || '').replace('act_', '')));
             const CANONICAL_DJS02 = [
@@ -928,6 +943,7 @@ export default function Dashboard() {
             : [];
           let finalAllAccs = [...allMappedAccs, ...preservedLocal];
           const isOwner = user?.email === 'jeeanmacedo@gmail.com' || user?.email === 'jeanmacedo@gmail.com' || user?.id === 'usr_1788826403159';
+          const isDefaultDashboard = !activeDashboard || activeDashboard.isDefault === true || activeDashboard.id === 'principal';
           if (isOwner && isDefaultDashboard) {
             const curIds = new Set(finalAllAccs.map(a => String(a.id || a.accountId || '').replace('act_', '')));
             const CANONICAL_DJS02 = [
