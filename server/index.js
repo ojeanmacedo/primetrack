@@ -4281,8 +4281,11 @@ app.get('/api/campaigns', async (req, res) => {
 
   const isCachedTodayInvalid = isToday && cached?.date && cached.date !== todayBrazil;
 
-  // Retorna cache imediatamente se disponível
-  if (cached && !isCachedTodayInvalid && refresh !== 'true' && Array.isArray(cached.campaigns)) {
+  const cachedAccounts = new Set((cached?.campaigns || []).map(c => String(c.adAccountId || c.accountId || '').replace('act_', '')));
+  const isCacheMissingActive = userActiveIds.size > 0 && Array.from(userActiveIds).some(id => !cachedAccounts.has(id));
+
+  // Retorna cache imediatamente se disponível e se todas as contas ativas estão representadas
+  if (cached && !isCachedTodayInvalid && refresh !== 'true' && !isCacheMissingActive && Array.isArray(cached.campaigns)) {
     const age = now - cached.timestamp;
     const filteredCached = formatCampaignsForUser(cached.campaigns, userActiveIds, isToday, allUserConnectedAccIds);
 
@@ -4305,7 +4308,10 @@ app.get('/api/campaigns', async (req, res) => {
   // Se não há cache em RAM, entrega instantânea (< 5ms) com TODAS as campanhas do período salvas localmente
   if (refresh !== 'true') {
     const storedPeriodCampaigns = getStoredCampaignsForPeriod(userId, resolvedRange, userActiveIds, isToday, allUserConnectedAccIds);
-    if (storedPeriodCampaigns && storedPeriodCampaigns.length > 0) {
+    const storedAccounts = new Set((storedPeriodCampaigns || []).map(c => String(c.adAccountId || c.accountId || '').replace('act_', '')));
+    const isStoredMissingActive = userActiveIds.size > 0 && Array.from(userActiveIds).some(id => !storedAccounts.has(id));
+
+    if (storedPeriodCampaigns && storedPeriodCampaigns.length > 0 && !isStoredMissingActive) {
       // Revalida em segundo plano sem travar a resposta do usuário (Padrão Utmify)
       syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiveIds, cacheKey, resolvedRange, todayBrazil, allUserConnectedAccIds })
         .catch(e => console.warn('[Background DB Sync]:', e.message));
