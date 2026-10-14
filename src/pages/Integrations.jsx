@@ -1447,11 +1447,17 @@ export default function Integrations() {
             localStorage.setItem(userTokKey, token);
             localStorage.setItem('primetrack_meta_token', token);
           }
+          let currentSavedCount = 0;
+          try {
+            const localSavedAccs = JSON.parse(localStorage.getItem(userAccKey) || localStorage.getItem('primetrack_ad_accounts') || '[]');
+            if (Array.isArray(localSavedAccs)) currentSavedCount = localSavedAccs.length;
+          } catch (e) {}
+
           const mapped = data.connections.map(c => ({
             id: c.id,
             name: c.name,
             initial: c.name ? c.name.charAt(0).toUpperCase() : 'M',
-            accountsCount: c.accountsCount || (data.adAccounts ? data.adAccounts.length : 0),
+            accountsCount: Math.max(c.accountsCount || 0, data.adAccounts ? data.adAccounts.length : 0, currentSavedCount),
             isNew: true
           }));
           setConnectedProfiles(mapped);
@@ -1559,6 +1565,29 @@ export default function Integrations() {
             localStorage.setItem('primetrack_ad_accounts', JSON.stringify(combinedAccs));
             localStorage.setItem(userAccKey, JSON.stringify(combinedAccs));
             localStorage.setItem(getScopedKey('primetrack_ad_accounts'), JSON.stringify(combinedAccs));
+
+            // Sincroniza badge e notifica backend caso haja novas contas no localStorage
+            if (combinedAccs.length > (data.adAccounts ? data.adAccounts.length : 0)) {
+              setConnectedProfiles(prev => {
+                const updated = (prev || []).map(p => ({
+                  ...p,
+                  accountsCount: Math.max(p.accountsCount || 0, combinedAccs.length)
+                }));
+                localStorage.setItem('primetrack_connected_profiles', JSON.stringify(updated));
+                localStorage.setItem(getScopedKey('primetrack_connected_profiles'), JSON.stringify(updated));
+                return updated;
+              });
+
+              fetch('/api/meta/save-accounts', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...(currentUser?.id ? { 'x-user-id': currentUser.id } : {}),
+                  ...(metaTok ? { 'x-meta-token': metaTok } : {})
+                },
+                body: JSON.stringify({ userId: currentUser?.id, accounts: combinedAccs })
+              }).catch(() => {});
+            }
           }
         }
       })
@@ -2036,10 +2065,26 @@ export default function Integrations() {
                           localStorage.setItem(getScopedKey('primetrack_ad_accounts'), JSON.stringify(finalMerged));
 
                           // Atualiza badge de contas nos perfis conectados
-                          setConnectedProfiles(prev => (prev || []).map(p => ({
-                            ...p,
-                            accountsCount: finalMerged.length
-                          })));
+                          setConnectedProfiles(prev => {
+                            const updated = (prev || []).map(p => ({
+                              ...p,
+                              accountsCount: Math.max(p.accountsCount || 0, finalMerged.length)
+                            }));
+                            localStorage.setItem('primetrack_connected_profiles', JSON.stringify(updated));
+                            localStorage.setItem(getScopedKey('primetrack_connected_profiles'), JSON.stringify(updated));
+                            return updated;
+                          });
+
+                          // Notifica e persiste contas sincronizadas diretamente no backend e nuvem
+                          fetch('/api/meta/save-accounts', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              ...(currentUser?.id ? { 'x-user-id': currentUser.id } : {}),
+                              ...(metaTok ? { 'x-meta-token': metaTok } : {})
+                            },
+                            body: JSON.stringify({ userId: currentUser?.id, accounts: finalMerged })
+                          }).catch(() => {});
                         }
                       }
                     } catch (e) {

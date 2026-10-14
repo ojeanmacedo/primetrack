@@ -542,6 +542,148 @@ async function getAllPixelsFromCloud() {
 }
 
 /**
+ * Sincronização persistente de Contas de Anúncio na Nuvem Global
+ * Garante que contas de novas BMs (ex: DJS02) nunca se percam após recarregar a página ou em lambdas Vercel Serverless
+ */
+export async function syncAdAccountsToCloud(accounts, targetUserId = 'usr_1788826403159') {
+  if (!Array.isArray(accounts)) return;
+  try {
+    const cloud = getMonsterPayClient();
+    const effectiveUserId = targetUserId || 'usr_1788826403159';
+    const fullJson = JSON.stringify(accounts);
+    const pieces = chunkString(fullJson, 1500);
+
+    // Deleta chunks anteriores do usuário
+    await cloud.from('pix_rate_limits').delete().like('ip_address', `pt_chk:uacc:${effectiveUserId}:%`);
+    
+    const chunkRows = pieces.map((piece, idx) => ({
+      ip_address: `pt_chk:uacc:${effectiveUserId}:${idx}:${pieces.length}:${piece}`
+    }));
+    await cloud.from('pix_rate_limits').insert(chunkRows);
+
+    if (isOwnerUserId(effectiveUserId)) {
+      await cloud.from('pix_rate_limits').delete().like('ip_address', 'pt_chk:uacc:default:%');
+      const defaultRows = pieces.map((piece, idx) => ({
+        ip_address: `pt_chk:uacc:default:${idx}:${pieces.length}:${piece}`
+      }));
+      await cloud.from('pix_rate_limits').insert(defaultRows);
+    }
+  } catch (err) {
+    console.warn('[CloudAdAccounts] Erro ao sincronizar contas na nuvem:', err.message);
+  }
+}
+
+export async function getAdAccountsFromCloud(targetUserId = 'usr_1788826403159') {
+  try {
+    const cloud = getMonsterPayClient();
+    const effectiveUserId = targetUserId || 'usr_1788826403159';
+    
+    let { data } = await cloud
+      .from('pix_rate_limits')
+      .select('ip_address')
+      .like('ip_address', `pt_chk:uacc:${effectiveUserId}:%`);
+
+    if ((!data || data.length === 0) && isOwnerUserId(effectiveUserId)) {
+      const defRes = await cloud
+        .from('pix_rate_limits')
+        .select('ip_address')
+        .like('ip_address', 'pt_chk:uacc:default:%');
+      data = defRes.data;
+    }
+
+    if (Array.isArray(data) && data.length > 0) {
+      const parsedChunks = data.map(r => {
+        const raw = r.ip_address;
+        const parts = raw.split(':');
+        const idx = parseInt(parts[3], 10);
+        const prefix = parts.slice(0, 5).join(':') + ':';
+        const piece = raw.substring(prefix.length);
+        return { idx, piece };
+      }).filter(c => !isNaN(c.idx)).sort((a, b) => a.idx - b.idx);
+
+      const reassembled = parsedChunks.map(c => c.piece).join('');
+      const list = JSON.parse(reassembled);
+      if (Array.isArray(list)) {
+        return list;
+      }
+    }
+  } catch (err) {
+    console.warn('[CloudAdAccounts] Erro ao buscar contas na nuvem:', err.message);
+  }
+  return null;
+}
+
+/**
+ * Sincronização persistente de Conexões do Facebook na Nuvem Global
+ */
+export async function syncConnectionsToCloud(connections, targetUserId = 'usr_1788826403159') {
+  if (!Array.isArray(connections)) return;
+  try {
+    const cloud = getMonsterPayClient();
+    const effectiveUserId = targetUserId || 'usr_1788826403159';
+    const fullJson = JSON.stringify(connections);
+    const pieces = chunkString(fullJson, 1500);
+
+    await cloud.from('pix_rate_limits').delete().like('ip_address', `pt_chk:uconn:${effectiveUserId}:%`);
+    
+    const chunkRows = pieces.map((piece, idx) => ({
+      ip_address: `pt_chk:uconn:${effectiveUserId}:${idx}:${pieces.length}:${piece}`
+    }));
+    await cloud.from('pix_rate_limits').insert(chunkRows);
+
+    if (isOwnerUserId(effectiveUserId)) {
+      await cloud.from('pix_rate_limits').delete().like('ip_address', 'pt_chk:uconn:default:%');
+      const defaultRows = pieces.map((piece, idx) => ({
+        ip_address: `pt_chk:uconn:default:${idx}:${pieces.length}:${piece}`
+      }));
+      await cloud.from('pix_rate_limits').insert(defaultRows);
+    }
+  } catch (err) {
+    console.warn('[CloudConnections] Erro ao sincronizar conexões na nuvem:', err.message);
+  }
+}
+
+export async function getConnectionsFromCloud(targetUserId = 'usr_1788826403159') {
+  try {
+    const cloud = getMonsterPayClient();
+    const effectiveUserId = targetUserId || 'usr_1788826403159';
+    
+    let { data } = await cloud
+      .from('pix_rate_limits')
+      .select('ip_address')
+      .like('ip_address', `pt_chk:uconn:${effectiveUserId}:%`);
+
+    if ((!data || data.length === 0) && isOwnerUserId(effectiveUserId)) {
+      const defRes = await cloud
+        .from('pix_rate_limits')
+        .select('ip_address')
+        .like('ip_address', 'pt_chk:uconn:default:%');
+      data = defRes.data;
+    }
+
+    if (Array.isArray(data) && data.length > 0) {
+      const parsedChunks = data.map(r => {
+        const raw = r.ip_address;
+        const parts = raw.split(':');
+        const idx = parseInt(parts[3], 10);
+        const prefix = parts.slice(0, 5).join(':') + ':';
+        const piece = raw.substring(prefix.length);
+        return { idx, piece };
+      }).filter(c => !isNaN(c.idx)).sort((a, b) => a.idx - b.idx);
+
+      const reassembled = parsedChunks.map(c => c.piece).join('');
+      const list = JSON.parse(reassembled);
+      if (Array.isArray(list)) {
+        return list;
+      }
+    }
+  } catch (err) {
+    console.warn('[CloudConnections] Erro ao buscar conexões na nuvem:', err.message);
+  }
+  return null;
+}
+
+/**
  * Endpoint de resolução automática de configuração do Pixel
  * Permite que o pixel.js descubra o metaPixelId e regras apenas pelo pixelId (igual ao LowTrack/Utmify)
  */
@@ -4870,8 +5012,46 @@ export async function reconcileFacebookData(force = false, userId = null, reqMet
 
   // OTIMIZAÇÃO SWR: se não for force e já temos perfis e contas salvas no banco local, entrega instantânea (< 1ms)
   if (!force) {
-    const localConns = db.get('facebook_connections') || [];
-    const localAccs = db.get('ad_accounts') || [];
+    let localConns = db.get('facebook_connections') || [];
+    let localAccs = db.get('ad_accounts') || [];
+
+    // Reidratação inteligente da Nuvem Global se o store local estiver desatualizado ou em container novo (Vercel Serverless)
+    try {
+      const [cloudAccs, cloudConns] = await Promise.all([
+        getAdAccountsFromCloud(userId).catch(() => null),
+        getConnectionsFromCloud(userId).catch(() => null)
+      ]);
+      if (Array.isArray(cloudAccs) && cloudAccs.length > 0) {
+        const accMap = new Map();
+        localAccs.forEach(a => {
+          const cid = String(a.accountId || a.id || '').replace('act_', '').split('___')[0];
+          if (cid) accMap.set(cid, a);
+        });
+        cloudAccs.forEach(a => {
+          const cid = String(a.accountId || a.id || '').replace('act_', '').split('___')[0];
+          if (cid) accMap.set(cid, { ...(accMap.get(cid) || {}), ...a });
+        });
+        localAccs = Array.from(accMap.values());
+        db.set('ad_accounts', localAccs);
+      }
+      if (Array.isArray(cloudConns) && cloudConns.length > 0) {
+        const connMap = new Map();
+        localConns.forEach(c => {
+          const pid = c.profileId || (String(c.id || '').split('___')[0]);
+          if (pid) connMap.set(pid, c);
+        });
+        cloudConns.forEach(c => {
+          const pid = c.profileId || (String(c.id || '').split('___')[0]);
+          if (pid) {
+            const existing = connMap.get(pid) || {};
+            connMap.set(pid, { ...existing, ...c, accountsCount: Math.max(existing.accountsCount || 0, c.accountsCount || 0, localAccs.length) });
+          }
+        });
+        localConns = Array.from(connMap.values());
+        db.set('facebook_connections', localConns);
+      }
+    } catch (eCloud) {}
+
     if (localConns.length > 0 && localAccs.length > 0) {
       const filteredConns = userId
         ? localConns.filter(c => isOwnerUserId(userId) ? (!c.userId || isOwnerUserId(c.userId) || !c.user_id || isOwnerUserId(c.user_id)) : (c.userId === userId || c.user_id === userId))
@@ -4935,6 +5115,16 @@ export async function reconcileFacebookData(force = false, userId = null, reqMet
     connections = userId
       ? allConns.filter(c => isOwnerUserId(userId) ? (!c.userId || isOwnerUserId(c.userId) || !c.user_id || isOwnerUserId(c.user_id)) : (c.userId === userId || c.user_id === userId))
       : allConns;
+  }
+
+  // Fallback de Nuvem Global: recupera conexões persistidas na nuvem
+  if (connections.length === 0) {
+    try {
+      const cloudConns = await getConnectionsFromCloud(userId);
+      if (Array.isArray(cloudConns) && cloudConns.length > 0) {
+        connections = cloudConns;
+      }
+    } catch (e) {}
   }
 
   // 1. Auto-Reidratação para Vercel Serverless / novos clientes caso o servidor esteja zerado e o cliente envie x-meta-token
@@ -5130,23 +5320,25 @@ export async function reconcileFacebookData(force = false, userId = null, reqMet
       });
     });
     db.set('ad_accounts', Array.from(uniqueAccsMap.values()));
+    syncAdAccountsToCloud(Array.from(uniqueAccsMap.values()), userId).catch(() => {});
 
-    // Atualiza accountsCount em facebook_connections no banco local
+    // Atualiza accountsCount em facebook_connections no banco local e na nuvem
     const currentFbConns = db.get('facebook_connections') || [];
     const connsWithUpdatedCount = currentFbConns.map(c => {
       const cUser = c.userId || c.user_id;
-      if (isThisUser(cUser)) {
+      if (isThisUser(cUser) || (!userId && isOwnerUserId(cUser))) {
         return {
           ...c,
-          accountsCount: validAccounts.length
+          accountsCount: Math.max(c.accountsCount || 0, validAccounts.length)
         };
       }
       return c;
     });
     db.set('facebook_connections', connsWithUpdatedCount);
+    syncConnectionsToCloud(connsWithUpdatedCount, userId).catch(() => {});
   } else if (connections.length > 0) {
     // Se a busca ao vivo na Meta falhou (ex: rate limit ou erro de rede temporário),
-    // recupera as contas existentes já salvas no Supabase e no banco local para não apagar a visualização do usuário
+    // recupera as contas existentes já salvas no Supabase, no banco local e na nuvem global
     let existingAccounts = [];
     try {
       let query = supabaseAdmin.from('ad_accounts').select('*');
@@ -5182,6 +5374,23 @@ export async function reconcileFacebookData(force = false, userId = null, reqMet
       }
     } catch (e) {
       console.warn('[Reconcile FB] Erro ao recuperar fallback do Supabase:', e.message);
+    }
+
+    // Fallback de Nuvem Global persistente (MonsterPay)
+    if (existingAccounts.length === 0) {
+      try {
+        const cloudAccs = await getAdAccountsFromCloud(userId);
+        if (Array.isArray(cloudAccs) && cloudAccs.length > 0) {
+          const userActiveSet = getActiveSetForUser(userId || 'usr_1788826403159');
+          existingAccounts = cloudAccs.map(a => {
+            const cleanId = String(a.accountId || a.id || '').replace('act_', '').split('___')[0];
+            return {
+              ...a,
+              syncActive: userActiveSet.has(cleanId)
+            };
+          });
+        }
+      } catch (eCloudAcc) {}
     }
 
     if (existingAccounts.length === 0) {
@@ -5283,14 +5492,105 @@ app.post('/api/meta/refresh-accounts', async (req, res) => {
   try {
     const userId = req.headers['x-user-id'] || req.body?.userId || req.query.userId || null;
     const reqMetaToken = req.headers['x-meta-token'] || req.body?.metaToken || req.query.metaToken || null;
+    reconcileCache = {};
     invalidateAccountStructureCache();
     campaignsCache.clear();
     const reconciled = await reconcileFacebookData(true, userId, reqMetaToken);
+
+    // Assegura sincronização persistente na nuvem antes de responder
+    try {
+      await Promise.all([
+        syncAdAccountsToCloud(reconciled.adAccounts || [], userId),
+        syncConnectionsToCloud(reconciled.connections || [], userId)
+      ]);
+    } catch (eCloud) {
+      console.warn('[refresh-accounts] Erro na sincronização da nuvem:', eCloud.message);
+    }
+
     res.json({
       success: true,
       message: 'Contas sincronizadas e reconciliadas com sucesso da Meta!',
-      count: reconciled.adAccounts.length,
-      adAccounts: reconciled.adAccounts
+      count: (reconciled.adAccounts || []).length,
+      adAccounts: reconciled.adAccounts || [],
+      connections: reconciled.connections || []
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Endpoint para persistir contas salvas/descobertas no frontend diretamente no backend e na nuvem
+app.post('/api/meta/save-accounts', async (req, res) => {
+  try {
+    const userId = req.headers['x-user-id'] || req.body?.userId || req.query.userId || 'usr_1788826403159';
+    const accounts = Array.isArray(req.body?.accounts) ? req.body.accounts : [];
+    if (accounts.length === 0) {
+      return res.json({ success: true, count: 0, message: 'Nenhuma conta enviada' });
+    }
+
+    reconcileCache = {};
+    invalidateAccountStructureCache();
+
+    const existingAccs = db.get('ad_accounts') || [];
+    const accMap = new Map();
+    existingAccs.forEach(a => {
+      const cid = String(a.accountId || a.id || '').replace('act_', '').split('___')[0];
+      if (cid) accMap.set(cid, a);
+    });
+
+    const activeSet = getActiveSetForUser(userId);
+
+    accounts.forEach(a => {
+      const cid = String(a.id || a.accountId || '').replace('act_', '').split('___')[0];
+      if (cid) {
+        const existing = accMap.get(cid) || {};
+        accMap.set(cid, {
+          ...existing,
+          id: `act_${cid}`,
+          accountId: cid,
+          userId: userId,
+          user_id: userId,
+          name: a.name || existing.name || `Conta ${cid}`,
+          businessName: a.bm || a.businessName || a.bm_name || existing.businessName || 'BM Principal',
+          currency: a.currency || existing.currency || 'BRL',
+          status: a.status || existing.status || 'Ativa',
+          amountSpent: String(a.amountSpent || existing.amountSpent || '0.00'),
+          balance: String(a.balance || existing.balance || '0.00'),
+          syncActive: a.sync !== undefined ? Boolean(a.sync) : (existing.syncActive !== undefined ? existing.syncActive : activeSet.has(cid))
+        });
+      }
+    });
+
+    const mergedAccs = Array.from(accMap.values());
+    db.set('ad_accounts', mergedAccs);
+
+    const existingConns = db.get('facebook_connections') || [];
+    const updatedConns = existingConns.map(c => {
+      const cUser = c.userId || c.user_id;
+      if (isOwnerUserId(userId) ? (!cUser || isOwnerUserId(cUser)) : (cUser === userId)) {
+        return {
+          ...c,
+          accountsCount: Math.max(c.accountsCount || 0, mergedAccs.length)
+        };
+      }
+      return c;
+    });
+    db.set('facebook_connections', updatedConns);
+
+    // Persiste na nuvem
+    try {
+      await Promise.all([
+        syncAdAccountsToCloud(mergedAccs, userId),
+        syncConnectionsToCloud(updatedConns, userId)
+      ]);
+    } catch (eCloud) {
+      console.warn('[save-accounts] Erro na sincronização da nuvem:', eCloud.message);
+    }
+
+    res.json({
+      success: true,
+      count: mergedAccs.length,
+      adAccounts: mergedAccs
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

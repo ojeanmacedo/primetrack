@@ -756,12 +756,17 @@ export default function Dashboard() {
               sync: isSync
             };
           });
-          currentActiveAccs = mapped.filter(a => a.sync);
+          const serverCleanIds = new Set(mapped.map(a => String(a.id).replace('act_', '')));
+          const preservedLocal = Array.isArray(existingLocalList)
+            ? existingLocalList.filter(a => a && (a.id || a.accountId) && !serverCleanIds.has(String(a.id || a.accountId || '').replace('act_', '')))
+            : [];
+          const finalMapped = [...mapped, ...preservedLocal];
+          currentActiveAccs = finalMapped.filter(a => a.sync);
           setAdAccountsList(currentActiveAccs);
           if (typeof window !== 'undefined') {
-            localStorage.setItem('primetrack_ad_accounts', JSON.stringify(mapped));
+            localStorage.setItem('primetrack_ad_accounts', JSON.stringify(finalMapped));
             if (user?.id) {
-              localStorage.setItem(`primetrack_ad_accounts_${user.id}`, JSON.stringify(mapped));
+              localStorage.setItem(`primetrack_ad_accounts_${user.id}`, JSON.stringify(finalMapped));
             }
           }
         }

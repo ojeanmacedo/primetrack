@@ -62976,7 +62976,7 @@
       "email": "{\"activeAccounts\":[\"2292269048278267\"]}",
       "avatarUrl": "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=122109599696599930&height=200&width=200&ext=1792779871&hash=AfvBDrzXAP3adBHF9ztSni8w",
       "accessToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
-      "accountsCount": 22,
+      "accountsCount": 27,
       "connectedAt": "2026-09-23T18:24:31.752+00:00"
     }
   ],
@@ -62991,7 +62991,7 @@
       "name": "2336963880170480",
       "businessName": "DJS01",
       "currency": "BRL",
-      "status": "Ativa",
+      "status": "Bloqueada",
       "amountSpent": "262.52",
       "balance": "0.00",
       "syncActive": false
@@ -63022,7 +63022,7 @@
       "businessName": "Jeffrey Chen",
       "currency": "USD",
       "status": "Ativa",
-      "amountSpent": "621.52",
+      "amountSpent": "626.82",
       "balance": "0.00",
       "syncActive": false
     },
@@ -63037,7 +63037,7 @@
       "businessName": "BM5",
       "currency": "USD",
       "status": "Ativa",
-      "amountSpent": "59.70",
+      "amountSpent": "226.83",
       "balance": "0.00",
       "syncActive": true
     },
@@ -63052,7 +63052,7 @@
       "businessName": "BM2",
       "currency": "USD",
       "status": "Bloqueada",
-      "amountSpent": "435.64",
+      "amountSpent": "439.36",
       "balance": "0.00",
       "syncActive": false
     },
@@ -63082,7 +63082,7 @@
       "businessName": "BM5",
       "currency": "USD",
       "status": "Bloqueada",
-      "amountSpent": "258.40",
+      "amountSpent": "260.61",
       "balance": "0.00",
       "syncActive": false
     },
@@ -63097,7 +63097,7 @@
       "businessName": "BM7",
       "currency": "USD",
       "status": "Bloqueada",
-      "amountSpent": "6.84",
+      "amountSpent": "6.90",
       "balance": "0.00",
       "syncActive": false
     },
@@ -63111,8 +63111,8 @@
       "name": "DJS01 CA03",
       "businessName": "DJS01",
       "currency": "BRL",
-      "status": "Ativa",
-      "amountSpent": "423.48",
+      "status": "Bloqueada",
+      "amountSpent": "743.89",
       "balance": "0.00",
       "syncActive": true
     },
@@ -63141,7 +63141,7 @@
       "name": "DJS01 CA01",
       "businessName": "DJS01",
       "currency": "BRL",
-      "status": "Ativa",
+      "status": "Bloqueada",
       "amountSpent": "1465.65",
       "balance": "4.05",
       "syncActive": true
@@ -63156,7 +63156,7 @@
       "name": "DJS01 CA05",
       "businessName": "DJS01",
       "currency": "BRL",
-      "status": "Ativa",
+      "status": "Bloqueada",
       "amountSpent": "163.84",
       "balance": "0.00",
       "syncActive": false
@@ -63187,7 +63187,7 @@
       "businessName": "BM7",
       "currency": "USD",
       "status": "Bloqueada",
-      "amountSpent": "668.24",
+      "amountSpent": "673.94",
       "balance": "0.00",
       "syncActive": false
     },
@@ -63202,7 +63202,7 @@
       "businessName": "BM5",
       "currency": "USD",
       "status": "Ativa",
-      "amountSpent": "56.25",
+      "amountSpent": "56.73",
       "balance": "0.00",
       "syncActive": false
     },
@@ -63232,7 +63232,7 @@
       "businessName": "Jeffrey Chen",
       "currency": "USD",
       "status": "Bloqueada",
-      "amountSpent": "434.89",
+      "amountSpent": "438.60",
       "balance": "0.00",
       "syncActive": false
     },
@@ -63247,7 +63247,7 @@
       "businessName": "BM ANGEL",
       "currency": "USD",
       "status": "Ativa",
-      "amountSpent": "449.32",
+      "amountSpent": "453.15",
       "balance": "0.00",
       "syncActive": false
     },
@@ -63277,7 +63277,7 @@
       "businessName": "Jeffrey Chen",
       "currency": "USD",
       "status": "Ativa",
-      "amountSpent": "417.37",
+      "amountSpent": "420.93",
       "balance": "0.00",
       "syncActive": false
     },
@@ -63292,7 +63292,7 @@
       "businessName": "BM5",
       "currency": "USD",
       "status": "Ativa",
-      "amountSpent": "76.57",
+      "amountSpent": "77.22",
       "balance": "0.00",
       "syncActive": false
     },
@@ -63308,6 +63308,81 @@
       "currency": "USD",
       "status": "Ativa",
       "amountSpent": "0.00",
+      "balance": "0.00",
+      "syncActive": false
+    },
+    {
+      "id": "act_1893409298725562",
+      "accountId": "1893409298725562",
+      "userId": "usr_1788826403159",
+      "user_id": "usr_1788826403159",
+      "profileId": "122109599696599930___usr_1788826403159",
+      "profileName": "Angel Kerry",
+      "name": "DJS02 CA01",
+      "businessName": "DJS02",
+      "currency": "BRL",
+      "status": "Ativa",
+      "amountSpent": "284.21",
+      "balance": "0.00",
+      "syncActive": false
+    },
+    {
+      "id": "act_853877350942504",
+      "accountId": "853877350942504",
+      "userId": "usr_1788826403159",
+      "user_id": "usr_1788826403159",
+      "profileId": "122109599696599930___usr_1788826403159",
+      "profileName": "Angel Kerry",
+      "name": "DJS02 CA03",
+      "businessName": "DJS02",
+      "currency": "BRL",
+      "status": "Ativa",
+      "amountSpent": "7328.53",
+      "balance": "0.00",
+      "syncActive": false
+    },
+    {
+      "id": "act_1394391128741416",
+      "accountId": "1394391128741416",
+      "userId": "usr_1788826403159",
+      "user_id": "usr_1788826403159",
+      "profileId": "122109599696599930___usr_1788826403159",
+      "profileName": "Angel Kerry",
+      "name": "DJS02 CA02",
+      "businessName": "DJS02",
+      "currency": "BRL",
+      "status": "Ativa",
+      "amountSpent": "10.46",
+      "balance": "0.00",
+      "syncActive": false
+    },
+    {
+      "id": "act_890158093617924",
+      "accountId": "890158093617924",
+      "userId": "usr_1788826403159",
+      "user_id": "usr_1788826403159",
+      "profileId": "122109599696599930___usr_1788826403159",
+      "profileName": "Angel Kerry",
+      "name": "CA05",
+      "businessName": "DJS02",
+      "currency": "BRL",
+      "status": "Bloqueada",
+      "amountSpent": "0.00",
+      "balance": "0.00",
+      "syncActive": false
+    },
+    {
+      "id": "act_4088067061443375",
+      "accountId": "4088067061443375",
+      "userId": "usr_1788826403159",
+      "user_id": "usr_1788826403159",
+      "profileId": "122109599696599930___usr_1788826403159",
+      "profileName": "Angel Kerry",
+      "name": "CA04",
+      "businessName": "DJS02",
+      "currency": "BRL",
+      "status": "Ativa",
+      "amountSpent": "191.86",
       "balance": "0.00",
       "syncActive": false
     }
