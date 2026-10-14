@@ -768,16 +768,29 @@ export default function Dashboard() {
           if (isOwner && isDefaultDashboard) {
             const curIds = new Set(finalMapped.map(a => String(a.id || a.accountId || '').replace('act_', '')));
             const CANONICAL_DJS02 = [
-              { id: '1893409298725562', name: 'DJS02 CA01', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '284,21', sync: false },
+              { id: '1893409298725562', name: 'DJS02 CA01', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '284,21', sync: true },
               { id: '853877350942504', name: 'DJS02 CA03', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '7328,53', sync: false },
-              { id: '1394391128741416', name: 'DJS02 CA02', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '10,46', sync: false },
+              { id: '1394391128741416', name: 'DJS02 CA02', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '10,46', sync: true },
               { id: '890158093617924', name: 'CA05', bm: 'DJS02', currency: 'BRL', status: 'Bloqueada', balance: '0,00', amountSpent: '0,00', sync: false },
               { id: '4088067061443375', name: 'CA04', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '191,86', sync: false }
             ];
-            const missing = CANONICAL_DJS02.filter(ca => !curIds.has(ca.id));
+            const missing = CANONICAL_DJS02.filter(ca => !curIds.has(ca.id)).map(ca => {
+              const cleanId = ca.id;
+              let isSync = ca.sync;
+              if (localOverrides[cleanId] !== undefined) isSync = Boolean(localOverrides[cleanId]);
+              else if (localOverrides[`act_${cleanId}`] !== undefined) isSync = Boolean(localOverrides[`act_${cleanId}`]);
+              else if (activeSet) isSync = activeSet.has(cleanId);
+              return { ...ca, sync: isSync };
+            });
             if (missing.length > 0) finalMapped = [...finalMapped, ...missing];
           }
-          currentActiveAccs = finalMapped.filter(a => a.sync);
+          currentActiveAccs = finalMapped.filter(a => {
+            const clean = String(a.id || a.accountId || '').replace('act_', '');
+            if (a.status === 'Bloqueada' || a.status === 'DISABLED') return false;
+            if (localOverrides[clean] !== undefined) return Boolean(localOverrides[clean]);
+            if (localOverrides[`act_${clean}`] !== undefined) return Boolean(localOverrides[`act_${clean}`]);
+            return a.sync === true;
+          });
           setAdAccountsList(currentActiveAccs);
           if (typeof window !== 'undefined') {
             localStorage.setItem('primetrack_ad_accounts', JSON.stringify(finalMapped));
@@ -918,17 +931,30 @@ export default function Dashboard() {
           if (isOwner && isDefaultDashboard) {
             const curIds = new Set(finalAllAccs.map(a => String(a.id || a.accountId || '').replace('act_', '')));
             const CANONICAL_DJS02 = [
-              { id: '1893409298725562', name: 'DJS02 CA01', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '284,21', sync: false },
+              { id: '1893409298725562', name: 'DJS02 CA01', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '284,21', sync: true },
               { id: '853877350942504', name: 'DJS02 CA03', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '7328,53', sync: false },
-              { id: '1394391128741416', name: 'DJS02 CA02', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '10,46', sync: false },
+              { id: '1394391128741416', name: 'DJS02 CA02', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '10,46', sync: true },
               { id: '890158093617924', name: 'CA05', bm: 'DJS02', currency: 'BRL', status: 'Bloqueada', balance: '0,00', amountSpent: '0,00', sync: false },
               { id: '4088067061443375', name: 'CA04', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '191,86', sync: false }
             ];
-            const missing = CANONICAL_DJS02.filter(ca => !curIds.has(ca.id));
+            const missing = CANONICAL_DJS02.filter(ca => !curIds.has(ca.id)).map(ca => {
+              const cleanId = ca.id;
+              let isSync = ca.sync;
+              if (localOverrides[cleanId] !== undefined) isSync = Boolean(localOverrides[cleanId]);
+              else if (localOverrides[`act_${cleanId}`] !== undefined) isSync = Boolean(localOverrides[`act_${cleanId}`]);
+              else if (activeSet) isSync = activeSet.has(cleanId);
+              return { ...ca, sync: isSync };
+            });
             if (missing.length > 0) finalAllAccs = [...finalAllAccs, ...missing];
           }
 
-          const activeOnly = finalAllAccs.filter(a => a.sync === true);
+          const activeOnly = finalAllAccs.filter(a => {
+            const clean = String(a.id || a.accountId || '').replace('act_', '');
+            if (a.status === 'Bloqueada' || a.status === 'DISABLED') return false;
+            if (localOverrides[clean] !== undefined) return Boolean(localOverrides[clean]);
+            if (localOverrides[`act_${clean}`] !== undefined) return Boolean(localOverrides[`act_${clean}`]);
+            return a.sync === true;
+          });
           setAdAccountsList(activeOnly);
           if (typeof window !== 'undefined') {
             localStorage.setItem('primetrack_ad_accounts', JSON.stringify(finalAllAccs));
@@ -1078,11 +1104,22 @@ export default function Dashboard() {
     const minsInterval = setInterval(updateMinsAgo, 30000);
     window.addEventListener('focus', updateMinsAgo);
 
+    const handleAccountsChanged = (e) => {
+      const updated = e.detail;
+      if (Array.isArray(updated)) {
+        const active = updated.filter(a => a.sync === true && a.status !== 'Bloqueada' && a.status !== 'DISABLED');
+        setAdAccountsList(active);
+        loadData(false, false);
+      }
+    };
+
+    window.addEventListener('primetrack_accounts_changed', handleAccountsChanged);
     window.addEventListener('primetrack_profile_sync', handleProfileSync);
     return () => {
       clearInterval(midnightCheckInterval);
       clearInterval(minsInterval);
       window.removeEventListener('focus', updateMinsAgo);
+      window.removeEventListener('primetrack_accounts_changed', handleAccountsChanged);
       window.removeEventListener('primetrack_profile_sync', handleProfileSync);
       if (typeof window !== 'undefined') {
         try {

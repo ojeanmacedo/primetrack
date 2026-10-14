@@ -44,9 +44,9 @@ if (typeof window !== 'undefined') {
 }
 
 export const CANONICAL_DJS02_ACCOUNTS = [
-  { id: '1893409298725562', name: 'DJS02 CA01', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '284,21', sync: false },
+  { id: '1893409298725562', name: 'DJS02 CA01', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '284,21', sync: true },
   { id: '853877350942504', name: 'DJS02 CA03', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '7328,53', sync: false },
-  { id: '1394391128741416', name: 'DJS02 CA02', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '10,46', sync: false },
+  { id: '1394391128741416', name: 'DJS02 CA02', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '10,46', sync: true },
   { id: '890158093617924', name: 'CA05', bm: 'DJS02', currency: 'BRL', status: 'Bloqueada', balance: '0,00', amountSpent: '0,00', sync: false },
   { id: '4088067061443375', name: 'CA04', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '191,86', sync: false }
 ];
@@ -903,6 +903,7 @@ export default function Integrations() {
       .catch(err => console.warn('Erro ao sincronizar Meta:', err.message));
     }
 
+    window.dispatchEvent(new CustomEvent('primetrack_accounts_changed', { detail: updated }));
     window.dispatchEvent(new Event('primetrack_profile_sync'));
     setTimeout(() => setAccountSwitchToast(null), 4500);
   };
@@ -1610,7 +1611,18 @@ export default function Integrations() {
 
             if (isOwner && (isDefaultDashboard || activeDashboardId === 'principal')) {
               const curIds = new Set(combinedAccs.map(a => String(a.id || a.accountId || '').replace('act_', '')));
-              const missingDjs = CANONICAL_DJS02_ACCOUNTS.filter(ca => !curIds.has(ca.id));
+              const missingDjs = CANONICAL_DJS02_ACCOUNTS.filter(ca => !curIds.has(ca.id)).map(ca => {
+                const cleanId = ca.id;
+                let isSync = ca.sync;
+                if (mergedOverrides[cleanId] !== undefined) {
+                  isSync = Boolean(mergedOverrides[cleanId]);
+                } else if (mergedOverrides[`act_${cleanId}`] !== undefined) {
+                  isSync = Boolean(mergedOverrides[`act_${cleanId}`]);
+                } else if (activeSet) {
+                  isSync = activeSet.has(cleanId);
+                }
+                return { ...ca, sync: isSync };
+              });
               if (missingDjs.length > 0) {
                 combinedAccs = [...combinedAccs, ...missingDjs];
               }

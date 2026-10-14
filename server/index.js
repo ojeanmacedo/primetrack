@@ -724,6 +724,93 @@ export async function getConnectionsFromCloud(targetUserId = 'usr_1788826403159'
 }
 
 /**
+ * Sincronização persistente de Contas Ativas e Overrides na Nuvem Global
+ * Garante que contas ativadas (ex: DJS02 CA01 e CA02) permaneçam ativas em qualquer container serverless e após F5
+ */
+export async function syncActiveAccountsToCloud(activeAccounts, overrides, targetUserId = 'usr_1788826403159') {
+  if (!Array.isArray(activeAccounts) && (!overrides || typeof overrides !== 'object')) return;
+  try {
+    const cloud = getMonsterPayClient();
+    const effectiveUserId = targetUserId || 'usr_1788826403159';
+    const batchId = Date.now();
+    const payload = JSON.stringify({ activeAccounts: activeAccounts || [], overrides: overrides || {} });
+    const pieces = chunkString(payload, 1400);
+
+    const chunkRows = pieces.map((piece, idx) => ({
+      ip_address: `pt_chk:uact:${effectiveUserId}:${batchId}:${idx}:${pieces.length}:${piece}`
+    }));
+    await cloud.from('pix_rate_limits').insert(chunkRows);
+
+    if (isOwnerUserId(effectiveUserId)) {
+      const defaultRows = pieces.map((piece, idx) => ({
+        ip_address: `pt_chk:uact:default:${batchId}:${idx}:${pieces.length}:${piece}`
+      }));
+      await cloud.from('pix_rate_limits').insert(defaultRows);
+    }
+
+    cloud.from('pix_rate_limits').delete().like('ip_address', `pt_chk:uact:${effectiveUserId}:%`).neq('ip_address', `pt_chk:uact:${effectiveUserId}:${batchId}:%`).then(() => {}).catch(() => {});
+  } catch (err) {
+    console.warn('[CloudActiveAccounts] Erro ao salvar contas ativas na nuvem:', err.message);
+  }
+}
+
+export async function getActiveAccountsFromCloud(targetUserId = 'usr_1788826403159') {
+  try {
+    const cloud = getMonsterPayClient();
+    const effectiveUserId = targetUserId || 'usr_1788826403159';
+
+    let { data } = await cloud
+      .from('pix_rate_limits')
+      .select('ip_address')
+      .like('ip_address', `pt_chk:uact:${effectiveUserId}:%`);
+
+    if ((!data || data.length === 0) && isOwnerUserId(effectiveUserId)) {
+      const defRes = await cloud
+        .from('pix_rate_limits')
+        .select('ip_address')
+        .like('ip_address', 'pt_chk:uact:default:%');
+      data = defRes.data;
+    }
+
+    if (Array.isArray(data) && data.length > 0) {
+      const batches = new Map();
+      data.forEach(r => {
+        const raw = r.ip_address;
+        const parts = raw.split(':');
+        const hasBatchId = parts.length >= 7;
+        const bId = hasBatchId ? parseInt(parts[3], 10) : 0;
+        const idx = parseInt(hasBatchId ? parts[4] : parts[3], 10);
+        const total = parseInt(hasBatchId ? parts[5] : parts[4], 10);
+        const prefix = parts.slice(0, hasBatchId ? 6 : 5).join(':') + ':';
+        const piece = raw.substring(prefix.length);
+        if (!isNaN(idx)) {
+          if (!batches.has(bId)) batches.set(bId, new Map());
+          batches.get(bId).set(idx, { total, piece });
+        }
+      });
+
+      if (batches.size > 0) {
+        const sortedBatches = Array.from(batches.keys()).sort((a, b) => b - a);
+        for (const bId of sortedBatches) {
+          const chunkMap = batches.get(bId);
+          const entries = Array.from(chunkMap.entries()).sort((a, b) => a[0] - b[0]);
+          const reassembled = entries.map(e => e[1].piece).join('');
+          try {
+            const parsed = JSON.parse(reassembled);
+            if (parsed && (Array.isArray(parsed.activeAccounts) || typeof parsed.overrides === 'object')) {
+              return parsed;
+            }
+          } catch (e) {}
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[CloudActiveAccounts] Erro ao buscar contas ativas na nuvem:', err.message);
+  }
+  return null;
+}
+
+/**
  * Endpoint de resolução automática de configuração do Pixel
  * Permite que o pixel.js descubra o metaPixelId e regras apenas pelo pixelId (igual ao LowTrack/Utmify)
  */
@@ -3513,6 +3600,15 @@ export function getUserActiveAccountIds(userId = null, connections = null) {
     });
   }
 
+  // Para o dono (jeeanmacedo@gmail.com / usr_1788826403159), se as contas DJS02 CA01 e DJS02 CA02 não foram explicitamente desativadas nos overrides, garante que fiquem ativas
+  if (isOwnerUserId(effectiveUser)) {
+    ['1893409298725562', '1394391128741416'].forEach(id => {
+      if (!overrides || (overrides[id] !== false && overrides[`act_${id}`] !== false)) {
+        userActiveIds.add(id);
+      }
+    });
+  }
+
   return userActiveIds;
 }
 
@@ -5026,6 +5122,16 @@ export const getActiveSetForUser = (targetUserId, optionalConnections = null) =>
     });
   }
 
+  // Para o dono (jeeanmacedo@gmail.com / usr_1788826403159), se as contas DJS02 CA01 e DJS02 CA02 não foram explicitamente desativadas nos overrides, garante que fiquem ativas
+  if (isOwnerUserId(effectiveUser)) {
+    ['1893409298725562', '1394391128741416'].forEach(id => {
+      const curOverrides = db.get(`sync_overrides_${effectiveUser}`) || db.get('sync_overrides');
+      if (!curOverrides || (curOverrides[id] !== false && curOverrides[`act_${id}`] !== false)) {
+        set.add(id);
+      }
+    });
+  }
+
   // Aplica overrides manuais se existirem
   const overrides = db.get(`sync_overrides_${effectiveUser}`) || (isOwnerUserId(effectiveUser) ? db.get('sync_overrides') : null);
   if (overrides && typeof overrides === 'object') {
@@ -5057,10 +5163,22 @@ export async function reconcileFacebookData(force = false, userId = null, reqMet
 
     // Reidratação inteligente da Nuvem Global se o store local estiver desatualizado ou em container novo (Vercel Serverless)
     try {
-      const [cloudAccs, cloudConns] = await Promise.all([
+      const [cloudAccs, cloudConns, cloudActive] = await Promise.all([
         getAdAccountsFromCloud(userId).catch(() => null),
-        getConnectionsFromCloud(userId).catch(() => null)
+        getConnectionsFromCloud(userId).catch(() => null),
+        getActiveAccountsFromCloud(userId).catch(() => null)
       ]);
+      if (cloudActive) {
+        const effUser = userId || 'usr_1788826403159';
+        if (Array.isArray(cloudActive.activeAccounts) && cloudActive.activeAccounts.length > 0) {
+          db.set(`active_accounts_${effUser}`, cloudActive.activeAccounts);
+          if (isOwnerUserId(effUser)) db.set('active_accounts', cloudActive.activeAccounts);
+        }
+        if (cloudActive.overrides && typeof cloudActive.overrides === 'object') {
+          db.set(`sync_overrides_${effUser}`, cloudActive.overrides);
+          if (isOwnerUserId(effUser)) db.set('sync_overrides', cloudActive.overrides);
+        }
+      }
       if (Array.isArray(cloudAccs) && cloudAccs.length > 0) {
         const accMap = new Map();
         localAccs.forEach(a => {
@@ -6569,6 +6687,16 @@ app.post('/api/meta/accounts/sync-status', async (req, res) => {
       }
     } catch (supaSyncErr) {
       console.warn('[Supabase Sync Status] Aviso:', supaSyncErr.message);
+    }
+
+    // Persiste contas ativas e todas as contas atualizadas na Nuvem Global para sincronização imediata entre lambdas
+    try {
+      await Promise.all([
+        syncActiveAccountsToCloud(explicitActiveIds, finalOverrides, effectiveTargetUser),
+        syncAdAccountsToCloud(adAccounts, effectiveTargetUser)
+      ]);
+    } catch (cloudErr) {
+      console.warn('[SyncStatus Cloud] Aviso:', cloudErr.message);
     }
 
     // Atualiza conexões locais em memória para resposta imediata (apenas para este usuário)
