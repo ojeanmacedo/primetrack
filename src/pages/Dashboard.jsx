@@ -516,6 +516,7 @@ export default function Dashboard() {
       try {
         overrides = JSON.parse(localStorage.getItem(userOverridesKey) || localStorage.getItem('primetrack_sync_overrides') || '{}');
       } catch (e) {}
+      const saved = localStorage.getItem(userAccKey) || localStorage.getItem('primetrack_ad_accounts');
       let list = [];
       if (saved) {
         try {
