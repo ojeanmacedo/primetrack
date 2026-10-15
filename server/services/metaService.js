@@ -245,8 +245,11 @@ export function invalidateAccountStructureCache(adAccountId = null) {
     const clean = String(adAccountId).replace('act_', '');
     accountStructureCache.delete(clean);
     accountStructureCache.delete(`act_${clean}`);
+    liveAccountDetailsCache.delete(clean);
+    liveAccountDetailsCache.delete(`act_${clean}`);
   } else {
     accountStructureCache.clear();
+    liveAccountDetailsCache.clear();
   }
 }
 

@@ -173,8 +173,22 @@ export function getDailyCampaignInsights(userId = null, since = null, until = nu
   });
 
   // Agrupa por campaignId se o período abrange múltiplos dias
-  const groupedMap = new Map();
+  // IMPORTANTE: Primeiro deduplica por (date + '::' + campaignId) para garantir que múltiplos registros
+  // gravados para a mesma campanha no mesmo dia (ex: sincronizações sucessivas ou userIds equivalentes)
+  // NUNCA sejam somados repetidamente, evitando multiplicação do gasto.
+  const uniqueDailyMap = new Map();
   filtered.forEach(item => {
+    const cId = String(item.campaignId || item.id);
+    const dateKey = `${item.date || 'unknown'}::${cId}`;
+    const prev = uniqueDailyMap.get(dateKey);
+    if (!prev || (item.userId && !prev.userId) || (item.updatedAt && prev.updatedAt && item.updatedAt > prev.updatedAt)) {
+      uniqueDailyMap.set(dateKey, item);
+    }
+  });
+
+  // Agrupa por campaignId apenas somando dias distintos caso o período abranja múltiplos dias (ex: últimos 7 dias)
+  const groupedMap = new Map();
+  Array.from(uniqueDailyMap.values()).forEach(item => {
     const cId = String(item.campaignId || item.id);
     if (!groupedMap.has(cId)) {
       groupedMap.set(cId, {
@@ -258,7 +272,9 @@ export function saveDailyCampaignInsights(campaignsList, dateStr, userId = null)
   const currentInsights = db.get('daily_campaign_insights') || [];
   const insightsMap = new Map();
   currentInsights.forEach(item => {
-    const key = `${item.date}_${item.campaignId || item.id}_${item.userId || 'default'}`;
+    const rawUser = item.userId || 'default';
+    const normUser = isOwnerUserId(rawUser) ? 'usr_1788826403159' : rawUser;
+    const key = `${item.date}_${item.campaignId || item.id}_${normUser}`;
     insightsMap.set(key, item);
   });
 
@@ -274,43 +290,41 @@ export function saveDailyCampaignInsights(campaignsList, dateStr, userId = null)
     // Salva qualquer campanha que teve gasto ou qualquer movimentação naquele dia
     if (cSpend > 0 || cImpr > 0 || cClicks > 0 || cSales > 0 || cRev > 0) {
       const campIdStr = String(c.id);
-      const effectiveUser = c.userId || userId || 'usr_1788826403159';
+      const rawUser = c.userId || userId || 'usr_1788826403159';
+      const effectiveUser = isOwnerUserId(rawUser) ? 'usr_1788826403159' : rawUser;
       const key = `${validDate}_${campIdStr}_${effectiveUser}`;
       const existing = insightsMap.get(key);
 
-      const existingSpend = Number(existing?.spend || 0);
-      if (!existing || cSpend >= existingSpend || (cSpend > 0 && existingSpend === 0)) {
-        insightsMap.set(key, {
-          id: key,
-          date: validDate,
-          userId: effectiveUser,
-          campaignId: campIdStr,
-          name: c.name || existing?.name || 'Campanha',
-          adAccountId: c.adAccountId || c.accountId || existing?.adAccountId || null,
-          accountName: c.accountName || existing?.accountName || null,
-          spend: cSpend.toFixed(2),
-          rawSpendUsd: c.rawSpendUsd !== undefined ? c.rawSpendUsd : (existing?.rawSpendUsd || null),
-          usdRate: c.usdRate || existing?.usdRate || null,
-          currency: c.currency || existing?.currency || 'BRL',
-          impressions: cImpr || existing?.impressions || 0,
-          clicks: cClicks || existing?.clicks || 0,
-          cpc: c.cpc || existing?.cpc || '0.00',
-          cpm: c.cpm || existing?.cpm || '0.00',
-          ctr: c.ctr || existing?.ctr || '0.00%',
-          sales: cSales || existing?.sales || 0,
-          revenue: c.revenue || existing?.revenue || '0.00',
-          profit: c.profit || existing?.profit || '0.00',
-          roas: c.roas || existing?.roas || '0.00',
-          cpa: c.cpa || existing?.cpa || '0.00',
-          status: c.status !== undefined ? c.status : existing?.status,
-          rawStatus: c.rawStatus || existing?.rawStatus || (c.status ? 'ACTIVE' : 'PAUSED'),
-          effectiveStatus: c.effectiveStatus || existing?.effectiveStatus || (c.status ? 'ACTIVE' : 'PAUSED'),
-          adsets: Array.isArray(c.adsets) ? c.adsets : (existing?.adsets || []),
-          ads: Array.isArray(c.ads) ? c.ads : (existing?.ads || []),
-          updatedAt: new Date().toISOString()
-        });
-        hasChanges = true;
-      }
+      insightsMap.set(key, {
+        id: key,
+        date: validDate,
+        userId: effectiveUser,
+        campaignId: campIdStr,
+        name: c.name || existing?.name || 'Campanha',
+        adAccountId: c.adAccountId || c.accountId || existing?.adAccountId || null,
+        accountName: c.accountName || existing?.accountName || null,
+        spend: cSpend.toFixed(2),
+        rawSpendUsd: c.rawSpendUsd !== undefined ? c.rawSpendUsd : (existing?.rawSpendUsd || null),
+        usdRate: c.usdRate || existing?.usdRate || null,
+        currency: c.currency || existing?.currency || 'BRL',
+        impressions: cImpr || existing?.impressions || 0,
+        clicks: cClicks || existing?.clicks || 0,
+        cpc: c.cpc || existing?.cpc || '0.00',
+        cpm: c.cpm || existing?.cpm || '0.00',
+        ctr: c.ctr || existing?.ctr || '0.00%',
+        sales: cSales || existing?.sales || 0,
+        revenue: c.revenue || existing?.revenue || '0.00',
+        profit: c.profit || existing?.profit || '0.00',
+        roas: c.roas || existing?.roas || '0.00',
+        cpa: c.cpa || existing?.cpa || '0.00',
+        status: c.status !== undefined ? c.status : existing?.status,
+        rawStatus: c.rawStatus || existing?.rawStatus || (c.status ? 'ACTIVE' : 'PAUSED'),
+        effectiveStatus: c.effectiveStatus || existing?.effectiveStatus || (c.status ? 'ACTIVE' : 'PAUSED'),
+        adsets: Array.isArray(c.adsets) ? c.adsets : (existing?.adsets || []),
+        ads: Array.isArray(c.ads) ? c.ads : (existing?.ads || []),
+        updatedAt: new Date().toISOString()
+      });
+      hasChanges = true;
     }
   });
 
@@ -3891,13 +3905,14 @@ async function syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiv
     const targetPeriodDate = resolvedRange.isMaximum ? 'Máximo' : (resolvedRange.since || todayBrazil);
     allCampaigns = allCampaigns.map(c => {
       const cIdStr = String(c.id);
-      // Se a campanha veio do Meta nesta consulta com dados frescos do período, preserva
+      // Se a campanha veio do Meta nesta consulta com dados frescos do período, preserva dados reais da Graph API
       const freshCamp = syncResult && Array.isArray(syncResult.campaigns) ? syncResult.campaigns.find(fc => String(fc.id) === cIdStr) : null;
       if (freshCamp) {
-        // Se temos histórico salvo gravado com gasto e a API retornou 0 (ex: conta bloqueada/desativada no meio do dia), preserva o maior gasto
-        if (savedInsightsMap.has(cIdStr)) {
+        // Se a conta/campanha estiver bloqueada/desativada e a API retornou gasto 0, preserva histórico se houver
+        const isCampBlocked = freshCamp.status === false || freshCamp.status === 'PAUSED' || freshCamp.rawStatus === 'PAUSED';
+        if (Number(freshCamp.spend || 0) === 0 && isCampBlocked && savedInsightsMap.has(cIdStr)) {
           const savedMetric = savedInsightsMap.get(cIdStr);
-          if (Number(savedMetric.spend || 0) > Number(freshCamp.spend || 0)) {
+          if (Number(savedMetric.spend || 0) > 0) {
             freshCamp.spend = savedMetric.spend;
           }
         }

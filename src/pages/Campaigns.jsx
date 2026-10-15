@@ -1493,10 +1493,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
     try {
       let statusData = null;
+      if (!forceRefresh || currentActiveAccs.length === 0) {
         statusData = await fetch('/api/meta/status' + userParamFirst + (userParamFirst ? '&' : '?') + '_t=' + Date.now(), { 
           headers: { ...userHeaders, 'Cache-Control': 'no-cache, no-store' },
           cache: 'no-store'
         }).then(r => r.json()).catch(() => ({}));
+      }
 
       const data = statusData || {};
 
@@ -1844,7 +1846,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     };
   }, []);
 
-  const handleSyncNow = async (preset = periodFilterRef.current, customRangeObj = customRangeRef.current) => {
+  const handleSyncNow = async (presetParam, customRangeParam) => {
     const activeAccs = (adAccountsList && adAccountsList.length > 0) 
       ? adAccountsList 
       : (() => {
@@ -1861,13 +1863,20 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
     if (syncing) return;
     setSyncing(true);
+    setSaveSuccessMsg('Sincronizando métricas em tempo real com a Meta Ads...');
     try {
-      const selectedPreset = typeof preset === 'string' ? preset : periodFilterRef.current;
-      await loadData(selectedPreset, customRangeObj, false, true);
+      const selectedPreset = typeof presetParam === 'string' ? presetParam : periodFilterRef.current;
+      const selectedRange = (customRangeParam && customRangeParam.since) ? customRangeParam : customRangeRef.current;
+      await loadData(selectedPreset, selectedRange, false, true);
       const now = new Date();
       setLastSyncTime(`${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`);
+      setSaveSuccessMsg('🟢 Métricas atualizadas com sucesso em tempo real!');
+      setTimeout(() => {
+        setSaveSuccessMsg(prev => (prev?.includes('🟢') ? null : prev));
+      }, 4000);
     } catch (e) {
       console.error(e);
+      setSaveSuccessMsg(`⚠️ Erro ao atualizar métricas da Meta: ${e.message}`);
     } finally {
       setSyncing(false);
     }
@@ -4379,11 +4388,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           </button>
 
           <button 
-            onClick={handleSyncNow}
-            className="px-2.5 py-1 rounded-lg bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold flex items-center gap-1.5 cursor-pointer shadow-md shadow-blue-600/25 transition-all text-xs"
+            onClick={() => handleSyncNow()}
+            disabled={syncing}
+            className="px-2.5 py-1 rounded-lg bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold flex items-center gap-1.5 cursor-pointer shadow-md shadow-blue-600/25 transition-all text-xs disabled:opacity-75 disabled:cursor-wait"
+            title="Atualizar métricas em tempo real diretamente da Meta Ads"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
-            <span>Atualizar</span>
+            <span>{syncing ? 'Atualizando...' : 'Atualizar'}</span>
           </button>
         </div>
       </div>
