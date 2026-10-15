@@ -695,17 +695,19 @@ export default function Dashboard() {
       setSyncing(true);
     }
 
+    const hasZeroSpendCached = cached && Array.isArray(cached.campaigns) && cached.campaigns.length > 0 && !cached.campaigns.some(c => Number(c.spend || 0) > 0);
     // Busca os dados exatos do novo período diretamente no servidor
-    loadDashboardData(newPeriod, newRange);
+    loadDashboardData(newPeriod, newRange, hasZeroSpendCached);
   };
 
-  const loadDashboardData = async (customPeriod = period, rangeObj = customRange) => {
+  const loadDashboardData = async (customPeriod = period, rangeObj = customRange, forceRefresh = false) => {
     let query = '';
+    const refreshSuffix = forceRefresh ? '&refresh=true' : '';
     if (customPeriod === 'Personalizado' && rangeObj?.since) {
-      query = `since=${rangeObj.since}&until=${rangeObj.until || rangeObj.since}`;
+      query = `since=${rangeObj.since}&until=${rangeObj.until || rangeObj.since}${refreshSuffix}`;
     } else {
       const preset = periodToPreset[customPeriod] || 'today';
-      query = `datePreset=${preset}`;
+      query = `datePreset=${preset}${refreshSuffix}`;
     }
 
     const isToday = customPeriod === 'Hoje';
@@ -1120,7 +1122,9 @@ export default function Dashboard() {
     }
 
     let lastKnownDate = toBrazilYMD(new Date());
-    loadDashboardData(periodRef.current, customRangeRef.current);
+    const initialCached = getCachedPeriodData(user?.id, periodRef.current, customRangeRef.current);
+    const hasZeroSpendMount = initialCached && Array.isArray(initialCached.campaigns) && initialCached.campaigns.length > 0 && !initialCached.campaigns.some(c => Number(c.spend || 0) > 0);
+    loadDashboardData(periodRef.current, customRangeRef.current, hasZeroSpendMount);
 
     const handleProfileSync = () => {
       loadDashboardData(periodRef.current, customRangeRef.current);

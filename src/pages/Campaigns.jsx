@@ -944,14 +944,15 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             rawStatus: 'ACTIVE',
             effectiveStatus: 'ACTIVE',
             objective: 'OUTCOME_SALES',
-            spend: '0.00',
-            impressions: 1,
-            clicks: 0,
-            sales: 0,
-            revenue: '0.00',
-            profit: '0.00',
-            roas: '0.00',
-            cpa: '0.00',
+            spend: '7.63',
+            impressions: 265,
+            clicks: 64,
+            sales: 1,
+            pendingSales: 1,
+            revenue: '9.44',
+            profit: '1.81',
+            roas: '1.24',
+            cpa: '7.63',
             budget: '200.00',
             budgetType: 'Diário',
             bidCap: '10.00',
@@ -973,20 +974,21 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 budgetType: 'Diário',
                 bidCap: '10.00',
                 bidStrategy: 'LOWEST_COST_WITH_BID_CAP',
-                spend: '0.00',
-                impressions: 1,
-                clicks: 0,
-                cpc: '0.00',
-                cpm: '0.00',
-                ctr: '0.00%',
-                visits: 0,
+                spend: '7.63',
+                impressions: 265,
+                clicks: 64,
+                cpc: '0.12',
+                cpm: '28.79',
+                ctr: '24.15%',
+                visits: 48,
                 ic: 0,
                 costPerIc: '0.00',
-                sales: 0,
-                revenue: '0.00',
-                profit: '0.00',
-                roas: '0.00',
-                cpa: '0.00',
+                sales: 1,
+                pendingSales: 1,
+                revenue: '9.44',
+                profit: '1.81',
+                roas: '1.24',
+                cpa: '7.63',
                 adAccountId: 'act_1394391128741416',
                 accountId: '1394391128741416',
                 isCbo: true,
@@ -1006,12 +1008,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             rawStatus: 'ACTIVE',
             effectiveStatus: 'ACTIVE',
             objective: 'OUTCOME_SALES',
-            spend: '0.00',
-            impressions: 0,
-            clicks: 0,
+            spend: '0.12',
+            impressions: 11,
+            clicks: 3,
             sales: 0,
+            pendingSales: 0,
             revenue: '0.00',
-            profit: '0.00',
+            profit: '-0.12',
             roas: '0.00',
             cpa: '0.00',
             budget: '200.00',
@@ -1035,18 +1038,19 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 budgetType: 'Diário',
                 bidCap: '10.00',
                 bidStrategy: 'LOWEST_COST_WITH_BID_CAP',
-                spend: '0.00',
-                impressions: 0,
-                clicks: 0,
-                cpc: '0.00',
-                cpm: '0.00',
-                ctr: '0.00%',
-                visits: 0,
+                spend: '0.12',
+                impressions: 11,
+                clicks: 3,
+                cpc: '0.04',
+                cpm: '10.91',
+                ctr: '27.27%',
+                visits: 2,
                 ic: 0,
                 costPerIc: '0.00',
                 sales: 0,
+                pendingSales: 0,
                 revenue: '0.00',
-                profit: '0.00',
+                profit: '-0.12',
                 roas: '0.00',
                 cpa: '0.00',
                 adAccountId: 'act_1893409298725562',
@@ -1670,12 +1674,25 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       });
     }
 
-    const hasCached = campaignsList.length > 0 || (typeof window !== 'undefined' && Boolean(localStorage.getItem('primetrack_cached_campaigns')));
+    const cachedCampsRaw = typeof window !== 'undefined' ? (localStorage.getItem(userCampKey) || localStorage.getItem('primetrack_cached_campaigns')) : null;
+    let hasZeroSpendCached = false;
+    if (cachedCampsRaw) {
+      try {
+        const parsed = JSON.parse(cachedCampsRaw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          hasZeroSpendCached = !parsed.some(c => Number(c.spend || 0) > 0);
+        }
+      } catch (e) {}
+    } else if (campaignsList.length > 0) {
+      hasZeroSpendCached = !campaignsList.some(c => Number(c.spend || 0) > 0);
+    }
+
+    const hasCached = campaignsList.length > 0 || Boolean(cachedCampsRaw);
     if (hasCached) {
       setSyncing(true);
-      loadData(periodFilterRef.current, customRangeRef.current, true, false);
+      loadData(periodFilterRef.current, customRangeRef.current, true, hasZeroSpendCached);
     } else {
-      loadData(periodFilterRef.current, customRangeRef.current, false, false);
+      loadData(periodFilterRef.current, customRangeRef.current, false, true);
     }
 
     const handleProfileSync = () => {

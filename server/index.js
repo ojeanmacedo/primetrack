@@ -2962,7 +2962,8 @@ export function isMatchCampaign(campaignNameOrId, camp, orderOrEvent = null, all
     ''
   ).trim();
   if (explicitCampId) {
-    return explicitCampId === cId;
+    const cleanCampId = explicitCampId.split('::')[0].trim();
+    return cleanCampId === cId || explicitCampId === cId;
   }
 
   // 2. Se o identificador pesquisado for numérico puro (ID da campanha da Meta), match estrito por ID
@@ -3009,7 +3010,11 @@ export function isMatchCampaign(campaignNameOrId, camp, orderOrEvent = null, all
     ''
   ).trim();
   if (explicitAdId && Array.isArray(camp.ads) && camp.ads.length > 0) {
-    const hasAdId = camp.ads.some(a => String(a.id || a.adId).trim() === explicitAdId);
+    const cleanAdId = explicitAdId.split('::')[0].trim();
+    const hasAdId = camp.ads.some(a => {
+      const aIdStr = String(a.id || a.adId).trim();
+      return aIdStr === cleanAdId || aIdStr === explicitAdId;
+    });
     if (!hasAdId) return false;
   }
 
@@ -3102,9 +3107,8 @@ export function isMatchAdset(orderOrEvent, as, camp) {
   }
 
   if (explicitAdsetId) {
-    // Se o pedido possui ID explícito do conjunto, DEVE corresponder ESTRITAMENTE ao ID deste conjunto!
-    // NUNCA pode vazar para outros conjuntos por igualdade de nome!
-    return explicitAdsetId === asId;
+    const cleanAdsetId = explicitAdsetId.split('::')[0].trim();
+    return cleanAdsetId === asId || explicitAdsetId === asId;
   }
 
   // 2. Resolução através do Anúncio (Ad ID -> Conjunto Pai)
@@ -3122,7 +3126,11 @@ export function isMatchAdset(orderOrEvent, as, camp) {
   }
 
   if (explicitAdId && Array.isArray(camp.ads) && camp.ads.length > 0) {
-    const matchedAd = camp.ads.find(a => String(a.id || a.adId).trim() === explicitAdId);
+    const cleanAdId = explicitAdId.split('::')[0].trim();
+    const matchedAd = camp.ads.find(a => {
+      const aIdStr = String(a.id || a.adId).trim();
+      return aIdStr === cleanAdId || aIdStr === explicitAdId;
+    });
     if (matchedAd && (matchedAd.adsetId || matchedAd.adset_id)) {
       const parentAdsetId = String(matchedAd.adsetId || matchedAd.adset_id).trim();
       return parentAdsetId === asId;
@@ -3187,9 +3195,8 @@ export function isMatchAd(orderOrEvent, ad, camp) {
   }
 
   if (explicitAdId) {
-    // Se o pedido possui ID explícito do anúncio, DEVE corresponder ESTRITAMENTE ao ID deste anúncio!
-    // NUNCA pode vazar para outros anúncios por igualdade de nome!
-    return explicitAdId === adId;
+    const cleanAdId = explicitAdId.split('::')[0].trim();
+    return cleanAdId === adId || explicitAdId === adId;
   }
 
   // 2. Validação do Conjunto Pai:
@@ -3618,6 +3625,10 @@ export function getUserActiveAccountIds(userId = null, connections = null) {
 export function getStoredCampaignsForPeriod(userId, resolvedRange, userActiveIds, isToday = false, allUserConnectedAccIds = null) {
   const allStored = (db.get('campaigns') || []).filter(c => isOwnerUserId(userId) ? (!c.userId || isOwnerUserId(c.userId)) : (c.userId === userId));
   const savedPeriodData = getDailyCampaignInsights(userId, resolvedRange.since, resolvedRange.until, resolvedRange.isMaximum) || [];
+
+  if (!savedPeriodData || savedPeriodData.length === 0) {
+    return [];
+  }
 
   const periodInsightsMap = new Map();
   savedPeriodData.forEach(p => {
@@ -4297,11 +4308,17 @@ app.get('/api/campaigns', async (req, res) => {
 
   const isCachedTodayInvalid = isToday && cached?.date && cached.date !== todayBrazil;
 
+  const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.VERCEL_ENV);
   const cachedAccounts = new Set((cached?.campaigns || []).map(c => String(c.adAccountId || c.accountId || '').replace('act_', '')));
   const isCacheMissingActive = userActiveIds.size > 0 && Array.from(userActiveIds).some(id => !cachedAccounts.has(id));
+  const cachedHasRealActivity = (cached?.campaigns || []).some(c => 
+    Number(c.spend || 0) > 0 || Number(c.sales || 0) > 0 || Number(c.impressions || 0) > 0 || Number(c.clicks || 0) > 0
+  );
+  // Se for consulta de hoje e o cache em RAM não tem nenhuma atividade (gasto 0), não fica preso em cache zero
+  const isStaleZeroCache = isToday && !cachedHasRealActivity && (now - (cached?.timestamp || 0) > 20000);
 
   // Retorna cache imediatamente se disponível e se todas as contas ativas estão representadas
-  if (cached && !isCachedTodayInvalid && refresh !== 'true' && !isCacheMissingActive && Array.isArray(cached.campaigns)) {
+  if (cached && !isCachedTodayInvalid && refresh !== 'true' && !isCacheMissingActive && !isStaleZeroCache && Array.isArray(cached.campaigns)) {
     const age = now - cached.timestamp;
     const filteredCached = formatCampaignsForUser(cached.campaigns, userActiveIds, isToday, allUserConnectedAccIds);
 
@@ -4311,8 +4328,8 @@ app.get('/api/campaigns', async (req, res) => {
       return res.json(filteredCached);
     }
 
-    // Stale-While-Revalidate: Entrega instantânea (< 5ms) do cache enquanto revalida em segundo plano
-    if (age < maxStaleWindowMs) {
+    // Stale-While-Revalidate: Entrega instantânea apenas se NÃO for serverless (onde promessas em background são congeladas ao responder)
+    if (!isServerless && age < maxStaleWindowMs) {
       syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiveIds, cacheKey, resolvedRange, todayBrazil, allUserConnectedAccIds })
         .catch(e => console.warn('[Background SWR Sync]:', e.message));
       res.set('Cache-Control', 'private, max-age=10');
@@ -4322,15 +4339,24 @@ app.get('/api/campaigns', async (req, res) => {
   }
 
   // Se não há cache em RAM, entrega instantânea (< 5ms) com TODAS as campanhas do período salvas localmente
+  // MAS apenas se for período fechado/histórico (ex: ontem, mês passado) OU se já houver gastos/métricas reais gravados hoje no banco
   if (refresh !== 'true') {
     const storedPeriodCampaigns = getStoredCampaignsForPeriod(userId, resolvedRange, userActiveIds, isToday, allUserConnectedAccIds);
     const storedAccounts = new Set((storedPeriodCampaigns || []).map(c => String(c.adAccountId || c.accountId || '').replace('act_', '')));
     const isStoredMissingActive = userActiveIds.size > 0 && Array.from(userActiveIds).some(id => !storedAccounts.has(id));
 
-    if (storedPeriodCampaigns && storedPeriodCampaigns.length > 0 && !isStoredMissingActive) {
-      // Revalida em segundo plano sem travar a resposta do usuário (Padrão Utmify)
-      syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiveIds, cacheKey, resolvedRange, todayBrazil, allUserConnectedAccIds })
-        .catch(e => console.warn('[Background DB Sync]:', e.message));
+    const hasRealActivity = (storedPeriodCampaigns || []).some(c => 
+      Number(c.spend || 0) > 0 || Number(c.sales || 0) > 0 || Number(c.impressions || 0) > 0 || Number(c.clicks || 0) > 0
+    );
+
+    // Para o dia de hoje (isToday), se não há gastos/atividades gravados ou estamos em serverless sem cache quente, busca dados frescos ao vivo
+    const allowStaleDbReturn = !isToday ? hasRealActivity : (!isServerless && hasRealActivity);
+
+    if (storedPeriodCampaigns && storedPeriodCampaigns.length > 0 && !isStoredMissingActive && allowStaleDbReturn) {
+      if (!isServerless) {
+        syncAndEnrichCampaigns({ datePreset, timeRange, userId, userActiveIds, cacheKey, resolvedRange, todayBrazil, allUserConnectedAccIds })
+          .catch(e => console.warn('[Background DB Sync]:', e.message));
+      }
       res.set('Cache-Control', 'private, max-age=10');
       res.set('X-Cache', 'STALE-DB');
       return res.json(storedPeriodCampaigns);
