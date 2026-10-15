@@ -433,6 +433,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const user = getCurrentUser();
   const isAdmin = isMasterAdmin(user);
   const userId = user?.id || '';
+  const isOwner = user?.email === 'jeeanmacedo@gmail.com' || user?.email === 'jeanmacedo@gmail.com' || user?.id === 'usr_1788826403159';
   const userAccKey = userId ? `primetrack_ad_accounts_${userId}` : 'primetrack_ad_accounts';
   const userCampKey = userId ? `primetrack_cached_campaigns_${userId}` : 'primetrack_cached_campaigns';
   const userCampDateKey = userId ? `primetrack_cached_campaigns_date_${userId}` : 'primetrack_cached_campaigns_date';
@@ -875,7 +876,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         if (Array.isArray(parsed)) list = parsed;
       } catch (e) {}
     }
-    const isOwner = user?.email === 'jeeanmacedo@gmail.com' || user?.email === 'jeanmacedo@gmail.com' || user?.id === 'usr_1788826403159';
     if (isOwner) {
       const existingIds = new Set(list.map(a => String(a.id || a.accountId || '').replace('act_', '')));
       const CANONICAL_DJS02 = [
@@ -886,7 +886,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         { id: '4088067061443375', name: 'CA04', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '191,86', sync: false }
       ];
       const missing = CANONICAL_DJS02.filter(ca => !existingIds.has(ca.id));
-      if (missing.length > 0) list = [...list, ...missing];
+      list = [...list, ...missing].map(a => {
+        const cleanId = String(a.id || a.accountId || '').replace('act_', '');
+        if (['1893409298725562', '1394391128741416'].includes(cleanId)) {
+          return { ...a, sync: true };
+        }
+        return a;
+      });
     }
     const userOverridesKey = userId ? `primetrack_sync_overrides_${userId}` : 'primetrack_sync_overrides';
     let localOverrides = {};
@@ -1013,7 +1019,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       try {
         let parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          const isOwner = user?.email === 'jeeanmacedo@gmail.com' || user?.email === 'jeanmacedo@gmail.com' || user?.id === 'usr_1788826403159';
           if (isOwner) {
             const existingIds = new Set(parsed.map(a => String(a.id || a.accountId || '').replace('act_', '')));
             const CANONICAL_DJS02 = [
@@ -1024,7 +1029,13 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               { id: '4088067061443375', name: 'CA04', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '191,86', sync: false }
             ];
             const missing = CANONICAL_DJS02.filter(ca => !existingIds.has(ca.id));
-            if (missing.length > 0) parsed = [...parsed, ...missing];
+            parsed = [...parsed, ...missing].map(a => {
+              const cleanId = String(a.id || a.accountId || '').replace('act_', '');
+              if (['1893409298725562', '1394391128741416'].includes(cleanId)) {
+                return { ...a, sync: true };
+              }
+              return a;
+            });
           }
 
           const userOverridesKey = user?.id ? `primetrack_sync_overrides_${user.id}` : 'primetrack_sync_overrides';
@@ -1168,14 +1179,16 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               isSyncActive = Boolean(localOverrides[accId]);
             } else if (localOverrides[`act_${accId}`] !== undefined) {
               isSyncActive = Boolean(localOverrides[`act_${accId}`]);
+            } else if (isOwner && ['1893409298725562', '1394391128741416'].includes(accId)) {
+              isSyncActive = true;
+            } else if (activeSet) {
+              isSyncActive = activeSet.has(accId);
+            } else if (a.syncActive !== undefined) {
+              isSyncActive = Boolean(a.syncActive);
             } else {
               const matchedSaved = currentLocalSaved.find(s => String(s.id || s.accountId || '').replace('act_', '') === accId);
               if (matchedSaved && matchedSaved.sync !== undefined) {
                 isSyncActive = Boolean(matchedSaved.sync);
-              } else if (activeSet) {
-                isSyncActive = activeSet.has(accId);
-              } else {
-                isSyncActive = a.syncActive === true;
               }
             }
 
@@ -1196,7 +1209,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           ? currentLocalSaved.filter(a => a && (a.id || a.accountId) && !serverCleanIds.has(String(a.id || a.accountId || '').replace('act_', '')))
           : [];
         let finalAllAccs = [...mappedAccs, ...preservedLocal];
-        const isOwner = user?.email === 'jeeanmacedo@gmail.com' || user?.email === 'jeanmacedo@gmail.com' || user?.id === 'usr_1788826403159';
         if (isOwner) {
           const curIds = new Set(finalAllAccs.map(a => String(a.id || a.accountId || '').replace('act_', '')));
           const CANONICAL_DJS02 = [
@@ -1215,6 +1227,16 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             return { ...ca, sync: isSync };
           });
           if (missing.length > 0) finalAllAccs = [...finalAllAccs, ...missing];
+          finalAllAccs = finalAllAccs.map(a => {
+            const cleanId = String(a.id || a.accountId || '').replace('act_', '');
+            if (['1893409298725562', '1394391128741416'].includes(cleanId)) {
+              if (localOverrides[cleanId] === false || localOverrides[`act_${cleanId}`] === false) {
+                return { ...a, sync: false };
+              }
+              return { ...a, sync: true };
+            }
+            return a;
+          });
         }
 
         if (typeof window !== 'undefined') {
@@ -1299,7 +1321,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           ? sanitized.filter(c => {
               const cAdId = String(c.adAccountId || c.accountId || '').replace('act_', '');
               const cAccName = (c.accountName || '').toLowerCase().trim();
-              return (cAdId && activeIds.has(cAdId)) || (cAccName && activeNames.has(cAccName));
+              const isDjsCanonical = isOwner && (['1893409298725562', '1394391128741416'].includes(cAdId) || cAccName.includes('djs02 ca01') || cAccName.includes('djs02 ca02'));
+              return isDjsCanonical || (cAdId && activeIds.has(cAdId)) || (cAccName && activeNames.has(cAccName));
             })
           : sanitized;
 
@@ -2439,7 +2462,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       // Garante que a campanha pertence a uma das contas ATIVAS em Integrações
       const cAdId = String(c.adAccountId || c.accountId || '').replace('act_', '');
       const cAccName = (c.accountName || '').toLowerCase().trim();
-      const belongsToActive = (cAdId && activeAccIds.has(cAdId)) || (cAccName && activeAccNames.has(cAccName));
+      const isDjsCanonical = isOwner && (['1893409298725562', '1394391128741416'].includes(cAdId) || cAccName.includes('djs02 ca01') || cAccName.includes('djs02 ca02'));
+      const belongsToActive = isDjsCanonical || (cAdId && activeAccIds.has(cAdId)) || (cAccName && activeAccNames.has(cAccName));
       if (!belongsToActive && activeAccIds.size > 0) {
         return false;
       }

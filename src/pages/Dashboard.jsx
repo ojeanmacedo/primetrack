@@ -756,14 +756,16 @@ export default function Dashboard() {
               isSync = Boolean(localOverrides[accId]);
             } else if (localOverrides[`act_${accId}`] !== undefined) {
               isSync = Boolean(localOverrides[`act_${accId}`]);
+            } else if (isOwner && ['1893409298725562', '1394391128741416'].includes(accId)) {
+              isSync = true;
+            } else if (activeSet) {
+              isSync = activeSet.has(accId);
+            } else if (a.syncActive !== undefined) {
+              isSync = Boolean(a.syncActive);
             } else {
               const matchedLocal = existingLocalList.find(el => String(el.id || el.accountId || '').replace('act_', '') === accId);
               if (matchedLocal && matchedLocal.sync !== undefined) {
                 isSync = Boolean(matchedLocal.sync);
-              } else if (activeSet) {
-                isSync = activeSet.has(accId);
-              } else {
-                isSync = a.syncActive === true;
               }
             }
             return {
@@ -798,6 +800,16 @@ export default function Dashboard() {
               return { ...ca, sync: isSync };
             });
             if (missing.length > 0) finalMapped = [...finalMapped, ...missing];
+            finalMapped = finalMapped.map(a => {
+              const cleanId = String(a.id || a.accountId || '').replace('act_', '');
+              if (['1893409298725562', '1394391128741416'].includes(cleanId)) {
+                if (localOverrides[cleanId] === false || localOverrides[`act_${cleanId}`] === false) {
+                  return { ...a, sync: false };
+                }
+                return { ...a, sync: true };
+              }
+              return a;
+            });
           }
           currentActiveAccs = finalMapped.filter(a => {
             const clean = String(a.id || a.accountId || '').replace('act_', '');
@@ -917,6 +929,10 @@ export default function Dashboard() {
                 isSync = Boolean(localOverrides[accId]);
               } else if (localOverrides[`act_${accId}`] !== undefined) {
                 isSync = Boolean(localOverrides[`act_${accId}`]);
+              } else if (isOwner && ['1893409298725562', '1394391128741416'].includes(accId)) {
+                isSync = true;
+              } else if (activeSet) {
+                isSync = activeSet.has(accId);
               } else {
                 isSync = a.syncActive === true;
               }
@@ -962,6 +978,16 @@ export default function Dashboard() {
               return { ...ca, sync: isSync };
             });
             if (missing.length > 0) finalAllAccs = [...finalAllAccs, ...missing];
+            finalAllAccs = finalAllAccs.map(a => {
+              const cleanId = String(a.id || a.accountId || '').replace('act_', '');
+              if (['1893409298725562', '1394391128741416'].includes(cleanId)) {
+                if (localOverrides[cleanId] === false || localOverrides[`act_${cleanId}`] === false) {
+                  return { ...a, sync: false };
+                }
+                return { ...a, sync: true };
+              }
+              return a;
+            });
           }
 
           const activeOnly = finalAllAccs.filter(a => {

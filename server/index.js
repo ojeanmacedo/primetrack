@@ -3478,6 +3478,9 @@ export function formatCampaignsForUser(campaignsList, userActiveIds, isToday = f
 
     // Se é consulta do dia de hoje (ao vivo):
     if (isToday) {
+      if (['1893409298725562', '1394391128741416'].includes(cActId)) {
+        return true;
+      }
       if (userActiveIds.size > 0) {
         if (userActiveIds.has(cActId)) return true;
         const hasTodayActivity = (Number(c.spend) > 0) || (Number(c.revenue) > 0) || (Number(c.sales) > 0) || (Number(c.clicks) > 0) || (Number(c.impressions) > 0);
@@ -4243,6 +4246,19 @@ app.get('/api/campaigns', async (req, res) => {
   if (userActiveIds.size === 0) {
     const defaultActives = getUserActiveAccountIds(effectiveUser, connections);
     defaultActives.forEach(id => userActiveIds.add(id));
+  }
+
+  // Para o dono (jeeanmacedo@gmail.com / usr_1788826403159), a menos que seja um filtro explícito de 1 conta específica, garante DJS02 CA01 e CA02 ativas
+  if (isOwnerUserId(effectiveUser)) {
+    const isSingleAccountFilter = rawClientAct && !String(rawClientAct).includes(',');
+    if (!isSingleAccountFilter) {
+      const curOverrides = db.get(`sync_overrides_${effectiveUser}`) || db.get('sync_overrides');
+      ['1893409298725562', '1394391128741416'].forEach(id => {
+        if (!curOverrides || (curOverrides[id] !== false && curOverrides[`act_${id}`] !== false)) {
+          userActiveIds.add(id);
+        }
+      });
+    }
   }
 
   // Carrega todas as contas vinculadas do usuário no store/Supabase
