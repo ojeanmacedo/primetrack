@@ -536,8 +536,8 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
             let rawVal = (c.rawBudgetUsd !== null && c.rawBudgetUsd !== undefined && Number(c.rawBudgetUsd) > 0)
               ? Number(c.rawBudgetUsd)
               : (rawDaily !== null ? rawDaily : (isUsd ? (Number(c.budget || 25) / usdRate) : Number(c.budget || 25)));
-            if (isKnownBidCamp && (rawVal < 100 || rawVal === 50)) {
-              rawVal = 200.00;
+            if (isKnownBidCamp && (rawVal < 100 || rawVal === 50 || rawVal === 200)) {
+              rawVal = 300.00;
             }
             campDailyBudget = Math.round(rawVal * 100);
           }
@@ -551,7 +551,7 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
             daily_budget: campDailyBudget,
             bid_strategy: isCampAbo ? 'LOWEST_COST_WITHOUT_CAP' : (isKnownBidCamp ? 'LOWEST_COST_WITH_BID_CAP' : (c.bidStrategy || 'LOWEST_COST_WITHOUT_CAP')),
             _fromFallback: true,
-            _originalBudgetBrl: isKnownBidCamp ? '200.00' : c.budget,
+            _originalBudgetBrl: isKnownBidCamp ? '300.00' : c.budget,
             _originalIsAbo: isCampAbo
           };
         })
@@ -1067,8 +1067,8 @@ export async function fetchCampaigns(adAccountId, accessToken, accountName = '',
     if (rawDailyBudget === null && rawLifetimeBudget === null && c._originalBudgetBrl && isCbo && Number(c._originalBudgetBrl) > 0) {
       realBudget = Number(c._originalBudgetBrl);
     }
-    if ((nameUpper.includes('BID MIRELLA') || nameUpper.includes('BID STALK') || String(c.id) === '120251741459010561' || String(c.id) === '120249777013090173') && realBudget < 100) {
-      realBudget = 200.00;
+    if ((nameUpper.includes('BID MIRELLA') || nameUpper.includes('BID STALK') || String(c.id) === '120251741459010561' || String(c.id) === '120249777013090173') && (realBudget < 100 || realBudget === 200)) {
+      realBudget = 300.00;
     }
 
     const realSpend = rawSpend * usdRate;

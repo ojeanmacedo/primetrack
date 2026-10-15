@@ -121,7 +121,7 @@ export const getDetailOverrides = () => {
     const now = Date.now();
     const clean = {};
     for (const [id, entry] of Object.entries(parsed)) {
-      if (entry && entry.timestamp && (now - entry.timestamp) < 15 * 60 * 1000) {
+      if (entry && entry.timestamp && (now - entry.timestamp) < 30 * 1000) {
         clean[id] = entry;
       }
     }
@@ -141,6 +141,17 @@ export const setDetailOverride = (id, details) => {
       timestamp: Date.now()
     };
     localStorage.setItem('primetrack_detail_overrides', JSON.stringify(overrides));
+  } catch (e) {}
+};
+
+export const removeDetailOverride = (id) => {
+  if (typeof window === 'undefined' || !id) return;
+  try {
+    const raw = localStorage.getItem('primetrack_detail_overrides');
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    delete parsed[String(id)];
+    localStorage.setItem('primetrack_detail_overrides', JSON.stringify(parsed));
   } catch (e) {}
 };
 
@@ -307,11 +318,13 @@ export const sanitizeCampaignsData = (cData, optionalAccounts = null) => {
       const rawMetaDailyBudget = c.daily_budget
         ? (Number(c.daily_budget) >= 1000 ? (Number(c.daily_budget) / 100).toFixed(2) : String(c.daily_budget))
         : null;
-      let calculatedBudget = cDetail?.budget !== undefined
-        ? cDetail.budget
-        : (rawMetaDailyBudget || c.budget || '127.58');
-      if (isKnownBidCamp && (Number(calculatedBudget) < 100 || calculatedBudget === '50.00')) {
-        calculatedBudget = '200.00';
+      let calculatedBudget = (c.budget && Number(c.budget) >= 100)
+        ? c.budget
+        : (cDetail?.budget !== undefined
+            ? cDetail.budget
+            : (rawMetaDailyBudget || c.budget || '127.58'));
+      if (isKnownBidCamp && (Number(calculatedBudget) < 100 || calculatedBudget === '50.00' || calculatedBudget === '200.00')) {
+        calculatedBudget = (c.budget && Number(c.budget) >= 100) ? c.budget : '300.00';
       }
 
       const cleanAdsets = (c.adsets || [])
@@ -347,11 +360,13 @@ export const sanitizeCampaignsData = (cData, optionalAccounts = null) => {
             asBidStrategy = asIsCost ? 'COST_CAP' : 'LOWEST_COST_WITH_BID_CAP';
           }
 
-          let adsetBudget = asDetail?.budget !== undefined
-            ? asDetail.budget
-            : (isCbo ? calculatedBudget : (a.budget || '10.00'));
-          if (isKnownBidCamp && isCbo && (Number(adsetBudget) < 100 || adsetBudget === '50.00')) {
-            adsetBudget = '200.00';
+          let adsetBudget = (c.budget && Number(c.budget) >= 100)
+            ? c.budget
+            : (asDetail?.budget !== undefined
+                ? asDetail.budget
+                : (isCbo ? calculatedBudget : (a.budget || '10.00')));
+          if (isKnownBidCamp && isCbo && (Number(adsetBudget) < 100 || adsetBudget === '50.00' || adsetBudget === '200.00')) {
+            adsetBudget = calculatedBudget || '300.00';
           }
 
           return {
@@ -385,7 +400,7 @@ export const sanitizeCampaignsData = (cData, optionalAccounts = null) => {
           status: campActive,
           rawStatus: campActive ? 'ACTIVE' : 'PAUSED',
           effectiveStatus: campActive ? 'ACTIVE' : 'PAUSED',
-          budget: '200.00',
+          budget: calculatedBudget || '300.00',
           budgetType: 'Diário',
           bidCap: '10.00',
           bidStrategy: 'LOWEST_COST_WITH_BID_CAP',
@@ -488,9 +503,13 @@ export const mergeCampaignsPreservingOrder = (prevList, incomingList) => {
       if (fresh.name) incomingByName.delete(String(fresh.name).toLowerCase().trim());
       const mergedAdsets = (fresh.adsets && fresh.adsets.length > 0) ? fresh.adsets : prevC.adsets;
       const mergedAds = (fresh.ads && fresh.ads.length > 0) ? fresh.ads : prevC.ads;
+      const effectiveBudget = (fresh.budget !== undefined && fresh.budget !== null && fresh.budget !== '')
+        ? fresh.budget
+        : prevC.budget;
       updatedExisting.push({
         ...prevC,
         ...fresh,
+        budget: effectiveBudget,
         spend: fresh.spend !== undefined && fresh.spend !== null ? fresh.spend : prevC.spend,
         sales: fresh.sales !== undefined && fresh.sales !== null ? fresh.sales : prevC.sales,
         pendingSales: fresh.pendingSales !== undefined && fresh.pendingSales !== null ? fresh.pendingSales : prevC.pendingSales,
@@ -885,7 +904,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
               const currentAdsets = (c.adsets && c.adsets.length > 0) ? c.adsets.map(a => ({
                 ...a,
-                budget: '200.00',
+                budget: (c.budget && Number(c.budget) >= 100) ? c.budget : '300.00',
                 bidCap: '10.00',
                 bidStrategy: 'LOWEST_COST_WITH_BID_CAP',
                 isCbo: true,
@@ -899,7 +918,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 status: true,
                 rawStatus: 'ACTIVE',
                 effectiveStatus: 'ACTIVE',
-                budget: '200.00',
+                budget: (c.budget && Number(c.budget) >= 100) ? c.budget : '300.00',
                 budgetType: 'Diário',
                 bidCap: '10.00',
                 bidStrategy: 'LOWEST_COST_WITH_BID_CAP',
@@ -937,7 +956,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 cpc: effectiveCpc,
                 cpm: effectiveCpm,
                 ctr: effectiveCtr,
-                budget: '200.00',
+                budget: (c.budget && Number(c.budget) >= 100) ? c.budget : '300.00',
                 bidCap: '10.00',
                 bidStrategy: 'LOWEST_COST_WITH_BID_CAP',
                 isCbo: true,
@@ -972,7 +991,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             profit: '16.34',
             roas: '2.80',
             cpa: '3.03',
-            budget: '200.00',
+            budget: '300.00',
             budgetType: 'Diário',
             bidCap: '10.00',
             bidStrategy: 'LOWEST_COST_WITH_BID_CAP',
@@ -989,7 +1008,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 status: true,
                 rawStatus: 'ACTIVE',
                 effectiveStatus: 'ACTIVE',
-                budget: '200.00',
+                budget: '300.00',
                 budgetType: 'Diário',
                 bidCap: '10.00',
                 bidStrategy: 'LOWEST_COST_WITH_BID_CAP',
@@ -1036,7 +1055,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             profit: '-0.12',
             roas: '0.00',
             cpa: '0.00',
-            budget: '200.00',
+            budget: '300.00',
             budgetType: 'Diário',
             bidCap: '10.00',
             bidStrategy: 'LOWEST_COST_WITH_BID_CAP',
@@ -1053,7 +1072,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
                 status: true,
                 rawStatus: 'ACTIVE',
                 effectiveStatus: 'ACTIVE',
-                budget: '200.00',
+                budget: '300.00',
                 budgetType: 'Diário',
                 bidCap: '10.00',
                 bidStrategy: 'LOWEST_COST_WITH_BID_CAP',
@@ -1600,12 +1619,14 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
               delete overrides[cId];
               overridesChanged = true;
             }
+            removeDetailOverride(cId);
             (c.adsets || []).forEach(as => {
               const asId = String(as.id || as.adsetId);
               if (overrides[asId]) {
                 delete overrides[asId];
                 overridesChanged = true;
               }
+              removeDetailOverride(asId);
             });
             (c.ads || []).forEach(ad => {
               const adId = String(ad.id || ad.adId);
@@ -2961,7 +2982,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             name: itemNamesOverride[a.id] || a.name,
             isCbo: true,
             isAbo: false,
-            budget: (isKnownCamp && (Number(camp.budget || a.budget) < 100 || (camp.budget || a.budget) === '50.00')) ? '200.00' : (camp.budget || a.budget || '127.58'),
+            budget: (isKnownCamp && (Number(camp.budget || a.budget) < 100 || (camp.budget || a.budget) === '50.00' || (camp.budget || a.budget) === '200.00')) ? (camp.budget && Number(camp.budget) >= 100 ? camp.budget : '300.00') : (camp.budget || a.budget || '127.58'),
             budgetType: camp.budgetType || a.budgetType || 'Diário',
             bidStrategy: asBidStrategy,
             bidCap: rawAdsetBid
@@ -2989,7 +3010,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         status: isStatusActive(camp),
         isCbo: true,
         isAbo: false,
-        budget: isKnownCamp ? '200.00' : (camp.budget || '127.58'),
+        budget: camp.budget || a.budget || (isKnownCamp ? '300.00' : '127.58'),
         budgetType: camp.budgetType || 'Diário',
         bidCap: isKnownCamp ? (rawCampBid || '10.00') : rawCampBid,
         bidStrategy: fallbackStrategy,
@@ -3366,8 +3387,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         const itemNameUpper = (item.name || '').toUpperCase();
         const isKnownBidCamp = itemNameUpper.includes('BID MIRELLA') || itemNameUpper.includes('BID STALK') || String(item.id).includes('1202517414590') || String(item.id).includes('1202497770130');
         let rawBudget = Number(item.budget || 0);
-        if (isKnownBidCamp && (rawBudget < 100 || rawBudget === 50)) {
-          rawBudget = 200;
+        if (isKnownBidCamp && (rawBudget < 100 || rawBudget === 50 || rawBudget === 200)) {
+          rawBudget = (item.budget && Number(item.budget) >= 100) ? Number(item.budget) : 300;
         }
         const isItemCbo = Boolean(
           item.isCbo === true ||
@@ -3622,8 +3643,8 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         const itemNameUpperForBudget = (item.name || '').toUpperCase();
         const isKnownBidCampForBudget = itemNameUpperForBudget.includes('BID MIRELLA') || itemNameUpperForBudget.includes('BID STALK') || String(item.id).includes('1202517414590') || String(item.id).includes('1202497770130');
         let displayedBudget = Number(item.budget || 0);
-        if (isKnownBidCampForBudget && (displayedBudget < 100 || displayedBudget === 50)) {
-          displayedBudget = 200;
+        if (isKnownBidCampForBudget && (displayedBudget < 100 || displayedBudget === 50 || displayedBudget === 200)) {
+          displayedBudget = (item.budget && Number(item.budget) >= 100 && Number(item.budget) !== 200) ? Number(item.budget) : 300;
         }
 
         return (
