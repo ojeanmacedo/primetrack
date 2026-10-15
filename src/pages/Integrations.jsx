@@ -809,7 +809,7 @@ export default function Integrations() {
       setAccountSwitchToast(`Conta "${target.name}" desativada.`);
     } else {
       // Se está ativando
-      if (trialStatus.isTrial) {
+      if (trialStatus.isTrial && !isOwnerAccount(currentUser)) {
         // No Plano Free, apenas 1 conta pode ficar ativa por vez!
         // Desativa todas as outras e ativa esta
         updated = adAccounts.map(a => ({
@@ -834,7 +834,7 @@ export default function Integrations() {
         currentOverrides = JSON.parse(localStorage.getItem(userOverridesKey) || localStorage.getItem('primetrack_sync_overrides') || '{}');
       } catch (e) {}
 
-      if (trialStatus.isTrial && nextSync) {
+      if (trialStatus.isTrial && !isOwnerAccount(currentUser) && nextSync) {
         adAccounts.forEach(a => {
           const cid = String(a.id).replace('act_', '');
           currentOverrides[cid] = (cid === cleanTargetId);

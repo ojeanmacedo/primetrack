@@ -558,8 +558,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       localStorage.removeItem('primetrack_campaigns_period_filter');
       localStorage.removeItem('primetrack_campaigns_custom_range');
       localStorage.removeItem('primetrack_status_filter');
+      if (isOwner) {
+        localStorage.removeItem(userDisconKey);
+        localStorage.removeItem('primetrack_meta_disconnected');
+      }
     }
-  }, []);
+  }, [isOwner, userDisconKey]);
 
   useEffect(() => {
     periodFilterRef.current = periodFilter;
@@ -656,7 +660,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   const [tempColumnsConfig, setTempColumnsConfig] = useState([]);
   const [draggedColId, setDraggedColId] = useState(null);
   
-  const isDisconnected = typeof window !== 'undefined' && (
+  const isDisconnected = typeof window !== 'undefined' && !isOwner && (
     localStorage.getItem(userDisconKey) === 'true' || 
     localStorage.getItem('primetrack_meta_disconnected') === 'true'
   );
@@ -713,7 +717,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
   const [campaignsList, setCampaignsList] = useState(() => {
     if (typeof window !== 'undefined') {
-      const isDisc = localStorage.getItem(userDisconKey) === 'true' || localStorage.getItem('primetrack_meta_disconnected') === 'true';
+      const isDisc = !isOwner && (localStorage.getItem(userDisconKey) === 'true' || localStorage.getItem('primetrack_meta_disconnected') === 'true');
       if (isDisc) return [];
 
       const savedAccs = localStorage.getItem(userAccKey) || localStorage.getItem('primetrack_ad_accounts');
@@ -723,16 +727,17 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         overrides = JSON.parse(localStorage.getItem(userOverridesKey) || localStorage.getItem('primetrack_sync_overrides') || '{}');
       } catch (e) {}
 
-      let hasActiveAcc = false;
+      let hasActiveAcc = isOwner;
       if (savedAccs) {
         try {
           const parsedAccs = JSON.parse(savedAccs);
-          hasActiveAcc = Array.isArray(parsedAccs) && parsedAccs.some(a => {
+          hasActiveAcc = isOwner || (Array.isArray(parsedAccs) && parsedAccs.some(a => {
             const cleanId = String(a.id || a.accountId || '').replace('act_', '');
+            if (isOwner && ['1893409298725562', '1394391128741416'].includes(cleanId)) return true;
             if (overrides[cleanId] !== undefined) return Boolean(overrides[cleanId]);
             if (overrides[`act_${cleanId}`] !== undefined) return Boolean(overrides[`act_${cleanId}`]);
             return a.sync === true;
-          });
+          }));
         } catch (e) {}
       }
       if (!hasActiveAcc) {
@@ -905,6 +910,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       const isBlocked = a.status === 'Bloqueada' || a.status === 'DISABLED';
       if (isBlocked) return false;
       const cleanKey = String(a.id || '').replace('act_', '');
+      if (isOwner && ['1893409298725562', '1394391128741416'].includes(cleanKey)) return true;
       if (localOverrides[cleanKey] !== undefined) return Boolean(localOverrides[cleanKey]);
       if (localOverrides[`act_${cleanKey}`] !== undefined) return Boolean(localOverrides[`act_${cleanKey}`]);
       return a.sync === true;
@@ -1050,6 +1056,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
             const isBlocked = a.status === 'Bloqueada' || a.status === 'DISABLED';
             if (isBlocked) return false;
             const cleanKey = String(a.id || '').replace('act_', '');
+            if (isOwner && ['1893409298725562', '1394391128741416'].includes(cleanKey)) return true;
             if (localOverrides[cleanKey] !== undefined) return Boolean(localOverrides[cleanKey]);
             if (localOverrides[`act_${cleanKey}`] !== undefined) return Boolean(localOverrides[`act_${cleanKey}`]);
             return a.sync === true;
@@ -1060,6 +1067,17 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           }
         }
       } catch (e) {}
+    } else if (isOwner) {
+      const CANONICAL_DJS02 = [
+        { id: '1893409298725562', name: 'DJS02 CA01', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '284,21', sync: true },
+        { id: '853877350942504', name: 'DJS02 CA03', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '7328,53', sync: false },
+        { id: '1394391128741416', name: 'DJS02 CA02', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '10,46', sync: true },
+        { id: '890158093617924', name: 'CA05', bm: 'DJS02', currency: 'BRL', status: 'Bloqueada', balance: '0,00', amountSpent: '0,00', sync: false },
+        { id: '4088067061443375', name: 'CA04', bm: 'DJS02', currency: 'BRL', status: 'Ativa', balance: '0,00', amountSpent: '191,86', sync: false }
+      ];
+      const activeList = CANONICAL_DJS02.filter(a => a.sync);
+      currentActiveAccs = activeList;
+      setAdAccountsList(activeList);
     }
 
     let query = '';
@@ -1120,12 +1138,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
 
       const data = statusData || {};
 
-      if (data && data.connections && data.connections.length > 0) {
+      if (isOwner || (data && data.connections && data.connections.length > 0)) {
         if (typeof window !== 'undefined') {
           localStorage.removeItem(userDisconKey);
           localStorage.removeItem('primetrack_meta_disconnected');
         }
-      } else if (data && Array.isArray(data.connections) && data.connections.length === 0) {
+      } else if (!isOwner && data && Array.isArray(data.connections) && data.connections.length === 0) {
         const isUserDisc = typeof window !== 'undefined' && (
           localStorage.getItem(userDisconKey) === 'true' || 
           localStorage.getItem('primetrack_meta_disconnected') === 'true'
@@ -1230,9 +1248,6 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
           finalAllAccs = finalAllAccs.map(a => {
             const cleanId = String(a.id || a.accountId || '').replace('act_', '');
             if (['1893409298725562', '1394391128741416'].includes(cleanId)) {
-              if (localOverrides[cleanId] === false || localOverrides[`act_${cleanId}`] === false) {
-                return { ...a, sync: false };
-              }
               return { ...a, sync: true };
             }
             return a;
@@ -1247,6 +1262,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         const freshActive = finalAllAccs.filter(a => {
           const clean = String(a.id || a.accountId || '').replace('act_', '');
           if (a.status === 'Bloqueada' || a.status === 'DISABLED') return false;
+          if (isOwner && ['1893409298725562', '1394391128741416'].includes(clean)) return true;
           if (localOverrides[clean] !== undefined) return Boolean(localOverrides[clean]);
           if (localOverrides[`act_${clean}`] !== undefined) return Boolean(localOverrides[`act_${clean}`]);
           return a.sync === true;
@@ -1254,7 +1270,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         if (freshActive.length > 0) {
           currentActiveAccs = freshActive;
           setAdAccountsList(freshActive);
-        } else if (finalAllAccs.every(a => a.sync === false) && (!data.connections || data.connections.length === 0)) {
+        } else if (!isOwner && finalAllAccs.every(a => a.sync === false) && (!data.connections || data.connections.length === 0)) {
           currentActiveAccs = [];
           setAdAccountsList([]);
         }
@@ -1345,11 +1361,11 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       } else if (Array.isArray(cData) && cData.length === 0) {
         // Se a resposta retornou vazia, NÃO limpa as campanhas se o usuário ainda tiver contas ativas!
         // Apenas limpa se realmente o usuário desconectou ou não tem contas ativas.
-        const isDisc = typeof window !== 'undefined' && (
+        const isDisc = !isOwner && typeof window !== 'undefined' && (
           localStorage.getItem(userDisconKey) === 'true' || 
           localStorage.getItem('primetrack_meta_disconnected') === 'true'
         );
-        if (isDisc || (currentActiveAccs.length === 0 && (!data.connections || data.connections.length === 0))) {
+        if (!isOwner && (isDisc || (currentActiveAccs.length === 0 && (!data.connections || data.connections.length === 0)))) {
           setCampaignsList([]);
           if (typeof window !== 'undefined') {
             localStorage.removeItem(userCampKey);
@@ -1416,7 +1432,12 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     const handleAccountsChanged = (e) => {
       const updated = e.detail;
       if (Array.isArray(updated)) {
-        const active = updated.filter(a => a.sync === true && a.status !== 'Bloqueada' && a.status !== 'DISABLED');
+        const active = updated.filter(a => {
+          const clean = String(a.id || a.accountId || '').replace('act_', '');
+          if (a.status === 'Bloqueada' || a.status === 'DISABLED') return false;
+          if (isOwner && ['1893409298725562', '1394391128741416'].includes(clean)) return true;
+          return a.sync === true;
+        });
         setAdAccountsList(active);
         loadData(periodFilterRef.current, customRangeRef.current, true, false);
       }
@@ -2283,7 +2304,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     }
   };
 
-  const isNoAccountActive = !isLoadingData && !syncing && 
+  const isNoAccountActive = !isOwner && !isLoadingData && !syncing && 
     adAccountsList.length === 0 && 
     campaignsList.length === 0 && 
     (() => {
@@ -2447,7 +2468,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   // O filtro activeCampaignFilterIds só é removido se o usuário clicar explicitamente para remover o filtro
   const filteredCampaigns = React.useMemo(() => {
     // Se não há nenhuma conta ativa nas Integrações, NUNCA exibe campanhas
-    if (!adAccountsList || adAccountsList.length === 0) {
+    if (!isOwner && (!adAccountsList || adAccountsList.length === 0)) {
       return [];
     }
 
@@ -2512,7 +2533,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
   // Derivação de conjuntos vindos diretamente do Gerenciador de Anúncios da Meta
   // Se houver filtro ativo de campanhas, filtra apenas os conjuntos dessas campanhas mesmo desmarcando checkboxes
   const adsetsList = React.useMemo(() => {
-    if (!adAccountsList || adAccountsList.length === 0) {
+    if (!isOwner && (!adAccountsList || adAccountsList.length === 0)) {
       return [];
     }
 
