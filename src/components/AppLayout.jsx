@@ -55,10 +55,10 @@ export default function AppLayout() {
       try {
         const list = JSON.parse(localStorage.getItem('primetrack_dashboards') || '[]');
         const activeId = localStorage.getItem('primetrack_active_dashboard_id') || 'principal';
-        return list.find(d => d.id === activeId) || { name: 'Principal' };
+        return list.find(d => d.id === activeId) || { id: 'principal', isDefault: true, name: 'Principal' };
       } catch (e) {}
     }
-    return { name: 'Principal' };
+    return { id: 'principal', isDefault: true, name: 'Principal' };
   });
 
   useEffect(() => {
@@ -81,10 +81,13 @@ export default function AppLayout() {
       setTotalFaturado(0);
       return;
     }
-    const userHeaders = user.id ? { 'x-user-id': user.id } : {};
-    const userParam = user.id ? `?userId=${encodeURIComponent(user.id)}` : '';
+    const userHeaders = user.id ? { 'x-user-id': user.id, 'x-user-email': user.email || '' } : {};
+    const userParam = user.id ? `?userId=${encodeURIComponent(user.id)}&userEmail=${encodeURIComponent(user.email || '')}&_t=${Date.now()}` : `?_t=${Date.now()}`;
 
-    fetch('/api/orders' + userParam, { headers: userHeaders })
+    fetch('/api/orders' + userParam, { 
+      headers: { ...userHeaders, 'Cache-Control': 'no-cache, no-store' },
+      cache: 'no-store'
+    })
       .then(r => r.json())
       .then(orders => {
         if (Array.isArray(orders)) {

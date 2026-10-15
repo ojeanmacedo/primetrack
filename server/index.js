@@ -4323,7 +4323,7 @@ app.get('/api/campaigns', async (req, res) => {
     const filteredCached = formatCampaignsForUser(cached.campaigns, userActiveIds, isToday, allUserConnectedAccIds);
 
     if (age < freshTtlMs) {
-      res.set('Cache-Control', 'private, max-age=30');
+      res.set('Cache-Control', isToday ? 'no-cache, no-store, must-revalidate' : 'private, max-age=30');
       res.set('X-Cache', 'HIT');
       return res.json(filteredCached);
     }
@@ -4389,7 +4389,7 @@ app.get('/api/campaigns', async (req, res) => {
     });
     const formatted = formatCampaignsForUser(freshCampaigns, userActiveIds, isToday, allUserConnectedAccIds);
 
-    res.set('Cache-Control', 'private, max-age=30');
+    res.set('Cache-Control', isToday ? 'no-cache, no-store, must-revalidate' : 'private, max-age=30');
     return res.json(formatted);
   } catch (errSync) {
     console.warn('[Sync Campaigns Handler Error]:', errSync.message);
