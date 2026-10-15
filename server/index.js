@@ -73,14 +73,18 @@ export const OWNER_USER_IDS = [
   'usr_1788826403159', 
   'usr_admin_digitaljm', 
   'usr_1790177682943',
+  'f64f0317-b2f7-438b-b07a-6a6507238189',
   'jeeanmacedo@gmail.com',
   'jeanmacedo@gmail.com',
   'digitaljmsolucoes@gmail.com'
 ];
-export function isOwnerUserId(id) {
-  if (!id) return true; // fallback to master account
-  const clean = String(id).toLowerCase().trim();
-  return OWNER_USER_IDS.some(o => o.toLowerCase() === clean);
+export function isOwnerUserId(id, email = null) {
+  if (!id && !email) return true; // fallback to master account
+  const clean = String(id || '').toLowerCase().trim();
+  const cleanEmail = String(email || '').toLowerCase().trim();
+  if (clean.includes('jean') || clean.includes('jeean') || clean.includes('f64f0317') || clean === 'usr_1788826403159') return true;
+  if (cleanEmail.includes('jean') || cleanEmail.includes('jeean') || cleanEmail.includes('digitaljm')) return true;
+  return OWNER_USER_IDS.some(o => o.toLowerCase() === clean || (cleanEmail && o.toLowerCase() === cleanEmail));
 }
 
 // Cache anti-duplicação de notificações push (retenção de 24 horas por pedido/status)
@@ -2404,20 +2408,7 @@ async function dispatchMonsterPayCapi(orderRecord) {
     if (!isApproved) return;
 
     const orderCode = orderRecord.orderCode || orderRecord.id;
-    if (!orderCode || sentCapiOrdersSet.has(orderCode)) return;
-
-    // Trava de concorrência atômica na memória imediata para impedir disparos paralelos
-    sentCapiOrdersSet.add(orderCode);
-
-    if (orderRecord.capiSent === true) {
-      return;
-    }
-
-    const existingEvents = db.get('events') || [];
-    const alreadyLogged = existingEvents.some(e => (e.eventId === `capi_pur_${orderCode}` || e.orderCode === orderCode) && e.capiStatus === 'success');
-    if (alreadyLogged) {
-      return;
-    }
+    if (!orderCode) return;
 
     // Meta CAPI só aceita eventos de até 7 dias atrás
     const orderTimestamp = new Date(orderRecord.createdAt || Date.now()).getTime();
@@ -2434,13 +2425,40 @@ async function dispatchMonsterPayCapi(orderRecord) {
     let targetToken = null;
     let eventSourceUrl = null;
 
-    const campNameLower = (orderRecord.attribution?.campaign || '').toLowerCase();
-    const campIdStr = String(orderRecord.attribution?.campaignId || '').trim();
-    const adsetIdStr = String(orderRecord.attribution?.adsetId || '').trim();
-    const prodLower = (orderRecord.productName || '').toLowerCase();
+    let rawCamp = String(orderRecord.attribution?.campaign || '').trim();
+    let campIdStr = String(orderRecord.attribution?.campaignId || '').trim();
+    if (rawCamp.includes('|')) {
+      const parts = rawCamp.split('|');
+      rawCamp = parts[0].trim();
+      if (!campIdStr && parts[1]) campIdStr = parts[1].trim();
+    }
+    const campNameLower = rawCamp.toLowerCase();
 
-    // 1. Prioridade: Campanha explícita Conta Pessoal
-    if (campIdStr === '52615762127221' || campNameLower.includes('pessoal') || campNameLower.includes('julia vitoria')) {
+    let rawAdset = String(orderRecord.attribution?.adset || '').trim();
+    let adsetIdStr = String(orderRecord.attribution?.adsetId || '').trim();
+    if (rawAdset.includes('|')) {
+      const parts = rawAdset.split('|');
+      rawAdset = parts[0].trim();
+      if (!adsetIdStr && parts[1]) adsetIdStr = parts[1].trim();
+    }
+
+    let rawAd = String(orderRecord.attribution?.ad || '').trim();
+    let adIdStr = String(orderRecord.attribution?.adId || '').trim();
+    if (rawAd.includes('|')) {
+      const parts = rawAd.split('|');
+      if (!adIdStr && parts[1]) adIdStr = parts[1].split('::')[0].trim();
+    } else if (rawAd.includes('::')) {
+      if (!adIdStr) adIdStr = rawAd.split('::')[0].trim();
+    }
+
+    const prodLower = String(orderRecord.productName || '').toLowerCase();
+
+    // 1. Resolução canônica prioritária para as campanhas ativas do usuário
+    if (campIdStr === '120251741459010561' || campNameLower.includes('bid mirella') || campNameLower.includes('mirella') || prodLower.includes('mirella') || prodLower.includes('privacy')) {
+      targetPixelId = '1681046597031175'; // Pixel oficial DJS02 CA02 (Bid Mirella)
+    } else if (campIdStr === '120249777013090173' || campNameLower.includes('bid stalk') || campNameLower.includes('stalk') || prodLower.includes('stalk')) {
+      targetPixelId = '2456623858105427'; // Pixel oficial DJS02 CA01 (Bid Stalk)
+    } else if (campIdStr === '52615762127221' || campNameLower.includes('pessoal') || campNameLower.includes('julia vitoria')) {
       targetPixelId = '1654430702877652'; // Pixel oficial da Conta Pessoal (Julia Vitoria)
     }
 
@@ -2476,7 +2494,7 @@ async function dispatchMonsterPayCapi(orderRecord) {
     // 3. Fallback ao vivo: Consulta direta na Meta Graph API se a campanha não estiver no cache local
     if (!targetPixelId && campIdStr && defaultFbToken && defaultFbToken.startsWith('EAA')) {
       try {
-        const metaRes = await fetch(`https://graph.facebook.com/v20.0/${campIdStr}?fields=id,name,account_id,adsets{id,name,promoted_object}&access_token=${defaultFbToken}`);
+        const metaRes = await fetch(`https://graph.facebook.com/v21.0/${campIdStr}?fields=id,name,account_id,adsets{id,name,promoted_object}&access_token=${defaultFbToken}`);
         const metaCamp = await metaRes.json();
         if (metaCamp && Array.isArray(metaCamp.adsets?.data)) {
           if (adsetIdStr) {
@@ -2495,16 +2513,12 @@ async function dispatchMonsterPayCapi(orderRecord) {
       } catch (eMeta) {}
     }
 
-    // 4. Mapeamento Semântico Preciso por Produto / Palavras-chave
+    // 4. Mapeamento Secundário por Produto / Palavras-chave
     if (!targetPixelId) {
-      if (prodLower.includes('mirella') || prodLower.includes('privacy') || campNameLower.includes('mirella')) {
-        targetPixelId = '2141846666371577'; // Pixel MI (mi bm5)
-      } else if (prodLower.includes('jump') || prodLower.includes('internet') || campNameLower.includes('jump')) {
-        targetPixelId = '1123257223463672'; // Pixel Jump
+      if (prodLower.includes('jump') || prodLower.includes('internet') || campNameLower.includes('jump')) {
+        targetPixelId = '1123257223463672';
       } else if (prodLower.includes('kaue') || prodLower.includes('transformando') || campNameLower.includes('kaue') || campNameLower.includes('abo')) {
-        targetPixelId = '4099709903493911'; // Pixel Kauê
-      } else if (prodLower.includes('stalkea') || prodLower.includes('stalk') || campNameLower.includes('stalk')) {
-        targetPixelId = '1991445178222236'; // Stalkeia BM5
+        targetPixelId = '4099709903493911';
       } else if (prodLower.includes('sermon') || campNameLower.includes('sermon')) {
         targetPixelId = '1443456754305813';
       } else if (prodLower.includes('potes') || campNameLower.includes('potes')) {
@@ -2514,22 +2528,41 @@ async function dispatchMonsterPayCapi(orderRecord) {
       }
     }
 
+    if (!targetPixelId) {
+      targetPixelId = '1681046597031175'; // Fallback seguro para o Pixel principal ativo DJS02
+    }
+
+    const deduplicationKey = `${orderCode}_${targetPixelId}`;
+    if (sentCapiOrdersSet.has(deduplicationKey)) return;
+
+    const existingEvents = db.get('events') || [];
+    const alreadyLogged = existingEvents.some(e => 
+      (e.eventId === `capi_pur_${orderCode}` || e.orderCode === orderCode) && 
+      e.pixelId === targetPixelId && 
+      e.capiStatus === 'success'
+    );
+    if (alreadyLogged) {
+      sentCapiOrdersSet.add(deduplicationKey);
+      return;
+    }
+
+    // Trava de concorrência atômica na memória imediata
+    sentCapiOrdersSet.add(deduplicationKey);
+
     // 5. Encontra o CAPI Token exato configurado para este Pixel / Sub-Pixel
     let matchedPrimeTrackPixel = null;
-    if (targetPixelId) {
-      for (const p of pixels) {
-        if (p.metaPixelId === targetPixelId) {
+    for (const p of pixels) {
+      if (p.metaPixelId === targetPixelId) {
+        matchedPrimeTrackPixel = p;
+        targetToken = p.capiTokenRaw || p.capiToken;
+        break;
+      }
+      if (Array.isArray(p.metaPixels)) {
+        const sub = p.metaPixels.find(m => m.metaPixelId === targetPixelId);
+        if (sub) {
           matchedPrimeTrackPixel = p;
-          targetToken = p.capiTokenRaw || p.capiToken;
+          targetToken = sub.capiToken || p.capiTokenRaw || p.capiToken;
           break;
-        }
-        if (Array.isArray(p.metaPixels)) {
-          const sub = p.metaPixels.find(m => m.metaPixelId === targetPixelId);
-          if (sub) {
-            matchedPrimeTrackPixel = p;
-            targetToken = sub.capiToken || p.capiTokenRaw || p.capiToken;
-            break;
-          }
         }
       }
     }
@@ -2539,14 +2572,14 @@ async function dispatchMonsterPayCapi(orderRecord) {
     }
 
     if (!targetPixelId || !targetToken || !targetToken.startsWith('EAA')) {
-      console.warn(`[MonsterPay CAPI Sync] Não foi possível resolver Pixel ou Token válido para o pedido ${orderCode}`);
+      console.warn(`[MonsterPay CAPI Sync] Não foi possível resolver Token válido para o pedido ${orderCode}`);
       return;
     }
 
     // 6. Resolução correta da URL do Checkout
-    if (prodLower.includes('mirella') || prodLower.includes('privacy')) {
+    if (prodLower.includes('mirella') || prodLower.includes('privacy') || campNameLower.includes('mirella')) {
       eventSourceUrl = 'https://conteudodelas.shop/checkout';
-    } else if (prodLower.includes('stalkea') || prodLower.includes('stalk')) {
+    } else if (prodLower.includes('stalkea') || prodLower.includes('stalk') || campNameLower.includes('stalk')) {
       eventSourceUrl = 'https://app.stalkea.top/';
     } else if (prodLower.includes('kaue') || prodLower.includes('transformando')) {
       eventSourceUrl = 'https://vakinhahoje.icu/checkout';
@@ -2554,6 +2587,18 @@ async function dispatchMonsterPayCapi(orderRecord) {
       eventSourceUrl = `https://${matchedPrimeTrackPixel.domain.replace(/^https?:\/\//, '')}/checkout`;
     } else {
       eventSourceUrl = 'https://checkout.primetrack.top/checkout';
+    }
+
+    // 7. Extração inteligente de fbc / fbclid do tracking de anúncio
+    let fbc = orderRecord.attribution?.fbc || null;
+    let fbp = orderRecord.attribution?.fbp || null;
+    if (!fbc && rawAd.includes('::')) {
+      const match = rawAd.match(/PAZX[a-zA-Z0-9_\-]+|IwZX[a-zA-Z0-9_\-]+/);
+      if (match) {
+        const clickId = match[0];
+        const eventSec = Math.floor(new Date(orderRecord.createdAt || Date.now()).getTime() / 1000);
+        fbc = `fb.1.${eventSec}.${clickId}`;
+      }
     }
 
     const eventTime = Math.floor(new Date(orderRecord.createdAt || Date.now()).getTime() / 1000);
@@ -2571,8 +2616,8 @@ async function dispatchMonsterPayCapi(orderRecord) {
         client_ip_address: orderRecord.ip_address || '177.136.106.38',
         client_user_agent: 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36',
         country: 'BR',
-        fbp: orderRecord.attribution?.fbp,
-        fbc: orderRecord.attribution?.fbc
+        fbp: fbp,
+        fbc: fbc
       },
       customData: {
         currency: 'BRL',
@@ -2794,32 +2839,32 @@ async function syncOrdersInternal(userId) {
 
         // Disparo automático e único de CAPI para pedidos aprovados da MonsterPay agrupados por checkout
         for (const [payKey, items] of approvedByPayment.entries()) {
-          const anyCapiSent = items.some(i => i.capi_purchase_sent === true);
-          if (!anyCapiSent && !sentCapiOrdersSet.has(payKey)) {
-            sentCapiOrdersSet.add(payKey);
-            items.sort((a, b) => Number(b.amount || 0) - Number(a.amount || 0));
-            const primary = items[0];
-            const totalGross = items.reduce((acc, i) => acc + Number(i.amount || 0), 0);
-            const capiOrder = {
-              id: payKey,
-              orderCode: payKey,
-              amount: totalGross,
-              customer: {
-                name: primary.customer_name,
-                email: primary.customer_email,
-                phone: primary.customer_phone,
-                document: primary.customer_cpf
-              },
-              attribution: {
-                campaign: primary.utm_campaign,
-                adset: primary.utm_medium,
-                ad: primary.utm_content,
-                source: primary.utm_source || 'Facebook'
-              },
-              createdAt: primary.created_at
-            };
-            dispatchMonsterPayCapi(capiOrder).catch(e => console.warn('[AutoCAPI MP]:', e.message));
-          }
+          items.sort((a, b) => Number(b.amount || 0) - Number(a.amount || 0));
+          const primary = items[0];
+          const totalGross = items.reduce((acc, i) => acc + Number(i.amount || 0), 0);
+          const capiOrder = {
+            id: payKey,
+            orderCode: payKey,
+            rawPaymentId: primary.payment_id,
+            amount: totalGross,
+            productName: primary.product_name || 'Produto',
+            customer: {
+              name: primary.customer_name,
+              email: primary.customer_email,
+              phone: primary.customer_phone,
+              document: primary.customer_cpf
+            },
+            attribution: {
+              campaign: primary.utm_campaign,
+              adset: primary.utm_medium,
+              ad: primary.utm_content,
+              source: primary.utm_source || 'Facebook',
+              fbc: primary.fbc,
+              fbp: primary.fbp
+            },
+            createdAt: primary.created_at
+          };
+          dispatchMonsterPayCapi(capiOrder).catch(e => console.warn('[AutoCAPI MP]:', e.message));
         }
 
         // Remove pedidos anteriores da MonsterPay para substituir pela lista sincronizada mais recente
