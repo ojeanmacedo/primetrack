@@ -3131,6 +3131,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
       // Garante que a campanha pertence a uma das contas ATIVAS em Integrações
       const cAdId = String(c.adAccountId || c.accountId || '').replace('act_', '');
       const cAccName = (c.accountName || '').toLowerCase().trim();
+      const cNameUpper = (c.name || '').toUpperCase();
       const isDjsCanonical = isOwner && (
         ['1893409298725562', '1394391128741416'].includes(cAdId) || 
         cAccName.includes('djs02 ca01') || 
