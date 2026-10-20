@@ -84874,7 +84874,7 @@
       "userId": "usr_1788826403159",
       "user_id": "usr_1788826403159",
       "name": "Angel Kerry",
-      "email": "{\"activeAccounts\":[\"1893409298725562\",\"1394391128741416\",\"2292269048278267\",\"1644138016951671\",\"1218349886840112\"]}",
+      "email": "{\"activeAccounts\":[\"1893409298725562\",\"1394391128741416\"]}",
       "avatarUrl": "https://platform-lookaside.fbsbx.com/platform/profilepic/?asid=122109599696599930&height=200&width=200&ext=1792779871&hash=AfvBDrzXAP3adBHF9ztSni8w",
       "accessToken": "EAAXc4rzj1ukBSlQKwMamrzAitklZBQzBm1YwbZCzd737ZCdMWUe54lpQJ6OzVaFdVsKaysIHFHWBRXDsySxEOzpw39XpvoVFfZAJikeZCmc5Eod7vm2qdt1KCAMD5s8ZBXCzZAGeZCk0klCsq5sZBSZB7ZCdVCy2YfxkjGZCoEdcVI8RXZCgpEeqZBDwSZA9l7Dj7X3ZBNZCaB44dzOfuZACuWhoYy",
       "accountsCount": 27,
@@ -84895,7 +84895,8 @@
       "status": "Bloqueada",
       "amountSpent": "262.52",
       "balance": "0.00",
-      "syncActive": false
+      "syncActive": false,
+      "sync": false
     },
     {
       "id": "act_1095793299643643",
@@ -84910,7 +84911,8 @@
       "status": "Ativa",
       "amountSpent": "321.27",
       "balance": "0.00",
-      "syncActive": false
+      "syncActive": false,
+      "sync": false
     },
     {
       "id": "act_2013649985959956",
@@ -84925,7 +84927,8 @@
       "status": "Ativa",
       "amountSpent": "624.37",
       "balance": "0.00",
-      "syncActive": false
+      "syncActive": false,
+      "sync": false
     },
     {
       "id": "act_2292269048278267",
@@ -84940,7 +84943,8 @@
       "status": "Ativa",
       "amountSpent": "225.94",
       "balance": "0.00",
-      "syncActive": true
+      "syncActive": false,
+      "sync": false
     },
     {
       "id": "act_1084136023986167",
@@ -84956,7 +84960,8 @@
       "amountSpent": "437.64",
       "balance": "0.00",
       "syncActive": false,
-      "accous": "Ativa"
+      "accous": "Ativa",
+      "sync": false
     },
     {
       "id": "act_719933136445425",
@@ -84971,7 +84976,8 @@
       "status": "Ativa",
       "amountSpent": "329.47",
       "balance": "0.00",
-      "syncActive": false
+      "syncActive": false,
+      "sync": false
     },
     {
       "id": "act_618758810108571",
@@ -84986,7 +84992,8 @@
       "status": "Bloqueada",
       "amountSpent": "259.59",
       "balance": "0.00",
-      "syncActive": false
+      "syncActive": false,
+      "sync": false
     },
     {
       "id": "act_1057550720668761",
@@ -85001,7 +85008,8 @@
       "status": "Bloqueada",
       "amountSpent": "6.87",
       "balance": "0.00",
-      "syncActive": false
+      "syncActive": false,
+      "sync": false
     },
     {
       "id": "act_1893409298725562",
@@ -85016,7 +85024,8 @@
       "status": "Ativa",
       "amountSpent": "290.16",
       "balance": "0.00",
-      "syncActive": true
+      "syncActive": true,
+      "sync": true
     },
     {
       "id": "act_853877350942504",
@@ -85031,7 +85040,8 @@
       "status": "Ativa",
       "amountSpent": "7328.53",
       "balance": "0.00",
-      "syncActive": false
+      "syncActive": false,
+      "sync": false
     },
     {
       "id": "act_1644138016951671",
@@ -85046,7 +85056,8 @@
       "status": "Bloqueada",
       "amountSpent": "924.95",
       "balance": "0.00",
-      "syncActive": true
+      "syncActive": false,
+      "sync": false
     },
     {
       "id": "act_1382762426809874",
@@ -85061,7 +85072,8 @@
       "status": "Ativa",
       "amountSpent": "1336.61",
       "balance": "0.00",
-      "syncActive": false
+      "syncActive": false,
+      "sync": false
     },
     {
       "id": "act_1394391128741416",
@@ -85076,7 +85088,8 @@
       "status": "Ativa",
       "amountSpent": "84.54",
       "balance": "0.00",
-      "syncActive": true
+      "syncActive": true,
+      "sync": true
     },
     {
       "id": "act_1218349886840112",
@@ -85091,7 +85104,8 @@
       "status": "Bloqueada",
       "amountSpent": "1465.65",
       "balance": "4.05",
-      "syncActive": true
+      "syncActive": false,
+      "sync": false
     },
     {
       "id": "act_1218328933564373",
@@ -85106,7 +85120,8 @@
       "status": "Bloqueada",
       "amountSpent": "163.84",
       "balance": "0.00",
-      "syncActive": false
+      "syncActive": false,
+      "sync": false
     },
     {
       "id": "act_892092096617273",
@@ -85121,7 +85136,8 @@
       "status": "Ativa",
       "amountSpent": "299.39",
       "balance": "0.00",
-      "syncActive": false
+      "syncActive": false,
+      "sync": false
     },
     {
       "id": "act_890158093617924",
@@ -85136,7 +85152,8 @@
       "status": "Bloqueada",
       "amountSpent": "0.00",
       "balance": "0.00",
-      "syncActive": false
+      "syncActive": false,
+      "sync": false
     },
     {
       "id": "act_4088067061443375",
@@ -85151,7 +85168,8 @@
       "status": "Ativa",
       "amountSpent": "191.86",
       "balance": "0.00",
-      "syncActive": false
+      "syncActive": false,
+      "sync": false
     },
     {
       "id": "act_806160179256359",
@@ -85166,7 +85184,8 @@
       "status": "Bloqueada",
       "amountSpent": "671.30",
       "balance": "0.00",
-      "syncActive": false
+      "syncActive": false,
+      "sync": false
     },
     {
       "id": "act_2114439812800100",
@@ -85181,7 +85200,8 @@
       "status": "Ativa",
       "amountSpent": "56.51",
       "balance": "0.00",
-      "syncActive": false
+      "syncActive": false,
+      "sync": false
     },
     {
       "id": "act_4357287371268652",
@@ -85196,7 +85216,8 @@
       "status": "Ativa",
       "amountSpent": "74.15",
       "balance": "0.00",
-      "syncActive": false
+      "syncActive": false,
+      "sync": false
     },
     {
       "id": "act_1101817232408751",
@@ -85211,7 +85232,8 @@
       "status": "Bloqueada",
       "amountSpent": "436.89",
       "balance": "0.00",
-      "syncActive": false
+      "syncActive": false,
+      "sync": false
     },
     {
       "id": "act_2079518495988487",
@@ -85226,7 +85248,8 @@
       "status": "Ativa",
       "amountSpent": "451.38",
       "balance": "0.00",
-      "syncActive": false
+      "syncActive": false,
+      "sync": false
     },
     {
       "id": "act_1118669830683578",
@@ -85241,7 +85264,8 @@
       "status": "Bloqueada",
       "amountSpent": "0.00",
       "balance": "0.00",
-      "syncActive": false
+      "syncActive": false,
+      "sync": false
     },
     {
       "id": "act_1588922422580250",
@@ -85256,7 +85280,8 @@
       "status": "Ativa",
       "amountSpent": "419.29",
       "balance": "0.00",
-      "syncActive": false
+      "syncActive": false,
+      "sync": false
     },
     {
       "id": "act_1113966467825321",
@@ -85271,7 +85296,8 @@
       "status": "Ativa",
       "amountSpent": "76.92",
       "balance": "0.00",
-      "syncActive": false
+      "syncActive": false,
+      "sync": false
     },
     {
       "id": "act_1387392810034708",
@@ -85286,7 +85312,8 @@
       "status": "Ativa",
       "amountSpent": "0.00",
       "balance": "0.00",
-      "syncActive": false
+      "syncActive": false,
+      "sync": false
     }
   ],
   "meta_ads": [
@@ -141448,26 +141475,18 @@
     }
   ],
   "active_accounts": [
-    "2292269048278267",
-    "1218349886840112",
-    "1644138016951671",
     "1893409298725562",
     "1394391128741416"
   ],
   "active_accounts_usr_1788826403159": [
-    "2292269048278267",
-    "1218349886840112",
-    "1644138016951671",
     "1893409298725562",
     "1394391128741416"
   ],
   "sync_overrides_usr_1788826403159": {
-    "2292269048278267": true,
-    "act_2292269048278267": true,
-    "1644138016951671": true,
-    "act_1644138016951671": true,
-    "1218349886840112": true,
-    "act_1218349886840112": true
+    "1893409298725562": true,
+    "act_1893409298725562": true,
+    "1394391128741416": true,
+    "act_1394391128741416": true
   },
   "pixels_usr_1788826403159": [
     {
@@ -141773,11 +141792,9 @@
     }
   ],
   "sync_overrides": {
-    "2292269048278267": true,
-    "act_2292269048278267": true,
-    "1644138016951671": true,
-    "act_1644138016951671": true,
-    "1218349886840112": true,
-    "act_1218349886840112": true
+    "1893409298725562": true,
+    "act_1893409298725562": true,
+    "1394391128741416": true,
+    "act_1394391128741416": true
   }
 }

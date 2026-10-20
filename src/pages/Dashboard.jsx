@@ -579,13 +579,43 @@ export default function Dashboard() {
               accountId: '1394391128741416',
               accountName: 'DJS02 CA02',
               status: true,
-              spend: '7.95',
-              impressions: 282,
-              clicks: 65,
+              spend: '9.09',
+              impressions: 295,
+              clicks: 69,
               sales: 3,
-              revenue: '33.97',
-              profit: '26.02',
-              roas: '4.27'
+              revenue: '25.43',
+              profit: '16.34',
+              roas: '2.80'
+            },
+            {
+              id: '120249853483900173',
+              name: 'CBO Stalk',
+              adAccountId: 'act_1893409298725562',
+              accountId: '1893409298725562',
+              accountName: 'DJS02 CA01',
+              status: true,
+              spend: '63.88',
+              impressions: 1540,
+              clicks: 125,
+              sales: 2,
+              revenue: '99.80',
+              profit: '35.92',
+              roas: '1.56'
+            },
+            {
+              id: '120249813654150173',
+              name: 'Jump bid',
+              adAccountId: 'act_1893409298725562',
+              accountId: '1893409298725562',
+              accountName: 'DJS02 CA01',
+              status: true,
+              spend: '8.64',
+              impressions: 215,
+              clicks: 19,
+              sales: 3,
+              revenue: '27.61',
+              profit: '18.97',
+              roas: '3.20'
             },
             {
               id: '120249777013090173',
@@ -598,7 +628,24 @@ export default function Dashboard() {
               impressions: 12,
               clicks: 3,
               sales: 0,
-              revenue: '0.00'
+              revenue: '0.00',
+              profit: '-0.12',
+              roas: '0.00'
+            },
+            {
+              id: '120249853495910173',
+              name: 'Jump CBO',
+              adAccountId: 'act_1893409298725562',
+              accountId: '1893409298725562',
+              accountName: 'DJS02 CA01',
+              status: false,
+              spend: '21.54',
+              impressions: 480,
+              clicks: 35,
+              sales: 0,
+              revenue: '0.00',
+              profit: '-21.54',
+              roas: '0.00'
             }
           ];
         }
