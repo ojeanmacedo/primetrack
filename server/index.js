@@ -2470,8 +2470,10 @@ async function dispatchMonsterPayCapi(orderRecord) {
     // 1. Resolução canônica prioritária para as campanhas ativas do usuário
     if (campIdStr === '120251741459010561' || campNameLower.includes('bid mirella') || campNameLower.includes('mirella') || prodLower.includes('mirella') || prodLower.includes('privacy')) {
       targetPixelId = '1681046597031175'; // Pixel oficial DJS02 CA02 (Bid Mirella)
-    } else if (campIdStr === '120249777013090173' || campNameLower.includes('bid stalk') || campNameLower.includes('stalk') || prodLower.includes('stalk')) {
-      targetPixelId = '2456623858105427'; // Pixel oficial DJS02 CA01 (Bid Stalk)
+    } else if (campIdStr === '120249777013090173' || campIdStr === '120249853483900173' || campNameLower.includes('bid stalk') || campNameLower.includes('cbo stalk') || campNameLower.includes('stalk') || prodLower.includes('stalk')) {
+      targetPixelId = '2456623858105427'; // Pixel oficial DJS02 CA01 (Bid Stalk / CBO Stalk)
+    } else if (campIdStr === '120249813654150173' || campIdStr === '120249853495910173' || campNameLower.includes('jump') || prodLower.includes('jump') || prodLower.includes('internet')) {
+      targetPixelId = '1111036607998395'; // Pixel oficial DJS02 CA01 (Jump bid / Jump CBO)
     } else if (campIdStr === '52615762127221' || campNameLower.includes('pessoal') || campNameLower.includes('julia vitoria')) {
       targetPixelId = '1654430702877652'; // Pixel oficial da Conta Pessoal (Julia Vitoria)
     }
@@ -2530,7 +2532,9 @@ async function dispatchMonsterPayCapi(orderRecord) {
     // 4. Mapeamento Secundário por Produto / Palavras-chave
     if (!targetPixelId) {
       if (prodLower.includes('jump') || prodLower.includes('internet') || campNameLower.includes('jump')) {
-        targetPixelId = '1123257223463672';
+        targetPixelId = '1111036607998395';
+      } else if (prodLower.includes('stalk') || campNameLower.includes('stalk')) {
+        targetPixelId = '2456623858105427';
       } else if (prodLower.includes('kaue') || prodLower.includes('transformando') || campNameLower.includes('kaue') || campNameLower.includes('abo')) {
         targetPixelId = '4099709903493911';
       } else if (prodLower.includes('sermon') || campNameLower.includes('sermon')) {
@@ -2594,7 +2598,9 @@ async function dispatchMonsterPayCapi(orderRecord) {
     if (prodLower.includes('mirella') || prodLower.includes('privacy') || campNameLower.includes('mirella')) {
       eventSourceUrl = 'https://conteudodelas.shop/checkout';
     } else if (prodLower.includes('stalkea') || prodLower.includes('stalk') || campNameLower.includes('stalk')) {
-      eventSourceUrl = 'https://app.stalkea.top/';
+      eventSourceUrl = 'https://oficial.stalkea.top/';
+    } else if (prodLower.includes('jump') || campNameLower.includes('jump') || prodLower.includes('internet')) {
+      eventSourceUrl = 'https://go.acesse-agora.shop/p4tqvrl';
     } else if (prodLower.includes('kaue') || prodLower.includes('transformando')) {
       eventSourceUrl = 'https://vakinhahoje.icu/checkout';
     } else if (matchedPrimeTrackPixel?.domain && matchedPrimeTrackPixel.domain !== '*') {
@@ -2798,7 +2804,13 @@ async function syncOrdersInternal(userId) {
           if (campName.toLowerCase().includes('pessoal') || (campId && String(campId) === '52615762127221')) {
             resolvedAccId = '1396541275925294';
             resolvedAccName = 'Julia Vitoria';
-          } else if (String(campId) === '120254044832120422' || String(campId) === '120254044828470422' || campName.toLowerCase().includes('1-3-1') || campName.toLowerCase().includes('mirella') || String(resolvedAccId) === '618758810108571') {
+          } else if (String(campId) === '120251741459010561' || campName.toLowerCase().includes('bid mirella')) {
+            resolvedAccId = '1394391128741416';
+            resolvedAccName = 'DJS02 CA02';
+          } else if (String(campId) === '120249853483900173' || String(campId) === '120249813654150173' || String(campId) === '120249777013090173' || campName.toLowerCase().includes('stalk') || campName.toLowerCase().includes('jump')) {
+            resolvedAccId = '1893409298725562';
+            resolvedAccName = 'DJS02 CA01';
+          } else if (String(campId) === '120254044832120422' || String(campId) === '120254044828470422' || campName.toLowerCase().includes('1-3-1') || String(resolvedAccId) === '618758810108571') {
             resolvedAccId = '618758810108571';
             resolvedAccName = 'Julia Macedo';
           }
