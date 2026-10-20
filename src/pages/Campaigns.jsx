@@ -702,7 +702,7 @@ export const sanitizeCampaignsData = (cData, optionalAccounts = null) => {
                     : (a.bid_amount ? (Number(a.bid_amount) / 100).toFixed(2) : (rawCampBid || (isKnownBidCamp ? '10.00' : null)))))
             : null;
           
-          if (isCbo && !rawAdsetBid && (asNameUpper.includes('BID') || isKnownBidCamp || asIsBid)) {
+          if (isCbo && !rawAdsetBid && (asNameUpper.includes('BID') || isKnownBidCamp || isBidCap)) {
             rawAdsetBid = '10.00';
           }
           
@@ -1453,7 +1453,7 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
         } catch (e) {}
       }
     }
-    return [];
+    return isOwner ? [...CANONICAL_DJS_CAMPAIGNS] : [];
   });
 
   const [adAccountsList, setAdAccountsList] = useState(() => {
@@ -3125,8 +3125,9 @@ export default function Campaigns({ clientMode = 'clean', onGoToIntegrations }) 
     const deletedIds = getDeletedIds();
 
     return campaignsList.filter(c => {
-      const cIdStr = String(c.id);
-      if (deletedIds.has(cIdStr)) return false;
+      if (!c) return false;
+      const cIdStr = String(c.id || c.campaignId || '');
+      if (!cIdStr || deletedIds.has(cIdStr)) return false;
 
       // Garante que a campanha pertence a uma das contas ATIVAS em Integrações
       const cAdId = String(c.adAccountId || c.accountId || '').replace('act_', '');
