@@ -30,8 +30,59 @@ export function getVapidPublicKey() {
   return VAPID_PUBLIC_KEY;
 }
 
-const OWNER_IDS = ['usr_1788826403159', 'usr_admin_digitaljm', 'usr_1790177682943'];
-const isOwner = (id) => !id || OWNER_IDS.includes(id);
+const OWNER_IDS = [
+  'usr_1788826403159', 
+  'usr_admin_digitaljm', 
+  'usr_1790177682943',
+  'f64f0317-b2f7-438b-b07a-6a6507238189',
+  'jeeanmacedo@gmail.com',
+  'jeanmacedo@gmail.com',
+  'digitaljmsolucoes@gmail.com'
+];
+export const isOwner = (id) => {
+  if (!id) return true;
+  const clean = String(id).toLowerCase().trim();
+  return OWNER_IDS.some(o => o.toLowerCase() === clean) || clean.includes('jean') || clean.includes('jeean') || clean.includes('f64f0317') || clean === 'usr_1788826403159';
+};
+
+const globalRecentlyNotifiedOrders = new Map();
+
+export async function isNotificationSent(orderCode, statusKey) {
+  if (!orderCode) return false;
+  const dedupeKey = `${orderCode}_${statusKey}`;
+  const now = Date.now();
+  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+  
+  if (globalRecentlyNotifiedOrders.has(dedupeKey)) {
+    const ts = globalRecentlyNotifiedOrders.get(dedupeKey);
+    if (now - ts < ONE_DAY_MS) return true;
+  }
+
+  try {
+    const cloud = getMpCloud();
+    const marker = `notif_sent_${dedupeKey}`;
+    const { data } = await cloud.from('pix_rate_limits').select('ip_address').eq('ip_address', marker).limit(1);
+    if (data && data.length > 0) {
+      globalRecentlyNotifiedOrders.set(dedupeKey, now);
+      return true;
+    }
+  } catch (e) {}
+
+  return false;
+}
+
+export async function recordNotificationSent(orderCode, statusKey) {
+  if (!orderCode) return;
+  const dedupeKey = `${orderCode}_${statusKey}`;
+  const now = Date.now();
+  globalRecentlyNotifiedOrders.set(dedupeKey, now);
+
+  try {
+    const cloud = getMpCloud();
+    const marker = `notif_sent_${dedupeKey}`;
+    await cloud.from('pix_rate_limits').insert({ ip_address: marker });
+  } catch (e) {}
+}
 
 function getEndpointHash(endpoint) {
   if (!endpoint) return 'unknown';

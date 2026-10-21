@@ -7,7 +7,7 @@ import { sendCapiEvent } from './services/capi.js';
 import { parseWebhook } from './services/webhooks.js';
 import { attributeOrder } from './services/attribution.js';
 import { resolveIpLocation } from './services/geoService.js';
-import { getVapidPublicKey, saveSubscription, sendSalesNotification } from './services/pushService.js';
+import { getVapidPublicKey, saveSubscription, sendSalesNotification, isNotificationSent, recordNotificationSent } from './services/pushService.js';
 import { 
   getAuthorizationUrl, 
   exchangeCodeForLongLivedToken, 
@@ -2053,21 +2053,18 @@ app.all([
 
     // Disparo de Web Push para iOS Safari & Navegadores
     try {
-      const isPaid = parsed.status === 'paid' || parsed.status === 'approved';
-      const isPending = parsed.status === 'waiting_payment' || parsed.status === 'pending';
-      const isRefunded = parsed.status === 'refunded';
+      const normStatus = String(parsed.status || '').toLowerCase().trim();
+      const isPaid = ['paid', 'approved', 'pago', 'aprovado'].includes(normStatus);
+      const isPending = ['waiting_payment', 'pending', 'aguardando_pagamento', 'processando', 'pix_gerado', 'gerado'].includes(normStatus);
+      const isRefunded = ['refunded', 'chargeback', 'reembolsado', 'estornado', 'cancelado'].includes(normStatus);
 
-      const effectivelyPreviousStatus = prevStatus || supaPrevStatus;
-      const isPaidAlready = isPaid && (effectivelyPreviousStatus === 'paid' || effectivelyPreviousStatus === 'approved');
-      const isPendingAlready = isPending && (effectivelyPreviousStatus === 'waiting_payment' || effectivelyPreviousStatus === 'pending');
-      const isRefundedAlready = isRefunded && (effectivelyPreviousStatus === 'refunded');
-
-      // Deduplicação estrita de 24 horas por pedido e tipo de evento
-      const notifStatusKey = isPaid ? 'approved' : (isPending ? 'pending' : (isRefunded ? 'refunded' : parsed.status));
+      // Deduplicação estrita por pedido e tipo de evento (memória + cloud)
+      const notifStatusKey = isPaid ? 'approved' : (isPending ? 'pending' : (isRefunded ? 'refunded' : normStatus));
       const notifDedupeKey = `${parsed.orderCode}_${notifStatusKey}`;
       const now = Date.now();
       const ONE_DAY_MS = 24 * 60 * 60 * 1000;
       const recentlyNotified = recentlyNotifiedOrders.has(notifDedupeKey) && (now - recentlyNotifiedOrders.get(notifDedupeKey) < ONE_DAY_MS);
+      const cloudAlreadyNotified = await isNotificationSent(parsed.orderCode, notifStatusKey);
 
       // Respeita configurações de notificação do usuário (busca Supabase primeiro)
       let notifSettings = {};
@@ -2126,7 +2123,7 @@ app.all([
       let notificationType = null; // 'approved' | 'pending' | 'refunded'
 
       if (isPaid) {
-        const alreadyNotifiedApproved = (prevOrder?.notifiedApproved === true) || isPaidAlready || recentlyNotified;
+        const alreadyNotifiedApproved = (prevOrder?.notifiedApproved === true) || recentlyNotified || cloudAlreadyNotified;
         if (!alreadyNotifiedApproved && allowApproved) {
           shouldNotify = true;
           notificationType = 'approved';
@@ -2134,8 +2131,8 @@ app.all([
           console.log(`[WebPush] Notificação de Venda Aprovada ignorada para ${parsed.orderCode}: já notificada anteriormente.`);
         }
       } else if (isPending) {
-        const wasAlreadyPaid = (prevOrder?.notifiedApproved === true) || effectivelyPreviousStatus === 'paid' || effectivelyPreviousStatus === 'approved';
-        const alreadyNotifiedPending = (prevOrder?.notifiedPending === true) || isPendingAlready || recentlyNotified;
+        const wasAlreadyPaid = (prevOrder?.notifiedApproved === true) || (await isNotificationSent(parsed.orderCode, 'approved')) || normStatus === 'approved' || normStatus === 'paid';
+        const alreadyNotifiedPending = (prevOrder?.notifiedPending === true) || recentlyNotified || cloudAlreadyNotified;
         if (!alreadyNotifiedPending && !wasAlreadyPaid && allowPending) {
           shouldNotify = true;
           notificationType = 'pending';
@@ -2143,7 +2140,7 @@ app.all([
           console.log(`[WebPush] Notificação de Venda Pendente ignorada para ${parsed.orderCode}: já notificada ou pedido já aprovado.`);
         }
       } else if (isRefunded) {
-        const alreadyNotifiedRefunded = (prevOrder?.notifiedRefunded === true) || isRefundedAlready || recentlyNotified;
+        const alreadyNotifiedRefunded = (prevOrder?.notifiedRefunded === true) || recentlyNotified || cloudAlreadyNotified;
         if (!alreadyNotifiedRefunded && allowRefunded) {
           shouldNotify = true;
           notificationType = 'refunded';
@@ -2154,6 +2151,8 @@ app.all([
 
       if (shouldNotify && notificationType) {
         recentlyNotifiedOrders.set(notifDedupeKey, now);
+        await recordNotificationSent(parsed.orderCode, notificationType);
+        const targetPushUserId = isOwnerUserId(orderUserId) ? 'usr_1788826403159' : orderUserId;
 
         if (notificationType === 'approved') {
           await sendSalesNotification({
@@ -2162,7 +2161,7 @@ app.all([
             icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
             tag: `order_${parsed.orderCode}_approved`,
             data: { url: '/sales', orderCode: parsed.orderCode },
-            userId: orderUserId
+            userId: targetPushUserId
           });
         } else if (notificationType === 'pending') {
           await sendSalesNotification({
@@ -2171,7 +2170,7 @@ app.all([
             icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
             tag: `order_${parsed.orderCode}_pending`,
             data: { url: '/sales', orderCode: parsed.orderCode },
-            userId: orderUserId
+            userId: targetPushUserId
           });
         } else if (notificationType === 'refunded') {
           await sendSalesNotification({
@@ -2180,7 +2179,7 @@ app.all([
             icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
             tag: `order_${parsed.orderCode}_refunded`,
             data: { url: '/sales', orderCode: parsed.orderCode },
-            userId: orderUserId
+            userId: targetPushUserId
           });
         }
 
@@ -2891,6 +2890,62 @@ async function syncOrdersInternal(userId) {
             createdAt: primary.created_at
           };
           dispatchMonsterPayCapi(capiOrder).catch(e => console.warn('[AutoCAPI MP]:', e.message));
+        }
+
+        // Notificação WebPush resiliente em tempo real para vendas recentes da MonsterPay
+        try {
+          const THREE_HOURS_MS = 3 * 60 * 60 * 1000;
+          const nowMs = Date.now();
+          for (const s of mpSales) {
+            const saleTime = new Date(s.created_at || nowMs).getTime();
+            if (nowMs - saleTime > THREE_HOURS_MS) continue;
+
+            let sStatus = 'waiting_payment';
+            if (s.status === 'paid' || s.status === 'approved') sStatus = 'approved';
+            else if (s.status === 'refunded') sStatus = 'refunded';
+            else if (s.status === 'pending') sStatus = 'waiting_payment';
+
+            const sPayKey = s.payment_id || s.id;
+            const grossVal = Number(s.amount || 0);
+            const pFee = Number(s.percent_fee || 0);
+            const fFee = Number(s.fixed_fee || 0);
+            const netVal = Number((grossVal - (grossVal * (pFee / 100)) - fFee).toFixed(2));
+            const fmtVal = netVal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            let campName = s.utm_campaign || '';
+            if (campName && campName.includes('|')) campName = campName.split('|')[0].trim();
+            const campPart = campName ? ` — ${campName}` : '';
+
+            if (sStatus === 'approved') {
+              const alreadyApproved = await isNotificationSent(sPayKey, 'approved');
+              if (!alreadyApproved) {
+                await recordNotificationSent(sPayKey, 'approved');
+                sendSalesNotification({
+                  title: '🎉 Venda Aprovada!',
+                  body: `Comissão: ${fmtVal}${campPart}`,
+                  icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
+                  tag: `order_${sPayKey}_approved`,
+                  data: { url: '/sales', orderCode: sPayKey },
+                  userId: 'usr_1788826403159'
+                }).catch(err => console.warn('[AutoPush MP Sync Approved]:', err.message));
+              }
+            } else if (sStatus === 'waiting_payment') {
+              const alreadyPending = await isNotificationSent(sPayKey, 'pending');
+              const alreadyApproved = await isNotificationSent(sPayKey, 'approved');
+              if (!alreadyPending && !alreadyApproved) {
+                await recordNotificationSent(sPayKey, 'pending');
+                sendSalesNotification({
+                  title: '⏳ Venda Pendente!',
+                  body: `Comissão: ${fmtVal}${campPart}`,
+                  icon: 'https://app.primetrack.top/images/primetrack-app-icon.png',
+                  tag: `order_${sPayKey}_pending`,
+                  data: { url: '/sales', orderCode: sPayKey },
+                  userId: 'usr_1788826403159'
+                }).catch(err => console.warn('[AutoPush MP Sync Pending]:', err.message));
+              }
+            }
+          }
+        } catch (pushSyncErr) {
+          console.warn('[AutoPush MP Sync Error]:', pushSyncErr.message);
         }
 
         // Remove pedidos anteriores da MonsterPay para substituir pela lista sincronizada mais recente
